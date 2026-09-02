@@ -7,7 +7,7 @@ export default defineConfig(() => {
   return {
     // 💡 저장소(Repository) 이름을 작성합니다. 
     // 예: 레포지토리 주소가 github.com/user/my-app 이라면 '/my-app/'
-    base: '/aipodium/', 
+    base: '/', 
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
