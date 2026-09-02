@@ -3,9 +3,7 @@
   "name": "aipodium",
   "compatibility_date": "2026-03-01",
   "assets": {
-    "directory": "./dist",
-    "binding": "ASSETS",
-    "run_worker_first": true
+    "directory": "./dist"
   },
   "d1_databases": [
     {
