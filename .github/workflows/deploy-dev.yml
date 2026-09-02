@@ -3,10 +3,10 @@ name: Deploy Dev Branch to GitHub Pages
 on:
   push:
     branches:
-      - dev # dev 브랜치에 push될 때 작동
+      - dev
 
 permissions:
-  contents: write # gh-pages 브랜치 생성 및 쓰기 권한
+  contents: write
 
 jobs:
   build-and-deploy:
@@ -20,10 +20,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm' # 또는 yarn, pnpm, deno
+          cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build Project
         run: npm run build
@@ -31,5 +31,5 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: dist # Vite는 기본적으로 dist 폴더로 빌드됩니다 (CRA는 build)
-          branch: gh-pages # 빌드 결과를 gh-pages 브랜치로 푸시
+          folder: dist
+          branch: gh-pages
