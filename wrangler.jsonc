@@ -10,7 +10,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "aipodium-db",
+      "database_name": "aipodium",
       "database_id": "50bc64a5-9e46-419f-8830-dea9c19089d6"
     }
   ]
