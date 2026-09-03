@@ -1,6 +1,6 @@
 {
-  "name": "Remix AI Podium",
-  "description": "Integrated 3-pane prototype for AI chat, markdown editing, and file management with local and cloud model support.",
+  "name": "AI Podium",
+  "description": "Integrated 3-pane AI workspace for living SSOT documents, multi-model AI chat, markdown editing, and spreadsheet blocks.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

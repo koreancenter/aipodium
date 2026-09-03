@@ -76,7 +76,7 @@ export const VibePromptModal: React.FC<VibePromptModalProps> = ({
   fullContent,
   onApplyResult,
   onToast,
-  selectedModel = 'gemini-2.5-flash',
+  selectedModel = 'gemini-3.7-flash',
   provider = 'cloud',
   cloudApiKey,
   localEndpointAddress,

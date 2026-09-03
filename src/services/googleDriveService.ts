@@ -164,9 +164,52 @@ class GoogleDriveService {
   }
 
   /**
+   * Dynamically loads Google Identity Services (GIS) client script on demand
+   */
+  private loadGsiScript(): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined') {
+        resolve(false);
+        return;
+      }
+      const google = (window as any).google;
+      if (google?.accounts?.oauth2) {
+        resolve(true);
+        return;
+      }
+      const existingScript = document.getElementById('gsi-client-script');
+      if (existingScript) {
+        existingScript.addEventListener('load', () => resolve(true), { once: true });
+        existingScript.addEventListener('error', () => resolve(false), { once: true });
+        // If already loaded or timed out
+        setTimeout(() => resolve(!!(window as any).google?.accounts?.oauth2), 1500);
+        return;
+      }
+      try {
+        const script = document.createElement('script');
+        script.id = 'gsi-client-script';
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.crossOrigin = 'anonymous';
+        script.async = true;
+        script.defer = true;
+        script.onload = () => resolve(true);
+        script.onerror = () => {
+          console.warn('Google Identity Services script failed to load, using graceful fallback.');
+          resolve(false);
+        };
+        document.head.appendChild(script);
+      } catch (err) {
+        console.warn('Failed to append GSI script tag:', err);
+        resolve(false);
+      }
+    });
+  }
+
+  /**
    * Request Login via Google Identity Services (GIS)
    */
   public async signIn(clientId?: string): Promise<{ token: string; profile: GoogleUserProfile }> {
+    await this.loadGsiScript();
     return new Promise((resolve, reject) => {
       // Check if google accounts gsi script is loaded
       const google = (window as any).google;

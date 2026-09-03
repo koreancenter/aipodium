@@ -214,43 +214,27 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
 
   return (
     <div className="space-y-4 animate-in fade-in duration-150 text-xs">
-      {/* Header */}
-      <div className="border-b border-[#27272a] pb-2">
-        <h3 className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Security & Privacy (보안 및 데이터 보호)</span>
-        </h3>
-        <p className="text-xs text-slate-400 mt-0.5">
-          Web Crypto API(AES-256-GCM) 암호화 저장 및 데이터 초기화를 관리합니다.
-        </p>
-      </div>
-
-      <div className="divide-y divide-[#27272a]">
+      <div className="divide-y divide-[#27272a]/60">
         {/* Row 1: AES-256 Storage Encryption */}
         <div className="py-3 space-y-2.5 first:pt-0">
           <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-1.5 font-medium text-slate-200">
-                <span>AES-256 Storage Encryption</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded font-mono border ${
-                    securityConfig.isEncryptionEnabled
-                      ? isUnlocked
-                        ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/30'
-                        : 'bg-amber-950/60 text-amber-300 border-amber-500/30'
-                      : 'bg-[#27272a] text-slate-400 border-[#3f3f46]'
-                  }`}
-                >
-                  {securityConfig.isEncryptionEnabled
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-300">AES-256 암호화 저장</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.5 rounded font-mono border ${
+                  securityConfig.isEncryptionEnabled
                     ? isUnlocked
-                      ? '활성 (Active)'
-                      : '잠김 (Locked)'
-                    : '비활성'}
-                </span>
-              </div>
-              <div className="text-xs text-slate-400 mt-0.5">
-                API 키 및 로컬 엔드포인트를 브라우저에 AES-256으로 암호화하여 보관
-              </div>
+                      ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/30'
+                      : 'bg-amber-950/60 text-amber-300 border-amber-500/30'
+                    : 'bg-[#27272a] text-slate-400 border-[#27272a]'
+                }`}
+              >
+                {securityConfig.isEncryptionEnabled
+                  ? isUnlocked
+                    ? '활성'
+                    : '잠김'
+                  : '비활성'}
+              </span>
             </div>
 
             <button
@@ -277,7 +261,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                 onChange={(e) => setUnlockInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleUnlockVault()}
                 placeholder="마스터 PIN 입력"
-                className="flex-1 bg-[#18181b] border border-[#3f3f46] rounded px-2.5 py-1.5 text-xs font-mono text-slate-200 outline-none focus:border-amber-400"
+                className="flex-1 bg-[#18181b] border border-[#27272a] rounded px-2.5 py-1.5 text-xs font-mono text-slate-200 outline-none focus:border-amber-400"
               />
               <button
                 type="button"
@@ -292,14 +276,14 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
           {/* Actions if unlocked */}
           {securityConfig.isEncryptionEnabled && isUnlocked && (
             <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
-              <span className="flex items-center gap-1 text-emerald-400">
-                <CheckCircle2 className="w-3.5 h-3.5" /> 메모리 복호화 활성 상태
+              <span className="flex items-center gap-1 text-emerald-400 text-xs">
+                <CheckCircle2 className="w-3.5 h-3.5" /> 복호화 활성 상태
               </span>
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => setIsSettingPasscode(true)}
-                  className="px-2.5 py-1 rounded bg-[#27272a] hover:bg-[#3f3f46] text-slate-300 border border-[#3f3f46] transition cursor-pointer text-xs"
+                  className="px-2.5 py-1 rounded bg-[#27272a] hover:bg-[#3f3f46] text-slate-300 border border-[#27272a] transition cursor-pointer text-xs"
                 >
                   비밀번호 변경
                 </button>
@@ -316,7 +300,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
 
           {/* Passcode modal inline */}
           {isSettingPasscode && (
-            <div className="p-3 bg-[#27272a]/40 border border-[#38bdf8]/40 rounded space-y-2.5 animate-in fade-in">
+            <div className="p-3 bg-[#18181b] border border-[#38bdf8]/40 rounded space-y-2.5 animate-in fade-in">
               <div className="flex items-center justify-between text-xs font-semibold text-[#38bdf8]">
                 <span className="flex items-center gap-1.5">
                   <Fingerprint className="w-3.5 h-3.5" /> 마스터 비밀번호(PIN) 설정
@@ -324,7 +308,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsSettingPasscode(false)}
-                  className="text-slate-400 hover:text-white p-0.5"
+                  className="text-slate-400 hover:text-white p-0.5 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -336,12 +320,12 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                     value={passcode}
                     onChange={(e) => setPasscode(e.target.value)}
                     placeholder="새 비밀번호 (4자 이상)"
-                    className="w-full bg-[#18181b] border border-[#3f3f46] rounded px-2.5 py-1.5 text-xs text-slate-200 pr-7 focus:border-[#38bdf8] outline-none font-mono"
+                    className="w-full bg-[#18181b] border border-[#27272a] rounded px-2.5 py-1.5 text-xs text-slate-200 pr-7 focus:border-[#38bdf8] outline-none font-mono"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPasscode(!showPasscode)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
                   >
                     {showPasscode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
@@ -351,14 +335,14 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                   value={confirmPasscode}
                   onChange={(e) => setConfirmPasscode(e.target.value)}
                   placeholder="비밀번호 확인"
-                  className="w-full bg-[#18181b] border border-[#3f3f46] rounded px-2.5 py-1.5 text-xs text-slate-200 focus:border-[#38bdf8] outline-none font-mono"
+                  className="w-full bg-[#18181b] border border-[#27272a] rounded px-2.5 py-1.5 text-xs text-slate-200 focus:border-[#38bdf8] outline-none font-mono"
                 />
               </div>
               <div className="flex justify-end gap-1.5">
                 <button
                   type="button"
                   onClick={() => setIsSettingPasscode(false)}
-                  className="px-2.5 py-1 text-slate-400 hover:text-white rounded transition text-xs"
+                  className="px-2.5 py-1 text-slate-400 hover:text-white rounded transition text-xs cursor-pointer"
                 >
                   취소
                 </button>
@@ -374,18 +358,9 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
           )}
         </div>
 
-        {/* Streamlined Danger Zone (1-row item with compact red outline button) */}
+        {/* Danger Zone */}
         <div className="flex items-center justify-between gap-4 py-3">
-          <div>
-            <div className="flex items-center gap-1.5 font-medium text-rose-400">
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>Danger Zone: 모든 로컬 데이터 초기화</span>
-            </div>
-            <div className="text-xs text-slate-400 mt-0.5">
-              저장된 세션 기록, 에디터 문서, API 키 및 캐시 영구 삭제
-            </div>
-          </div>
-
+          <label className="text-xs font-medium text-rose-400">모든 로컬 데이터 초기화</label>
           <button
             type="button"
             onClick={() => {
