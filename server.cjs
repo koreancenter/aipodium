@@ -31,34 +31,26 @@ async function startServer() {
   const PORT = 3e3;
   app.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-    if (process.env.NODE_ENV === "production") {
-      res.setHeader(
-        "Content-Security-Policy",
-        "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' https://api.github.com https://www.googleapis.com https://raw.githubusercontent.com"
-      );
-    }
     next();
   });
   app.use(import_express.default.json({ limit: "1mb" }));
   app.post("/api/chat", async (req, res) => {
     try {
-      const { message, editorContent, model } = req.body;
+      const { message, editorContent, model, parameters } = req.body;
       const cleanMessage = typeof message === "string" ? message.trim() : "";
-      if (!cleanMessage || cleanMessage.length > 2e4) {
+      if (!cleanMessage || cleanMessage.length > 5e4) {
         return res.status(400).json({ error: "A valid chat message is required." });
       }
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
-        return res.status(500).json({ error: "GEMINI_API_KEY is not set. Please configure it in Settings > Secrets." });
+        return res.status(500).json({ error: "GEMINI_API_KEY is not configured on the server." });
       }
       const ai = new import_genai.GoogleGenAI({
         apiKey,
         httpOptions: { headers: { "User-Agent": "aistudio-build" } }
       });
-      let systemInstruction = req.body.systemInstruction || `You are a helpful AI assistant in the AI Podium workspace.
+      let systemInstruction = parameters?.systemInstruction || req.body.systemInstruction || `You are a helpful AI assistant in the AI Podium workspace.
 The user is working on a Markdown document in the central editor.
 Here is the CURRENT state of the user's document:
 
@@ -68,19 +60,38 @@ ${editorContent || "(Document is empty)"}
 
 Please provide a helpful, concise response. If the user asks for suggestions or code based on the document, provide it. Keep your formatting in Markdown.`;
       let aiModel = "gemini-3.7-flash";
-      if (model && model.includes("pro")) {
-        aiModel = "gemini-3.1-pro-preview";
-      } else if (model && model.includes("lite")) {
-        aiModel = "gemini-3.1-flash-lite";
+      if (typeof model === "string") {
+        const lowerModel = model.toLowerCase();
+        if (lowerModel.includes("pro")) {
+          aiModel = "gemini-3.1-pro-preview";
+        } else if (lowerModel.includes("lite") || lowerModel.includes("flash-lite")) {
+          aiModel = "gemini-3.1-flash-lite";
+        } else if (lowerModel.includes("gemini-3.7-flash") || lowerModel.includes("flash")) {
+          aiModel = "gemini-3.7-flash";
+        }
+      }
+      const config = {
+        systemInstruction
+      };
+      if (parameters) {
+        if (typeof parameters.temperature === "number") {
+          config.temperature = Math.max(0, Math.min(2, parameters.temperature));
+        }
+        if (typeof parameters.topP === "number") {
+          config.topP = Math.max(0, Math.min(1, parameters.topP));
+        }
+        if (typeof parameters.maxTokens === "number") {
+          config.maxOutputTokens = parameters.maxTokens;
+        }
       }
       const chat = ai.chats.create({
         model: aiModel,
-        config: { systemInstruction }
+        config
       });
       const response = await chat.sendMessage({ message });
       res.json({ text: response.text });
     } catch (err) {
-      console.error(err);
+      console.error("Chat endpoint error:", err);
       res.status(500).json({ error: err.message || "Failed to generate AI response." });
     }
   });
