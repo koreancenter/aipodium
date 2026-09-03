@@ -2,700 +2,151 @@
 
 /* Selection Highlight Styling */
 ::selection {
-  background-color: #6366f1;
-  color: #ffffff;
-}
-
-.light-mode ::selection {
-  background-color: #4f46e5;
+  background-color: var(--accent-primary, #6366f1);
   color: #ffffff;
 }
 
 /* ==========================================================================
-   High-Contrast Light Mode Styling
+   Design System CSS Custom Properties: VS Code Ultra-Dense IDE Theme
    ========================================================================== */
-.light-mode {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
+:root {
+  --bg-main: #121318;        /* 메인 배경 (딥 차콜) */
+  --bg-surface: #1e202b;     /* 사이드바, 카드, 패널 배경 */
+  --bg-editor: #16171e;      /* 마크다운 에디터 배경 */
+  --border-color: #2e3142;   /* 패널 경계선 */
+  --text-main: #e2e8f0;      /* 기본 폰트 색상 */
+  --text-muted: #94a3b8;     /* 보조/설명 폰트 색상 */
+  --accent-primary: #6366f1; /* 포인트 컬러 (일렉트릭 퍼플) */
+
+  /* Aliases for universal compatibility */
+  --bg-app: var(--bg-main);
+  --bg-primary: var(--bg-main);
+  --bg-panel: var(--bg-surface);
+  --bg-secondary: var(--bg-surface);
+  --bg-surface-hover: #282a38;
+  --bg-surface-active: #323548;
+  --bg-editor-surface: var(--bg-editor);
+  --border-glass: var(--border-color);
+  --border-color-subtle: #2e3142;
+  --border-color-strong: #6366f1;
+  --bg-surface-glass: #1e202b;
+  --bg-surface-glass-subtle: #181922;
+  --bg-surface-glass-card: #1e202b;
+
+  --text-primary: var(--text-main);
+  --text-secondary: var(--text-muted);
+  --primary: var(--accent-primary);
+  --primary-hover: #4f46e5;
+  --accent: var(--accent-primary);
+  --accent-hover: #4f46e5;
+  --accent-color: var(--accent-primary);
+  --accent-rgb: 99, 102, 241;
+  --accent-surface: rgba(99, 102, 241, 0.15);
+  --glow-accent: none;
+  --glow-primary: none;
 }
 
-/* Header & Top Navigation */
-.light-mode header {
-  background-color: #ffffff !important;
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+/* Base Body Styles - VS Code Monospace IDE Standard */
+body {
+  background: var(--bg-main, #121318);
+  color: var(--text-main, #e2e8f0);
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Consolas, monospace, sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  min-height: 100vh;
+  letter-spacing: -0.01em;
 }
 
-.light-mode header h1 {
-  color: #0f172a !important;
+/* Sharp Borders & No Shadows across the board */
+* {
+  box-shadow: none !important;
 }
 
-.light-mode header p {
-  color: #475569 !important;
+/* High-End Surface & Panel Utilities */
+.bg-main {
+  background-color: var(--bg-main, #121318) !important;
 }
 
-/* Base Surfaces & Containers */
-.light-mode main {
-  background-color: #f8fafc !important;
+.bg-surface {
+  background-color: var(--bg-surface, #1e202b) !important;
 }
 
-.light-mode section {
-  background-color: #ffffff !important;
+.bg-editor {
+  background-color: var(--bg-editor, #16171e) !important;
 }
 
-.light-mode .bg-slate-900,
-.light-mode .bg-slate-900\/20,
-.light-mode .bg-slate-900\/40,
-.light-mode .bg-slate-900\/50,
-.light-mode .bg-slate-900\/60,
-.light-mode .bg-slate-900\/80,
-.light-mode .bg-slate-900\/90,
-.light-mode .bg-slate-900\/95,
-.light-mode .bg-slate-900\/98 {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
+.border-main {
+  border-color: var(--border-color, #2e3142) !important;
 }
 
-.light-mode .bg-slate-950,
-.light-mode .bg-slate-950\/40,
-.light-mode .bg-slate-950\/60,
-.light-mode .bg-slate-950\/80,
-.light-mode .bg-slate-950\/90,
-.light-mode .bg-slate-950\/95 {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
+.text-main {
+  color: var(--text-main, #e2e8f0) !important;
 }
 
-.light-mode .bg-slate-800,
-.light-mode .bg-slate-800\/60,
-.light-mode .bg-slate-800\/80,
-.light-mode .bg-slate-800\/90 {
-  background-color: #f1f5f9 !important;
-  color: #1e293b !important;
+.text-muted {
+  color: var(--text-muted, #94a3b8) !important;
 }
 
-/* Borders */
-.light-mode .border-slate-800,
-.light-mode .border-slate-800\/40,
-.light-mode .border-slate-800\/60,
-.light-mode .border-slate-800\/80,
-.light-mode .border-slate-700,
-.light-mode .border-slate-700\/60,
-.light-mode .border-slate-700\/80 {
-  border-color: #e2e8f0 !important;
+.text-accent-primary {
+  color: var(--accent-primary, #6366f1) !important;
 }
 
-/* Text Colors */
-.light-mode .text-slate-100,
-.light-mode .text-slate-200,
-.light-mode .text-slate-300 {
-  color: #0f172a !important;
+.bg-accent-primary {
+  background-color: var(--accent-primary, #6366f1) !important;
 }
 
-.light-mode .text-slate-400,
-.light-mode .text-slate-500 {
-  color: #475569 !important;
+.glass-panel {
+  background: var(--bg-surface, #1e202b);
+  border: 1px solid var(--border-color, #2e3142);
+  border-radius: 0px;
 }
 
-.light-mode .text-slate-600 {
-  color: #64748b !important;
+.glass-panel-header {
+  background: var(--bg-surface, #1e202b);
+  border-bottom: 1px solid var(--border-color, #2e3142);
 }
 
-/* Inputs, Textareas, & Form Controls */
-.light-mode input,
-.light-mode textarea,
-.light-mode select {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  border-color: #cbd5e1 !important;
+.glass-panel-sidebar {
+  background: var(--bg-surface, #1e202b);
+  border-right: 1px solid var(--border-color, #2e3142);
 }
 
-.light-mode input::placeholder,
-.light-mode textarea::placeholder {
-  color: #94a3b8 !important;
+.glass-card {
+  background: var(--bg-surface, #1e202b);
+  border: 1px solid var(--border-color, #2e3142);
+  border-radius: 2px;
 }
 
-.light-mode option {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
+.glass-card:hover {
+  background: var(--bg-surface-hover, #282a38);
+  border-color: #3b3e54;
 }
 
-/* Hover States */
-.light-mode .hover\:bg-slate-800:hover,
-.light-mode .hover\:bg-slate-800\/60:hover,
-.light-mode .hover\:bg-slate-800\/80:hover,
-.light-mode .hover\:bg-slate-800\/90:hover {
-  background-color: #f1f5f9 !important;
-  color: #0f172a !important;
+.editor-code-surface {
+  background: var(--bg-editor, #16171e);
 }
 
-.light-mode .hover\:bg-slate-700:hover {
-  background-color: #e2e8f0 !important;
-  color: #0f172a !important;
-}
-
-.light-mode .hover\:text-white:hover {
-  color: #0f172a !important;
+.glow-teal-subtle,
+.glow-accent-subtle,
+.glow-active-tab {
+  box-shadow: none !important;
 }
 
 /* ==========================================================================
-   Section 1: AI Chat - Project Sessions Sidebar in Light Mode
+   Universal Scrollbar - Square VS Code Style
    ========================================================================== */
-/* Active Session Card */
-.light-mode .bg-indigo-950\/90,
-.light-mode .bg-indigo-950\/80,
-.light-mode .bg-indigo-950\/60,
-.light-mode .bg-indigo-950 {
-  background-color: #eef2ff !important;
-  border-color: #a5b4fc !important;
-  color: #1e1b4b !important;
-}
-
-.light-mode .border-indigo-700\/80,
-.light-mode .border-indigo-800\/80,
-.light-mode .border-indigo-800\/50,
-.light-mode .border-indigo-800\/60 {
-  border-color: #a5b4fc !important;
-}
-
-.light-mode .bg-indigo-950\/90 .text-slate-200,
-.light-mode .bg-indigo-950\/90 .text-white,
-.light-mode .bg-indigo-950 .text-slate-200,
-.light-mode .bg-indigo-950 .text-white {
-  color: #1e1b4b !important;
-}
-
-.light-mode .bg-indigo-950\/90 .text-slate-500,
-.light-mode .bg-indigo-950 .text-slate-500 {
-  color: #4338ca !important;
-}
-
-.light-mode .bg-indigo-950\/90 .bg-slate-800\/80,
-.light-mode .bg-indigo-950 .bg-slate-800\/80 {
-  background-color: #e0e7ff !important;
-  color: #3730a3 !important;
-}
-
-/* Inactive Session Cards */
-.light-mode [class*="group relative flex flex-col p-2.5 rounded-lg cursor-pointer"] {
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
-}
-
-.light-mode [class*="bg-slate-950/60"][class*="border-slate-800/80"] {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
-  color: #334155 !important;
-}
-
-.light-mode [class*="bg-slate-950/60"][class*="border-slate-800/80"]:hover {
-  background-color: #f8fafc !important;
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
-}
-
-/* AI Chat Messages */
-.light-mode .bg-slate-900[class*="border-slate-800"][class*="text-slate-200"] {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
-  color: #1e293b !important;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
-}
-
-.light-mode .bg-slate-900[class*="border-slate-800"] .border-b {
-  border-color: #f1f5f9 !important;
-}
-
-/* Chat Input Bar & Ghost Writer Pane */
-.light-mode form#chat-form > div {
-  background-color: #ffffff !important;
-  border-color: #cbd5e1 !important;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
-}
-
-.light-mode form#chat-form .bg-slate-950\/40 {
-  background-color: #f8fafc !important;
-}
-
-.light-mode form#chat-form .bg-slate-950\/80 {
-  background-color: #ffffff !important;
-  border-color: #cbd5e1 !important;
-}
-
-.light-mode form#chat-form textarea#chat-input {
-  background-color: #ffffff !important;
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
-}
-
-.light-mode form#chat-form .divide-slate-800 {
-  border-color: #e2e8f0 !important;
-}
-
-.light-mode form#chat-form .bg-slate-900\/60,
-.light-mode form#chat-form .bg-slate-900\/50,
-.light-mode form#chat-form .bg-slate-900\/20 {
-  background-color: #f8fafc !important;
-}
-
-.light-mode form#chat-form .border-t {
-  border-color: #e2e8f0 !important;
-}
-
-/* Bottom Action Bar Controls in Light Mode */
-.light-mode form#chat-form button.bg-slate-800,
-.light-mode form#chat-form button.bg-slate-950 {
-  background-color: #ffffff !important;
-  border-color: #cbd5e1 !important;
-  color: #334155 !important;
-}
-
-.light-mode form#chat-form button.bg-slate-800:hover,
-.light-mode form#chat-form button.bg-slate-950:hover {
-  background-color: #f1f5f9 !important;
-  color: #0f172a !important;
-}
-
-.light-mode form#chat-form .bg-slate-900 {
-  background-color: #f1f5f9 !important;
-  border-color: #cbd5e1 !important;
-}
-
-/* Drag Handle */
-.light-mode div[class*="cursor-ns-resize"] {
-  background-color: #f1f5f9 !important;
-  border-color: #e2e8f0 !important;
-}
-
-.light-mode div[class*="cursor-ns-resize"] > div {
-  background-color: #94a3b8 !important;
-}
-
-/* ==========================================================================
-   Section 3: Project Explorer & Workspace File Tree in Light Mode
-   ========================================================================== */
-/* Section 3 Header Bar */
-.light-mode section:nth-of-type(3) > div:first-of-type {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
-}
-
-/* SSOT / Remote Status Ribbon */
-.light-mode section:nth-of-type(3) .bg-indigo-950\/40 {
-  background-color: #e0e7ff !important;
-  border-color: #a5b4fc !important;
-  color: #1e1b4b !important;
-}
-
-.light-mode section:nth-of-type(3) .bg-indigo-950\/40 .text-indigo-200 {
-  color: #1e1b4b !important;
-  font-weight: 600 !important;
-}
-
-.light-mode section:nth-of-type(3) .bg-indigo-950\/40 .text-indigo-400 {
-  color: #3730a3 !important;
-}
-
-.light-mode section:nth-of-type(3) .bg-indigo-950\/40 button {
-  color: #4338ca !important;
-  font-weight: 600 !important;
-}
-
-.light-mode section:nth-of-type(3) .bg-indigo-950\/40 button:hover {
-  color: #312e81 !important;
-}
-
-/* Remote SSH Status Ribbon */
-.light-mode section:nth-of-type(3) .bg-emerald-950\/40 {
-  background-color: #d1fae5 !important;
-  border-color: #6ee7b7 !important;
-  color: #064e3b !important;
-}
-
-.light-mode section:nth-of-type(3) .bg-emerald-950\/40 .text-emerald-200 {
-  color: #064e3b !important;
-  font-weight: 600 !important;
-}
-
-.light-mode section:nth-of-type(3) .bg-emerald-950\/40 .text-emerald-400 {
-  color: #047857 !important;
-}
-
-.light-mode section:nth-of-type(3) .bg-emerald-950\/40 button {
-  color: #047857 !important;
-  font-weight: 600 !important;
-}
-
-/* Action Buttons in Section 3 Header */
-.light-mode section:nth-of-type(3) button.bg-indigo-950,
-.light-mode section:nth-of-type(3) button.bg-emerald-950,
-.light-mode section:nth-of-type(3) button.bg-slate-800 {
-  background-color: #ffffff !important;
-  border-color: #cbd5e1 !important;
-  color: #334155 !important;
-}
-
-.light-mode section:nth-of-type(3) button.bg-indigo-950:hover,
-.light-mode section:nth-of-type(3) button.bg-emerald-950:hover,
-.light-mode section:nth-of-type(3) button.bg-slate-800:hover {
-  background-color: #f1f5f9 !important;
-  color: #0f172a !important;
-}
-
-/* Search input in Section 3 Header */
-.light-mode section:nth-of-type(3) input[placeholder*="파일 검색"] {
-  background-color: #ffffff !important;
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
-}
-
-.light-mode section:nth-of-type(3) input[placeholder*="파일 검색"]::placeholder {
-  color: #94a3b8 !important;
-}
-
-.light-mode #file-tree {
-  background-color: #ffffff !important;
-}
-
-/* Dynamic Project Folder Cards in Workspace Tree */
-.light-mode #file-tree > div.bg-indigo-950\/30,
-.light-mode #file-tree > div[class*="bg-indigo-950"] {
-  background-color: #eef2ff !important;
-  border-color: #c7d2fe !important;
-  box-shadow: 0 1px 2px 0 rgb(99 102 241 / 0.08);
-}
-
-.light-mode #file-tree > div.bg-slate-950\/60,
-.light-mode #file-tree > div[class*="bg-slate-950"] {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
-}
-
-.light-mode #file-tree > div[class*="bg-slate-950"]:hover {
-  border-color: #cbd5e1 !important;
-  background-color: #f8fafc !important;
-}
-
-.light-mode #file-tree .hover\:bg-slate-800\/80:hover,
-.light-mode #file-tree .hover\:bg-slate-800\/90:hover {
-  background-color: #f1f5f9 !important;
-}
-
-/* Selected File & Memo Row in Light Mode */
-.light-mode #file-tree [class*="bg-indigo-950/60"] {
-  background-color: #e0e7ff !important;
-  border-color: #a5b4fc !important;
-  color: #312e81 !important;
-}
-
-.light-mode #file-tree [class*="bg-indigo-950/60"] span {
-  color: #312e81 !important;
-}
-
-/* Linked Memo Badge (연동 메모) */
-.light-mode #file-tree span.bg-indigo-950,
-.light-mode #file-tree span[class*="bg-indigo-950"] {
-  background-color: #e0e7ff !important;
-  color: #4338ca !important;
-  border-color: #c7d2fe !important;
-}
-
-/* Resizer Dividers */
-.light-mode div[class*="cursor-col-resize"] {
-  background-color: #e2e8f0 !important;
-}
-
-.light-mode div[class*="cursor-col-resize"]:hover {
-  background-color: #6366f1 !important;
-}
-
-.light-mode div[class*="cursor-col-resize"] > div {
-  background-color: #94a3b8 !important;
-}
-
-/* Floating Bars & Menus */
-.light-mode .bg-slate-900\/95,
-.light-mode .bg-slate-950\/95 {
-  background-color: #ffffff !important;
-  border-color: #cbd5e1 !important;
-  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
-}
-
-/* ==========================================================================
-   Print Stylesheet Media Query
-   ========================================================================== */
-@media print {
-  @page {
-    size: A4 portrait;
-    margin: 15mm 15mm 15mm 15mm;
-  }
-
-  /* Hide all non-essential UI elements during browser print */
-  header,
-  section:nth-of-type(1), /* Chat History & Active Chat Pane */
-  section:nth-of-type(3), /* File Explorer Pane */
-  div[class*="cursor-col-resize"], /* Resizable Section Dividers */
-  button,
-  .no-print {
-    display: none !important;
-  }
-
-  /* Reset global document canvas for pristine paper print */
-  html,
-  body {
-    background-color: #ffffff !important;
-    color: #0f172a !important;
-    font-size: 11pt !important;
-    line-height: 1.6 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  /* Main container override */
-  main {
-    display: block !important;
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
-  /* Editor Pane (Section 2) Full-Width Expansion */
-  section:nth-of-type(2) {
-    display: block !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    flex: 1 1 100% !important;
-    background-color: #ffffff !important;
-    color: #0f172a !important;
-    border: none !important;
-    box-shadow: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-  }
-
-  /* Hide Editor Pane Header Bar, Format Toolbars, & Alerts when printing */
-  section:nth-of-type(2) > div:first-child,
-  section:nth-of-type(2) .bg-slate-900\/90,
-  section:nth-of-type(2) .border-b,
-  section:nth-of-type(2) .z-20 {
-    display: none !important;
-  }
-
-  /* Textarea Editor Content Print Layout */
-  textarea#markdown-editor {
-    display: block !important;
-    background-color: #ffffff !important;
-    color: #0f172a !important;
-    border: none !important;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
-    font-size: 10.5pt !important;
-    line-height: 1.6 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    height: auto !important;
-    min-height: auto !important;
-    resize: none !important;
-    overflow: visible !important;
-    white-space: pre-wrap !important;
-    word-break: break-word !important;
-    box-shadow: none !important;
-  }
-
-  /* Markdown Preview & Document Body in Print */
-  #markdown-editor,
-  .prose,
-  .markdown-body {
-    background-color: #ffffff !important;
-    color: #0f172a !important;
-    font-size: 11pt !important;
-    line-height: 1.6 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100% !important;
-    box-shadow: none !important;
-  }
-
-  /* Slide Cards Page-Break Formatting for Presentation Mode Print */
-  .slide,
-  div[class*="slide"] {
-    page-break-after: always !important;
-    break-after: page !important;
-    background-color: #ffffff !important;
-    color: #0f172a !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 8px !important;
-    padding: 1.5rem !important;
-    margin-bottom: 2rem !important;
-    box-shadow: none !important;
-  }
-
-  /* Clean Print Headings & Typography */
-  h1, h2, h3, h4, h5, h6 {
-    color: #020617 !important;
-    page-break-after: avoid !important;
-    break-after: avoid !important;
-    font-weight: 700 !important;
-  }
-
-  h1 { font-size: 18pt !important; margin-bottom: 12pt !important; }
-  h2 { font-size: 14pt !important; margin-top: 14pt !important; margin-bottom: 8pt !important; }
-  h3 { font-size: 12pt !important; margin-top: 10pt !important; margin-bottom: 6pt !important; }
-
-  a {
-    color: #1d4ed8 !important;
-    text-decoration: underline !important;
-  }
-
-  code, pre {
-    background-color: #f8fafc !important;
-    color: #0f172a !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 4px !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-  }
-
-  pre {
-    padding: 10pt !important;
-    white-space: pre-wrap !important;
-    word-break: break-all !important;
-  }
-
-  table {
-    width: 100% !important;
-    border-collapse: collapse !important;
-    margin: 12pt 0 !important;
-    page-break-inside: avoid !important;
-  }
-
-  th, td {
-    border: 1px solid #cbd5e1 !important;
-    padding: 6pt 8pt !important;
-    text-align: left !important;
-  }
-
-  th {
-    background-color: #f1f5f9 !important;
-    font-weight: bold !important;
-  }
-}
-
-
-/* Dynamic Accents */
-:root[data-accent="emerald"] {
-  --color-indigo-50: var(--color-emerald-50);
-  --color-indigo-100: var(--color-emerald-100);
-  --color-indigo-200: var(--color-emerald-200);
-  --color-indigo-300: var(--color-emerald-300);
-  --color-indigo-400: var(--color-emerald-400);
-  --color-indigo-500: var(--color-emerald-500);
-  --color-indigo-600: var(--color-emerald-600);
-  --color-indigo-700: var(--color-emerald-700);
-  --color-indigo-800: var(--color-emerald-800);
-  --color-indigo-900: var(--color-emerald-900);
-  --color-indigo-950: var(--color-emerald-950);
-}
-:root[data-accent="rose"] {
-  --color-indigo-50: var(--color-rose-50);
-  --color-indigo-100: var(--color-rose-100);
-  --color-indigo-200: var(--color-rose-200);
-  --color-indigo-300: var(--color-rose-300);
-  --color-indigo-400: var(--color-rose-400);
-  --color-indigo-500: var(--color-rose-500);
-  --color-indigo-600: var(--color-rose-600);
-  --color-indigo-700: var(--color-rose-700);
-  --color-indigo-800: var(--color-rose-800);
-  --color-indigo-900: var(--color-rose-900);
-  --color-indigo-950: var(--color-rose-950);
-}
-:root[data-accent="amber"] {
-  --color-indigo-50: var(--color-amber-50);
-  --color-indigo-100: var(--color-amber-100);
-  --color-indigo-200: var(--color-amber-200);
-  --color-indigo-300: var(--color-amber-300);
-  --color-indigo-400: var(--color-amber-400);
-  --color-indigo-500: var(--color-amber-500);
-  --color-indigo-600: var(--color-amber-600);
-  --color-indigo-700: var(--color-amber-700);
-  --color-indigo-800: var(--color-amber-800);
-  --color-indigo-900: var(--color-amber-900);
-  --color-indigo-950: var(--color-amber-950);
-}
-:root[data-accent="blue"] {
-  --color-indigo-50: var(--color-blue-50);
-  --color-indigo-100: var(--color-blue-100);
-  --color-indigo-200: var(--color-blue-200);
-  --color-indigo-300: var(--color-blue-300);
-  --color-indigo-400: var(--color-blue-400);
-  --color-indigo-500: var(--color-blue-500);
-  --color-indigo-600: var(--color-blue-600);
-  --color-indigo-700: var(--color-blue-700);
-  --color-indigo-800: var(--color-blue-800);
-  --color-indigo-900: var(--color-blue-900);
-  --color-indigo-950: var(--color-blue-950);
-}
-:root[data-accent="purple"] {
-  --color-indigo-50: var(--color-purple-50);
-  --color-indigo-100: var(--color-purple-100);
-  --color-indigo-200: var(--color-purple-200);
-  --color-indigo-300: var(--color-purple-300);
-  --color-indigo-400: var(--color-purple-400);
-  --color-indigo-500: var(--color-purple-500);
-  --color-indigo-600: var(--color-purple-600);
-  --color-indigo-700: var(--color-purple-700);
-  --color-indigo-800: var(--color-purple-800);
-  --color-indigo-900: var(--color-purple-900);
-  --color-indigo-950: var(--color-purple-950);
-}
-
-:root[data-theme-mode="high-contrast"] {
-  --color-slate-950: #000000;
-  --color-slate-900: #0a0a0a;
-  --color-slate-800: #1a1a1a;
-  --color-slate-700: #333333;
-}
-
-:root[data-theme-mode="slate"] {
-  --color-slate-950: #0f172a;
-  --color-slate-900: #1e293b;
-  --color-slate-800: #334155;
-  --color-slate-700: #475569;
-}
-:root[data-compactness="spacious"] {
-  --spacing-1: 0.375rem;
-  --spacing-2: 0.75rem;
-  --spacing-3: 1rem;
-  --spacing-4: 1.5rem;
-  --spacing: 0.3rem;
-}
-/* ==========================================================================
-   Universal Scrollbar Theme System (Dark & Light Modes)
-   ========================================================================== */
-
-/* Standard CSS scrollbar properties for modern browsers (Firefox, Chromium, Safari) */
 html,
 body,
 *,
 *::before,
 *::after {
   scrollbar-width: thin;
-  scrollbar-color: rgba(100, 116, 139, 0.4) transparent;
+  scrollbar-color: #2e3142 transparent;
 }
 
-/* WebKit-based scrollbar styling (Chrome, Edge, Safari, Electron) */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -703,392 +154,122 @@ body,
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(100, 116, 139, 0.38);
-  border-radius: 9999px;
-  border: 1px solid transparent;
-  background-clip: padding-box;
-  transition: background-color 0.15s ease-in-out;
+  background-color: #2e3142;
+  border-radius: 0px;
+  border: none;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(129, 140, 248, 0.65);
-}
-
-::-webkit-scrollbar-thumb:active {
-  background-color: rgba(99, 102, 241, 0.9);
-}
-
-::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-/* Light Mode Scrollbar Overrides */
-.light-mode,
-.light-mode *,
-.light-mode *::before,
-.light-mode *::after {
-  scrollbar-color: rgba(148, 163, 184, 0.65) transparent !important;
-}
-
-.light-mode ::-webkit-scrollbar-thumb,
-.light-mode *::-webkit-scrollbar-thumb {
-  background-color: rgba(148, 163, 184, 0.6) !important;
-}
-
-.light-mode ::-webkit-scrollbar-thumb:hover,
-.light-mode *::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(99, 102, 241, 0.75) !important;
-}
-
-.light-mode ::-webkit-scrollbar-thumb:active,
-.light-mode *::-webkit-scrollbar-thumb:active {
-  background-color: rgba(79, 70, 229, 0.95) !important;
-}
-
-/* High-Contrast Dark Mode Scrollbar */
-:root[data-theme-mode="high-contrast"] ::-webkit-scrollbar-thumb {
-  background-color: #333333;
-}
-
-:root[data-theme-mode="high-contrast"] ::-webkit-scrollbar-thumb:hover {
-  background-color: #555555;
-}
-
-/* Utility classes for specific scrollbar needs */
-.scrollbar-none {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-
-.scrollbar-none::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-
-.scrollbar-thin {
-  scrollbar-width: thin !important;
-}
-
-.scrollbar-thin::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-/* Custom Dark Slim Scrollbar */
-.custom-dark-scrollbar::-webkit-scrollbar,
-.custom-dark-scrollbar *::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-.custom-dark-scrollbar::-webkit-scrollbar-track,
-.custom-dark-scrollbar *::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-dark-scrollbar::-webkit-scrollbar-thumb,
-.custom-dark-scrollbar *::-webkit-scrollbar-thumb {
-  background-color: rgba(100, 116, 139, 0.4);
-  border-radius: 9999px;
-}
-
-.custom-dark-scrollbar::-webkit-scrollbar-thumb:hover,
-.custom-dark-scrollbar *::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(129, 140, 248, 0.7);
+  background-color: #4f526b;
 }
 
 /* ==========================================================================
    Synchronized Markdown & Editor Typography System
    ========================================================================== */
-
-/* Unified Raw Editor Typography */
 textarea#markdown-editor,
 .markdown-raw-editor {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
-  font-size: 0.75rem !important; /* 12px */
-  line-height: 1.5 !important;
-  letter-spacing: normal !important;
-  tab-size: 2 !important;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Consolas, monospace, sans-serif !important;
+  font-size: 12px;
+  line-height: 1.5;
+  tab-size: 2;
+  background-color: var(--bg-editor, #16171e);
+  color: var(--text-main, #e2e8f0);
 }
 
-/* Tightened Markdown Preview Typography */
 #markdown-preview,
 .markdown-preview,
 .markdown-body {
-  font-size: 0.75rem !important; /* 12px */
-  line-height: 1.5 !important;
-  white-space: normal !important;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Consolas, monospace, sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  background-color: var(--bg-editor, #16171e);
+  color: var(--text-main, #e2e8f0);
 }
 
-/* Restrict Heading Margins */
 #markdown-preview h1,
 .markdown-preview h1 {
-  font-size: 1rem !important; /* 16px */
-  font-weight: 700 !important;
-  margin-top: 0.625rem !important; /* 10px */
-  margin-bottom: 0.25rem !important; /* 4px */
-  line-height: 1.3 !important;
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 0.625rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.3;
+  color: var(--text-main, #e2e8f0);
 }
 
 #markdown-preview h2,
 .markdown-preview h2 {
-  font-size: 0.875rem !important; /* 14px */
-  font-weight: 600 !important;
-  margin-top: 0.5rem !important; /* 8px */
-  margin-bottom: 0.25rem !important; /* 4px */
-  line-height: 1.35 !important;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.35;
+  color: var(--text-main, #e2e8f0);
 }
 
 #markdown-preview h3,
 .markdown-preview h3 {
-  font-size: 0.8125rem !important; /* 13px */
-  font-weight: 600 !important;
-  margin-top: 0.375rem !important; /* 6px */
-  margin-bottom: 0.125rem !important; /* 2px */
-  line-height: 1.4 !important;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-top: 0.375rem;
+  margin-bottom: 0.125rem;
+  line-height: 1.4;
+  color: var(--text-main, #e2e8f0);
 }
 
-#markdown-preview h4,
-#markdown-preview h5,
-#markdown-preview h6,
-.markdown-preview h4,
-.markdown-preview h5,
-.markdown-preview h6 {
-  font-size: 0.75rem !important; /* 12px */
-  font-weight: 600 !important;
-  margin-top: 0.375rem !important;
-  margin-bottom: 0.125rem !important;
-  line-height: 1.4 !important;
-}
-
-/* Tightened Paragraph Margins */
 #markdown-preview p,
 .markdown-preview p {
-  margin-top: 0 !important;
-  margin-bottom: 0.25rem !important; /* 4px */
-  line-height: 1.5 !important;
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+  line-height: 1.5;
+  color: var(--text-main, #e2e8f0);
 }
 
-/* Tightened List Spacing - Zero gap between items, matching editor */
 #markdown-preview ul,
 #markdown-preview ol,
 .markdown-preview ul,
 .markdown-preview ol {
-  margin-top: 0.125rem !important;
-  margin-bottom: 0.25rem !important;
-  padding-left: 1.125rem !important;
+  margin-top: 0.125rem;
+  margin-bottom: 0.25rem;
+  padding-left: 1.125rem;
 }
 
 #markdown-preview li,
 .markdown-preview li {
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  line-height: 1.5 !important;
+  margin-top: 0;
+  margin-bottom: 0;
+  line-height: 1.5;
+  color: var(--text-main, #e2e8f0);
 }
 
-/* Tightened Blockquotes & Code Blocks */
-#markdown-preview blockquote,
-.markdown-preview blockquote {
-  margin-top: 0.375rem !important;
-  margin-bottom: 0.375rem !important;
-  line-height: 1.5 !important;
+/* Print Stylesheet */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+
+  header,
+  section:nth-of-type(1),
+  section:nth-of-type(3),
+  div[class*="cursor-col-resize"],
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 10pt !important;
+    line-height: 1.5 !important;
+  }
+
+  main,
+  section:nth-of-type(2) {
+    display: block !important;
+    width: 100% !important;
+    background-color: #ffffff !important;
+    border: none !important;
+  }
 }
-
-#markdown-preview pre,
-.markdown-preview pre {
-  margin-top: 0.375rem !important;
-  margin-bottom: 0.375rem !important;
-  line-height: 1.45 !important;
-}
-
-#markdown-preview hr,
-.markdown-preview hr {
-  margin-top: 0.5rem !important;
-  margin-bottom: 0.5rem !important;
-}
-
-/* Light Mode Overrides for Markdown Preview */
-.light-mode #markdown-preview,
-.light-mode .markdown-preview {
-  color: #0f172a !important;
-  background-color: #ffffff !important;
-}
-
-.light-mode #markdown-preview h1,
-.light-mode .markdown-preview h1 {
-  color: #0f172a !important;
-  border-color: #e2e8f0 !important;
-}
-
-.light-mode #markdown-preview h2,
-.light-mode .markdown-preview h2 {
-  color: #3730a3 !important;
-  border-color: #e2e8f0 !important;
-}
-
-.light-mode #markdown-preview h3,
-.light-mode #markdown-preview h4,
-.light-mode #markdown-preview h5,
-.light-mode #markdown-preview h6,
-.light-mode .markdown-preview h3,
-.light-mode .markdown-preview h4,
-.light-mode .markdown-preview h5,
-.light-mode .markdown-preview h6 {
-  color: #4338ca !important;
-}
-
-.light-mode #markdown-preview p,
-.light-mode #markdown-preview li,
-.light-mode .markdown-preview p,
-.light-mode .markdown-preview li {
-  color: #334155 !important;
-}
-
-.light-mode #markdown-preview strong,
-.light-mode .markdown-preview strong {
-  color: #0f172a !important;
-}
-
-.light-mode #markdown-preview code,
-.light-mode .markdown-preview code {
-  background-color: #f1f5f9 !important;
-  color: #0f766e !important;
-  border-color: #cbd5e1 !important;
-}
-
-.light-mode #markdown-preview pre,
-.light-mode .markdown-preview pre {
-  background-color: #f8fafc !important;
-  border-color: #e2e8f0 !important;
-  color: #0f766e !important;
-}
-
-.light-mode #markdown-preview blockquote,
-.light-mode .markdown-preview blockquote {
-  background-color: #eef2ff !important;
-  border-color: #6366f1 !important;
-  color: #312e81 !important;
-}
-
-/* KaTeX & Math Formulas */
-.katex-display {
-  margin: 0.5em 0 !important;
-}
-
-.katex {
-  font-size: 1.05em !important;
-  text-rendering: auto;
-}
-
-.light-mode .katex {
-  color: #0f172a !important;
-}
-
-.light-mode .katex .mord,
-.light-mode .katex .mop,
-.light-mode .katex .mrel {
-  color: #0f172a !important;
-}
-
-/* Markdown Tables Light Mode */
-.light-mode #markdown-preview table th,
-.light-mode .markdown-preview table th {
-  background-color: #f1f5f9 !important;
-  color: #312e81 !important;
-  border-color: #cbd5e1 !important;
-}
-
-.light-mode #markdown-preview table td,
-.light-mode .markdown-preview table td {
-  border-color: #e2e8f0 !important;
-  color: #334155 !important;
-}
-
-.light-mode #markdown-preview table tr:hover,
-.light-mode .markdown-preview table tr:hover {
-  background-color: #f8fafc !important;
-}
-
-/* Details & Summary Collapsible Elements */
-#markdown-preview details,
-.markdown-preview details {
-  margin: 0.5rem 0;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid rgba(51, 65, 85, 0.6);
-  border-radius: 0.5rem;
-  background-color: rgba(15, 23, 42, 0.5);
-}
-
-#markdown-preview details[open],
-.markdown-preview details[open] {
-  background-color: rgba(15, 23, 42, 0.75);
-}
-
-#markdown-preview summary,
-.markdown-preview summary {
-  font-weight: 600;
-  cursor: pointer;
-  color: #a5b4fc;
-  outline: none;
-  user-select: none;
-}
-
-#markdown-preview summary:hover,
-.markdown-preview summary:hover {
-  color: #c7d2fe;
-}
-
-.light-mode #markdown-preview details,
-.light-mode .markdown-preview details {
-  border-color: #cbd5e1 !important;
-  background-color: #f8fafc !important;
-}
-
-.light-mode #markdown-preview summary,
-.light-mode .markdown-preview summary {
-  color: #4338ca !important;
-}
-
-/* Keyboard Keys */
-#markdown-preview kbd,
-.markdown-preview kbd {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.6875rem;
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.25rem;
-  background-color: #1e293b;
-  border: 1px solid #334155;
-  color: #e2e8f0;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
-}
-
-.light-mode #markdown-preview kbd,
-.light-mode .markdown-preview kbd {
-  background-color: #f1f5f9 !important;
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
-  box-shadow: 0 1px 0 #94a3b8 !important;
-}
-
-/* Highlights */
-#markdown-preview mark,
-.markdown-preview mark {
-  background-color: rgba(251, 191, 36, 0.25);
-  color: #fde68a;
-  padding: 0.05rem 0.25rem;
-  border-radius: 0.2rem;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-}
-
-.light-mode #markdown-preview mark,
-.light-mode .markdown-preview mark {
-  background-color: #fef08a !important;
-  color: #854d0e !important;
-  border-color: #fde047 !important;
-}
-
-
-

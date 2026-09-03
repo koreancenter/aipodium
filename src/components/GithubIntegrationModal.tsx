@@ -13,6 +13,7 @@ import {
 export interface GithubConfig {
   token: string;
   repo: string; // e.g. "owner/repo"
+  owner?: string;
   branch: string;
 }
 

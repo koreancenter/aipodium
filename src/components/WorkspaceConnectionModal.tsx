@@ -1,21 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  FilePlus2,
-  FileUp,
+  FolderOpen,
   Folder,
-  GitFork,
-  Radio,
-  Sparkles,
   X,
   Cloud,
   Server,
   Database,
-  ChevronRight,
   Trash2,
+  RefreshCw,
+  Clock,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
   ActiveWorkspace,
   pickLocalDirectory,
+  rescanLocalDirectory,
+  getMemoryDirectoryHandle,
   isFileSystemAccessSupported,
   listIndexedDBVaults,
   loadVaultFromIndexedDB,
@@ -62,43 +63,30 @@ interface WorkspaceConnectionModalProps {
 
 const STORAGE_KEY_RECENTS = 'aipodium_recent_workspaces';
 
-const INITIAL_FALLBACK_RECENTS: RecentWorkspaceItem[] = [
-  {
-    id: 'rec-aipodium',
-    name: 'aipodium',
-    path: '~/Developer',
-    type: 'folder',
-    timestamp: Date.now() - 3600000,
-  },
-  {
-    id: 'rec-vibecanvas',
-    name: 'vibecanvas',
-    path: '~/Developer',
-    type: 'folder',
-    timestamp: Date.now() - 7200000,
-  },
-  {
-    id: 'rec-goguma-lm',
-    name: 'goguma-lm',
-    path: '~/Developer/goguma-bat',
-    type: 'folder',
-    timestamp: Date.now() - 10800000,
-  },
-  {
-    id: 'rec-goguma-dev',
-    name: 'goguma-lm',
-    path: '~/Developer/dev/goguma-bat',
-    type: 'folder',
-    timestamp: Date.now() - 14400000,
-  },
-  {
-    id: 'rec-kwavemission',
-    name: 'kwavemission',
-    path: '~/Developer/dev',
-    type: 'folder',
-    timestamp: Date.now() - 18000000,
-  },
-];
+// Filter out old mock items
+const isMockItem = (item: any): boolean => {
+  if (!item || !item.name) return true;
+  if (typeof item.id === 'string' && item.id.startsWith('rec-')) return true;
+  const mockNames = ['aipodium', 'vibecanvas', 'goguma-lm', 'kwavemission'];
+  if (mockNames.includes(item.name) && (!item.files || Object.keys(item.files).length === 0)) {
+    return true;
+  }
+  return false;
+};
+
+// Relative time formatter
+const formatRelativeTime = (timestamp: number): string => {
+  if (!timestamp) return '최근';
+  const diffMs = Date.now() - timestamp;
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return '방금 전';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}분 전`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}시간 전`;
+  const diffDay = Math.floor(diffHour / 24);
+  return `${diffDay}일 전`;
+};
 
 export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> = ({
   isOpen,
@@ -108,43 +96,39 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
   currentFiles,
   currentFolders,
   onToast,
-  onNewFile,
   onOpenFileContent,
-  onOpenSSOTGenerator,
-  githubConfig,
   remoteConfig,
   onOpenSettings,
 }) => {
-  const [connectToSubmenu, setConnectToSubmenu] = useState<boolean>(false);
-  const [cloneGitPrompt, setCloneGitPrompt] = useState<boolean>(false);
-  const [gitRepoInput, setGitRepoInput] = useState<string>('aipodium/vibe-canvas');
-  const [showAllRecents, setShowAllRecents] = useState<boolean>(false);
+  const [showRemoteOptions, setShowRemoteOptions] = useState<boolean>(false);
+  const [isRescanning, setIsRescanning] = useState<boolean>(false);
   const [savedVaults, setSavedVaults] = useState<StoredVaultItem[]>([]);
-  
+
   const [recentList, setRecentList] = useState<RecentWorkspaceItem[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY_RECENTS);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.filter((item) => !isMockItem(item));
         }
       }
     } catch (e) {
-      console.warn('Failed to load recent workspaces from localStorage:', e);
+      console.warn('Failed to load recent workspaces:', e);
     }
-    return INITIAL_FALLBACK_RECENTS;
+    return [];
   });
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const isFsSupported = isFileSystemAccessSupported();
+  const memoryHandle = getMemoryDirectoryHandle();
 
-  // Helper to persist updated recents
   const saveRecentItem = (newItem: RecentWorkspaceItem) => {
     setRecentList((prev) => {
-      const filtered = prev.filter((item) => !(item.name === newItem.name && item.path === newItem.path));
-      const updated = [newItem, ...filtered].slice(0, 25);
+      const filtered = prev.filter(
+        (item) => !(item.name === newItem.name && item.path === newItem.path) && !isMockItem(item)
+      );
+      const updated = [newItem, ...filtered].slice(0, 15);
       try {
         localStorage.setItem(STORAGE_KEY_RECENTS, JSON.stringify(updated));
       } catch {}
@@ -152,158 +136,52 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
     });
   };
 
+  const handleDeleteRecent = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setRecentList((prev) => {
+      const updated = prev.filter((item) => item.id !== id);
+      try {
+        localStorage.setItem(STORAGE_KEY_RECENTS, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    onToast('최근 기록에서 삭제되었습니다.', 'info');
+  };
+
+  const handleClearAllRecents = () => {
+    setRecentList([]);
+    try {
+      localStorage.removeItem(STORAGE_KEY_RECENTS);
+    } catch {}
+    onToast('최근 프로젝트 기록이 모두 삭제되었습니다.', 'info');
+  };
+
   useEffect(() => {
     if (isOpen) {
-      setConnectToSubmenu(false);
-      setCloneGitPrompt(false);
-
-      // Load stored recents from localStorage
+      setShowRemoteOptions(false);
       try {
         const stored = localStorage.getItem(STORAGE_KEY_RECENTS);
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setRecentList(parsed);
+          if (Array.isArray(parsed)) {
+            const cleaned = parsed.filter((item) => !isMockItem(item));
+            setRecentList(cleaned);
+            localStorage.setItem(STORAGE_KEY_RECENTS, JSON.stringify(cleaned));
           }
         }
       } catch (e) {
         console.warn(e);
       }
 
-      // Merge saved vaults from IndexedDB
       listIndexedDBVaults()
-        .then((vaults) => {
-          setSavedVaults(vaults);
-          if (vaults.length > 0) {
-            const vaultRecents: RecentWorkspaceItem[] = vaults.map((v) => ({
-              id: `vault-${v.id}`,
-              name: v.name,
-              path: `~/Vault/${v.name}`,
-              type: 'indexeddb',
-              vaultId: v.id,
-              timestamp: Date.now(),
-            }));
-            setRecentList((prev) => {
-              const keys = new Set(prev.map((p) => `${p.name}_${p.path}`));
-              const uniqueNew = vaultRecents.filter((vr) => !keys.has(`${vr.name}_${vr.path}`));
-              const merged = [...uniqueNew, ...prev];
-              try {
-                localStorage.setItem(STORAGE_KEY_RECENTS, JSON.stringify(merged));
-              } catch {}
-              return merged;
-            });
-          }
-        })
+        .then((vaults) => setSavedVaults(vaults))
         .catch(console.warn);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  // 1. New File...
-  const handleNewFile = () => {
-    onClose();
-    if (onNewFile) {
-      onNewFile();
-    } else {
-      onToast('📝 새 문서 탭이 생성되었습니다.', 'info');
-    }
-  };
-
-  // 2. Open File...
-  const handleTriggerOpenFile = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const fileList = e.target.files;
-    if (!fileList || fileList.length === 0) return;
-
-    if (fileList.length === 1) {
-      const file = fileList[0];
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const content = (ev.target?.result as string) || '';
-        const updated = { ...currentFiles, [file.name]: content };
-        const folders = { ...currentFolders, [file.name]: 'Opened Files' };
-
-        if (onOpenFileContent) {
-          onOpenFileContent(file.name, content);
-        } else {
-          onSelectWorkspace(
-            {
-              ...activeWorkspace,
-              fileCount: Object.keys(updated).length,
-            },
-            updated,
-            folders
-          );
-        }
-
-        saveRecentItem({
-          id: `file-${Date.now()}`,
-          name: file.name,
-          path: `~/Developer/${file.name}`,
-          type: 'file',
-          timestamp: Date.now(),
-          files: { [file.name]: content },
-          fileFolders: { [file.name]: 'Opened Files' },
-        });
-
-        onToast(`📄 '${file.name}' 파일을 열었습니다.`, 'success');
-        onClose();
-      };
-      reader.readAsText(file);
-    } else {
-      // Multiple files batch load
-      const loadedFiles: Record<string, string> = { ...currentFiles };
-      const loadedFolders: Record<string, string> = { ...currentFolders };
-      let processed = 0;
-      const total = fileList.length;
-
-      Array.from(fileList).forEach((file: File) => {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          const content = (ev.target?.result as string) || '';
-          loadedFiles[file.name] = content;
-          loadedFolders[file.name] = 'Opened Files';
-          processed++;
-
-          if (processed === total) {
-            const firstFileName = fileList[0].name;
-            onSelectWorkspace(
-              {
-                ...activeWorkspace,
-                fileCount: Object.keys(loadedFiles).length,
-              },
-              loadedFiles,
-              loadedFolders
-            );
-            if (onOpenFileContent) {
-              onOpenFileContent(firstFileName, loadedFiles[firstFileName]);
-            }
-
-            saveRecentItem({
-              id: `files-${Date.now()}`,
-              name: `${total}개 파일 모음`,
-              path: `~/Developer/Opened Files`,
-              type: 'folder',
-              timestamp: Date.now(),
-              fileCount: total,
-              files: loadedFiles,
-              fileFolders: loadedFolders,
-            });
-
-            onToast(`📄 ${total}개 파일을 열었습니다.`, 'success');
-            onClose();
-          }
-        };
-        reader.readAsText(file);
-      });
-    }
-  };
-
-  // 3. Open Folder...
+  // Open Local Folder
   const handleOpenFolder = async () => {
     if (isFsSupported) {
       try {
@@ -333,19 +211,19 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
         });
 
         onSelectWorkspace(newWs, files, fileFolders);
-        onToast(`📁 로컬 폴더 '${wsName}' (${Object.keys(files).length}개 파일)을 열었습니다.`, 'success');
+        onToast(`📁 로컬 프로젝트 '${wsName}' (${Object.keys(files).length}개 파일)을 연결했습니다.`, 'success');
         onClose();
         return;
       } catch (err: any) {
         if (err.name === 'AbortError') return;
-        console.warn('File System Access API error, fallback to folder input:', err);
+        console.warn('File System Access API fallback:', err);
       }
     }
 
-    // Fallback: directory picker via input
     folderInputRef.current?.click();
   };
 
+  // Fallback for directory upload
   const handleFolderInputFallback = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
@@ -359,9 +237,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
     Array.from(fileList).forEach((file: File) => {
       const relPath = (file as any).webkitRelativePath || file.name;
       const parts = relPath.split('/');
-      if (parts.length > 1) {
-        folderName = parts[0];
-      }
+      if (parts.length > 1) folderName = parts[0];
       const fName = parts[parts.length - 1];
 
       const reader = new FileReader();
@@ -395,7 +271,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
           });
 
           onSelectWorkspace(newWs, loadedFiles, loadedFolders);
-          onToast(`📁 로컬 폴더 '${folderName}' (${total}개 파일)을 열었습니다.`, 'success');
+          onToast(`📁 로컬 폴더 '${folderName}' (${total}개 파일)을 불러왔습니다.`, 'success');
           onClose();
         }
       };
@@ -403,73 +279,40 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
     });
   };
 
-  // 4. Clone Git Repository...
-  const handleCloneGit = async () => {
-    let repo = gitRepoInput.trim();
-    if (!repo) {
-      onToast('Git 저장소 주소(예: owner/repo 또는 https://github.com/...)를 입력해주세요.', 'warn');
+  // Rescan Current Directory
+  const handleRescanCurrentDirectory = async () => {
+    if (!memoryHandle) {
+      onToast('폴더 연결을 갱신하려면 [내 PC 폴더 열기]를 눌러주세요.', 'warn');
       return;
     }
-
-    repo = repo.replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '');
-    const parts = repo.split('/');
-    const owner = parts.length > 1 ? parts[0] : 'origin';
-    const repoName = parts.length > 1 ? parts[1] : parts[0];
-    const wsPath = `~/Developer/${repoName}`;
-
-    const newWs: ActiveWorkspace = {
-      id: `git-${Date.now()}`,
-      name: repoName,
-      type: 'github',
-      path: `github.com/${owner}/${repoName}`,
-      githubOwner: owner,
-      githubRepo: repoName,
-      githubBranch: 'main',
-      status: 'connected',
-      lastSynced: '방금',
-      fileCount: Object.keys(currentFiles).length,
-    };
-
-    let sampleFiles: Record<string, string> | undefined;
-    let sampleFolders: Record<string, string> | undefined;
-
+    setIsRescanning(true);
     try {
-      const res = await fetch(`https://raw.githubusercontent.com/${owner}/${repoName}/main/README.md`);
-      if (res.ok) {
-        const readme = await res.text();
-        sampleFiles = { ...currentFiles, 'README.md': readme };
-        sampleFolders = { ...currentFolders, 'README.md': repoName };
-        onSelectWorkspace(newWs, sampleFiles, sampleFolders);
-        if (onOpenFileContent) onOpenFileContent('README.md', readme);
-      } else {
-        onSelectWorkspace(newWs);
-      }
-    } catch {
-      onSelectWorkspace(newWs);
+      const { files, fileFolders } = await rescanLocalDirectory(memoryHandle);
+      const count = Object.keys(files).length;
+      onSelectWorkspace(
+        {
+          ...activeWorkspace,
+          fileCount: count,
+          lastSynced: '방금',
+        },
+        files,
+        fileFolders
+      );
+      onToast(`🔄 폴더 내 ${count}개 파일을 새로고침했습니다.`, 'success');
+    } catch (e: any) {
+      console.error(e);
+      onToast('폴더 새로고침 중 오류가 발생했습니다.', 'error');
+    } finally {
+      setIsRescanning(false);
     }
-
-    saveRecentItem({
-      id: newWs.id,
-      name: repoName,
-      path: wsPath,
-      type: 'github',
-      timestamp: Date.now(),
-      githubOwner: owner,
-      githubRepo: repoName,
-      files: sampleFiles,
-      fileFolders: sampleFolders,
-    });
-
-    onToast(`🐙 Git 저장소 '${owner}/${repoName}' 워크스페이스가 준비되었습니다.`, 'success');
-    onClose();
   };
 
-  // 5. Connect to... (Google Drive, Remote SSH, Browser Vault)
+  // Connect to Google Drive / SSH / Vault
   const handleConnectOption = async (option: 'gdrive' | 'ssh' | 'vault') => {
     if (option === 'gdrive') {
       const status = googleDriveService.getTokenStatus();
       if (status !== 'connected') {
-        onToast('환경설정(My Preference)에서 Google 계정을 먼저 연동해주세요.', 'warn');
+        onToast('환경설정에서 Google 계정을 먼저 연동해주세요.', 'warn');
         if (onOpenSettings) onOpenSettings('integrations');
         onClose();
         return;
@@ -491,11 +334,11 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
         timestamp: Date.now(),
       });
       onSelectWorkspace(newWs);
-      onToast(`☁️ Google Drive 워크스페이스로 연결되었습니다.`, 'success');
+      onToast(`☁️ Google Drive로 연결되었습니다.`, 'success');
       onClose();
     } else if (option === 'ssh') {
       if (!remoteConfig?.host) {
-        onToast('환경설정(My Preference)에서 Remote SSH 서버를 먼저 설정해주세요.', 'warn');
+        onToast('환경설정에서 Remote SSH 서버를 먼저 설정해주세요.', 'warn');
         if (onOpenSettings) onOpenSettings('integrations');
         onClose();
         return;
@@ -518,7 +361,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
         timestamp: Date.now(),
       });
       onSelectWorkspace(newWs);
-      onToast(`🌐 Remote SSH '${remoteConfig.host}' 워크스페이스로 연결되었습니다.`, 'success');
+      onToast(`🌐 Remote SSH '${remoteConfig.host}'로 연결되었습니다.`, 'success');
       onClose();
     } else if (option === 'vault') {
       if (savedVaults.length > 0) {
@@ -571,24 +414,13 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
         timestamp: Date.now(),
       });
       onSelectWorkspace(newWs);
-      onToast(`💾 오프라인 브라우저 Vault로 전환되었습니다.`, 'success');
+      onToast(`💾 브라우저 로컬 Vault로 전환되었습니다.`, 'success');
       onClose();
     }
   };
 
-  // 6. Generate New Workspace...
-  const handleGenerateWorkspace = () => {
-    onClose();
-    if (onOpenSSOTGenerator) {
-      onOpenSSOTGenerator();
-    } else {
-      onToast('✨ 새 SSOT 워크스페이스가 생성되었습니다.', 'success');
-    }
-  };
-
-  // Recent item click
+  // Select Recent Item
   const handleSelectRecent = async (item: RecentWorkspaceItem) => {
-    // 1. IndexedDB Vault
     if (item.type === 'indexeddb' && item.vaultId) {
       try {
         const vaultData = await loadVaultFromIndexedDB(item.vaultId);
@@ -605,7 +437,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
           };
           onSelectWorkspace(newWs, vaultData.files, vaultData.fileFolders);
           saveRecentItem({ ...item, timestamp: Date.now() });
-          onToast(`💾 '${item.name}' 워크스페이스를 열었습니다.`, 'success');
+          onToast(`💾 '${item.name}' 프로젝트를 열었습니다.`, 'success');
           onClose();
           return;
         }
@@ -614,7 +446,6 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
       }
     }
 
-    // 2. Cached files available
     if (item.files && Object.keys(item.files).length > 0) {
       const newWs: ActiveWorkspace = {
         id: item.id || `ws-${Date.now()}`,
@@ -630,12 +461,11 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
         onOpenFileContent(item.name, item.files[item.name]);
       }
       saveRecentItem({ ...item, timestamp: Date.now() });
-      onToast(`📂 '${item.name}' (${item.path}) 워크스페이스를 열었습니다.`, 'success');
+      onToast(`📂 '${item.name}' 프로젝트를 열었습니다.`, 'success');
       onClose();
       return;
     }
 
-    // 3. Fallback switch
     const newWs: ActiveWorkspace = {
       id: item.id || `ws-${Date.now()}`,
       name: item.name,
@@ -647,24 +477,13 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
     };
     onSelectWorkspace(newWs);
     saveRecentItem({ ...item, timestamp: Date.now() });
-    onToast(`📂 '${item.name}' (${item.path}) 워크스페이스로 전환되었습니다.`, 'success');
+    onToast(`📂 '${item.name}' 프로젝트로 전환되었습니다.`, 'success');
     onClose();
   };
 
-  const displayedRecents = showAllRecents ? recentList : recentList.slice(0, 5);
-
   return (
     <div className="fixed inset-0 bg-black/75 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-      {/* Hidden File Input for Single/Multi File Open */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        multiple
-        onChange={handleFileSelected}
-        className="hidden"
-      />
-
-      {/* Hidden Folder Input for Directory Selection */}
+      {/* Hidden Folder Input Fallback */}
       <input
         type="file"
         ref={folderInputRef}
@@ -676,204 +495,179 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
         className="hidden"
       />
 
-      {/* VS Code Clean Start Menu Modal */}
-      <div className="relative bg-[#18181b] border border-[#27272a] rounded-lg max-w-md w-full p-6 shadow-2xl space-y-6 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans">
+      {/* Main Dialog: Clean, Minimal, Unboxed */}
+      <div className="relative bg-[#16171e] border border-[#2e3142] rounded-md max-w-md w-full p-5 shadow-2xl space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans">
         
-        {/* Top-Right Minimal Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-1.5 rounded hover:bg-slate-800 transition cursor-pointer"
-          title="닫기 (Esc)"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        {/* Header */}
+        <div className="flex items-center justify-between pb-3 border-b border-[#2e3142]/70">
+          <div className="flex items-center gap-2">
+            <FolderOpen className="w-4 h-4 text-indigo-400" />
+            <h2 className="text-sm font-semibold text-slate-100">프로젝트 폴더 관리</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-200 p-1 rounded hover:bg-[#282a38] transition cursor-pointer"
+            title="닫기 (Esc)"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
-        {/* SECTION 1: START */}
-        <div className="space-y-3 pt-1">
-          <h2 className="text-base font-normal text-slate-300">Start</h2>
+        {/* Primary Action Area */}
+        <div className="space-y-2.5">
+          <button
+            type="button"
+            onClick={handleOpenFolder}
+            className="w-full bg-[#6366f1] hover:bg-[#5254e0] text-white py-2.5 px-4 rounded font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
+          >
+            <FolderOpen className="w-4 h-4 shrink-0" />
+            <span>내 PC 폴더 열기... (Open Folder)</span>
+          </button>
 
-          <div className="space-y-2 text-[0.875rem]">
-            {/* 1. New File... */}
-            <button
-              type="button"
-              onClick={handleNewFile}
-              className="w-full flex items-center gap-3 text-left group hover:text-white transition cursor-pointer text-[#38bdf8]"
-            >
-              <FilePlus2 className="w-4 h-4 text-[#38bdf8] shrink-0" />
-              <span className="group-hover:underline">New File...</span>
-            </button>
+          {/* Current Project Info & Rescan (Single subtle row) */}
+          <div className="flex items-center justify-between text-[0.75rem] text-slate-400 px-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-slate-400 shrink-0">현재:</span>
+              <span className="text-slate-200 font-medium truncate" title={activeWorkspace.path}>
+                {activeWorkspace.name}
+              </span>
+              <span className="text-slate-400 font-mono text-[0.6875rem] shrink-0">
+                ({Object.keys(currentFiles).length}개 파일)
+              </span>
+            </div>
 
-            {/* 2. Open File... */}
-            <button
-              type="button"
-              onClick={handleTriggerOpenFile}
-              className="w-full flex items-center gap-3 text-left group hover:text-white transition cursor-pointer text-[#38bdf8]"
-            >
-              <FileUp className="w-4 h-4 text-[#38bdf8] shrink-0" />
-              <span className="group-hover:underline">Open File...</span>
-            </button>
-
-            {/* 3. Open Folder... */}
-            <button
-              type="button"
-              onClick={handleOpenFolder}
-              className="w-full flex items-center gap-3 text-left group hover:text-white transition cursor-pointer text-[#38bdf8]"
-            >
-              <Folder className="w-4 h-4 text-[#38bdf8] shrink-0" />
-              <span className="group-hover:underline">Open Folder...</span>
-            </button>
-
-            {/* 4. Clone Git Repository... */}
-            {!cloneGitPrompt ? (
+            {memoryHandle && activeWorkspace.type === 'local' && (
               <button
                 type="button"
-                onClick={() => setCloneGitPrompt(true)}
-                className="w-full flex items-center gap-3 text-left group hover:text-white transition cursor-pointer text-[#38bdf8]"
+                onClick={handleRescanCurrentDirectory}
+                disabled={isRescanning}
+                className="flex items-center gap-1 text-[0.6875rem] text-indigo-400 hover:text-indigo-300 transition cursor-pointer shrink-0 disabled:opacity-50 ml-2"
+                title="폴더 새로고침"
               >
-                <GitFork className="w-4 h-4 text-[#38bdf8] shrink-0" />
-                <span className="group-hover:underline">Clone Git Repository...</span>
+                <RefreshCw className={`w-3 h-3 ${isRescanning ? 'animate-spin' : ''}`} />
+                <span>새로고침</span>
               </button>
-            ) : (
-              <div className="bg-[#27272a]/60 border border-[#3f3f46] rounded p-2 space-y-2 animate-in fade-in duration-100">
-                <div className="flex items-center gap-2">
-                  <GitFork className="w-4 h-4 text-[#38bdf8] shrink-0" />
-                  <input
-                    type="text"
-                    value={gitRepoInput}
-                    onChange={(e) => setGitRepoInput(e.target.value)}
-                    placeholder="예: owner/repository"
-                    className="flex-1 bg-[#18181b] border border-[#3f3f46] rounded px-2 py-1 text-xs text-slate-200 font-mono focus:outline-none focus:border-[#38bdf8]"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleCloneGit();
-                      if (e.key === 'Escape') setCloneGitPrompt(false);
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleCloneGit}
-                    className="px-2.5 py-1 bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs rounded font-medium cursor-pointer"
-                  >
-                    열기
-                  </button>
-                </div>
-              </div>
             )}
-
-            {/* 5. Connect to... */}
-            {!connectToSubmenu ? (
-              <button
-                type="button"
-                onClick={() => setConnectToSubmenu(true)}
-                className="w-full flex items-center gap-3 text-left group hover:text-white transition cursor-pointer text-[#38bdf8]"
-              >
-                <Radio className="w-4 h-4 text-[#38bdf8] shrink-0" />
-                <span className="group-hover:underline">Connect to...</span>
-              </button>
-            ) : (
-              <div className="bg-[#27272a]/60 border border-[#3f3f46] rounded p-2 space-y-1.5 animate-in fade-in duration-100">
-                <div className="flex items-center justify-between text-xs text-slate-400 pb-1 border-b border-[#3f3f46]">
-                  <span>연결 대상 선택:</span>
-                  <button
-                    type="button"
-                    onClick={() => setConnectToSubmenu(false)}
-                    className="hover:text-white text-[0.625rem] cursor-pointer"
-                  >
-                    취소
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleConnectOption('gdrive')}
-                  className="w-full text-left text-xs py-1 px-1.5 rounded hover:bg-[#3f3f46] text-slate-200 flex items-center justify-between cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <Cloud className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Google Drive</span>
-                  </span>
-                  <ChevronRight className="w-3 h-3 text-slate-500" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleConnectOption('ssh')}
-                  className="w-full text-left text-xs py-1 px-1.5 rounded hover:bg-[#3f3f46] text-slate-200 flex items-center justify-between cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <Server className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Remote SSH Server</span>
-                  </span>
-                  <ChevronRight className="w-3 h-3 text-slate-500" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleConnectOption('vault')}
-                  className="w-full text-left text-xs py-1 px-1.5 rounded hover:bg-[#3f3f46] text-slate-200 flex items-center justify-between cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <Database className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Browser Vault (IndexedDB)</span>
-                  </span>
-                  <ChevronRight className="w-3 h-3 text-slate-500" />
-                </button>
-              </div>
-            )}
-
-            {/* 6. Generate New Workspace... */}
-            <button
-              type="button"
-              onClick={handleGenerateWorkspace}
-              className="w-full flex items-center gap-3 text-left group hover:text-white transition cursor-pointer text-[#38bdf8]"
-            >
-              <Sparkles className="w-4 h-4 text-[#38bdf8] shrink-0" />
-              <span className="group-hover:underline">Generate New Workspace...</span>
-            </button>
           </div>
         </div>
 
-        {/* SECTION 2: RECENT */}
-        <div className="space-y-3 pt-2">
-          <h2 className="text-base font-normal text-slate-300">Recent</h2>
-
-          <div className="space-y-2 text-[0.875rem]">
-            {displayedRecents.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => handleSelectRecent(item)}
-                className="flex items-baseline justify-between group cursor-pointer text-left py-0.5 hover:opacity-90 transition truncate"
-              >
-                <div className="flex items-baseline gap-4 truncate min-w-0">
-                  <span className="text-[#38bdf8] font-normal group-hover:underline shrink-0">
-                    {item.name}
-                  </span>
-                  <span className="text-slate-400 text-xs font-mono truncate">
-                    {item.path}
-                  </span>
-                </div>
-              </div>
-            ))}
-
-            {/* More... Link */}
-            {!showAllRecents && recentList.length > 5 && (
+        {/* Recent Projects List */}
+        <div className="space-y-1.5 pt-1">
+          <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+            <span className="flex items-center gap-1.5 font-medium text-slate-300">
+              <Clock className="w-3.5 h-3.5 text-slate-400" />
+              최근 프로젝트
+            </span>
+            {recentList.length > 0 && (
               <button
                 type="button"
-                onClick={() => setShowAllRecents(true)}
-                className="text-[#38bdf8] text-[0.875rem] hover:underline pt-1 block cursor-pointer"
+                onClick={handleClearAllRecents}
+                className="text-[0.625rem] text-slate-400 hover:text-rose-400 transition cursor-pointer"
               >
-                More...
-              </button>
-            )}
-
-            {showAllRecents && (
-              <button
-                type="button"
-                onClick={() => setShowAllRecents(false)}
-                className="text-slate-400 text-xs hover:text-slate-200 pt-1 block cursor-pointer"
-              >
-                접기
+                전체 삭제
               </button>
             )}
           </div>
+
+          <div className="max-h-52 overflow-y-auto rounded bg-[#121318] border border-[#2e3142]/70 divide-y divide-[#2e3142]/40 custom-scrollbar">
+            {recentList.length === 0 ? (
+              <div className="py-7 text-center text-xs text-slate-400 space-y-1">
+                <p>최근 열었던 프로젝트 폴더가 없습니다.</p>
+                <p className="text-[0.6875rem] text-slate-400">
+                  위의 [내 PC 폴더 열기] 버튼을 눌러 프로젝트를 시작하세요.
+                </p>
+              </div>
+            ) : (
+              recentList.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => handleSelectRecent(item)}
+                  className="px-3 py-2 flex items-center justify-between hover:bg-[#1e202b] transition cursor-pointer group select-none"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Folder className="w-4 h-4 text-indigo-400 shrink-0 group-hover:scale-105 transition-transform" />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-medium text-slate-200 group-hover:text-indigo-300 truncate">
+                          {item.name}
+                        </span>
+                        {item.fileCount !== undefined && (
+                          <span className="text-[0.625rem] text-slate-400 font-mono">
+                            · {item.fileCount}개
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[0.6875rem] text-slate-400 font-mono truncate">
+                        {item.path}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <span className="text-[0.625rem] text-slate-400 font-mono">
+                      {formatRelativeTime(item.timestamp)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteRecent(e, item.id)}
+                      className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-400 p-0.5 rounded transition cursor-pointer"
+                      title="이 기록 삭제"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Remote & Other Storages (Subtle text dropdown at bottom) */}
+        <div className="pt-2 border-t border-[#2e3142]/60">
+          <button
+            type="button"
+            onClick={() => setShowRemoteOptions(!showRemoteOptions)}
+            className="flex items-center justify-between w-full text-[0.6875rem] text-slate-400 hover:text-slate-200 transition cursor-pointer px-1 py-0.5"
+          >
+            <span>☁️ Google Drive / 원격 저장소 연결...</span>
+            {showRemoteOptions ? (
+              <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            )}
+          </button>
+
+          {showRemoteOptions && (
+            <div className="pt-2 grid grid-cols-3 gap-1.5 animate-in fade-in duration-100">
+              <button
+                type="button"
+                onClick={() => handleConnectOption('gdrive')}
+                className="py-1.5 px-2 rounded bg-[#121318] hover:bg-[#1e202b] border border-[#2e3142]/60 flex items-center justify-center gap-1.5 text-slate-300 hover:text-white text-xs transition cursor-pointer"
+              >
+                <Cloud className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-[0.6875rem]">Google Drive</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleConnectOption('ssh')}
+                className="py-1.5 px-2 rounded bg-[#121318] hover:bg-[#1e202b] border border-[#2e3142]/60 flex items-center justify-center gap-1.5 text-slate-300 hover:text-white text-xs transition cursor-pointer"
+              >
+                <Server className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="text-[0.6875rem]">Remote SSH</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleConnectOption('vault')}
+                className="py-1.5 px-2 rounded bg-[#121318] hover:bg-[#1e202b] border border-[#2e3142]/60 flex items-center justify-center gap-1.5 text-slate-300 hover:text-white text-xs transition cursor-pointer"
+              >
+                <Database className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="text-[0.6875rem]">브라우저 Vault</span>
+              </button>
+            </div>
+          )}
         </div>
 
       </div>

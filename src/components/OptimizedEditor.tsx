@@ -21,6 +21,20 @@ import {
   Eye,
   Columns
 } from 'lucide-react';
+import {
+  MarkdownTableInfo,
+  getTableAtCursor,
+  formatMarkdownTable,
+  insertTableRow,
+  deleteTableRow,
+  insertTableColumn,
+  deleteTableColumn,
+  setTableColumnAlign,
+  findCellOffsetInTable,
+  splitTableRow
+} from '../utils/markdownTableHelper';
+import { TableContextBar } from './TableContextBar';
+import { VisualTableModal } from './VisualTableModal';
 
 interface OptimizedEditorProps {
   value: string;
@@ -74,7 +88,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
     id: 'bullet',
     label: '- 글머리 기호 목록',
     sublabel: '순서 없는 불릿 목록',
-    icon: <List className="w-3.5 h-3.5 text-emerald-400" />,
+    icon: <List className="w-3.5 h-3.5 text-indigo-400" />,
     category: 'lists',
     insertText: '- 항목 1\n- 항목 2\n- 항목 3\n',
     cursorOffset: 2
@@ -83,7 +97,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
     id: 'numbered',
     label: '1. 번호 매기기 목록',
     sublabel: '순서가 있는 순차 목록',
-    icon: <ListOrdered className="w-3.5 h-3.5 text-emerald-400" />,
+    icon: <ListOrdered className="w-3.5 h-3.5 text-indigo-400" />,
     category: 'lists',
     insertText: '1. 첫 번째 항목\n2. 두 번째 항목\n3. 세 번째 항목\n',
     cursorOffset: 3
@@ -92,7 +106,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
     id: 'task',
     label: '- [ ] 할 일 체크박스',
     sublabel: '인터랙티브 태스크 목록',
-    icon: <CheckSquare className="w-3.5 h-3.5 text-blue-400" />,
+    icon: <CheckSquare className="w-3.5 h-3.5 text-indigo-400" />,
     category: 'lists',
     insertText: '- [ ] 할 일 1\n- [ ] 할 일 2\n- [x] 완료된 일\n',
     cursorOffset: 6
@@ -101,7 +115,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
     id: 'codeblock',
     label: '``` 코드 블록',
     sublabel: '문법 하이라이팅 코드 블록',
-    icon: <Code className="w-3.5 h-3.5 text-amber-400" />,
+    icon: <Code className="w-3.5 h-3.5 text-amber-400/80" />,
     category: 'blocks',
     insertText: '```typescript\n// 코드를 작성하세요\nconsole.log("Hello, World!");\n```\n',
     cursorOffset: 15
@@ -110,7 +124,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
     id: 'table',
     label: '| 표 (Table)',
     sublabel: '3x3 마크다운 데이터 표',
-    icon: <TableIcon className="w-3.5 h-3.5 text-cyan-400" />,
+    icon: <TableIcon className="w-3.5 h-3.5 text-indigo-400" />,
     category: 'blocks',
     insertText: '| 헤더 1 | 헤더 2 | 헤더 3 |\n| :--- | :---: | ---: |\n| 내용 A | 내용 B | 내용 C |\n| 항목 1 | 항목 2 | 항목 3 |\n',
     cursorOffset: 2
@@ -128,7 +142,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
     id: 'note',
     label: '> [!NOTE] 알림창',
     sublabel: 'GitHub 스타일 안내 알림',
-    icon: <Sparkles className="w-3.5 h-3.5 text-blue-400" />,
+    icon: <Sparkles className="w-3.5 h-3.5 text-indigo-400" />,
     category: 'blocks',
     insertText: '> [!NOTE]\n> 중요한 정보나 참고 사항을 작성하세요.\n',
     cursorOffset: 12
@@ -137,7 +151,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
     id: 'tip',
     label: '> [!TIP] 유용한 팁',
     sublabel: 'GitHub 스타일 팁 알림',
-    icon: <Sparkles className="w-3.5 h-3.5 text-emerald-400" />,
+    icon: <Sparkles className="w-3.5 h-3.5 text-indigo-300" />,
     category: 'blocks',
     insertText: '> [!TIP]\n> 권장하는 유용한 팁을 작성하세요.\n',
     cursorOffset: 11
@@ -221,22 +235,6 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const listContainerRef = useRef<HTMLDivElement>(null);
 
-  // Automatically scroll the selected item into view on keyboard navigation
-  useEffect(() => {
-    if (showSlashMenu && itemRefs.current[slashIndex]) {
-      itemRefs.current[slashIndex]?.scrollIntoView({
-        block: 'nearest',
-        inline: 'nearest',
-        behavior: 'auto'
-      });
-    }
-  }, [slashIndex, showSlashMenu]);
-
-  // Reset selected index when filter query changes
-  useEffect(() => {
-    setSlashIndex(0);
-  }, [slashFilter]);
-
   // Sync with external value changes (e.g., project change or AI send to editor)
   useEffect(() => {
     setLocalValue(value);
@@ -254,6 +252,187 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
     },
     [onChange]
   );
+
+  // Table Context State (Active Table Detection & Management)
+  const [currentTableInfo, setCurrentTableInfo] = useState<MarkdownTableInfo | null>(null);
+  const [isVisualModalOpen, setIsVisualModalOpen] = useState(false);
+
+  const updateTableContext = useCallback((text: string, cursorPos: number) => {
+    const info = getTableAtCursor(text, cursorPos);
+    setCurrentTableInfo(info);
+  }, []);
+
+  const handleInsertRow = useCallback((position: 'above' | 'below') => {
+    if (!currentTableInfo) return;
+    const textarea = refToUse.current;
+    const res = insertTableRow(currentTableInfo, position);
+    const nextVal =
+      localValue.slice(0, currentTableInfo.startOffset) +
+      res.formatted +
+      localValue.slice(currentTableInfo.endOffset);
+    setLocalValue(nextVal);
+    debouncedOnChange(nextVal);
+
+    const newOffset = currentTableInfo.startOffset + findCellOffsetInTable(res.formatted, res.newCursorRow, res.newCursorCol);
+    setTimeout(() => {
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(newOffset, newOffset);
+        updateTableContext(nextVal, newOffset);
+      }
+    }, 20);
+  }, [currentTableInfo, localValue, debouncedOnChange, refToUse, updateTableContext]);
+
+  const handleDeleteRow = useCallback(() => {
+    if (!currentTableInfo) return;
+    const textarea = refToUse.current;
+    const res = deleteTableRow(currentTableInfo);
+    if (!res) return;
+    const nextVal =
+      localValue.slice(0, currentTableInfo.startOffset) +
+      res.formatted +
+      localValue.slice(currentTableInfo.endOffset);
+    setLocalValue(nextVal);
+    debouncedOnChange(nextVal);
+
+    const newOffset = Math.min(nextVal.length, currentTableInfo.startOffset);
+    setTimeout(() => {
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(newOffset, newOffset);
+        updateTableContext(nextVal, newOffset);
+      }
+    }, 20);
+  }, [currentTableInfo, localValue, debouncedOnChange, refToUse, updateTableContext]);
+
+  const handleInsertCol = useCallback((position: 'left' | 'right') => {
+    if (!currentTableInfo) return;
+    const textarea = refToUse.current;
+    const res = insertTableColumn(currentTableInfo, position);
+    const nextVal =
+      localValue.slice(0, currentTableInfo.startOffset) +
+      res.formatted +
+      localValue.slice(currentTableInfo.endOffset);
+    setLocalValue(nextVal);
+    debouncedOnChange(nextVal);
+
+    const newOffset = currentTableInfo.startOffset + findCellOffsetInTable(res.formatted, currentTableInfo.cursorRowIndex, res.newCursorCol);
+    setTimeout(() => {
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(newOffset, newOffset);
+        updateTableContext(nextVal, newOffset);
+      }
+    }, 20);
+  }, [currentTableInfo, localValue, debouncedOnChange, refToUse, updateTableContext]);
+
+  const handleDeleteCol = useCallback(() => {
+    if (!currentTableInfo) return;
+    const textarea = refToUse.current;
+    const res = deleteTableColumn(currentTableInfo);
+    if (!res) return;
+    const nextVal =
+      localValue.slice(0, currentTableInfo.startOffset) +
+      res.formatted +
+      localValue.slice(currentTableInfo.endOffset);
+    setLocalValue(nextVal);
+    debouncedOnChange(nextVal);
+
+    const newOffset = Math.min(nextVal.length, currentTableInfo.startOffset);
+    setTimeout(() => {
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(newOffset, newOffset);
+        updateTableContext(nextVal, newOffset);
+      }
+    }, 20);
+  }, [currentTableInfo, localValue, debouncedOnChange, refToUse, updateTableContext]);
+
+  const handleSetAlign = useCallback((align: 'left' | 'center' | 'right') => {
+    if (!currentTableInfo) return;
+    const textarea = refToUse.current;
+    const formatted = setTableColumnAlign(currentTableInfo, align);
+    const nextVal =
+      localValue.slice(0, currentTableInfo.startOffset) +
+      formatted +
+      localValue.slice(currentTableInfo.endOffset);
+    setLocalValue(nextVal);
+    debouncedOnChange(nextVal);
+
+    const curPos = textarea ? textarea.selectionStart : currentTableInfo.startOffset;
+    setTimeout(() => {
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(curPos, curPos);
+        updateTableContext(nextVal, curPos);
+      }
+    }, 20);
+  }, [currentTableInfo, localValue, debouncedOnChange, refToUse, updateTableContext]);
+
+  const handleFormatTable = useCallback(() => {
+    if (!currentTableInfo) return;
+    const textarea = refToUse.current;
+    const formatted = formatMarkdownTable(
+      currentTableInfo.headers,
+      currentTableInfo.alignments,
+      currentTableInfo.rows
+    );
+    const nextVal =
+      localValue.slice(0, currentTableInfo.startOffset) +
+      formatted +
+      localValue.slice(currentTableInfo.endOffset);
+    setLocalValue(nextVal);
+    debouncedOnChange(nextVal);
+
+    const newOffset = currentTableInfo.startOffset + findCellOffsetInTable(
+      formatted,
+      currentTableInfo.cursorRowIndex,
+      currentTableInfo.cursorColIndex
+    );
+    setTimeout(() => {
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(newOffset, newOffset);
+        updateTableContext(nextVal, newOffset);
+      }
+    }, 20);
+  }, [currentTableInfo, localValue, debouncedOnChange, refToUse, updateTableContext]);
+
+  const handleApplyVisualModal = useCallback((newTableMarkdown: string) => {
+    if (!currentTableInfo) return;
+    const textarea = refToUse.current;
+    const nextVal =
+      localValue.slice(0, currentTableInfo.startOffset) +
+      newTableMarkdown +
+      localValue.slice(currentTableInfo.endOffset);
+    setLocalValue(nextVal);
+    debouncedOnChange(nextVal);
+
+    setTimeout(() => {
+      if (textarea) {
+        textarea.focus();
+        const pos = currentTableInfo.startOffset + 2;
+        textarea.setSelectionRange(pos, pos);
+        updateTableContext(nextVal, pos);
+      }
+    }, 20);
+  }, [currentTableInfo, localValue, debouncedOnChange, refToUse, updateTableContext]);
+
+  // Automatically scroll the selected item into view on keyboard navigation
+  useEffect(() => {
+    if (showSlashMenu && itemRefs.current[slashIndex]) {
+      itemRefs.current[slashIndex]?.scrollIntoView({
+        block: 'nearest',
+        inline: 'nearest',
+        behavior: 'auto'
+      });
+    }
+  }, [slashIndex, showSlashMenu]);
+
+  // Reset selected index when filter query changes
+  useEffect(() => {
+    setSlashIndex(0);
+  }, [slashFilter]);
 
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const isSyncScrolling = useRef<'editor' | 'preview' | null>(null);
@@ -327,6 +506,7 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
     debouncedOnChange(val);
 
     const cursor = e.target.selectionStart;
+    updateTableContext(val, cursor);
     // Check if user just typed `/` at start of line or after whitespace
     const textBefore = val.slice(0, cursor);
     const lastSlashIdx = textBefore.lastIndexOf('/');
@@ -437,8 +617,55 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
       }
     }
 
-    // 1. SMART ENTER KEY (List Continuation & Auto-Increment)
+    // 1. SMART ENTER KEY (Table, List Continuation & Auto-Increment)
     if (key === 'Enter' && !shiftKey) {
+      // (0) Smart Table Enter: create new row below, or exit table if row is empty
+      const tableInfo = getTableAtCursor(currentVal, selectionStart);
+      if (tableInfo) {
+        e.preventDefault();
+        const lineStart = currentVal.lastIndexOf('\n', selectionStart - 1) + 1;
+        let lineEnd = currentVal.indexOf('\n', selectionStart);
+        if (lineEnd === -1) lineEnd = currentVal.length;
+        const currentLine = currentVal.slice(lineStart, lineEnd);
+        const cells = splitTableRow(currentLine);
+        const isBlankRow = !tableInfo.isHeader && !tableInfo.isSeparator && cells.every((c) => c.trim() === '');
+
+        if (isBlankRow) {
+          // Exit table cleanly
+          const beforeTableLine = currentVal.slice(0, lineStart);
+          const afterTableLine = currentVal.slice(lineEnd);
+          const nextVal = beforeTableLine + '\n' + (afterTableLine.startsWith('\n') ? afterTableLine.slice(1) : afterTableLine);
+          setLocalValue(nextVal);
+          debouncedOnChange(nextVal);
+          setTimeout(() => {
+            if (refToUse.current) {
+              refToUse.current.setSelectionRange(lineStart, lineStart);
+              updateTableContext(nextVal, lineStart);
+            }
+          }, 0);
+          return;
+        }
+
+        // Insert new row below
+        const res = insertTableRow(tableInfo, 'below');
+        const nextVal =
+          currentVal.slice(0, tableInfo.startOffset) +
+          res.formatted +
+          currentVal.slice(tableInfo.endOffset);
+        setLocalValue(nextVal);
+        debouncedOnChange(nextVal);
+        setTimeout(() => {
+          if (refToUse.current) {
+            const newPos =
+              tableInfo.startOffset +
+              findCellOffsetInTable(res.formatted, res.newCursorRow, 0);
+            refToUse.current.setSelectionRange(newPos, newPos);
+            updateTableContext(nextVal, newPos);
+          }
+        }, 0);
+        return;
+      }
+
       // Find the current line before the cursor
       const lastNewline = currentVal.lastIndexOf('\n', selectionStart - 1);
       const lineStart = lastNewline === -1 ? 0 : lastNewline + 1;
@@ -602,9 +829,107 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
       }
     }
 
-    // 2. SMART TAB & SHIFT+TAB (Multi-line Indent & List Outdent)
+    // 2. SMART TAB & SHIFT+TAB (Table Cell Nav, Multi-line Indent & List Outdent)
     if (key === 'Tab') {
       e.preventDefault();
+
+      // (0) Smart Table Cell Navigation
+      const tableInfo = getTableAtCursor(currentVal, selectionStart);
+      if (tableInfo) {
+        const lineStart = currentVal.lastIndexOf('\n', selectionStart - 1) + 1;
+        let lineEnd = currentVal.indexOf('\n', selectionStart);
+        if (lineEnd === -1) lineEnd = currentVal.length;
+        const currentLine = currentVal.slice(lineStart, lineEnd);
+        const relPos = selectionStart - lineStart;
+
+        if (shiftKey) {
+          // Shift+Tab: Previous cell
+          let prevPipeRel = -1;
+          for (let i = relPos - 1; i >= 0; i--) {
+            if (currentLine[i] === '|' && (i === 0 || currentLine[i - 1] !== '\\')) {
+              prevPipeRel = i;
+              break;
+            }
+          }
+
+          if (prevPipeRel > 0) {
+            let startOfPrevCell = 0;
+            for (let i = prevPipeRel - 1; i >= 0; i--) {
+              if (currentLine[i] === '|' && (i === 0 || currentLine[i - 1] !== '\\')) {
+                startOfPrevCell = i + 1;
+                break;
+              }
+            }
+            if (currentLine[startOfPrevCell] === ' ') startOfPrevCell++;
+            const newPos = lineStart + startOfPrevCell;
+            refToUse.current?.setSelectionRange(newPos, newPos);
+            updateTableContext(currentVal, newPos);
+          } else if (tableInfo.cursorRowIndex > 0) {
+            const prevRowIdx = tableInfo.cursorRowIndex === 2 ? 0 : tableInfo.cursorRowIndex - 1;
+            const newPos =
+              tableInfo.startOffset +
+              findCellOffsetInTable(
+                tableInfo.lines.join('\n'),
+                prevRowIdx,
+                tableInfo.totalCols - 1
+              );
+            refToUse.current?.setSelectionRange(newPos, newPos);
+            updateTableContext(currentVal, newPos);
+          }
+          return;
+        } else {
+          // Tab: Next cell
+          let nextPipeRel = -1;
+          for (let i = relPos; i < currentLine.length; i++) {
+            if (currentLine[i] === '|' && (i === 0 || currentLine[i - 1] !== '\\')) {
+              nextPipeRel = i;
+              break;
+            }
+          }
+
+          const hasMoreCellsInLine =
+            nextPipeRel !== -1 &&
+            currentLine.slice(nextPipeRel + 1).includes('|');
+
+          if (hasMoreCellsInLine) {
+            let nextCellStart = nextPipeRel + 1;
+            if (currentLine[nextCellStart] === ' ') nextCellStart++;
+            const newPos = lineStart + nextCellStart;
+            refToUse.current?.setSelectionRange(newPos, newPos);
+            updateTableContext(currentVal, newPos);
+          } else {
+            // Next row or auto-insert new row at end
+            if (tableInfo.cursorRowIndex + 1 < tableInfo.lines.length) {
+              const nextRowIdx =
+                tableInfo.cursorRowIndex === 0 ? 2 : tableInfo.cursorRowIndex + 1;
+              const newPos =
+                tableInfo.startOffset +
+                findCellOffsetInTable(tableInfo.lines.join('\n'), nextRowIdx, 0);
+              refToUse.current?.setSelectionRange(newPos, newPos);
+              updateTableContext(currentVal, newPos);
+            } else {
+              // Auto-insert row below at end of table
+              const res = insertTableRow(tableInfo, 'below');
+              const nextVal =
+                currentVal.slice(0, tableInfo.startOffset) +
+                res.formatted +
+                currentVal.slice(tableInfo.endOffset);
+              setLocalValue(nextVal);
+              debouncedOnChange(nextVal);
+              setTimeout(() => {
+                if (refToUse.current) {
+                  const newPos =
+                    tableInfo.startOffset +
+                    findCellOffsetInTable(res.formatted, res.newCursorRow, 0);
+                  refToUse.current.setSelectionRange(newPos, newPos);
+                  updateTableContext(nextVal, newPos);
+                }
+              }, 0);
+            }
+          }
+          return;
+        }
+      }
 
       // Multi-line or Single-line block indent/outdent
       const lineStart = currentVal.lastIndexOf('\n', selectionStart - 1) + 1;
@@ -782,19 +1107,19 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
     <div
       id="slash-autocomplete-menu"
       style={{ top: `${slashPosition.top}px`, left: `${slashPosition.left}px` }}
-      className="absolute z-50 w-72 max-h-72 flex flex-col bg-[#18181b]/98 backdrop-blur-md border border-[#3f3f46] rounded-lg shadow-2xl p-1.5 text-xs text-zinc-200 animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
+      className="absolute z-50 w-72 max-h-72 flex flex-col bg-[#1e202b]/98 backdrop-blur-md border border-[#2e3142] rounded-xl shadow-2xl p-1.5 text-xs text-[#e2e8f0] animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
       onMouseDown={(e) => e.preventDefault()} // Prevent textarea blur on click
     >
-      <div className="shrink-0 px-2 py-1 mb-1 border-b border-[#27272a] flex items-center justify-between text-[0.625rem] text-zinc-400 font-semibold uppercase tracking-wider">
-        <span className="flex items-center gap-1 text-sky-300">
-          <Sparkles className="w-3 h-3 text-amber-400" />
+      <div className="shrink-0 px-2 py-1 mb-1 border-b border-[#2e3142] flex items-center justify-between text-[0.625rem] text-[#94a3b8] font-semibold uppercase tracking-wider">
+        <span className="flex items-center gap-1 text-[#6366f1]">
+          <Sparkles className="w-3 h-3 text-[#6366f1]" />
           마크다운 자동 완성
         </span>
-        <span className="font-mono text-[0.5625rem] text-zinc-500">↑↓ 이동 · ↵ 선택</span>
+        <span className="font-mono text-[0.5625rem] text-[#94a3b8]/60">↑↓ 이동 · ↵ 선택</span>
       </div>
 
       {filteredCommands.length === 0 ? (
-        <div className="p-3 text-center text-zinc-500 italic text-[0.6875rem]">
+        <div className="p-3 text-center text-[#94a3b8]/60 italic text-[0.6875rem]">
           일치하는 마크다운 명령어가 없습니다.
         </div>
       ) : (
@@ -810,16 +1135,16 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
                 type="button"
                 onClick={() => executeSlashCommand(cmd)}
                 onMouseEnter={() => setSlashIndex(idx)}
-                className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded text-left transition-colors ${
+                className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
                   isSelected
-                    ? 'bg-sky-600 text-white font-medium shadow-xs'
-                    : 'text-zinc-300 hover:bg-[#27272a] hover:text-zinc-100'
+                    ? 'bg-[#6366f1] text-white font-medium shadow-xs'
+                    : 'text-[#e2e8f0] hover:bg-[#282a38] hover:text-white'
                 }`}
               >
                 <span className="shrink-0">{cmd.icon}</span>
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-xs leading-tight truncate">{cmd.label}</div>
-                  <div className={`text-[0.625rem] truncate ${isSelected ? 'text-sky-200' : 'text-zinc-400'}`}>
+                  <div className={`text-[0.625rem] truncate ${isSelected ? 'text-indigo-100' : 'text-[#94a3b8]'}`}>
                     {cmd.sublabel}
                   </div>
                 </div>
@@ -844,7 +1169,8 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
           id="html-preview-frame"
           srcDoc={localValue}
           title="Interactive Document Preview"
-          className="w-full h-full border-none bg-[#1e1e22]"
+          style={{ background: 'var(--bg-editor)' }}
+          className="w-full h-full border-none"
           sandbox="allow-scripts allow-same-origin allow-modals"
         />
       );
@@ -853,7 +1179,11 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
     return (
       <div
         id="markdown-preview"
-        className="w-full h-full bg-[#1e1e22] p-4 overflow-y-auto text-xs text-zinc-200 leading-normal font-sans select-text break-words [word-break:break-word] [overflow-wrap:anywhere] markdown-preview prose prose-invert max-w-none custom-scrollbar"
+        style={{
+          background: 'var(--bg-editor)',
+          color: 'var(--text-primary)'
+        }}
+        className="w-full h-full p-4 overflow-y-auto text-xs leading-normal font-sans select-text break-words [word-break:break-word] [overflow-wrap:anywhere] markdown-preview prose prose-invert max-w-none custom-scrollbar"
         dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(localValue) }}
       />
     );
@@ -861,20 +1191,49 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
 
   if (editorTab === 'split') {
     return (
-      <div className="relative w-full h-full flex flex-row overflow-hidden bg-[#1e1e22]">
+      <div
+        style={{ background: 'var(--bg-editor)' }}
+        className="relative w-full h-full flex flex-row overflow-hidden"
+      >
         {/* Left 50%: Editor Textarea */}
-        <div className="w-1/2 h-full flex flex-col relative border-r border-[#27272a] min-w-0">
+        <div
+          style={{ borderColor: 'var(--border-color)' }}
+          className="w-1/2 h-full flex flex-col relative border-r min-w-0"
+        >
+          {currentTableInfo && (
+            <TableContextBar
+              tableInfo={currentTableInfo}
+              onInsertRow={handleInsertRow}
+              onDeleteRow={handleDeleteRow}
+              onInsertCol={handleInsertCol}
+              onDeleteCol={handleDeleteCol}
+              onSetAlign={handleSetAlign}
+              onFormatTable={handleFormatTable}
+              onOpenVisualModal={() => setIsVisualModalOpen(true)}
+            />
+          )}
+
           <textarea
             id="markdown-editor"
             ref={refToUse}
             value={localValue}
-            onFocus={onFocus}
+            onFocus={(e) => {
+              onFocus?.();
+              updateTableContext(localValue, e.currentTarget.selectionStart);
+            }}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             onChange={handleChange}
+            onClick={(e) => updateTableContext(localValue, e.currentTarget.selectionStart)}
+            onKeyUp={(e) => updateTableContext(localValue, e.currentTarget.selectionStart)}
+            onSelect={(e) => updateTableContext(localValue, e.currentTarget.selectionStart)}
             placeholder={placeholder || "마크다운을 입력하세요. '/'를 입력하여 자동 완성 메뉴를 열거나 단축키를 사용할 수 있습니다."}
-            spellCheck={true}
-            className="w-full flex-1 bg-[#1e1e22] text-zinc-200 font-mono text-xs p-3.5 resize-none border-none focus:outline-none leading-relaxed selection:bg-sky-500/25 selection:text-white placeholder:text-zinc-600 whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] custom-scrollbar"
+            spellCheck={false}
+            style={{
+              background: 'var(--bg-editor)',
+              color: 'var(--text-main)'
+            }}
+            className="w-full flex-1 font-mono text-xs p-3.5 resize-none border-none focus:outline-none leading-relaxed selection:bg-[#6366f1]/40 selection:text-white placeholder:opacity-40 whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] custom-scrollbar"
           />
 
           {/* Floating Slash Command / Markdown Autocomplete Menu */}
@@ -882,14 +1241,23 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
         </div>
 
         {/* Right 50%: Live Synchronous Preview */}
-        <div className="w-1/2 h-full flex flex-col bg-[#1e1e22] min-w-0">
-          <div className="px-3 py-1 bg-[#18181b] border-b border-[#27272a] text-[0.625rem] text-sky-300 font-semibold flex items-center justify-between shrink-0 select-none">
-            <span className="flex items-center gap-1.5">
-              <Eye className="w-3 h-3 text-sky-400" />
+        <div
+          style={{ background: 'var(--bg-editor)' }}
+          className="w-1/2 h-full flex flex-col min-w-0"
+        >
+          <div
+            style={{
+              background: 'var(--bg-panel)',
+              borderColor: 'var(--border-color)'
+            }}
+            className="px-3 py-1 backdrop-blur-md border-b text-[0.625rem] font-semibold flex items-center justify-between shrink-0 select-none"
+          >
+            <span className="flex items-center gap-1.5" style={{ color: 'var(--accent)' }}>
+              <Eye className="w-3 h-3" />
               <span>실시간 미리보기 (Live Preview)</span>
             </span>
-            <span className="text-[0.5625rem] text-zinc-400 font-mono flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[0.5625rem] opacity-75 font-mono flex items-center gap-1" style={{ color: 'var(--accent)' }}>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#6366f1] animate-pulse" />
               <span>동기화 스크롤 On</span>
             </span>
           </div>
@@ -899,39 +1267,88 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
               id="html-preview-frame-split"
               srcDoc={localValue}
               title="Interactive Document Preview"
-              className="w-full flex-1 border-none bg-[#1e1e22]"
+              style={{ background: 'var(--bg-editor)' }}
+              className="w-full flex-1 border-none"
               sandbox="allow-scripts allow-same-origin allow-modals"
             />
           ) : (
             <div
               id="markdown-preview-split"
               ref={previewContainerRef}
-              className="flex-1 w-full p-3.5 overflow-y-auto text-xs text-zinc-200 leading-normal font-sans select-text break-words [word-break:break-word] [overflow-wrap:anywhere] markdown-preview prose prose-invert max-w-none custom-scrollbar"
+              style={{
+                background: 'var(--bg-editor)',
+                color: 'var(--text-primary)'
+              }}
+              className="flex-1 w-full p-3.5 overflow-y-auto text-xs leading-normal font-sans select-text break-words [word-break:break-word] [overflow-wrap:anywhere] markdown-preview prose prose-invert max-w-none custom-scrollbar"
               dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(localValue) }}
             />
           )}
         </div>
+
+        {/* Visual Table Modal if opened in split mode */}
+        {isVisualModalOpen && currentTableInfo && (
+          <VisualTableModal
+            tableInfo={currentTableInfo}
+            onApply={handleApplyVisualModal}
+            onClose={() => setIsVisualModalOpen(false)}
+          />
+        )}
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-full flex flex-col bg-[#1e1e22]">
+    <div
+      style={{ background: 'var(--bg-editor)' }}
+      className="relative w-full h-full flex flex-col"
+    >
+      {currentTableInfo && (
+        <TableContextBar
+          tableInfo={currentTableInfo}
+          onInsertRow={handleInsertRow}
+          onDeleteRow={handleDeleteRow}
+          onInsertCol={handleInsertCol}
+          onDeleteCol={handleDeleteCol}
+          onSetAlign={handleSetAlign}
+          onFormatTable={handleFormatTable}
+          onOpenVisualModal={() => setIsVisualModalOpen(true)}
+        />
+      )}
+
       <textarea
         id="markdown-editor"
         ref={refToUse}
         value={localValue}
-        onFocus={onFocus}
+        onFocus={(e) => {
+          onFocus?.();
+          updateTableContext(localValue, e.currentTarget.selectionStart);
+        }}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         onChange={handleChange}
+        onClick={(e) => updateTableContext(localValue, e.currentTarget.selectionStart)}
+        onKeyUp={(e) => updateTableContext(localValue, e.currentTarget.selectionStart)}
+        onSelect={(e) => updateTableContext(localValue, e.currentTarget.selectionStart)}
         placeholder={placeholder || "마크다운을 입력하세요. '/'를 입력하여 자동 완성 메뉴를 열거나 단축키를 사용할 수 있습니다."}
-        spellCheck={true}
-        className="w-full flex-1 bg-[#1e1e22] text-zinc-200 font-mono text-xs p-3.5 resize-none border-none focus:outline-none leading-relaxed selection:bg-sky-500/25 selection:text-white placeholder:text-zinc-600 whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] custom-scrollbar"
+        spellCheck={false}
+        style={{
+          background: 'var(--bg-editor)',
+          color: 'var(--text-main)'
+        }}
+        className="w-full flex-1 font-mono text-xs p-3.5 resize-none border-none focus:outline-none leading-relaxed selection:bg-[#6366f1]/40 selection:text-white placeholder:opacity-40 whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] custom-scrollbar"
       />
 
       {/* Floating Slash Command / Markdown Autocomplete Menu */}
       {showSlashMenu && renderSlashMenu()}
+
+      {/* Visual Table Modal if opened in edit mode */}
+      {isVisualModalOpen && currentTableInfo && (
+        <VisualTableModal
+          tableInfo={currentTableInfo}
+          onApply={handleApplyVisualModal}
+          onClose={() => setIsVisualModalOpen(false)}
+        />
+      )}
     </div>
   );
 });
