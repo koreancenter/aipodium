@@ -1,0 +1,286 @@
+@import "tailwindcss";
+
+/* Selection Highlight Styling */
+::selection {
+  background-color: var(--accent-primary, #6366f1);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   Design System CSS Custom Properties: VS Code Ultra-Dense IDE Theme
+   ========================================================================== */
+:root {
+  --bg-main: #121318;        /* 메인 배경 (딥 차콜) */
+  --bg-surface: #1e202b;     /* 사이드바, 카드, 패널 배경 */
+  --bg-editor: #16171e;      /* 마크다운 에디터 배경 */
+  --border-color: #2e3142;   /* 패널 경계선 */
+  --text-main: #e2e8f0;      /* 기본 폰트 색상 */
+  --text-muted: #94a3b8;     /* 보조/설명 폰트 색상 */
+  --accent-primary: #6366f1; /* 포인트 컬러 (일렉트릭 퍼플) */
+
+  /* Aliases for universal compatibility */
+  --bg-app: var(--bg-main);
+  --bg-primary: var(--bg-main);
+  --bg-panel: var(--bg-surface);
+  --bg-secondary: var(--bg-surface);
+  --bg-surface-hover: #282a38;
+  --bg-surface-active: #323548;
+  --bg-editor-surface: var(--bg-editor);
+  --border-glass: var(--border-color);
+  --border-color-subtle: #2e3142;
+  --border-color-strong: #6366f1;
+  --bg-surface-glass: #1e202b;
+  --bg-surface-glass-subtle: #181922;
+  --bg-surface-glass-card: #1e202b;
+
+  --text-primary: var(--text-main);
+  --text-secondary: var(--text-muted);
+  --primary: var(--accent-primary);
+  --primary-hover: #4f46e5;
+  --accent: var(--accent-primary);
+  --accent-hover: #4f46e5;
+  --accent-color: var(--accent-primary);
+  --accent-rgb: 99, 102, 241;
+  --accent-surface: rgba(99, 102, 241, 0.15);
+  --glow-accent: none;
+  --glow-primary: none;
+}
+
+/* Base Body Styles - VS Code Monospace IDE Standard */
+body {
+  background: var(--bg-main, #121318);
+  color: var(--text-main, #e2e8f0);
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Consolas, monospace, sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  min-height: 100vh;
+  letter-spacing: -0.01em;
+}
+
+/* Sharp Borders & No Shadows across the board */
+* {
+  box-shadow: none !important;
+}
+
+/* High-End Surface & Panel Utilities */
+.bg-main {
+  background-color: var(--bg-main, #121318) !important;
+}
+
+.bg-surface {
+  background-color: var(--bg-surface, #1e202b) !important;
+}
+
+.bg-editor {
+  background-color: var(--bg-editor, #16171e) !important;
+}
+
+.border-main {
+  border-color: var(--border-color, #2e3142) !important;
+}
+
+.text-main {
+  color: var(--text-main, #e2e8f0) !important;
+}
+
+.text-muted {
+  color: var(--text-muted, #94a3b8) !important;
+}
+
+.text-accent-primary {
+  color: var(--accent-primary, #6366f1) !important;
+}
+
+.bg-accent-primary {
+  background-color: var(--accent-primary, #6366f1) !important;
+}
+
+.glass-panel {
+  background: var(--bg-surface, #1e202b);
+  border: 1px solid var(--border-color, #2e3142);
+  border-radius: 0px;
+}
+
+.glass-panel-header {
+  background: var(--bg-surface, #1e202b);
+  border-bottom: 1px solid var(--border-color, #2e3142);
+}
+
+.glass-panel-sidebar {
+  background: var(--bg-surface, #1e202b);
+  border-right: 1px solid var(--border-color, #2e3142);
+}
+
+.glass-card {
+  background: var(--bg-surface, #1e202b);
+  border: 1px solid var(--border-color, #2e3142);
+  border-radius: 2px;
+}
+
+.glass-card:hover {
+  background: var(--bg-surface-hover, #282a38);
+  border-color: #3b3e54;
+}
+
+.editor-code-surface {
+  background: var(--bg-editor, #16171e);
+}
+
+.glow-teal-subtle,
+.glow-accent-subtle,
+.glow-active-tab {
+  box-shadow: none !important;
+}
+
+/* ==========================================================================
+   Universal Scrollbar - Square VS Code Style
+   ========================================================================== */
+html,
+body,
+*,
+*::before,
+*::after {
+  scrollbar-width: thin;
+  scrollbar-color: #2e3142 transparent;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #2e3142;
+  border-radius: 0px;
+  border: none;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #4f526b;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-none {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* ==========================================================================
+   Synchronized Markdown & Editor Typography System
+   ========================================================================== */
+textarea#markdown-editor,
+.markdown-raw-editor {
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Consolas, monospace, sans-serif !important;
+  font-size: 12px;
+  line-height: 1.5;
+  tab-size: 2;
+  background-color: var(--bg-editor, #16171e);
+  color: var(--text-main, #e2e8f0);
+}
+
+#markdown-preview,
+.markdown-preview,
+.markdown-body {
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Consolas, monospace, sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  background-color: var(--bg-editor, #16171e);
+  color: var(--text-main, #e2e8f0);
+}
+
+#markdown-preview h1,
+.markdown-preview h1 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 0.625rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.3;
+  color: var(--text-main, #e2e8f0);
+}
+
+#markdown-preview h2,
+.markdown-preview h2 {
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.35;
+  color: var(--text-main, #e2e8f0);
+}
+
+#markdown-preview h3,
+.markdown-preview h3 {
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-top: 0.375rem;
+  margin-bottom: 0.125rem;
+  line-height: 1.4;
+  color: var(--text-main, #e2e8f0);
+}
+
+#markdown-preview p,
+.markdown-preview p {
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+  line-height: 1.5;
+  color: var(--text-main, #e2e8f0);
+}
+
+#markdown-preview ul,
+#markdown-preview ol,
+.markdown-preview ul,
+.markdown-preview ol {
+  margin-top: 0.125rem;
+  margin-bottom: 0.25rem;
+  padding-left: 1.125rem;
+}
+
+#markdown-preview li,
+.markdown-preview li {
+  margin-top: 0;
+  margin-bottom: 0;
+  line-height: 1.5;
+  color: var(--text-main, #e2e8f0);
+}
+
+/* Print Stylesheet */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+
+  header,
+  section:nth-of-type(1),
+  section:nth-of-type(3),
+  div[class*="cursor-col-resize"],
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 10pt !important;
+    line-height: 1.5 !important;
+  }
+
+  main,
+  section:nth-of-type(2) {
+    display: block !important;
+    width: 100% !important;
+    background-color: #ffffff !important;
+    border: none !important;
+  }
+}
