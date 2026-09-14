@@ -105,10 +105,9 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
   const activePdfBytesRef = useRef<Uint8Array | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Helper to convert base64 / dataUrl / ArrayBuffer to Uint8Array safely
-  const resolvePdfBytes = useCallback((source: string | ArrayBuffer | Uint8Array | null | undefined): Uint8Array => {
-    if (!source) {
-      // Fallback to pre-compiled multi-page sample PDF
+  // Helper to fallback to pre-compiled multi-page sample PDF
+  const getSamplePdfBytes = useCallback((): Uint8Array => {
+    try {
       const b64 = SAMPLE_PDF_DATA_URL.split(',')[1] || '';
       const binary = atob(b64);
       const bytes = new Uint8Array(binary.length);
@@ -116,23 +115,45 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
         bytes[i] = binary.charCodeAt(i);
       }
       return bytes;
+    } catch {
+      return new Uint8Array(0);
+    }
+  }, []);
+
+  // Helper to convert base64 / dataUrl / ArrayBuffer to Uint8Array safely
+  const resolvePdfBytes = useCallback((source: string | ArrayBuffer | Uint8Array | null | undefined): Uint8Array => {
+    if (!source) {
+      return getSamplePdfBytes();
     }
 
     if (source instanceof Uint8Array) {
-      return source;
+      return source.byteLength > 0 ? source : getSamplePdfBytes();
     }
 
     if (source instanceof ArrayBuffer) {
-      return new Uint8Array(source);
+      return source.byteLength > 0 ? new Uint8Array(source) : getSamplePdfBytes();
     }
 
     if (typeof source === 'string') {
-      let b64 = source;
-      if (source.startsWith('data:')) {
-        b64 = source.split(',')[1] || '';
+      const trimmed = source.trim();
+      if (!trimmed) {
+        return getSamplePdfBytes();
       }
+
+      let b64 = trimmed;
+      if (trimmed.startsWith('data:')) {
+        b64 = trimmed.split(',')[1] || '';
+      }
+
+      if (!b64 || b64.trim().length === 0) {
+        return getSamplePdfBytes();
+      }
+
       try {
         const binary = atob(b64);
+        if (binary.length === 0) {
+          return getSamplePdfBytes();
+        }
         const bytes = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) {
           bytes[i] = binary.charCodeAt(i);
@@ -140,18 +161,12 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
         return bytes;
       } catch {
         // Source string was plain text or invalid base64; fallback to sample
-        const sampleB64 = SAMPLE_PDF_DATA_URL.split(',')[1] || '';
-        const binary = atob(sampleB64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-          bytes[i] = binary.charCodeAt(i);
-        }
-        return bytes;
+        return getSamplePdfBytes();
       }
     }
 
-    return new Uint8Array(0);
-  }, []);
+    return getSamplePdfBytes();
+  }, [getSamplePdfBytes]);
 
   // 1. Load PDF Document via PDF.js
   useEffect(() => {
@@ -163,6 +178,12 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
       try {
         const bytes = resolvePdfBytes(pdfData);
         activePdfBytesRef.current = bytes;
+
+        if (!bytes || bytes.byteLength === 0) {
+          setLoadError('PDF 파일의 크기가 0 바이트이거나 비어 있습니다.');
+          setIsLoadingPdf(false);
+          return;
+        }
 
         const loadingTask = pdfjsLib.getDocument({
           data: bytes,
@@ -487,8 +508,14 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
 
   // Extract to Markdown Pipeline (Current Page OCR/Layout or Full Document)
   const handleExtractToMarkdown = async (engine: PdfParserEngine | 'ocr' = extractEngine) => {
-    if (!activePdfBytesRef.current) {
-      onToast?.('변환할 PDF 데이터가 없습니다.', 'error');
+    let bytesToUse = activePdfBytesRef.current;
+    if (!bytesToUse || bytesToUse.byteLength === 0) {
+      bytesToUse = resolvePdfBytes(pdfData);
+      activePdfBytesRef.current = bytesToUse;
+    }
+
+    if (!bytesToUse || bytesToUse.byteLength === 0) {
+      onToast?.('변환할 PDF 데이터가 없거나 비어 있습니다.', 'error');
       return;
     }
 
@@ -584,7 +611,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
     setOcrProgress({ status: '전체 문서 파싱 진행 중...', progress: 20 });
 
     try {
-      const blob = new Blob([activePdfBytesRef.current], { type: 'application/pdf' });
+      const blob = new Blob([bytesToUse], { type: 'application/pdf' });
       const result = await convertPdfToMarkdown(blob, fileName, {
         engine: engine === 'ocr' ? 'fast' : engine,
         ollamaEndpoint: ollamaEndpoint,
@@ -600,8 +627,12 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
       setIsExtracting(false);
       setOcrProgress(null);
 
-      const engineName = result.parserEngine === 'ollama' ? `Local AI (${result.ollamaModel || ollamaModel})` : 'Fast Text Parser';
-      onToast?.(`✓ '${fileName}' 전체 마크다운이 성공적으로 추출되었습니다 (${engineName})!`, 'success');
+      if (result.pageCount === 0) {
+        onToast?.(`⚠️ '${fileName}' 파일이 비어 있어 추출된 마크다운 내용이 없습니다.`, 'info');
+      } else {
+        const engineName = result.parserEngine === 'ollama' ? `Local AI (${result.ollamaModel || ollamaModel})` : 'Fast Text Parser';
+        onToast?.(`✓ '${fileName}' 전체 마크다운이 성공적으로 추출되었습니다 (${engineName})!`, 'success');
+      }
     } catch (err: any) {
       setIsExtracting(false);
       setOcrProgress(null);

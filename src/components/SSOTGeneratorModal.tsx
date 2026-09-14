@@ -585,23 +585,23 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-100 font-sans">
-      <div className="relative bg-[#18181b] border border-[#27272a] rounded-lg max-w-[540px] w-full p-6 shadow-2xl space-y-5 text-slate-200 animate-in fade-in zoom-in-95 duration-100 flex flex-col">
+      <div className="relative bg-[#1e202b] border border-[#2e3142] rounded-xl max-w-[540px] w-full p-6 shadow-2xl space-y-5 text-slate-200 animate-in fade-in zoom-in-95 duration-100 flex flex-col">
         
         {/* Minimal Close Button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-1.5 rounded hover:bg-slate-800 transition cursor-pointer"
-          title="닫기 (Esc)"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-1.5 rounded-md hover:bg-[#282a38] transition cursor-pointer"
+          title="닫기"
         >
           <X className="w-4 h-4" />
         </button>
 
         {/* Header */}
         <div className="space-y-1 pt-1">
-          <h2 className="text-base font-normal text-slate-300">SSOT Document Starter</h2>
+          <h2 className="text-base font-semibold text-slate-200">단일 진실 공급원 문서 생성기</h2>
           <p className="text-xs text-slate-400">
-            소스 파일들을 결합하여 단일 진실 공급원(SSOT) 문서를 빌드합니다.
+            소스 파일들을 결합하여 단일 진실 공급원 문서를 생성합니다.
           </p>
         </div>
 
@@ -611,15 +611,15 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
           {/* Target Folder / Source Picker */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs text-slate-400 flex items-center gap-1.5 font-normal">
-                <Folder className="w-3.5 h-3.5 text-[#38bdf8]" />
+              <label className="text-xs text-slate-300 flex items-center gap-1.5 font-medium">
+                <Folder className="w-3.5 h-3.5 text-[#818cf8]" />
                 <span>대상 소스 폴더</span>
               </label>
               {currentFolderFiles.length > 0 && (
                 <button
                   type="button"
                   onClick={() => setShowFilePicker((prev) => !prev)}
-                  className="text-xs text-[#38bdf8] hover:underline font-normal flex items-center gap-0.5 cursor-pointer"
+                  className="text-xs text-[#818cf8] hover:underline font-normal flex items-center gap-0.5 cursor-pointer"
                 >
                   <span>{showFilePicker ? '파일 숨기기' : `세부 파일 (${selectedFiles.length}/${currentFolderFiles.length})`}</span>
                   <ChevronDown className={`w-3 h-3 transition-transform ${showFilePicker ? 'rotate-180' : ''}`} />
@@ -630,12 +630,12 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
             <select
               value={selectedFolder}
               onChange={(e) => handleFolderChange(e.target.value)}
-              className="w-full bg-[#18181b] border border-[#3f3f46] rounded px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-[#38bdf8] transition cursor-pointer"
+              className="w-full bg-[#121318] border border-[#2e3142] rounded-md px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-[#6366f1] transition cursor-pointer"
             >
               {Array.from(new Set([selectedFolder, ...availableFolders])).filter(Boolean).map((f) => {
                 const count = filesByFolder[f] ? filesByFolder[f].length : 0;
                 return (
-                  <option key={f} value={f} className="bg-[#18181b] text-slate-200">
+                  <option key={f} value={f} className="bg-[#121318] text-slate-200">
                     📁 {f} ({count}개 소스)
                   </option>
                 );
@@ -644,7 +644,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
 
             {/* Detailed File Picker Accordion */}
             {showFilePicker && currentFolderFiles.length > 0 && (
-              <div className="bg-[#27272a]/60 border border-[#3f3f46] rounded p-2.5 space-y-1.5 max-h-28 overflow-y-auto mt-1">
+              <div className="bg-[#121318] border border-[#2e3142] rounded-md p-2.5 space-y-1.5 max-h-28 overflow-y-auto mt-1">
                 <div className="text-[0.6875rem] text-slate-400 font-normal px-0.5">
                   포함할 소스 파일 선택:
                 </div>
@@ -654,19 +654,19 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                     return (
                       <label
                         key={file}
-                        className={`flex items-center gap-1.5 p-1.5 rounded text-[0.6875rem] border cursor-pointer transition ${
+                        className={`flex items-center gap-1.5 p-1.5 rounded-md text-[0.6875rem] border cursor-pointer transition ${
                           isChecked
-                            ? 'border-[#38bdf8] bg-[#27272a] text-white'
-                            : 'border-[#3f3f46] bg-[#18181b] text-slate-400 hover:text-slate-200'
+                            ? 'border-[#6366f1] bg-[#6366f1]/20 text-white'
+                            : 'border-[#2e3142] bg-[#16171e] text-slate-400 hover:text-slate-200'
                         }`}
                       >
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => handleToggleFile(file)}
-                          className="rounded border-[#3f3f46] bg-[#18181b] text-[#0284c7] focus:ring-0 w-3 h-3"
+                          className="rounded-sm border-[#2e3142] bg-[#121318] text-[#6366f1] focus:ring-0 w-3 h-3"
                         />
-                        <FileText className="w-3 h-3 shrink-0 text-[#38bdf8]" />
+                        <FileText className="w-3 h-3 shrink-0 text-[#818cf8]" />
                         <span className="truncate font-mono">{file}</span>
                       </label>
                     );
@@ -679,8 +679,8 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
           {/* 3. Customizable Template System */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs text-slate-400 flex items-center gap-1.5 font-normal">
-                <Layers className="w-3.5 h-3.5 text-[#38bdf8]" />
+              <label className="text-xs text-slate-300 flex items-center gap-1.5 font-medium">
+                <Layers className="w-3.5 h-3.5 text-[#818cf8]" />
                 <span>기본 템플릿 양식</span>
               </label>
               <div className="flex items-center gap-1.5">
@@ -695,10 +695,10 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                 <button
                   type="button"
                   onClick={handleOpenAddForm}
-                  className={`text-xs px-2 py-0.5 rounded border transition cursor-pointer flex items-center gap-1 ${
+                  className={`text-xs px-2 py-0.5 rounded-md border transition cursor-pointer flex items-center gap-1 ${
                     showForm && !isEditMode
-                      ? 'bg-[#0284c7] text-white border-[#38bdf8]'
-                      : 'bg-[#27272a] text-slate-300 border-[#3f3f46] hover:bg-[#3f3f46]'
+                      ? 'bg-[#6366f1] text-white border-[#6366f1]'
+                      : 'bg-[#282a38] text-slate-300 border-[#2e3142] hover:bg-[#323648]'
                   }`}
                   title="현재 지시사항을 새 템플릿으로 저장"
                 >
@@ -710,10 +710,10 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                 <button
                   type="button"
                   onClick={handleOpenEditForm}
-                  className={`text-xs px-2 py-0.5 rounded border transition cursor-pointer flex items-center gap-1 ${
+                  className={`text-xs px-2 py-0.5 rounded-md border transition cursor-pointer flex items-center gap-1 ${
                     showForm && isEditMode
-                      ? 'bg-[#0284c7] text-white border-[#38bdf8]'
-                      : 'bg-[#27272a] text-slate-300 border-[#3f3f46] hover:bg-[#3f3f46]'
+                      ? 'bg-[#6366f1] text-white border-[#6366f1]'
+                      : 'bg-[#282a38] text-slate-300 border-[#2e3142] hover:bg-[#323648]'
                   }`}
                   title="선택된 템플릿 이름/태그/설명 수정"
                 >
@@ -725,7 +725,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                 <button
                   type="button"
                   onClick={handleDeleteActiveTemplate}
-                  className="text-xs px-2 py-0.5 rounded border transition bg-[#27272a] text-slate-300 border-[#3f3f46] hover:bg-rose-950/50 hover:text-rose-300 hover:border-rose-800 cursor-pointer flex items-center gap-1"
+                  className="text-xs px-2 py-0.5 rounded-md border transition bg-[#282a38] text-slate-300 border-[#2e3142] hover:bg-rose-950/50 hover:text-rose-300 hover:border-rose-800 cursor-pointer flex items-center gap-1"
                   title="선택된 템플릿 삭제"
                 >
                   <Trash2 className="w-3 h-3" />
@@ -739,10 +739,10 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
               <select
                 value={templateFormat}
                 onChange={(e) => handleTemplateChange(e.target.value)}
-                className="w-full bg-[#18181b] border border-[#3f3f46] rounded px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-[#38bdf8] transition cursor-pointer"
+                className="w-full bg-[#121318] border border-[#2e3142] rounded-md px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-[#6366f1] transition cursor-pointer"
               >
                 {templates.map((tmpl) => (
-                  <option key={tmpl.id} value={tmpl.id} className="bg-[#18181b] text-slate-200">
+                  <option key={tmpl.id} value={tmpl.id} className="bg-[#121318] text-slate-200">
                     {tmpl.name} — {tmpl.desc}
                   </option>
                 ))}
@@ -751,10 +751,10 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
 
             {/* Inline Form for Add & Edit */}
             {showForm && (
-              <div className="bg-[#27272a]/80 border border-[#38bdf8]/50 rounded p-3 space-y-2.5">
-                <div className="flex items-center justify-between pb-1.5 border-b border-[#3f3f46]">
+              <div className="bg-[#121318] border border-[#6366f1]/40 rounded-md p-3 space-y-2.5">
+                <div className="flex items-center justify-between pb-1.5 border-b border-[#2e3142]">
                   <span className="text-xs text-slate-200 font-medium flex items-center gap-1.5">
-                    <BookmarkPlus className="w-3.5 h-3.5 text-[#38bdf8]" />
+                    <BookmarkPlus className="w-3.5 h-3.5 text-[#818cf8]" />
                     <span>{isEditMode ? `'${activeTemplate.name}' 템플릿 수정` : '새 커스텀 템플릿 등록'}</span>
                   </span>
                   <button
@@ -763,7 +763,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                       setShowForm(false);
                       setIsEditMode(false);
                     }}
-                    className="text-slate-400 hover:text-white p-0.5 rounded cursor-pointer"
+                    className="text-slate-400 hover:text-white p-0.5 rounded-md hover:bg-[#282a38] cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -777,7 +777,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                       value={templateNameInput}
                       onChange={(e) => setTemplateNameInput(e.target.value)}
                       placeholder="예: API 명세서, 보안 점검표"
-                      className="w-full bg-[#18181b] border border-[#3f3f46] rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-[#38bdf8]"
+                      className="w-full bg-[#16171e] border border-[#2e3142] rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-[#6366f1]"
                       autoFocus
                     />
                   </div>
@@ -788,7 +788,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                       value={templateTagInput}
                       onChange={(e) => setTemplateTagInput(e.target.value)}
                       placeholder="API_Spec"
-                      className="w-full bg-[#18181b] border border-[#3f3f46] rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-[#38bdf8] font-mono"
+                      className="w-full bg-[#16171e] border border-[#2e3142] rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-[#6366f1] font-mono"
                     />
                   </div>
                 </div>
@@ -800,7 +800,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                     value={templateDescInput}
                     onChange={(e) => setTemplateDescInput(e.target.value)}
                     placeholder="템플릿의 용도나 특징을 간략히 적어주세요."
-                    className="w-full bg-[#18181b] border border-[#3f3f46] rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-[#38bdf8]"
+                    className="w-full bg-[#16171e] border border-[#2e3142] rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-[#6366f1]"
                   />
                 </div>
 
@@ -823,7 +823,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                       type="button"
                       onClick={handleSaveForm}
                       disabled={!templateNameInput.trim()}
-                      className="px-3 py-1 rounded text-xs font-medium bg-[#0284c7] hover:bg-[#0369a1] disabled:opacity-40 text-white transition flex items-center gap-1 cursor-pointer"
+                      className="px-3 py-1 rounded-md text-xs font-medium bg-[#6366f1] hover:bg-[#4f46e5] disabled:opacity-40 text-white transition flex items-center gap-1 cursor-pointer"
                     >
                       <Check className="w-3 h-3" />
                       <span>{isEditMode ? '수정 완료' : '저장하기'}</span>
@@ -837,11 +837,11 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
           {/* 4. Priority & Spacious Textarea */}
           <div className="space-y-1.5 relative">
             <div className="flex items-center justify-between">
-              <label className="text-xs text-slate-400 flex items-center gap-1.5 font-normal">
-                <Sparkles className="w-3.5 h-3.5 text-[#38bdf8]" />
-                <span>추가 지시사항 (Custom Prompt)</span>
+              <label className="text-xs text-slate-300 flex items-center gap-1.5 font-medium">
+                <Sparkles className="w-3.5 h-3.5 text-[#818cf8]" />
+                <span>추가 지시사항</span>
               </label>
-              <kbd className="text-[0.6875rem] bg-[#27272a] text-[#38bdf8] border border-[#3f3f46] px-1.5 py-0.5 rounded font-mono">
+              <kbd className="text-[0.6875rem] bg-[#121318] text-[#818cf8] border border-[#2e3142] px-1.5 py-0.5 rounded-sm font-mono">
                 @ 멘션 지원
               </kbd>
             </div>
@@ -854,15 +854,15 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                 onKeyDown={handleTextareaKeyDown}
                 rows={5}
                 placeholder="적용할 지시사항을 입력하거나, '@'를 눌러 템플릿/문서를 불러올 수 있습니다."
-                className="w-full bg-[#18181b] border border-[#3f3f46] rounded p-3 text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-[#38bdf8] transition resize-none leading-relaxed min-h-[120px]"
+                className="w-full bg-[#121318] border border-[#2e3142] rounded-md p-3 text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-[#6366f1] transition resize-none leading-relaxed min-h-[120px]"
               />
 
               {/* Interactive @ Mention Dropdown */}
               {showMentionPopup && filteredMentions.length > 0 && (
-                <div className="absolute left-0 bottom-full mb-1 w-full bg-[#18181b] border border-[#3f3f46] rounded-lg shadow-2xl max-h-48 overflow-y-auto z-50 p-1 divide-y divide-[#27272a]">
-                  <div className="px-2.5 py-1.5 text-xs font-medium text-slate-400 flex items-center justify-between bg-[#27272a]/80 rounded-t">
-                    <span>멘션 선택 (↑↓ 탐색, Enter 삽입)</span>
-                    <span className="text-xs text-[#38bdf8] font-mono">@{mentionQuery}</span>
+                <div className="absolute left-0 bottom-full mb-1 w-full bg-[#1e202b] border border-[#2e3142] rounded-lg shadow-2xl max-h-48 overflow-y-auto z-50 p-1 divide-y divide-[#2e3142]">
+                  <div className="px-2.5 py-1.5 text-xs font-medium text-slate-400 flex items-center justify-between bg-[#121318] rounded-t-md">
+                    <span>멘션 선택 (방향키 탐색, 엔터 삽입)</span>
+                    <span className="text-xs text-[#818cf8] font-mono">@{mentionQuery}</span>
                   </div>
                   <div className="py-1 space-y-0.5">
                     {filteredMentions.map((item, idx) => {
@@ -873,17 +873,17 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                           type="button"
                           onClick={() => insertMention(item)}
                           onMouseEnter={() => setMentionActiveIndex(idx)}
-                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded text-left transition cursor-pointer ${
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left transition cursor-pointer ${
                             isHighlighted
-                              ? 'bg-[#0284c7] text-white'
-                              : 'hover:bg-[#27272a] text-slate-300'
+                              ? 'bg-[#6366f1] text-white'
+                              : 'hover:bg-[#282a38] text-slate-300'
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1">
                             {item.type === 'template' ? (
-                              <Sparkles className="w-3.5 h-3.5 text-[#38bdf8] shrink-0" />
+                              <Sparkles className="w-3.5 h-3.5 text-[#818cf8] shrink-0" />
                             ) : (
-                              <FileText className="w-3.5 h-3.5 text-[#38bdf8] shrink-0" />
+                              <FileText className="w-3.5 h-3.5 text-[#818cf8] shrink-0" />
                             )}
                             <span className="text-xs font-mono font-medium truncate">
                               {item.tag}
@@ -906,53 +906,53 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
 
           {/* 5. Saved Filename Field */}
           <div className="space-y-1.5">
-            <label className="text-xs text-slate-400 flex items-center gap-1.5 font-normal">
-              <FileText className="w-3.5 h-3.5 text-[#38bdf8]" />
+            <label className="text-xs text-slate-300 flex items-center gap-1.5 font-medium">
+              <FileText className="w-3.5 h-3.5 text-[#818cf8]" />
               <span>저장 파일명</span>
             </label>
-            <div className="flex items-center w-full bg-[#18181b] border border-[#3f3f46] rounded overflow-hidden focus-within:border-[#38bdf8] transition">
+            <div className="flex items-center w-full bg-[#121318] border border-[#2e3142] rounded-md overflow-hidden focus-within:border-[#6366f1] transition">
               <input
                 type="text"
                 value={docBaseName}
                 onChange={(e) => setDocBaseName(e.target.value.replace(/\.md$/i, ''))}
-                placeholder="project_SSOT"
+                placeholder="project_ssot"
                 className="flex-1 bg-transparent px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-none"
               />
-              <div className="bg-[#27272a] border-l border-[#3f3f46] px-3 py-2 text-xs text-slate-400 font-mono select-none">
+              <div className="bg-[#1e202b] border-l border-[#2e3142] px-3 py-2 text-xs text-slate-400 font-mono select-none">
                 .md
               </div>
             </div>
           </div>
 
-          {/* 6. Footer: Explicit choice between 0ms Instant Boilerplate & AI Synthesis */}
-          <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-2.5 border-t border-[#27272a] mt-2">
+          {/* 6. Footer */}
+          <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-2.5 border-t border-[#2e3142] mt-2">
             <span className="text-[0.6875rem] text-slate-400 hidden sm:inline">
-              * 템플릿 즉시 삽입은 AI 호출/토큰 소모 없이 0ms로 적용됩니다.
+              * 템플릿 즉시 삽입은 인공지능 호출 없이 즉시 적용됩니다.
             </span>
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3 py-1.5 rounded text-xs text-slate-400 hover:text-slate-200 hover:bg-[#27272a] transition cursor-pointer"
+                className="px-3 py-1.5 rounded-md text-xs text-slate-400 hover:text-slate-200 hover:bg-[#282a38] transition cursor-pointer"
               >
                 취소
               </button>
               <button
                 type="button"
                 onClick={handleInstantSubmit}
-                className="px-3 py-1.5 rounded text-xs font-medium bg-[#27272a] hover:bg-[#3f3f46] text-sky-300 border border-sky-500/30 hover:border-sky-500/60 transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                title="AI 호출 없이 표준 템플릿 스캐폴딩을 즉시 에디터에 배치합니다 (0ms, 토큰 소모 0)"
+                className="px-3 py-1.5 rounded-md text-xs font-medium bg-[#1e202b] hover:bg-[#282a38] text-indigo-300 border border-indigo-500/30 hover:border-indigo-500/60 transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                title="인공지능 호출 없이 표준 템플릿 스캐폴딩을 즉시 에디터에 배치합니다"
               >
-                <FileText className="w-3.5 h-3.5 text-sky-400" />
-                <span>표준 템플릿 즉시 삽입 (0ms)</span>
+                <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                <span>표준 템플릿 즉시 삽입</span>
               </button>
               <button
                 type="submit"
-                className="px-3.5 py-1.5 rounded text-xs font-medium bg-[#0284c7] hover:bg-[#0369a1] text-white transition shadow-sm flex items-center gap-1.5 cursor-pointer"
-                title="선택된 소스 문서들을 AI가 분석 종합하여 맞춤형 SSOT를 생성합니다"
+                className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-[#6366f1] hover:bg-[#4f46e5] text-white transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+                title="선택된 소스 문서들을 분석 종합하여 맞춤형 단일 진실 공급원 문서를 생성합니다"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>AI 종합 생성</span>
+                <span>종합 생성</span>
               </button>
             </div>
           </div>

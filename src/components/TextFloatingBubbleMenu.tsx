@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import {
   Bold,
   Italic,
@@ -13,7 +13,9 @@ import {
   Sparkles,
   Wand2,
   X,
-  Loader2
+  Loader2,
+  ChevronRight,
+  ChevronLeft
 } from 'lucide-react';
 
 export type TextFormatAction =
@@ -52,10 +54,98 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
   onAiEditText,
   isAiLoading = false
 }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiError, setAiError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const prevTopRef = useRef<number>(position.top);
+
+  // Dynamically adjusted coordinate ensuring menu never bleeds outside right container boundary
+  const [adjustedStyle, setAdjustedStyle] = useState<{ top: number; left: number }>({
+    top: position.top,
+    left: position.left
+  });
+
+  // Automatically fold back to compact rectangular button if user moves cursor to another line
+  useEffect(() => {
+    if (Math.abs(position.top - prevTopRef.current) > 14) {
+      setIsExpanded(false);
+      setIsAiOpen(false);
+      prevTopRef.current = position.top;
+    }
+  }, [position.top]);
+
+  useLayoutEffect(() => {
+    if (!menuRef.current) return;
+    const parent = menuRef.current.parentElement;
+    if (!parent) return;
+
+    const parentWidth = parent.clientWidth;
+    const parentHeight = parent.clientHeight;
+    const menuWidth = menuRef.current.offsetWidth || (isExpanded ? 485 : 85);
+    const menuHeight = menuRef.current.offsetHeight || (isExpanded ? 38 : 28);
+
+    const safeRightMargin = 20;
+    const safeLeftMargin = 8;
+    const maxAllowedLeft = Math.max(safeLeftMargin, parentWidth - menuWidth - safeRightMargin);
+
+    let finalLeft = position.left;
+    if (finalLeft > maxAllowedLeft) {
+      finalLeft = maxAllowedLeft;
+    }
+    if (finalLeft < safeLeftMargin) {
+      finalLeft = safeLeftMargin;
+    }
+
+    let finalTop = position.top;
+    const maxAllowedTop = Math.max(4, parentHeight - menuHeight - 12);
+    if (finalTop > maxAllowedTop) {
+      finalTop = maxAllowedTop;
+    }
+    if (finalTop < 4) {
+      finalTop = 4;
+    }
+
+    setAdjustedStyle((prev) => {
+      if (prev.left === finalLeft && prev.top === finalTop) return prev;
+      return { top: finalTop, left: finalLeft };
+    });
+  }, [position.left, position.top, isExpanded, isAiOpen]);
+
+  // Window/container resize observer for real-time safety
+  useEffect(() => {
+    if (!menuRef.current) return;
+    const parent = menuRef.current.parentElement;
+    if (!parent) return;
+
+    const handleResize = () => {
+      if (!menuRef.current || !parent) return;
+      const parentWidth = parent.clientWidth;
+      const menuWidth = menuRef.current.offsetWidth || (isExpanded ? 485 : 85);
+      const safeRightMargin = 20;
+      const safeLeftMargin = 8;
+      const maxAllowedLeft = Math.max(safeLeftMargin, parentWidth - menuWidth - safeRightMargin);
+
+      setAdjustedStyle((prev) => {
+        let finalLeft = position.left;
+        if (finalLeft > maxAllowedLeft) finalLeft = maxAllowedLeft;
+        if (finalLeft < safeLeftMargin) finalLeft = safeLeftMargin;
+        if (prev.left === finalLeft) return prev;
+        return { ...prev, left: finalLeft };
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    const ro = new ResizeObserver(handleResize);
+    ro.observe(parent);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      ro.disconnect();
+    };
+  }, [position.left, isExpanded]);
 
   useEffect(() => {
     if (isAiOpen && inputRef.current) {
@@ -85,12 +175,61 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
     }
   };
 
+  const handleCollapse = (e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setIsExpanded(false);
+    setIsAiOpen(false);
+  };
+
+  // State 1: Compact Rectangular Square Button (Unobtrusive & Non-blocking)
+  if (!isExpanded) {
+    return (
+      <div
+        ref={menuRef}
+        id="text-floating-bubble-menu-collapsed"
+        style={{
+          top: `${adjustedStyle.top}px`,
+          left: `${adjustedStyle.left}px`
+        }}
+        onMouseDown={(e) => {
+          // Prevent textarea blur or losing selection
+          e.preventDefault();
+        }}
+        className="absolute z-40 transition-[top,left] duration-150 ease-out select-none"
+      >
+        <button
+          type="button"
+          id="btn-expand-text-bubble"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsExpanded(true);
+          }}
+          className="flex items-center gap-1.5 px-2.5 py-1 bg-[#1e202b]/95 hover:bg-[#282a38] text-slate-200 hover:text-white border border-[#2e3142] hover:border-[#6366f1] rounded-md shadow-lg backdrop-blur-md text-xs font-medium cursor-pointer transition-all duration-150 group"
+          title="서식 및 AI 도구 펼치기"
+          aria-label="서식 및 AI 도구 펼치기"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-indigo-400 group-hover:text-amber-300 transition-colors shrink-0" />
+          <span className="text-[11px] font-medium tracking-tight text-slate-300 group-hover:text-white whitespace-nowrap">
+            서식 도구
+          </span>
+          <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+        </button>
+      </div>
+    );
+  }
+
+  // State 2: Expanded Full Bubble Menu (Sliding Out Sideways)
   return (
     <div
+      ref={menuRef}
       id="text-floating-bubble-menu"
       style={{
-        top: `${position.top}px`,
-        left: `${position.left}px`
+        top: `${adjustedStyle.top}px`,
+        left: `${adjustedStyle.left}px`
       }}
       onMouseDown={(e) => {
         // Prevent textarea blur unless interacting with text input
@@ -99,18 +238,30 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           e.preventDefault();
         }
       }}
-      className="absolute z-40 flex flex-col bg-[#1e202b]/98 backdrop-blur-md border border-[#2e3142] rounded-lg shadow-2xl p-1 text-xs text-slate-200 select-none transition-[top,left] duration-150 ease-out animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100%-24px)]"
+      className="absolute z-40 flex flex-col bg-[#1e202b]/98 backdrop-blur-md border border-[#2e3142] rounded-lg shadow-2xl p-1 text-xs text-slate-200 select-none transition-[top,left] duration-150 ease-out animate-in fade-in slide-in-from-left-2 duration-150 max-w-[calc(100%-16px)]"
     >
-      {/* 1. Primary Compact Formatting Toolbar Row */}
+      {/* 1. Primary Formatting Toolbar Row with Slide-out layout */}
       <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+        {/* Collapse Button (Left Arrow) to slide back into compact rectangle */}
+        <button
+          type="button"
+          onClick={handleCollapse}
+          className="flex items-center gap-1 px-1.5 h-6 rounded hover:bg-[#282a38] text-indigo-400 hover:text-indigo-300 transition cursor-pointer border-r border-[#2e3142] mr-0.5 shrink-0"
+          title="서식 도구 접기"
+          aria-label="서식 도구 접기"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+          <span className="text-[10px] font-medium whitespace-nowrap">접기</span>
+        </button>
+
         {/* Headings (H1, H2, H3) */}
         <div className="flex items-center gap-0.5 shrink-0">
           <button
             type="button"
             onClick={() => onApplyFormat('h1')}
             className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#282a38] text-slate-300 hover:text-white font-bold text-[11px] font-mono transition cursor-pointer"
-            title="대제목 (H1 #)"
-            aria-label="대제목 (H1)"
+            title="대제목"
+            aria-label="대제목"
           >
             H1
           </button>
@@ -118,8 +269,8 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             type="button"
             onClick={() => onApplyFormat('h2')}
             className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#282a38] text-slate-300 hover:text-white font-bold text-[11px] font-mono transition cursor-pointer"
-            title="중제목 (H2 ##)"
-            aria-label="중제목 (H2)"
+            title="중제목"
+            aria-label="중제목"
           >
             H2
           </button>
@@ -127,8 +278,8 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             type="button"
             onClick={() => onApplyFormat('h3')}
             className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#282a38] text-slate-300 hover:text-white font-bold text-[11px] font-mono transition cursor-pointer"
-            title="소제목 (H3 ###)"
-            aria-label="소제목 (H3)"
+            title="소제목"
+            aria-label="소제목"
           >
             H3
           </button>
@@ -143,7 +294,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             type="button"
             onClick={() => onApplyFormat('bold')}
             className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
-            title="굵게 (**텍스트** - Ctrl+B)"
+            title="굵게"
             aria-label="굵게"
           >
             <Bold className="w-3.5 h-3.5" />
@@ -152,7 +303,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             type="button"
             onClick={() => onApplyFormat('italic')}
             className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
-            title="기울임 (*텍스트* - Ctrl+I)"
+            title="기울임"
             aria-label="기울임"
           >
             <Italic className="w-3.5 h-3.5" />
@@ -161,7 +312,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             type="button"
             onClick={() => onApplyFormat('strikethrough')}
             className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
-            title="취소선 (~~텍스트~~)"
+            title="취소선"
             aria-label="취소선"
           >
             <Strikethrough className="w-3.5 h-3.5" />
@@ -170,7 +321,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             type="button"
             onClick={() => onApplyFormat('code')}
             className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
-            title="인라인 코드 (`코드`)"
+            title="인라인 코드"
             aria-label="인라인 코드"
           >
             <Code className="w-3.5 h-3.5" />
@@ -186,7 +337,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             type="button"
             onClick={() => onApplyFormat('link')}
             className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
-            title="링크 삽입 [이름](URL)"
+            title="링크 삽입"
             aria-label="링크 삽입"
           >
             <Link className="w-3.5 h-3.5" />
@@ -195,7 +346,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             type="button"
             onClick={() => onApplyFormat('codeblock')}
             className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
-            title="코드 블록 (```코드```)"
+            title="코드 블록"
             aria-label="코드 블록"
           >
             <SquareCode className="w-3.5 h-3.5 text-amber-400/80" />
@@ -211,7 +362,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             type="button"
             onClick={() => onApplyFormat('bullet')}
             className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
-            title="글머리 기호 목록 (- 항목)"
+            title="글머리 기호 목록"
             aria-label="글머리 기호 목록"
           >
             <List className="w-3.5 h-3.5 text-indigo-400" />
@@ -220,7 +371,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             type="button"
             onClick={() => onApplyFormat('number')}
             className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
-            title="번호 순서 목록 (1. 항목)"
+            title="번호 순서 목록"
             aria-label="번호 순서 목록"
           >
             <ListOrdered className="w-3.5 h-3.5 text-indigo-400" />
@@ -229,7 +380,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             type="button"
             onClick={() => onApplyFormat('task')}
             className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
-            title="할 일 체크박스 (- [ ] 항목)"
+            title="할 일 체크박스"
             aria-label="할 일 체크박스"
           >
             <CheckSquare className="w-3.5 h-3.5 text-indigo-400" />
@@ -238,7 +389,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             type="button"
             onClick={() => onApplyFormat('quote')}
             className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
-            title="인용구 (> 인용문)"
+            title="인용구"
             aria-label="인용구"
           >
             <Quote className="w-3.5 h-3.5 text-purple-400" />
@@ -261,8 +412,8 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
                 ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
                 : 'bg-indigo-600/15 hover:bg-indigo-600/30 text-amber-400 hover:text-amber-300 border-indigo-500/30'
             }`}
-            title="AI 텍스트 가공 & 요약 프롬프트 (✨)"
-            aria-label="AI 텍스트 가공 & 요약"
+            title="AI 텍스트 가공 및 요약 프롬프트"
+            aria-label="AI 텍스트 가공 및 요약"
           >
             <Sparkles className="w-3.5 h-3.5" />
           </button>
@@ -275,7 +426,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
               type="button"
               onClick={onCleanText}
               className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-slate-400 hover:text-white rounded transition cursor-pointer"
-              title="텍스트 서식 & 들여쓰기 정돈"
+              title="텍스트 서식 및 들여쓰기 정돈"
               aria-label="텍스트 정돈"
             >
               <Wand2 className="w-3.5 h-3.5 hover:text-amber-300" />
@@ -283,20 +434,18 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           </div>
         )}
 
-        {/* Close Button */}
-        {onClose && (
-          <div className="flex items-center shrink-0">
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-slate-500 hover:text-slate-200 rounded transition cursor-pointer"
-              title="버블 메뉴 닫기 (Esc)"
-              aria-label="버블 메뉴 닫기"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
+        {/* Collapse / Close Button */}
+        <div className="flex items-center shrink-0">
+          <button
+            type="button"
+            onClick={handleCollapse}
+            className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-slate-400 hover:text-white rounded transition cursor-pointer"
+            title="서식 도구 접기"
+            aria-label="서식 도구 접기"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* 2. Inline Expandable AI Prompt Input Tray */}
@@ -305,7 +454,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <div className="flex items-center justify-between text-[11px] font-semibold text-indigo-300 px-0.5">
             <span className="flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-amber-400" />
-              <span>AI 텍스트 편집 & 가공</span>
+              <span>AI 텍스트 편집 및 가공</span>
             </span>
             <button
               type="button"
@@ -321,27 +470,27 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <div className="flex flex-wrap gap-1">
             {[
               {
-                label: '📝 문장 다듬기',
+                label: '문장 다듬기',
                 prompt: '선택한 텍스트를 더 자연스럽고 매끄러운 전문 비즈니스 문체로 다듬어줘.'
               },
               {
-                label: '⚡ 핵심 요약',
+                label: '핵심 요약',
                 prompt: '선택한 텍스트의 핵심 내용을 3줄 불렛포인트로 간결하게 요약해줘.'
               },
               {
-                label: '🔤 한국어 번역',
+                label: '한국어 번역',
                 prompt: '선택한 텍스트를 자연스럽고 읽기 쉬운 한국어로 번역해줘.'
               },
               {
-                label: '🌐 영어 번역',
-                prompt: '선택한 텍스트를 자연스러운 비즈니스 영어(English)로 번역해줘.'
+                label: '영어 번역',
+                prompt: '선택한 텍스트를 자연스러운 비즈니스 영어로 번역해줘.'
               },
               {
-                label: '🎯 맞춤법 교정',
+                label: '맞춤법 교정',
                 prompt: '선택한 텍스트의 오탈자, 맞춤법, 띄어쓰기 및 문법을 완벽히 교정해줘.'
               },
               {
-                label: '📋 구조화',
+                label: '구조화',
                 prompt: '선택한 내용을 마크다운 소제목과 글머리 기호 목록으로 체계적으로 구조화해줘.'
               }
             ].map((chip) => (
@@ -393,3 +542,4 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
     </div>
   );
 };
+

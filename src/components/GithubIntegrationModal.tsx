@@ -156,7 +156,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
     >
       <div
         id="github-integration-modal-content"
-        className="relative bg-[#1e202b] border border-[#2e3142] rounded-lg max-w-lg w-full p-5 shadow-2xl space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans"
+        className="relative bg-[#1e202b] border border-[#2e3142] rounded-lg max-w-lg w-full p-5 space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -167,13 +167,13 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-semibold text-slate-100">GitHub 저장소 연동</h2>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">
+                <h2 className="text-sm font-medium text-slate-100">GitHub 저장소 연동</h2>
+                <span className="badge-muted text-[10px] font-medium px-2 py-0.5 rounded">
                   로컬 직접 연동
                 </span>
                 <HelpTooltip
                   title="GitHub 로컬 연동 안내"
-                  content="사용자의 개인 액세스 토큰(PAT)을 통해 브라우저에서 GitHub API와 직접 통신합니다. 토큰은 외부 서버에 전송되지 않으며 로컬 브라우저 세션에만 안전하게 보관됩니다."
+                  content="사용자의 개인 액세스 토큰을 통해 브라우저에서 GitHub API와 직접 통신합니다. 토큰은 외부 서버에 전송되지 않으며 로컬 브라우저 세션에만 안전하게 보관됩니다."
                 />
               </div>
               <p className="text-[11px] text-slate-400 mt-0.5">
@@ -203,7 +203,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 <label className="font-medium text-slate-300">저장소 주소</label>
                 <HelpTooltip
                   title="저장소 주소 입력 규칙"
-                  content="GitHub의 '소유자명/저장소명' 형식으로 입력합니다. 예: octocat/Hello-World 또는 내계정/my-notes"
+                  content="GitHub의 '소유자명/저장소명' 형식으로 입력합니다. 예: octocat/Hello-World 또는 사용자아이디/my-notes"
                 />
               </div>
             </div>
@@ -243,7 +243,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                   <label className="font-medium text-slate-300">개인 액세스 토큰</label>
                   <HelpTooltip
                     title="개인 액세스 토큰 발급"
-                    content="GitHub Settings > Developer Settings > Personal access tokens에서 'repo' 권한을 부여한 토큰을 발급받아 입력합니다."
+                    content="GitHub 설정 > 개발자 설정 > 개인 액세스 토큰에서 저장소 접근 권한을 부여한 토큰을 발급받아 입력합니다."
                   />
                 </div>
                 <a
@@ -303,7 +303,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 type="button"
                 onClick={handleTestConnection}
                 disabled={isTesting}
-                className="px-2.5 py-1.5 bg-[#282a38] hover:bg-[#323548] text-slate-200 hover:text-white rounded text-xs font-medium transition flex items-center gap-1.5 cursor-pointer border border-[#2e3142]"
+                className="btn-secondary text-xs"
               >
                 <RotateCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin text-indigo-400' : 'text-slate-400'}`} />
                 <span>{isTesting ? '테스트 중...' : '연결 테스트'}</span>
@@ -313,7 +313,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 <button
                   type="button"
                   onClick={onDisconnect}
-                  className="px-2.5 py-1.5 bg-rose-950/20 hover:bg-rose-950/40 text-rose-300 border border-rose-500/30 rounded text-xs font-medium transition cursor-pointer flex items-center gap-1.5"
+                  className="btn-secondary text-xs text-rose-400 hover:text-rose-300 border-rose-900/50 hover:bg-rose-950/40"
                   title="현재 연결된 저장소 설정을 해제합니다."
                 >
                   <Unlink className="w-3.5 h-3.5" />
@@ -326,13 +326,13 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3 py-1.5 rounded text-xs text-slate-400 hover:text-slate-200 hover:bg-[#282a38] transition cursor-pointer"
+                className="btn-ghost text-xs"
               >
                 취소
               </button>
               <button
                 type="submit"
-                className="px-3.5 py-1.5 rounded text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-xs cursor-pointer flex items-center gap-1.5 border border-indigo-500"
+                className="btn-primary text-xs"
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>{isConnected ? '설정 저장' : '저장소 연결'}</span>
@@ -344,10 +344,10 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
           <div className="pt-3 border-t border-[#2e3142] flex items-center justify-between text-[11px] text-slate-400">
             <span className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-              <span>다중 기기 동기화 및 클라우드 백업이 필요하신가요?</span>
+              <span>다중 기기 동기화 및 클라우드 보관이 필요하신가요?</span>
             </span>
             {currentUser ? (
-              <span className="text-emerald-400 font-medium">계정 로그인됨</span>
+              <span className="badge-success text-[10px] font-medium px-2 py-0.5 rounded">계정 연동됨</span>
             ) : onOpenAccountModal ? (
               <button
                 type="button"

@@ -30,6 +30,7 @@ export interface CouncilOfCriticsModalProps {
   onClose: () => void;
   content: string;
   apiKey?: string;
+  model?: string;
   onApplyRevisions: (revisedDoc: string) => void;
   onJumpToLine?: (lineNumber: number) => void;
 }
@@ -39,6 +40,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
   onClose,
   content,
   apiKey,
+  model,
   onApplyRevisions,
   onJumpToLine
 }) => {
@@ -64,7 +66,8 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           document: content,
-          apiKey: apiKey || ''
+          apiKey: apiKey || '',
+          model: model || 'gemini-3.1-pro-preview'
         })
       });
 
@@ -162,8 +165,8 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-[#2e3142] text-slate-400 hover:text-slate-200 transition cursor-pointer"
-                title="닫기 (Esc)"
+                className="p-1.5 rounded-md hover:bg-[#2e3142] text-slate-400 hover:text-slate-200 transition cursor-pointer"
+                title="닫기"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -176,7 +179,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-400 font-medium">종합 준비도:</span>
                 <span
-                  className={`text-sm font-mono font-extrabold px-2 py-0.5 rounded border ${
+                  className={`text-sm font-mono font-extrabold px-2 py-0.5 rounded-sm border ${
                     summary.overallScore >= 85
                       ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
                       : summary.overallScore >= 60
@@ -441,7 +444,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-1.5 rounded-lg border border-[#2e3142] hover:bg-[#282a38] text-slate-400 hover:text-slate-200 text-xs font-medium transition cursor-pointer"
+                className="px-3.5 py-1.5 rounded-md border border-[#2e3142] hover:bg-[#282a38] text-slate-400 hover:text-slate-200 text-xs font-medium transition cursor-pointer"
               >
                 닫기
               </button>
@@ -449,10 +452,10 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsDiffModalOpen(true)}
-                className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-950 cursor-pointer"
+                className="px-4 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-950 cursor-pointer"
               >
                 <GitCompare className="w-3.5 h-3.5" />
-                <span>비평 반영 개정안 Diff 검토 및 적용</span>
+                <span>비평 반영 개정안 비교 검토 및 적용</span>
               </button>
             </div>
           </div>
@@ -465,7 +468,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
         onClose={() => setIsDiffModalOpen(false)}
         originalContent={content}
         proposedContent={summary.revisedDocument}
-        title="비평가 위원회 권고 개정안 스마트 Diff (Ghost Diff)"
+        title="비평가 위원회 권고 개정안 차이 비교"
         sourceLabel="Council of Critics Revision"
         onApplyRevisions={(revised) => {
           onApplyRevisions(revised);

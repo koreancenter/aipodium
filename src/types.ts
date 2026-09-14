@@ -85,3 +85,17 @@ export interface RecentAiChange {
   timestamp: string;
   preview: string;
 }
+
+export interface AiRoleModels {
+  chat: string;        // 대화 및 질의
+  ghostWriter: string; // 인라인 보조
+  architect: string;   // 기획 및 종합
+  critic: string;      // 품질 검수 및 감사
+}
+
+export const DEFAULT_AI_ROLE_MODELS: AiRoleModels = {
+  chat: 'gemini-3.8-flash',
+  ghostWriter: 'gemini-3.1-flash-lite',
+  architect: 'gemini-3.1-pro-preview',
+  critic: 'gemini-3.1-pro-preview'
+};

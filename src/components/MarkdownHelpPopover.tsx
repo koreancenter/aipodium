@@ -297,7 +297,7 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
             type="button"
             onClick={onClose}
             className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-[#282a38] transition cursor-pointer"
-            title="닫기 (Esc)"
+            title="닫기"
           >
             <X className="w-4 h-4" />
           </button>

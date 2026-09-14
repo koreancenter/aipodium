@@ -221,19 +221,20 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
 
   return (
     <div className="space-y-4 animate-in fade-in duration-150 text-xs">
-      <div className="divide-y divide-[#2e3142]">
+      {/* Settings Rows Container */}
+      <div className="bg-[#16171e] border border-[#2e3142] rounded-md p-3 divide-y divide-[#2e3142]">
         {/* Row 1: AES-256 Storage Encryption */}
         <div className="py-3 space-y-2.5 first:pt-0">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-300">AES-256 저장소 암호화</span>
+              <span className="text-xs font-medium text-slate-200">저장소 암호화</span>
               <span
-                className={`text-[10px] px-1.5 py-0.5 rounded font-mono border ${
+                className={`text-[10px] px-1.5 py-0.5 rounded-sm font-mono ${
                   securityConfig.isEncryptionEnabled
                     ? isUnlocked
-                      ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/30'
-                      : 'bg-amber-950/60 text-amber-300 border-amber-500/30'
-                    : 'bg-[#121318] text-slate-400 border-[#2e3142]'
+                      ? 'badge-success'
+                      : 'badge-warning'
+                    : 'badge-muted'
                 }`}
               >
                 {securityConfig.isEncryptionEnabled
@@ -243,8 +244,8 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                   : '비활성'}
               </span>
               <HelpTooltip
-                title="AES-256 암호화 안내"
-                content="API 키 및 접속 주소를 로컬에 저장할 때 마스터 PIN 기반의 군사 등급 AES-256 알고리즘으로 강력하게 암호화합니다."
+                title="저장소 암호화 안내"
+                content="API 키 및 접속 주소를 로컬에 저장할 때 마스터 PIN 기반의 고강도 AES-256 알고리즘으로 안전하게 암호화합니다."
               />
             </div>
 
@@ -267,7 +268,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
 
           {/* Unlock prompt if locked */}
           {securityConfig.isEncryptionEnabled && !isUnlocked && (
-            <div className="p-2.5 bg-amber-950/20 border border-amber-500/30 rounded-lg flex items-center gap-2">
+            <div className="p-2.5 bg-amber-950/20 border border-amber-500/30 rounded-md flex items-center gap-2">
               <input
                 type="password"
                 value={unlockInput}
@@ -280,13 +281,13 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                 spellCheck={false}
                 data-lpignore="true"
                 data-form-type="other"
-                className="flex-1 bg-[#121318] border border-[#2e3142] rounded px-2.5 py-1.5 text-xs font-mono text-slate-200 outline-none focus:border-amber-400"
+                className="flex-1 bg-[#121318] border border-[#2e3142] rounded-md px-2.5 py-1.5 text-xs font-mono text-slate-200 outline-none focus:border-amber-400"
               />
               <button
                 type="button"
                 onClick={handleUnlockVault}
                 title="보관함 잠금 해제"
-                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded transition cursor-pointer shrink-0 flex items-center gap-1"
+                className="btn-secondary text-xs text-amber-300 hover:text-amber-200 border-amber-500/30"
               >
                 <Unlock className="w-3.5 h-3.5" />
                 <span>잠금 해제</span>
@@ -297,15 +298,15 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
           {/* Actions if unlocked */}
           {securityConfig.isEncryptionEnabled && isUnlocked && (
             <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
-              <span className="flex items-center gap-1 text-emerald-400 text-xs">
-                <CheckCircle2 className="w-3.5 h-3.5" /> 복호화 완료 (활성 상태)
+              <span className="flex items-center gap-1 text-emerald-400 text-xs font-normal">
+                <CheckCircle2 className="w-3.5 h-3.5" /> 복호화 완료 - 정상 활성
               </span>
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => setIsSettingPasscode(true)}
                   title="PIN 번호 변경"
-                  className="px-2.5 py-1 rounded bg-[#282a38] hover:bg-[#323548] text-slate-300 border border-[#2e3142] transition cursor-pointer text-xs flex items-center gap-1"
+                  className="btn-secondary text-xs"
                 >
                   <KeyRound className="w-3.5 h-3.5 text-indigo-400" />
                   <span>PIN 변경</span>
@@ -314,7 +315,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                   type="button"
                   onClick={handleLockVault}
                   title="지금 즉시 잠금"
-                  className="px-2.5 py-1 rounded bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition cursor-pointer text-xs flex items-center gap-1"
+                  className="btn-secondary text-xs text-amber-300 hover:text-amber-200 border-amber-500/30"
                 >
                   <Lock className="w-3.5 h-3.5" />
                   <span>즉시 잠금</span>
@@ -325,8 +326,8 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
 
           {/* Passcode modal inline */}
           {isSettingPasscode && (
-            <div className="p-3 bg-[#16171e] border border-indigo-500/40 rounded-lg space-y-2.5 animate-in fade-in">
-              <div className="flex items-center justify-between text-xs font-semibold text-indigo-300">
+            <div className="p-3 bg-[#121318] border border-indigo-500/40 rounded-md space-y-2.5 animate-in fade-in">
+              <div className="flex items-center justify-between text-xs font-medium text-indigo-300">
                 <span className="flex items-center gap-1.5">
                   <Fingerprint className="w-3.5 h-3.5" /> 마스터 PIN 설정
                 </span>
@@ -345,14 +346,14 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                     type={showPasscode ? 'text' : 'password'}
                     value={passcode}
                     onChange={(e) => setPasscode(e.target.value)}
-                    placeholder="새 PIN 번호 (4자리 이상)"
+                    placeholder="새 PIN 번호 4자리 이상"
                     autoComplete="off"
                     autoCapitalize="off"
                     autoCorrect="off"
                     spellCheck={false}
                     data-lpignore="true"
                     data-form-type="other"
-                    className="w-full bg-[#121318] border border-[#2e3142] rounded px-2.5 py-1.5 text-xs text-slate-200 pr-7 focus:border-indigo-500 outline-none font-mono"
+                    className="w-full bg-[#16171e] border border-[#2e3142] rounded-md px-2.5 py-1.5 text-xs text-slate-200 pr-7 focus:border-indigo-500 outline-none font-mono"
                   />
                   <button
                     type="button"
@@ -374,21 +375,21 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                   spellCheck={false}
                   data-lpignore="true"
                   data-form-type="other"
-                  className="w-full bg-[#121318] border border-[#2e3142] rounded px-2.5 py-1.5 text-xs text-slate-200 focus:border-indigo-500 outline-none font-mono"
+                  className="w-full bg-[#16171e] border border-[#2e3142] rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:border-indigo-500 outline-none font-mono"
                 />
               </div>
               <div className="flex justify-end gap-1.5">
                 <button
                   type="button"
                   onClick={() => setIsSettingPasscode(false)}
-                  className="px-2.5 py-1 text-slate-400 hover:text-white rounded transition text-xs cursor-pointer"
+                  className="btn-ghost text-xs"
                 >
                   취소
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveMasterPasscode}
-                  className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium text-xs transition cursor-pointer flex items-center gap-1"
+                  className="btn-secondary text-xs text-indigo-300 hover:text-white border-indigo-500/40"
                 >
                   <Check className="w-3.5 h-3.5" />
                   <span>설정 완료</span>
@@ -404,7 +405,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
             <div className="flex items-center gap-2">
               <Shield className="w-3.5 h-3.5 text-indigo-400" />
               <span className="text-xs font-medium text-slate-200">접속 시 항상 잠금 화면 표시</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded font-medium bg-indigo-950/60 text-indigo-300 border border-indigo-500/30">
+              <span className="badge-muted text-[10px] px-1.5 py-0.5 rounded-sm">
                 권장 보안
               </span>
               <HelpTooltip
@@ -465,7 +466,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                 onUpdateSecurityConfig(updated);
                 onToast(val > 0 ? `자동 잠금이 ${val}분으로 설정되었습니다.` : '자동 잠금이 해제되었습니다.', 'info');
               }}
-              className="bg-[#121318] border border-[#2e3142] hover:border-indigo-500 rounded px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+              className="bg-[#121318] border border-[#2e3142] hover:border-indigo-500 rounded-md px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
             >
               <option value={1}>1분 후 잠금</option>
               <option value={3}>3분 후 잠금</option>
@@ -478,7 +479,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
         </div>
 
         {/* Row 4: Clear Session on Browser Close */}
-        <div className="py-3 space-y-1.5">
+        <div className="py-3 space-y-1.5 last:pb-0">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <LogOut className="w-3.5 h-3.5 text-amber-400" />
@@ -517,32 +518,37 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Danger Zone */}
-        <div className="flex items-center justify-between gap-4 py-3">
-          <div>
+      {/* Danger Zone: Isolated Warning Box */}
+      <div className="bg-rose-950/15 border border-rose-500/30 rounded-md p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
             <span className="text-xs font-medium text-rose-400">로컬 워크스페이스 데이터 초기화</span>
-            <p className="text-[11px] text-slate-400 mt-0.5">로컬에 저장된 문서, 대화 기록 및 암호화 키를 완전히 삭제합니다.</p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setPurgeConfirmationText('');
-              setIsPurgeModalOpen(true);
-            }}
-            title="데이터 영구 삭제"
-            className="px-3 py-1.5 text-xs font-medium text-rose-400 hover:text-rose-200 border border-rose-500/40 hover:border-rose-500 bg-rose-950/20 hover:bg-rose-950/50 rounded transition flex items-center gap-1.5 cursor-pointer shrink-0"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>데이터 초기화</span>
-          </button>
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            로컬에 저장된 문서, 대화 기록 및 암호화 키를 완전히 삭제합니다. 삭제 후에는 복구할 수 없습니다.
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            setPurgeConfirmationText('');
+            setIsPurgeModalOpen(true);
+          }}
+          title="데이터 영구 삭제"
+          className="btn-secondary text-xs text-rose-400 hover:text-rose-200 border-rose-500/30 hover:border-rose-500/50 hover:bg-rose-950/30 shrink-0"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          <span>데이터 초기화</span>
+        </button>
       </div>
 
       {/* Emergency Purge Confirmation Modal */}
       {isPurgeModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-3 bg-black/80 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-sm bg-[#1e202b] border border-rose-500/50 rounded-lg p-4 shadow-2xl space-y-3 animate-in zoom-in-95 text-xs text-slate-200">
+          <div className="w-full max-w-sm bg-[#1e202b] border border-rose-500/50 rounded-xl p-4 shadow-2xl space-y-3 animate-in zoom-in-95 text-xs text-slate-200">
             <div className="flex items-start gap-2.5">
               <div className="w-8 h-8 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
                 <AlertTriangle className="w-4 h-4" />
@@ -555,7 +561,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
               </div>
             </div>
 
-            <div className="p-2.5 bg-rose-950/30 border border-rose-500/30 rounded space-y-1.5">
+            <div className="p-2.5 bg-rose-950/30 border border-rose-500/30 rounded-md space-y-1.5">
               <label className="text-xs text-slate-200 font-medium block">
                 삭제를 확인하려면 <span className="text-rose-400 font-mono font-bold">초기화</span>를 입력하세요:
               </label>
@@ -565,7 +571,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                 onChange={(e) => setPurgeConfirmationText(e.target.value)}
                 placeholder="초기화"
                 autoFocus
-                className="w-full bg-[#121318] border border-rose-500/60 rounded px-2.5 py-1.5 text-xs text-rose-200 font-mono outline-none focus:ring-1 focus:ring-rose-500"
+                className="w-full bg-[#121318] border border-rose-500/60 rounded-md px-2.5 py-1.5 text-xs text-rose-200 font-mono outline-none focus:ring-1 focus:ring-rose-500"
               />
             </div>
 
@@ -574,7 +580,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                 type="button"
                 onClick={() => setIsPurgeModalOpen(false)}
                 disabled={isPurging}
-                className="px-3 py-1.5 bg-[#282a38] hover:bg-[#323548] text-slate-300 text-xs font-medium rounded transition cursor-pointer"
+                className="btn-ghost text-xs"
               >
                 취소
               </button>
@@ -582,7 +588,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                 type="button"
                 onClick={handleExecutePurge}
                 disabled={isPurging || purgeConfirmationText.trim() !== '초기화'}
-                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white text-xs font-bold rounded transition flex items-center justify-center cursor-pointer gap-1.5"
+                className="btn-secondary text-xs text-rose-300 hover:text-white border-rose-500/50 hover:bg-rose-600 disabled:opacity-40"
               >
                 {isPurging ? (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />

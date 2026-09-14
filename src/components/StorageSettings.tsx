@@ -1,15 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Database,
-  HardDrive,
   Download,
   Upload,
   RefreshCw,
   ShieldCheck,
   CheckCircle,
-  AlertTriangle,
-  Layers,
-  Info
+  Layers
 } from 'lucide-react';
 import {
   getStorageQuotaEstimate,
@@ -133,29 +130,28 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
   };
 
   return (
-    <div className="space-y-3 animate-in fade-in duration-150 text-xs">
+    <div className="space-y-3.5 animate-in fade-in duration-150 text-xs">
       {/* Upper Grid: 1. DB Status & Quota + 2. Persistence Mode */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Card 1: Storage Engine & Usage */}
-        <div className="bg-[#16171e] border border-[#2e3142] rounded-lg p-3 flex flex-col justify-between space-y-2.5">
+        <div className="bg-[#16171e] border border-[#2e3142] rounded-md p-3.5 flex flex-col justify-between space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+              <div className="w-8 h-8 rounded-md bg-[#282a38] border border-[#2e3142] flex items-center justify-center text-emerald-400 shrink-0">
                 <Database className="w-4 h-4" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <h3 className="text-xs font-semibold text-slate-100">로컬 데이터베이스</h3>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+                  <span className="badge-success text-[10px] font-medium px-2 py-0.5 rounded-sm">
                     정상 가동
                   </span>
                   <HelpTooltip
                     side="bottom"
-                    title="로컬 데이터베이스 안내"
                     content="브라우저 기본 용량 한계를 넘어 대용량 마크다운 문서, 프로젝트 파일 트리, AI 대화 기록을 디스크에 비동기로 안전하게 영구 저장합니다."
                   />
                 </div>
-                <p className="text-[11px] font-mono text-slate-400 mt-0.5">
+                <p className="text-[11px] font-mono text-slate-400 mt-0.5 truncate">
                   {estimate ? `${estimate.usageFormatted} / ${estimate.quotaFormatted}` : '용량 조회 중...'}
                 </p>
               </div>
@@ -165,74 +161,79 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
               type="button"
               onClick={fetchStorageInfo}
               disabled={isLoading}
-              className="p-1.5 bg-[#282a38] hover:bg-[#323548] text-slate-300 hover:text-white rounded-md text-xs transition cursor-pointer border border-[#2e3142] shrink-0"
+              className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 p-1.5 rounded-md transition-colors shrink-0 cursor-pointer disabled:opacity-50"
               title="저장 용량 새로고침"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-indigo-400' : 'text-slate-400'}`} />
             </button>
           </div>
 
           {/* Usage Bar & Percentage */}
-          <div className="space-y-1.5 pt-1.5 border-t border-[#2e3142]/70">
+          <div className="space-y-1.5 pt-2 border-t border-[#2e3142]">
             <div className="w-full bg-[#121318] rounded-full h-1.5 overflow-hidden border border-[#2e3142]">
               <div
-                className="bg-gradient-to-r from-emerald-500 to-indigo-500 h-full rounded-full transition-all duration-500"
+                className={`h-full rounded-full transition-all duration-300 ${
+                  (estimate?.usagePercent || 0) > 90
+                    ? 'bg-rose-500'
+                    : (estimate?.usagePercent || 0) > 70
+                    ? 'bg-amber-500'
+                    : 'bg-indigo-500'
+                }`}
                 style={{ width: `${Math.max(1, Math.min(100, estimate?.usagePercent || 1))}%` }}
               />
             </div>
             <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
               <span>사용률 {estimate ? `${estimate.usagePercent.toFixed(2)}%` : '0%'}</span>
-              <span className="text-emerald-400 font-medium">여유 공간 확보됨</span>
+              <span className="text-emerald-400 font-normal">여유 공간 확보됨</span>
             </div>
           </div>
         </div>
 
         {/* Card 2: Persistence Protection Mode */}
-        <div className="bg-[#16171e] border border-[#2e3142] rounded-lg p-3 flex flex-col justify-between space-y-2.5">
+        <div className="bg-[#16171e] border border-[#2e3142] rounded-md p-3.5 flex flex-col justify-between space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+              <div className="w-8 h-8 rounded-md bg-[#282a38] border border-[#2e3142] flex items-center justify-center text-indigo-400 shrink-0">
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <h4 className="text-xs font-semibold text-slate-100">영구 저장 모드</h4>
                   {estimate?.isPersisted ? (
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold flex items-center gap-1">
+                    <span className="badge-success text-[10px] font-medium px-2 py-0.5 rounded-sm flex items-center gap-1">
                       <CheckCircle className="w-2.5 h-2.5" /> 영구 보호됨
                     </span>
                   ) : (
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-semibold">
+                    <span className="badge-muted text-[10px] font-medium px-2 py-0.5 rounded-sm">
                       일반 보관
                     </span>
                   )}
                   <HelpTooltip
                     side="bottom"
                     align="right"
-                    title="영구 저장 모드 안내"
                     content="운영체제나 브라우저가 디스크 여유 공간 부족 시 임의로 캐시나 저장 데이터를 비우지 못하도록 브라우저 영구 보관 권한을 요청합니다."
                   />
                 </div>
-                <p className="text-[11px] text-slate-400 mt-0.5">
+                <p className="text-[11px] text-slate-400 mt-0.5 truncate">
                   {estimate?.isPersisted ? '디스크 자동 삭제 방지 보호 활성' : '디스크 정리 시 자동 삭제 방지'}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="pt-1.5 border-t border-[#2e3142]/70 flex items-center justify-between gap-2">
-            <span className="text-[10px] font-mono text-slate-400">
+          <div className="pt-2 border-t border-[#2e3142] flex items-center justify-between gap-2">
+            <span className="text-[10px] font-mono text-slate-400 font-normal">
               {estimate?.isPersisted ? '영구 보호 상태' : '보호 요청 필요'}
             </span>
             <button
               type="button"
               onClick={handleRequestPersistent}
               disabled={isRequestingPersist || estimate?.isPersisted}
-              className={`px-2.5 py-1 rounded text-[11px] font-medium transition cursor-pointer border shrink-0 whitespace-nowrap ${
+              className={
                 estimate?.isPersisted
-                  ? 'bg-[#121318] text-slate-400 border-[#2e3142] cursor-default'
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500'
-              }`}
+                  ? 'bg-zinc-800/80 text-zinc-400 border border-zinc-700/60 px-3 py-1.5 rounded-md text-xs font-medium opacity-60 cursor-default'
+                  : 'bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer'
+              }
             >
               {isRequestingPersist
                 ? '요청 처리 중...'
@@ -244,60 +245,61 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
         </div>
       </div>
 
-      {/* 3. Backup & Snapshot Restore */}
-      <div className="bg-[#16171e] border border-[#2e3142] rounded-lg p-3 space-y-2.5">
-        <div className="flex items-center justify-between">
+      {/* 3. Backup & Snapshot Restore (Flattened Single Card Container) */}
+      <div className="bg-[#16171e] border border-[#2e3142] rounded-md p-3.5 space-y-2">
+        <div className="flex items-center justify-between pb-1">
           <div className="flex items-center gap-2">
             <Layers className="w-3.5 h-3.5 text-indigo-400" />
             <h4 className="text-xs font-semibold text-slate-100">데이터 백업 및 스냅샷 복원</h4>
             <HelpTooltip
               side="bottom"
-              title="데이터 백업 및 스냅샷 복원 안내"
               content="브라우저 캐시 초기화, 기기 변경 또는 오프라인 보관을 위해 모든 프로젝트 세션과 마크다운 문서를 단일 백업 파일로 내보내거나 복원할 수 있습니다."
             />
           </div>
-          <span className="text-[10px] font-mono text-slate-400">오프라인 안전 보존</span>
+          <span className="text-[10px] font-mono text-slate-400 font-normal">오프라인 안전 보존</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {/* Backup Button */}
+        {/* Row 1: Backup */}
+        <div className="flex items-center justify-between py-2 border-b border-white/[0.06] gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-md bg-[#282a38] text-indigo-400 border border-[#2e3142] flex items-center justify-center shrink-0">
+              <Download className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-medium text-slate-200 truncate">전체 데이터 백업</div>
+              <p className="text-[11px] text-slate-400 truncate">모든 프로젝트, 마크다운 문서 및 AI 대화 기록을 JSON 파일로 추출</p>
+            </div>
+          </div>
           <button
             type="button"
             onClick={handleExportBackup}
             disabled={isExporting}
-            className="p-2.5 bg-[#121318] hover:bg-[#282a38] border border-[#2e3142] hover:border-indigo-500/40 rounded-lg text-left transition cursor-pointer group flex items-center justify-between gap-2.5"
+            className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="p-1.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 group-hover:scale-105 transition shrink-0">
-                <Download className="w-4 h-4" />
-              </div>
-              <div className="text-xs font-medium text-slate-200 group-hover:text-indigo-300 transition truncate">
-                전체 데이터 백업
-              </div>
-            </div>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#1e202b] text-indigo-300 border border-[#2e3142] shrink-0">
-              내보내기
-            </span>
+            <Download className="w-3.5 h-3.5 text-slate-400" />
+            <span>{isExporting ? '내보내는 중...' : '내보내기'}</span>
           </button>
+        </div>
 
-          {/* Restore Button */}
+        {/* Row 2: Restore */}
+        <div className="flex items-center justify-between py-2 gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-md bg-[#282a38] text-indigo-400 border border-[#2e3142] flex items-center justify-center shrink-0">
+              <Upload className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-medium text-slate-200 truncate">백업 파일에서 복원</div>
+              <p className="text-[11px] text-slate-400 truncate">이전에 저장한 JSON 백업 파일을 불러와 로컬 데이터베이스에 복구</p>
+            </div>
+          </div>
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
-            className="p-2.5 bg-[#121318] hover:bg-[#282a38] border border-[#2e3142] hover:border-indigo-500/40 rounded-lg text-left transition cursor-pointer group flex items-center justify-between gap-2.5"
+            className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="p-1.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 group-hover:scale-105 transition shrink-0">
-                <Upload className="w-4 h-4" />
-              </div>
-              <div className="text-xs font-medium text-slate-200 group-hover:text-indigo-300 transition truncate">
-                백업 파일에서 복원
-              </div>
-            </div>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#1e202b] text-indigo-300 border border-[#2e3142] shrink-0">
-              가져오기
-            </span>
+            <Upload className="w-3.5 h-3.5 text-slate-400" />
+            <span>{isImporting ? '가져오는 중...' : '가져오기'}</span>
           </button>
           <input
             ref={fileInputRef}
@@ -307,20 +309,6 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
             className="hidden"
           />
         </div>
-      </div>
-
-      {/* 4. Architecture Information Banner */}
-      <div className="bg-[#121318] border border-[#2e3142] rounded-lg px-3 py-2 text-[11px] text-slate-400 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <Info className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-          <span className="text-slate-300 font-medium">하이브리드 로컬 저장 아키텍처</span>
-          <HelpTooltip
-            side="top"
-            title="하이브리드 로컬 저장 아키텍처"
-            content="대용량 프로젝트와 AI 세션 대화 기록은 브라우저 로컬 데이터베이스에 비동기 영구 기록되며, 최근 작업 상태와 사용자 설정은 신속한 접근을 위해 캐시에 안전하게 보관됩니다."
-          />
-        </div>
-        <span className="text-[10px] font-mono text-emerald-400 shrink-0 font-medium">100% 온디바이스 저장</span>
       </div>
     </div>
   );

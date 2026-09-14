@@ -178,7 +178,7 @@ export const VisualTableModal: React.FC<VisualTableModalProps> = ({
         {/* Header */}
         <div className="px-4 py-3 bg-[#1e202b] border-b border-[#2e3142] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#6366f1]/20 border border-[#6366f1]/40 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-md bg-[#6366f1]/20 border border-[#6366f1]/40 flex items-center justify-center">
               <TableIcon className="w-4 h-4 text-[#6366f1]" />
             </div>
             <div>
@@ -194,7 +194,7 @@ export const VisualTableModal: React.FC<VisualTableModalProps> = ({
               type="button"
               onClick={onClose}
               className="p-1 text-slate-400 hover:text-white rounded-md hover:bg-[#282a38] transition cursor-pointer"
-              title="닫기 (Esc)"
+              title="닫기"
             >
               <X className="w-4 h-4" />
             </button>
@@ -207,7 +207,7 @@ export const VisualTableModal: React.FC<VisualTableModalProps> = ({
             <button
               type="button"
               onClick={() => addRow('end')}
-              className="px-2.5 py-1 bg-[#282a38] hover:bg-[#6366f1] hover:text-white rounded text-xs font-medium transition flex items-center gap-1 cursor-pointer border border-[#2e3142]"
+              className="px-2.5 py-1 bg-[#282a38] hover:bg-[#6366f1] hover:text-white rounded-md text-xs font-medium transition flex items-center gap-1 cursor-pointer border border-[#2e3142]"
             >
               <Plus className="w-3.5 h-3.5 text-indigo-400" />
               <span>행 추가</span>
@@ -215,7 +215,7 @@ export const VisualTableModal: React.FC<VisualTableModalProps> = ({
             <button
               type="button"
               onClick={() => addColumn('end')}
-              className="px-2.5 py-1 bg-[#282a38] hover:bg-[#6366f1] hover:text-white rounded text-xs font-medium transition flex items-center gap-1 cursor-pointer border border-[#2e3142]"
+              className="px-2.5 py-1 bg-[#282a38] hover:bg-[#6366f1] hover:text-white rounded-md text-xs font-medium transition flex items-center gap-1 cursor-pointer border border-[#2e3142]"
             >
               <Plus className="w-3.5 h-3.5 text-indigo-400" />
               <span>열 추가</span>
@@ -230,7 +230,7 @@ export const VisualTableModal: React.FC<VisualTableModalProps> = ({
                 setSelectMode(!selectMode);
                 setSelectedCells([]);
               }}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition flex items-center gap-1 cursor-pointer border ${
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition flex items-center gap-1 cursor-pointer border ${
                 selectMode
                   ? 'bg-[#6366f1] text-white border-[#6366f1]'
                   : 'bg-[#282a38] hover:bg-[#323648] text-slate-300 border-[#2e3142]'
@@ -245,7 +245,7 @@ export const VisualTableModal: React.FC<VisualTableModalProps> = ({
               type="button"
               disabled={selectedCells.length < 2}
               onClick={handleMergeCells}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition flex items-center gap-1 cursor-pointer border ${
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition flex items-center gap-1 cursor-pointer border ${
                 selectedCells.length >= 2
                   ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 hover:bg-indigo-600 hover:text-white hover:border-indigo-600'
                   : 'bg-[#282a38]/40 text-slate-500 border-[#2e3142]/40 cursor-not-allowed'
@@ -265,7 +265,7 @@ export const VisualTableModal: React.FC<VisualTableModalProps> = ({
 
         {/* Table View Area */}
         <div className="flex-1 p-4 overflow-auto custom-scrollbar bg-[#121318]">
-          <div className="inline-block min-w-full align-middle border border-[#2e3142] rounded-lg overflow-hidden shadow-inner bg-[#16171e]">
+          <div className="inline-block min-w-full align-middle border border-[#2e3142] rounded-md overflow-hidden shadow-inner bg-[#16171e]">
             <table className="w-full border-collapse text-xs">
               {/* Table Head */}
               <thead>
@@ -287,7 +287,7 @@ export const VisualTableModal: React.FC<VisualTableModalProps> = ({
                             <button
                               type="button"
                               onClick={() => toggleColAlign(colIdx)}
-                              className="p-0.5 hover:bg-[#282a38] rounded text-indigo-300 cursor-pointer"
+                              className="p-0.5 hover:bg-[#282a38] rounded-md text-indigo-300 cursor-pointer"
                               title={`정렬 변경 (현재: ${align === 'center' ? '가운데' : align === 'right' ? '오른쪽' : '왼쪽'})`}
                             >
                               {align === 'center' ? (
@@ -302,7 +302,7 @@ export const VisualTableModal: React.FC<VisualTableModalProps> = ({
                               type="button"
                               disabled={headers.length <= 1}
                               onClick={() => deleteColumn(colIdx)}
-                              className={`p-0.5 rounded cursor-pointer ${
+                              className={`p-0.5 rounded-md cursor-pointer ${
                                 headers.length <= 1
                                   ? 'opacity-30 cursor-not-allowed'
                                   : 'hover:bg-rose-500/30 text-rose-400'
@@ -338,7 +338,7 @@ export const VisualTableModal: React.FC<VisualTableModalProps> = ({
                           value={h}
                           onChange={(e) => handleHeaderChange(colIdx, e.target.value)}
                           placeholder={`헤더 ${colIdx + 1}`}
-                          className={`w-full bg-[#121318] border border-[#2e3142] focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1] rounded px-2 py-1 text-xs font-semibold text-indigo-200 ${alignClass}`}
+                          className={`w-full bg-[#121318] border border-[#2e3142] focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1] rounded-md px-2 py-1 text-xs font-semibold text-indigo-200 ${alignClass}`}
                         />
                       </th>
                     );
@@ -361,7 +361,7 @@ export const VisualTableModal: React.FC<VisualTableModalProps> = ({
                           type="button"
                           disabled={rows.length <= 1}
                           onClick={() => deleteRow(rowIdx)}
-                          className={`hidden group-hover:flex p-0.5 rounded cursor-pointer ${
+                          className={`hidden group-hover:flex p-0.5 rounded-md cursor-pointer ${
                             rows.length <= 1
                               ? 'opacity-30 cursor-not-allowed'
                               : 'hover:bg-rose-500/30 text-rose-400'
@@ -434,7 +434,7 @@ export const VisualTableModal: React.FC<VisualTableModalProps> = ({
                               value={row[colIdx] || ''}
                               onChange={(e) => handleCellChange(rowIdx, colIdx, e.target.value)}
                               placeholder="내용 입력..."
-                              className={`w-full bg-transparent hover:bg-[#1e202b]/50 focus:bg-[#121318] border border-transparent focus:border-[#6366f1] rounded px-2 py-1 text-xs text-slate-200 ${alignClass}`}
+                              className={`w-full bg-transparent hover:bg-[#1e202b]/50 focus:bg-[#121318] border border-transparent focus:border-[#6366f1] rounded-md px-2 py-1 text-xs text-slate-200 ${alignClass}`}
                             />
                           )}
                         </td>
@@ -458,14 +458,14 @@ export const VisualTableModal: React.FC<VisualTableModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 bg-[#282a38] hover:bg-[#323648] text-slate-300 rounded-lg text-xs font-medium transition cursor-pointer"
+              className="px-3 py-1.5 bg-[#282a38] hover:bg-[#323648] text-slate-300 rounded-md text-xs font-medium transition cursor-pointer"
             >
               취소
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="px-4 py-1.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-md cursor-pointer whitespace-nowrap"
+              className="px-4 py-1.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-md text-xs font-semibold transition flex items-center gap-1.5 shadow-md cursor-pointer whitespace-nowrap"
             >
               <Check className="w-3.5 h-3.5" />
               <span>본문에 반영</span>

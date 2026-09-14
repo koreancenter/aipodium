@@ -247,7 +247,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
               type="button"
               onClick={onClose}
               className="text-slate-400 hover:text-slate-200 p-1.5 rounded-md hover:bg-[#282a38] transition cursor-pointer"
-              title="닫기 (Esc)"
+              title="닫기"
             >
               <X className="w-4 h-4" />
             </button>
@@ -259,24 +259,24 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
           <div className="flex items-center gap-1 font-mono text-[0.6875rem]">
             <span className="text-slate-500">통계:</span>
             {stats.pageCount !== undefined && (
-              <span className="bg-[#1e202b] px-2 py-0.5 rounded text-indigo-300 border border-[#2e3142]">
+              <span className="bg-[#1e202b] px-2 py-0.5 rounded-sm text-indigo-300 border border-[#2e3142]">
                 📄 {stats.pageCount} 페이지
               </span>
             )}
             {stats.sheetCount !== undefined && (
-              <span className="bg-[#1e202b] px-2 py-0.5 rounded text-emerald-300 border border-[#2e3142]">
+              <span className="bg-[#1e202b] px-2 py-0.5 rounded-sm text-emerald-300 border border-[#2e3142]">
                 📊 {stats.sheetCount}개 시트
               </span>
             )}
             {stats.slideCount !== undefined && (
-              <span className="bg-[#1e202b] px-2 py-0.5 rounded text-amber-300 border border-[#2e3142]">
+              <span className="bg-[#1e202b] px-2 py-0.5 rounded-sm text-amber-300 border border-[#2e3142]">
                 📽️ {stats.slideCount}개 슬라이드
               </span>
             )}
-            <span className="bg-[#1e202b] px-2 py-0.5 rounded text-slate-300 border border-[#2e3142]">
+            <span className="bg-[#1e202b] px-2 py-0.5 rounded-sm text-slate-300 border border-[#2e3142]">
               {stats.wordCount || 0} 단어
             </span>
-            <span className="bg-[#1e202b] px-2 py-0.5 rounded text-slate-300 border border-[#2e3142]">
+            <span className="bg-[#1e202b] px-2 py-0.5 rounded-sm text-slate-300 border border-[#2e3142]">
               {stats.lineCount || 0} 줄
             </span>
           </div>
@@ -293,14 +293,14 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
         <div className="px-5 py-3 bg-[#16171e] border-b border-[#2e3142]/60 grid grid-cols-1 md:grid-cols-2 gap-3 shrink-0">
           <div>
             <label className="block text-[0.6875rem] font-medium text-slate-400 mb-1">
-              생성할 마크다운 파일명 (.md)
+              생성할 마크다운 파일명
             </label>
             <input
               type="text"
               value={targetFileName}
               onChange={(e) => setTargetFileName(e.target.value)}
               placeholder="문서_이름.md"
-              className="w-full bg-[#121318] text-slate-200 placeholder-slate-500 text-xs px-2.5 py-1.5 rounded border border-[#2e3142] focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1]/40 focus:outline-none font-mono"
+              className="w-full bg-[#121318] text-slate-200 placeholder-slate-500 text-xs px-2.5 py-1.5 rounded-md border border-[#2e3142] focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1]/40 focus:outline-none font-mono"
             />
           </div>
 
@@ -544,7 +544,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 rounded text-xs text-slate-300 hover:text-white hover:bg-[#282a38] transition cursor-pointer"
+              className="px-3 py-1.5 rounded-md text-xs text-slate-300 hover:text-white hover:bg-[#282a38] transition cursor-pointer"
             >
               취소
             </button>
@@ -552,7 +552,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
             <button
               type="button"
               onClick={() => handleSaveAndOpen(true)}
-              className="px-3 py-1.5 rounded text-xs bg-[#242735] hover:bg-[#2e3142] text-indigo-300 border border-[#3e4258] transition cursor-pointer flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-md text-xs bg-[#242735] hover:bg-[#2e3142] text-indigo-300 border border-[#3e4258] transition cursor-pointer flex items-center gap-1.5"
               title="워크스페이스 파일 목록에 영구 저장하지 않고 에디터에서만 열람합니다"
             >
               <span>에디터에서만 열기</span>
@@ -561,7 +561,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
             <button
               type="button"
               onClick={() => handleSaveAndOpen(false)}
-              className="px-3.5 py-1.5 rounded text-xs font-medium bg-[#6366f1] hover:bg-[#5254e0] text-white transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+              className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-[#6366f1] hover:bg-[#5254e0] text-white transition cursor-pointer flex items-center gap-1.5 shadow-xs"
             >
               <Check className="w-3.5 h-3.5" />
               <span>작업 공간에 저장 및 열기</span>

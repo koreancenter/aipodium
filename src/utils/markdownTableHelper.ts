@@ -569,3 +569,187 @@ export function clearTableCells(
 
   return { formatted, newCursorOffset };
 }
+
+/**
+ * Toggles bold or italic format on table cells.
+ * - If text is highlighted within a cell (no pipes or newlines in selection),
+ *   it toggles format on that specific text.
+ * - If cursor is inside a cell with no selection, it toggles format for that whole cell.
+ * - If range selection spans multiple cells (contains pipe '|'), it toggles format
+ *   for all cells overlapping the selection range.
+ */
+export function toggleTableCellFormat(
+  tableInfo: MarkdownTableInfo,
+  format: 'bold' | 'italic',
+  fullDocText: string,
+  selectionStart: number,
+  selectionEnd: number
+): { nextDocText: string; newCursorStart: number; newCursorEnd: number } {
+  if (tableInfo.isSeparator) {
+    return { nextDocText: fullDocText, newCursorStart: selectionStart, newCursorEnd: selectionEnd };
+  }
+
+  const hasRange = selectionStart < selectionEnd;
+
+  // Case A: Partial or exact text selection within a single cell (does not span pipes or newlines)
+  if (hasRange) {
+    const rawSelected = fullDocText.slice(selectionStart, selectionEnd);
+    if (!rawSelected.includes('|') && !rawSelected.includes('\n')) {
+      if (format === 'bold') {
+        // 1. Triple bold/italic (***text***) -> toggle off bold -> *text*
+        if (rawSelected.startsWith('***') && rawSelected.endsWith('***') && rawSelected.length >= 6) {
+          const inner = rawSelected.slice(3, -3);
+          const unwrapped = `*${inner}*`;
+          const nextDocText = fullDocText.slice(0, selectionStart) + unwrapped + fullDocText.slice(selectionEnd);
+          return { nextDocText, newCursorStart: selectionStart, newCursorEnd: selectionStart + unwrapped.length };
+        }
+        // 2. Bold (**text**) -> toggle off bold -> text
+        if (rawSelected.startsWith('**') && rawSelected.endsWith('**') && rawSelected.length >= 4) {
+          const unwrapped = rawSelected.slice(2, -2);
+          const nextDocText = fullDocText.slice(0, selectionStart) + unwrapped + fullDocText.slice(selectionEnd);
+          return { nextDocText, newCursorStart: selectionStart, newCursorEnd: selectionStart + unwrapped.length };
+        }
+        // 3. Surrounded by ** on outside
+        const before2 = fullDocText.slice(Math.max(0, selectionStart - 2), selectionStart);
+        const after2 = fullDocText.slice(selectionEnd, selectionEnd + 2);
+        if (before2 === '**' && after2 === '**') {
+          const nextDocText = fullDocText.slice(0, selectionStart - 2) + rawSelected + fullDocText.slice(selectionEnd + 2);
+          return { nextDocText, newCursorStart: selectionStart - 2, newCursorEnd: selectionStart - 2 + rawSelected.length };
+        }
+        // 4. Wrap with **
+        const wrapped = `**${rawSelected}**`;
+        const nextDocText = fullDocText.slice(0, selectionStart) + wrapped + fullDocText.slice(selectionEnd);
+        return { nextDocText, newCursorStart: selectionStart, newCursorEnd: selectionStart + wrapped.length };
+      } else {
+        // Italic
+        // 1. Triple bold/italic (***text***) -> toggle off italic -> **text**
+        if (rawSelected.startsWith('***') && rawSelected.endsWith('***') && rawSelected.length >= 6) {
+          const inner = rawSelected.slice(3, -3);
+          const unwrapped = `**${inner}**`;
+          const nextDocText = fullDocText.slice(0, selectionStart) + unwrapped + fullDocText.slice(selectionEnd);
+          return { nextDocText, newCursorStart: selectionStart, newCursorEnd: selectionStart + unwrapped.length };
+        }
+        // 2. Italic (*text* or _text_) -> toggle off italic -> text
+        if (
+          (rawSelected.startsWith('*') && rawSelected.endsWith('*') && rawSelected.length >= 2 && !rawSelected.startsWith('**')) ||
+          (rawSelected.startsWith('_') && rawSelected.endsWith('_') && rawSelected.length >= 2)
+        ) {
+          const unwrapped = rawSelected.slice(1, -1);
+          const nextDocText = fullDocText.slice(0, selectionStart) + unwrapped + fullDocText.slice(selectionEnd);
+          return { nextDocText, newCursorStart: selectionStart, newCursorEnd: selectionStart + unwrapped.length };
+        }
+        // 3. Surrounded by * on outside
+        const before1 = fullDocText.slice(Math.max(0, selectionStart - 1), selectionStart);
+        const after1 = fullDocText.slice(selectionEnd, selectionEnd + 1);
+        const before2 = fullDocText.slice(Math.max(0, selectionStart - 2), selectionStart);
+        if (before1 === '*' && after1 === '*' && before2 !== '**') {
+          const nextDocText = fullDocText.slice(0, selectionStart - 1) + rawSelected + fullDocText.slice(selectionEnd + 1);
+          return { nextDocText, newCursorStart: selectionStart - 1, newCursorEnd: selectionStart - 1 + rawSelected.length };
+        }
+        // 4. Wrap with *
+        const wrapped = `*${rawSelected}*`;
+        const nextDocText = fullDocText.slice(0, selectionStart) + wrapped + fullDocText.slice(selectionEnd);
+        return { nextDocText, newCursorStart: selectionStart, newCursorEnd: selectionStart + wrapped.length };
+      }
+    }
+  }
+
+  // Helper for formatting an entire cell string
+  const toggleCellString = (cellText: string): string => {
+    const trimmed = cellText.trim();
+    if (format === 'bold') {
+      if (trimmed.startsWith('***') && trimmed.endsWith('***') && trimmed.length >= 6) {
+        return `*${trimmed.slice(3, -3).trim()}*`;
+      }
+      if (trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length >= 4) {
+        return trimmed.slice(2, -2).trim();
+      }
+      if (
+        (trimmed.startsWith('*') && trimmed.endsWith('*') && trimmed.length >= 2) ||
+        (trimmed.startsWith('_') && trimmed.endsWith('_') && trimmed.length >= 2)
+      ) {
+        // italic string -> make bold as well
+        return `**${trimmed}**`;
+      }
+      return trimmed ? `**${trimmed}**` : '**굵은 텍스트**';
+    } else {
+      // Italic
+      if (trimmed.startsWith('***') && trimmed.endsWith('***') && trimmed.length >= 6) {
+        return `**${trimmed.slice(3, -3).trim()}**`;
+      }
+      if (
+        (trimmed.startsWith('*') && trimmed.endsWith('*') && trimmed.length >= 2 && !trimmed.startsWith('**')) ||
+        (trimmed.startsWith('_') && trimmed.endsWith('_') && trimmed.length >= 2)
+      ) {
+        return trimmed.slice(1, -1).trim();
+      }
+      if (trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length >= 4) {
+        // bold string -> make italic as well -> ***text***
+        const inner = trimmed.slice(2, -2).trim();
+        return `***${inner}***`;
+      }
+      return trimmed ? `*${trimmed}*` : '*기울임*';
+    }
+  };
+
+  const newHeaders = [...tableInfo.headers];
+  const newRows = tableInfo.rows.map((row) => [...row]);
+
+  // Case B: No range selection, cursor in single cell
+  if (!hasRange) {
+    if (tableInfo.isHeader) {
+      newHeaders[tableInfo.cursorColIndex] = toggleCellString(newHeaders[tableInfo.cursorColIndex] || '');
+    } else if (!tableInfo.isSeparator) {
+      const dataRowIdx = tableInfo.cursorRowIndex - 2;
+      if (dataRowIdx >= 0 && dataRowIdx < newRows.length) {
+        newRows[dataRowIdx][tableInfo.cursorColIndex] = toggleCellString(newRows[dataRowIdx][tableInfo.cursorColIndex] || '');
+      }
+    }
+  } else {
+    // Case C: Multi-cell selection range spanning pipes
+    let lineOffset = tableInfo.startOffset;
+    for (let r = 0; r < tableInfo.lines.length; r++) {
+      const line = tableInfo.lines[r];
+      const lineLen = line.length;
+
+      if (r !== 1) {
+        const pipeIndices: number[] = [];
+        for (let i = 0; i < line.length; i++) {
+          if (line[i] === '|' && (i === 0 || line[i - 1] !== '\\')) {
+            pipeIndices.push(i);
+          }
+        }
+
+        for (let c = 0; c < pipeIndices.length - 1; c++) {
+          const cellStartInLine = pipeIndices[c] + 1;
+          const cellEndInLine = pipeIndices[c + 1];
+          const cellDocStart = lineOffset + cellStartInLine;
+          const cellDocEnd = lineOffset + cellEndInLine;
+
+          if (Math.max(selectionStart, cellDocStart) < Math.min(selectionEnd, cellDocEnd)) {
+            if (r === 0 && c < newHeaders.length) {
+              newHeaders[c] = toggleCellString(newHeaders[c]);
+            } else if (r >= 2) {
+              const dataRowIdx = r - 2;
+              if (dataRowIdx < newRows.length && c < newRows[dataRowIdx].length) {
+                newRows[dataRowIdx][c] = toggleCellString(newRows[dataRowIdx][c]);
+              }
+            }
+          }
+        }
+      }
+
+      lineOffset += lineLen + 1;
+    }
+  }
+
+  const formatted = formatMarkdownTable(newHeaders, tableInfo.alignments, newRows);
+  const nextDocText =
+    fullDocText.slice(0, tableInfo.startOffset) +
+    formatted +
+    fullDocText.slice(tableInfo.endOffset);
+
+  const newOffset = tableInfo.startOffset + findCellOffsetInTable(formatted, tableInfo.cursorRowIndex, tableInfo.cursorColIndex);
+  return { nextDocText, newCursorStart: newOffset, newCursorEnd: newOffset };
+}
+

@@ -1,9 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import {
   Trash2,
   AlignLeft,
   AlignCenter,
   AlignRight,
+  Bold,
+  Italic,
   Sparkles,
   Edit3,
   Plus,
@@ -24,6 +26,8 @@ export interface TableFloatingBubbleMenuProps {
   onInsertCol: (position: 'left' | 'right') => void;
   onDeleteCol: () => void;
   onSetAlign: (align: 'left' | 'center' | 'right') => void;
+  onToggleBold?: () => void;
+  onToggleItalic?: () => void;
   onFormatTable: () => void;
   onClearSelectedCells: () => void;
   onOpenVisualModal: () => void;
@@ -39,6 +43,8 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
   onInsertCol,
   onDeleteCol,
   onSetAlign,
+  onToggleBold,
+  onToggleItalic,
   onFormatTable,
   onClearSelectedCells,
   onOpenVisualModal,
@@ -49,10 +55,105 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiError, setAiError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Dynamically adjusted coordinate ensuring menu never bleeds outside right container boundary or into right panel
+  const [adjustedStyle, setAdjustedStyle] = useState<{ top: number; left: number }>({
+    top: position.top,
+    left: position.left
+  });
+
+  useLayoutEffect(() => {
+    if (!menuRef.current) return;
+    const parent = menuRef.current.parentElement;
+    if (!parent) return;
+
+    const parentWidth = parent.clientWidth;
+    const parentHeight = parent.clientHeight;
+    const menuWidth = menuRef.current.offsetWidth || 365;
+    const menuHeight = menuRef.current.offsetHeight || 38;
+
+    const safeRightMargin = 24;
+    const safeLeftMargin = 12;
+    const maxAllowedLeft = Math.max(safeLeftMargin, parentWidth - menuWidth - safeRightMargin);
+
+    let finalLeft = position.left;
+    if (finalLeft > maxAllowedLeft) {
+      finalLeft = maxAllowedLeft;
+    }
+    if (finalLeft < safeLeftMargin) {
+      finalLeft = safeLeftMargin;
+    }
+
+    let finalTop = position.top;
+    const maxAllowedTop = Math.max(4, parentHeight - menuHeight - 12);
+    if (finalTop > maxAllowedTop) {
+      finalTop = maxAllowedTop;
+    }
+    if (finalTop < 4) {
+      finalTop = 4;
+    }
+
+    setAdjustedStyle((prev) => {
+      if (prev.left === finalLeft && prev.top === finalTop) return prev;
+      return { top: finalTop, left: finalLeft };
+    });
+  }, [position.left, position.top, isAiOpen]);
+
+  // Window/container resize observer for real-time safety during panel dragging/resizing
+  useEffect(() => {
+    if (!menuRef.current) return;
+    const parent = menuRef.current.parentElement;
+    if (!parent) return;
+
+    const handleResize = () => {
+      if (!menuRef.current || !parent) return;
+      const parentWidth = parent.clientWidth;
+      const menuWidth = menuRef.current.offsetWidth || 365;
+      const safeRightMargin = 24;
+      const safeLeftMargin = 12;
+      const maxAllowedLeft = Math.max(safeLeftMargin, parentWidth - menuWidth - safeRightMargin);
+
+      setAdjustedStyle((prev) => {
+        let finalLeft = position.left;
+        if (finalLeft > maxAllowedLeft) finalLeft = maxAllowedLeft;
+        if (finalLeft < safeLeftMargin) finalLeft = safeLeftMargin;
+        if (prev.left === finalLeft) return prev;
+        return { ...prev, left: finalLeft };
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    const ro = new ResizeObserver(handleResize);
+    ro.observe(parent);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      ro.disconnect();
+    };
+  }, [position.left]);
 
   const currentColAlign = tableInfo.alignments[tableInfo.cursorColIndex] || 'left';
   const isHeaderRow = tableInfo.isHeader;
   const isSeparatorRow = tableInfo.isSeparator;
+
+  // Check active bold / italic state for the current cell
+  const currentCellText = (
+    isHeaderRow
+      ? tableInfo.headers[tableInfo.cursorColIndex]
+      : !isSeparatorRow
+      ? tableInfo.rows[tableInfo.cursorRowIndex - 2]?.[tableInfo.cursorColIndex]
+      : ''
+  )?.trim() || '';
+
+  const isCellBold =
+    (currentCellText.startsWith('**') && currentCellText.endsWith('**') && currentCellText.length >= 4) ||
+    (currentCellText.startsWith('***') && currentCellText.endsWith('***') && currentCellText.length >= 6);
+
+  const isCellItalic =
+    (currentCellText.startsWith('***') && currentCellText.endsWith('***') && currentCellText.length >= 6) ||
+    (currentCellText.startsWith('*') && currentCellText.endsWith('*') && currentCellText.length >= 2 && !currentCellText.startsWith('**')) ||
+    (currentCellText.startsWith('_') && currentCellText.endsWith('_') && currentCellText.length >= 2);
 
   useEffect(() => {
     if (isAiOpen && inputRef.current) {
@@ -85,9 +186,10 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
   return (
     <div
       id="table-floating-bubble-menu"
+      ref={menuRef}
       style={{
-        top: `${position.top}px`,
-        left: `${position.left}px`,
+        top: `${adjustedStyle.top}px`,
+        left: `${adjustedStyle.left}px`,
       }}
       onMouseDown={(e) => {
         // Prevent textarea blur unless interacting with text input
@@ -110,7 +212,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
                 ? 'bg-[#6366f1] text-white font-bold'
                 : 'text-slate-400 hover:text-white hover:bg-[#282a38]'
             }`}
-            title="현재 열 왼쪽 정렬 (:---)"
+            title="현재 열 왼쪽 정렬"
           >
             <AlignLeft className="w-3.5 h-3.5" />
           </button>
@@ -122,7 +224,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
                 ? 'bg-[#6366f1] text-white font-bold'
                 : 'text-slate-400 hover:text-white hover:bg-[#282a38]'
             }`}
-            title="현재 열 가운데 정렬 (:---:)"
+            title="현재 열 가운데 정렬"
           >
             <AlignCenter className="w-3.5 h-3.5" />
           </button>
@@ -134,9 +236,46 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
                 ? 'bg-[#6366f1] text-white font-bold'
                 : 'text-slate-400 hover:text-white hover:bg-[#282a38]'
             }`}
-            title="현재 열 오른쪽 정렬 (---:)"
+            title="현재 열 오른쪽 정렬"
           >
             <AlignRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="w-[1px] h-3.5 bg-[#2e3142] shrink-0" />
+
+        {/* Text Style Controls (Bold, Italic) */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            type="button"
+            onClick={onToggleBold}
+            disabled={isSeparatorRow}
+            className={`w-6 h-6 flex items-center justify-center rounded transition cursor-pointer ${
+              isSeparatorRow
+                ? 'opacity-30 cursor-not-allowed text-slate-500'
+                : isCellBold
+                ? 'bg-[#6366f1] text-white font-bold'
+                : 'text-slate-400 hover:text-white hover:bg-[#282a38]'
+            }`}
+            title="굵게 서식 적용 또는 해제"
+          >
+            <Bold className="w-3.5 h-3.5 font-bold" />
+          </button>
+          <button
+            type="button"
+            onClick={onToggleItalic}
+            disabled={isSeparatorRow}
+            className={`w-6 h-6 flex items-center justify-center rounded transition cursor-pointer ${
+              isSeparatorRow
+                ? 'opacity-30 cursor-not-allowed text-slate-500'
+                : isCellItalic
+                ? 'bg-[#6366f1] text-white italic font-bold'
+                : 'text-slate-400 hover:text-white hover:bg-[#282a38]'
+            }`}
+            title="기울임 서식 적용 또는 해제"
+          >
+            <Italic className="w-3.5 h-3.5" />
           </button>
         </div>
 
@@ -149,7 +288,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
             type="button"
             onClick={() => onInsertRow('below')}
             className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-slate-300 hover:text-white rounded transition cursor-pointer"
-            title="아래에 행 삽입 (+행)"
+            title="아래에 행 삽입"
           >
             <div className="relative flex items-center justify-center">
               <Rows className="w-3.5 h-3.5 text-indigo-400" />
@@ -165,7 +304,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
                 ? 'opacity-30 cursor-not-allowed text-slate-500'
                 : 'hover:bg-rose-500/80 text-rose-400 hover:text-white'
             }`}
-            title={isHeaderRow || isSeparatorRow ? '헤더/구분선은 삭제할 수 없습니다' : '현재 행 삭제 (Delete Row)'}
+            title={isHeaderRow || isSeparatorRow ? '헤더 및 구분선 행은 삭제할 수 없습니다' : '현재 행 삭제'}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -180,7 +319,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
             type="button"
             onClick={() => onInsertCol('right')}
             className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-slate-300 hover:text-white rounded transition cursor-pointer"
-            title="오른쪽에 열 삽입 (+열)"
+            title="오른쪽에 열 삽입"
           >
             <div className="relative flex items-center justify-center">
               <Columns className="w-3.5 h-3.5 text-sky-400" />
@@ -196,7 +335,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
                 ? 'opacity-30 cursor-not-allowed text-slate-500'
                 : 'hover:bg-rose-500/80 text-rose-400 hover:text-white'
             }`}
-            title={tableInfo.totalCols <= 1 ? '마지막 남은 열은 삭제할 수 없습니다' : '현재 열 삭제 (Delete Column)'}
+            title={tableInfo.totalCols <= 1 ? '마지막 남은 열은 삭제할 수 없습니다' : '현재 열 삭제'}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -211,7 +350,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
             type="button"
             onClick={onClearSelectedCells}
             className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-amber-400 hover:text-amber-300 rounded transition cursor-pointer"
-            title="선택한 셀 내용 비우기 (Clear Selected Cells)"
+            title="선택한 셀 내용 지우기"
           >
             <Eraser className="w-3.5 h-3.5" />
           </button>
@@ -233,7 +372,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
                 ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
                 : 'bg-indigo-600/15 hover:bg-indigo-600/30 text-amber-400 hover:text-amber-300 border-indigo-500/30'
             }`}
-            title="AI 표 편집 / 요약 프롬프트 (✨)"
+            title="AI 표 편집 및 요약 프롬프트"
           >
             <Sparkles className="w-3.5 h-3.5" />
           </button>
@@ -245,7 +384,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
             type="button"
             onClick={onFormatTable}
             className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-slate-400 hover:text-white rounded transition cursor-pointer"
-            title="자동 정렬 (표 열 너비 및 파이프 정렬)"
+            title="표 서식 자동 정렬"
           >
             <Wand2 className="w-3.5 h-3.5 hover:text-amber-300" />
           </button>
@@ -253,7 +392,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
             type="button"
             onClick={onOpenVisualModal}
             className="w-6 h-6 flex items-center justify-center bg-[#6366f1]/15 hover:bg-[#6366f1] hover:text-white text-indigo-300 rounded transition cursor-pointer border border-[#6366f1]/30"
-            title="시트 편집기 (스프레드시트 모달)"
+            title="스프레드시트 편집기 열기"
           >
             <Edit3 className="w-3.5 h-3.5" />
           </button>
@@ -266,7 +405,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
           <div className="flex items-center justify-between text-[11px] font-semibold text-indigo-300 px-0.5">
             <span className="flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-amber-400" />
-              <span>AI 표 편집 & 요약</span>
+              <span>AI 표 편집 및 요약</span>
             </span>
             <button
               type="button"
@@ -282,9 +421,9 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
           <div className="flex flex-wrap gap-1">
             {[
               { label: '📊 데이터 요약', prompt: '이 표의 주요 데이터와 패턴을 분석하여 하단에 핵심 요약 행과 통계를 추가해줘.' },
-              { label: '➕ 합계/평균 추가', prompt: '수치 데이터가 있는 각 열에 대해 표 맨 아래에 합계(Total) 및 평균(Average) 행을 계산하여 추가해줘.' },
+              { label: '➕ 합계 및 평균 추가', prompt: '수치 데이터가 있는 각 열에 대해 표 맨 아래에 합계 및 평균 행을 계산하여 추가해줘.' },
               { label: '🔤 한국어 번역', prompt: '표 안의 모든 영문 텍스트를 자연스러운 비즈니스 한국어로 번역해줘.' },
-              { label: '⚡ 정제 & 정렬', prompt: '데이터의 빈칸을 정리하고, 헤더와 서식을 깔끔하게 정제해줘.' }
+              { label: '⚡ 정제 및 정렬', prompt: '데이터의 빈칸을 정리하고, 헤더와 서식을 깔끔하게 정제해줘.' }
             ].map((chip) => (
               <button
                 key={chip.label}

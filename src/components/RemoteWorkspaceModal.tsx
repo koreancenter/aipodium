@@ -150,7 +150,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
     >
       <div
         id="remote-workspace-modal-content"
-        className="relative bg-[#1e202b] border border-[#2e3142] rounded-lg max-w-lg w-full p-5 shadow-2xl space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans"
+        className="relative bg-[#1e202b] border border-[#2e3142] rounded-lg max-w-lg w-full p-5 space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -161,13 +161,13 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-semibold text-slate-100">원격 서버 연동</h2>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">
+                <h2 className="text-sm font-medium text-slate-100">원격 서버 연동</h2>
+                <span className="badge-muted text-[10px] font-medium px-2 py-0.5 rounded">
                   직접 연동
                 </span>
                 <HelpTooltip
                   title="원격 서버 직접 연동 안내"
-                  content="원격 서버(SSH/SFTP) 접속 정보는 외부 서버로 전송되지 않으며, 사용자 브라우저 로컬 저장소에만 안전하게 보관됩니다."
+                  content="원격 서버 접속 정보는 외부 서버로 전송되지 않으며, 사용자 브라우저 로컬 저장소에만 안전하게 보관됩니다."
                 />
               </div>
               <p className="text-[11px] text-slate-400 mt-0.5">
@@ -249,7 +249,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                   onClick={() => setAuthType('password')}
                   className={`flex-1 py-1.5 text-center rounded text-xs transition cursor-pointer font-medium ${
                     authType === 'password'
-                      ? 'bg-indigo-600 text-white shadow-xs'
+                      ? 'bg-indigo-600 text-white font-medium'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -260,7 +260,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                   onClick={() => setAuthType('key')}
                   className={`flex-1 py-1.5 text-center rounded text-xs transition cursor-pointer font-medium ${
                     authType === 'key'
-                      ? 'bg-indigo-600 text-white shadow-xs'
+                      ? 'bg-indigo-600 text-white font-medium'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -302,7 +302,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                 <label className="font-medium text-slate-300">SSH 비공개 키</label>
                 <HelpTooltip
                   title="SSH 키 형식"
-                  content="OpenSSH 형식(-----BEGIN OPENSSH PRIVATE KEY----- 또는 RSA 키)의 비공개 키 전문을 입력합니다."
+                  content="OpenSSH 형식 또는 RSA 키 형식의 비공개 키 전문을 입력합니다."
                 />
               </div>
               <textarea
@@ -360,7 +360,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                 type="button"
                 onClick={handleTestConnection}
                 disabled={isTesting}
-                className="px-2.5 py-1.5 bg-[#282a38] hover:bg-[#323548] text-slate-200 hover:text-white rounded text-xs font-medium transition flex items-center gap-1.5 cursor-pointer border border-[#2e3142]"
+                className="btn-secondary text-xs"
               >
                 <RotateCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin text-indigo-400' : 'text-slate-400'}`} />
                 <span>{isTesting ? '테스트 중...' : '연결 테스트'}</span>
@@ -370,7 +370,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                 <button
                   type="button"
                   onClick={onDisconnect}
-                  className="px-2.5 py-1.5 bg-rose-950/20 hover:bg-rose-950/40 text-rose-300 border border-rose-500/30 rounded text-xs font-medium transition cursor-pointer flex items-center gap-1.5"
+                  className="btn-secondary text-xs text-rose-400 hover:text-rose-300 border-rose-900/50 hover:bg-rose-950/40"
                   title="현재 연결된 원격 서버 설정을 해제합니다."
                 >
                   <Unlink className="w-3.5 h-3.5" />
@@ -383,13 +383,13 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3 py-1.5 rounded text-xs text-slate-400 hover:text-slate-200 hover:bg-[#282a38] transition cursor-pointer"
+                className="btn-ghost text-xs"
               >
                 취소
               </button>
               <button
                 type="submit"
-                className="px-3.5 py-1.5 rounded text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-xs cursor-pointer flex items-center gap-1.5 border border-indigo-500"
+                className="btn-primary text-xs"
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>{isConnected ? '설정 저장' : '원격 서버 연결'}</span>
@@ -401,10 +401,10 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
           <div className="pt-3 border-t border-[#2e3142] flex items-center justify-between text-[11px] text-slate-400">
             <span className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-              <span>다중 기기 동기화 및 클라우드 백업이 필요하신가요?</span>
+              <span>다중 기기 동기화 및 클라우드 보관이 필요하신가요?</span>
             </span>
             {currentUser ? (
-              <span className="text-emerald-400 font-medium">계정 로그인됨</span>
+              <span className="badge-success text-[10px] font-medium px-2 py-0.5 rounded">계정 연동됨</span>
             ) : onOpenAccountModal ? (
               <button
                 type="button"

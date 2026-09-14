@@ -1,6 +1,6 @@
 {
   "name": "Remix aipodium",
-  "description": "9월 9일 20:56",
+  "description": "Private knowledge workspace and research synthesis platform for university students, professors, and researchers.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

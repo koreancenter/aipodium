@@ -592,8 +592,8 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 p-1 rounded hover:bg-[#282a38] transition cursor-pointer"
-            title="닫기 (Esc)"
+            className="text-slate-400 hover:text-slate-200 p-1 rounded-md hover:bg-[#282a38] transition cursor-pointer"
+            title="닫기"
           >
             <X className="w-4 h-4" />
           </button>
@@ -604,20 +604,20 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
           <button
             type="button"
             onClick={handleOpenFolder}
-            className="w-full bg-[#6366f1] hover:bg-[#5254e0] text-white py-2.5 px-4 rounded font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
+            className="w-full bg-[#6366f1] hover:bg-[#5254e0] text-white py-2.5 px-4 rounded-md font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
           >
             <FolderOpen className="w-4 h-4 shrink-0" />
-            <span>내 PC 폴더 열기... (Open Folder)</span>
+            <span>내 PC 폴더 열기...</span>
           </button>
 
           {/* Document Converter Action Button */}
           <button
             type="button"
             onClick={() => docInputRef.current?.click()}
-            className="w-full bg-[#202230] hover:bg-[#282a3c] text-indigo-300 hover:text-indigo-200 border border-[#2e3142] py-2 px-4 rounded font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
+            className="w-full bg-[#202230] hover:bg-[#282a3c] text-indigo-300 hover:text-indigo-200 border border-[#2e3142] py-2 px-4 rounded-md font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
           >
             <FileText className="w-4 h-4 shrink-0 text-indigo-400" />
-            <span>오피스 / PDF 문서 변환 가져오기 (.pdf, .docx, .xlsx, .pptx)...</span>
+            <span>오피스 및 PDF 문서 변환 가져오기...</span>
           </button>
 
           {/* Current Project Info & Rescan (Single subtle row) */}

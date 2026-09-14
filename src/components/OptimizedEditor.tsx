@@ -29,7 +29,8 @@ import {
   setTableColumnAlign,
   findCellOffsetInTable,
   splitTableRow,
-  clearTableCells
+  clearTableCells,
+  toggleTableCellFormat
 } from '../utils/markdownTableHelper';
 import { TableFloatingBubbleMenu } from './TableFloatingBubbleMenu';
 import { TextFloatingBubbleMenu, TextFormatAction } from './TextFloatingBubbleMenu';
@@ -265,7 +266,20 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
   const [hasSelection, setHasSelection] = useState(false);
   const [isAiTextLoading, setIsAiTextLoading] = useState(false);
   const [isTextBubbleDismissed, setIsTextBubbleDismissed] = useState(false);
+  const lastDismissedSelectionRef = useRef<{ start: number; end: number } | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleCloseTextBubble = useCallback(() => {
+    const textarea = refToUse.current;
+    if (textarea) {
+      lastDismissedSelectionRef.current = {
+        start: textarea.selectionStart,
+        end: textarea.selectionEnd
+      };
+    }
+    setIsTextBubbleDismissed(true);
+    setIsTextBubbleVisible(false);
+  }, [refToUse]);
 
   const updateEditorBubbleContext = useCallback((text: string, selStart: number, selEnd?: number) => {
     const end = typeof selEnd === 'number' ? selEnd : selStart;
@@ -303,10 +317,11 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
         }
         const clampedTop = Math.max(4, Math.min(textarea.clientHeight - 38, bubbleTop));
 
-        // Horizontal positioning: align near cursor, clamped to avoid overflow
-        const bubbleMenuWidth = 265;
-        const maxLeft = Math.max(14, textarea.clientWidth - bubbleMenuWidth - 14);
-        const clampedLeft = Math.max(14, Math.min(maxLeft, cursorVisibleLeft - 40));
+        // Horizontal positioning: align near cursor, clamped to avoid overflow into right panel/divider
+        const tableBubbleWidth = 425;
+        const rightSafeMargin = 24;
+        const maxLeft = Math.max(12, textarea.clientWidth - tableBubbleWidth - rightSafeMargin);
+        const clampedLeft = Math.max(12, Math.min(maxLeft, cursorVisibleLeft - 40));
 
         setTableBubblePos({ top: clampedTop, left: clampedLeft });
       }
@@ -316,6 +331,19 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
     // 2. Normal General Text Context
     setSelectedText(hasSel ? text.slice(selStart, end) : '');
     setHasSelection(hasSel);
+
+    // If dismissed, check if user changed selection or cursor position to un-dismiss
+    let dismissed = isTextBubbleDismissed;
+    if (dismissed && lastDismissedSelectionRef.current) {
+      if (
+        lastDismissedSelectionRef.current.start !== selStart ||
+        lastDismissedSelectionRef.current.end !== end
+      ) {
+        dismissed = false;
+        setIsTextBubbleDismissed(false);
+        lastDismissedSelectionRef.current = null;
+      }
+    }
 
     if (textarea) {
       const textBefore = text.slice(0, selStart);
@@ -334,21 +362,23 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
       const lineVisibleTop = paddingTop + lineIndex * lineHeight - textarea.scrollTop;
       const cursorVisibleLeft = paddingLeft + midCol * approxCharWidth - textarea.scrollLeft;
 
-      let bubbleTop = lineVisibleTop - 38;
+      let bubbleTop = lineVisibleTop - 32;
       if (bubbleTop < 4) {
         bubbleTop = lineVisibleTop + lineHeight + 6;
       }
-      const clampedTop = Math.max(4, Math.min(textarea.clientHeight - 42, bubbleTop));
+      const clampedTop = Math.max(4, Math.min(textarea.clientHeight - 36, bubbleTop));
 
-      const textBubbleWidth = 410;
-      const maxLeft = Math.max(10, textarea.clientWidth - textBubbleWidth - 10);
-      const clampedLeft = Math.max(10, Math.min(maxLeft, cursorVisibleLeft - 100));
+      // Compact rectangular button (~80px) sits near cursor;
+      // When expanded, TextFloatingBubbleMenu automatically adapts and clamps to safe right margin
+      const rightSafeMargin = 20;
+      const maxLeft = Math.max(8, textarea.clientWidth - 85 - rightSafeMargin);
+      const clampedLeft = Math.max(8, Math.min(maxLeft, cursorVisibleLeft - 10));
 
       const isLineInView = lineVisibleTop >= -40 && lineVisibleTop <= textarea.clientHeight + 40;
 
       setTextBubblePos({ top: clampedTop, left: clampedLeft });
-      // Show bubble menu if line is in view, and either user has text selected or hasn't dismissed it
-      setIsTextBubbleVisible(isLineInView && (hasSel || !isTextBubbleDismissed));
+      // Show bubble menu if line is in view and not dismissed
+      setIsTextBubbleVisible(isLineInView && !dismissed);
     }
   }, [refToUse, isTextBubbleDismissed]);
 
@@ -516,6 +546,44 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
         textarea.focus();
         textarea.setSelectionRange(res.newCursorOffset, res.newCursorOffset);
         updateTableContext(nextVal, res.newCursorOffset);
+      }
+    }, 20);
+  }, [currentTableInfo, localValue, debouncedOnChange, refToUse, updateTableContext]);
+
+  const handleToggleTableBold = useCallback(() => {
+    if (!currentTableInfo) return;
+    const textarea = refToUse.current;
+    const selStart = textarea ? textarea.selectionStart : currentTableInfo.startOffset;
+    const selEnd = textarea ? textarea.selectionEnd : currentTableInfo.startOffset;
+
+    const res = toggleTableCellFormat(currentTableInfo, 'bold', localValue, selStart, selEnd);
+    setLocalValue(res.nextDocText);
+    debouncedOnChange(res.nextDocText);
+
+    setTimeout(() => {
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(res.newCursorStart, res.newCursorEnd);
+        updateTableContext(res.nextDocText, res.newCursorStart);
+      }
+    }, 20);
+  }, [currentTableInfo, localValue, debouncedOnChange, refToUse, updateTableContext]);
+
+  const handleToggleTableItalic = useCallback(() => {
+    if (!currentTableInfo) return;
+    const textarea = refToUse.current;
+    const selStart = textarea ? textarea.selectionStart : currentTableInfo.startOffset;
+    const selEnd = textarea ? textarea.selectionEnd : currentTableInfo.startOffset;
+
+    const res = toggleTableCellFormat(currentTableInfo, 'italic', localValue, selStart, selEnd);
+    setLocalValue(res.nextDocText);
+    debouncedOnChange(res.nextDocText);
+
+    setTimeout(() => {
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(res.newCursorStart, res.newCursorEnd);
+        updateTableContext(res.nextDocText, res.newCursorStart);
       }
     }, 20);
   }, [currentTableInfo, localValue, debouncedOnChange, refToUse, updateTableContext]);
@@ -1893,7 +1961,6 @@ ${targetText}
             value={localValue}
             onFocus={(e) => {
               onFocus?.();
-              setIsTextBubbleDismissed(false);
               updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
             }}
             onBlur={handleBlur}
@@ -1901,12 +1968,10 @@ ${targetText}
             onChange={handleChange}
             onScroll={handleEditorScroll}
             onClick={(e) => {
-              setIsTextBubbleDismissed(false);
               updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
             }}
             onKeyUp={(e) => updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd)}
             onSelect={(e) => {
-              setIsTextBubbleDismissed(false);
               updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
             }}
             placeholder={placeholder || "마크다운을 입력하세요. '/'를 입력하여 자동 완성 메뉴를 열거나 단축키를 사용할 수 있습니다."}
@@ -1931,6 +1996,8 @@ ${targetText}
               onInsertCol={handleInsertCol}
               onDeleteCol={handleDeleteCol}
               onSetAlign={handleSetAlign}
+              onToggleBold={handleToggleTableBold}
+              onToggleItalic={handleToggleTableItalic}
               onFormatTable={handleFormatTable}
               onClearSelectedCells={handleClearSelectedCells}
               onOpenVisualModal={() => setIsVisualModalOpen(true)}
@@ -1947,7 +2014,7 @@ ${targetText}
               hasSelection={hasSelection}
               onApplyFormat={handleApplyTextFormat}
               onCleanText={handleCleanText}
-              onClose={() => setIsTextBubbleDismissed(true)}
+              onClose={handleCloseTextBubble}
               onAiEditText={handleAiTextEdit}
               isAiLoading={isAiTextLoading}
             />
@@ -1968,7 +2035,7 @@ ${targetText}
           >
             <span className="flex items-center gap-1.5" style={{ color: 'var(--accent)' }}>
               <Eye className="w-3 h-3" />
-              <span>실시간 미리보기 (Live Preview)</span>
+              <span>실시간 미리보기</span>
             </span>
             <span className="text-[0.5625rem] opacity-75 font-mono flex items-center gap-1" style={{ color: 'var(--accent)' }}>
               <span className="w-1.5 h-1.5 rounded-full bg-[#6366f1] animate-pulse" />
@@ -2022,7 +2089,6 @@ ${targetText}
         value={localValue}
         onFocus={(e) => {
           onFocus?.();
-          setIsTextBubbleDismissed(false);
           updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
         }}
         onBlur={handleBlur}
@@ -2030,12 +2096,10 @@ ${targetText}
         onChange={handleChange}
         onScroll={handleEditorScroll}
         onClick={(e) => {
-          setIsTextBubbleDismissed(false);
           updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
         }}
         onKeyUp={(e) => updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd)}
         onSelect={(e) => {
-          setIsTextBubbleDismissed(false);
           updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
         }}
         placeholder={placeholder || "마크다운을 입력하세요. '/'를 입력하여 자동 완성 메뉴를 열거나 단축키를 사용할 수 있습니다."}
@@ -2060,6 +2124,8 @@ ${targetText}
           onInsertCol={handleInsertCol}
           onDeleteCol={handleDeleteCol}
           onSetAlign={handleSetAlign}
+          onToggleBold={handleToggleTableBold}
+          onToggleItalic={handleToggleTableItalic}
           onFormatTable={handleFormatTable}
           onClearSelectedCells={handleClearSelectedCells}
           onOpenVisualModal={() => setIsVisualModalOpen(true)}
@@ -2076,7 +2142,7 @@ ${targetText}
           hasSelection={hasSelection}
           onApplyFormat={handleApplyTextFormat}
           onCleanText={handleCleanText}
-          onClose={() => setIsTextBubbleDismissed(true)}
+          onClose={handleCloseTextBubble}
           onAiEditText={handleAiTextEdit}
           isAiLoading={isAiTextLoading}
         />

@@ -136,18 +136,38 @@ export async function convertPdfToMarkdown(
     if (file.startsWith('data:')) {
       b64 = file.split(',')[1] || '';
     }
-    const binary = atob(b64);
-    uint8Data = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      uint8Data[i] = binary.charCodeAt(i);
+    try {
+      const binary = atob(b64);
+      uint8Data = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        uint8Data[i] = binary.charCodeAt(i);
+      }
+    } catch {
+      uint8Data = new Uint8Array(0);
     }
   } else if (file instanceof Uint8Array) {
     uint8Data = file;
   } else if (file instanceof ArrayBuffer) {
     uint8Data = new Uint8Array(file);
   } else {
-    const arrayBuffer = await file.arrayBuffer();
-    uint8Data = new Uint8Array(arrayBuffer);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      uint8Data = new Uint8Array(arrayBuffer);
+    } catch {
+      uint8Data = new Uint8Array(0);
+    }
+  }
+
+  const cleanTitle = fileName.replace(/\.[^/.]+$/, '');
+
+  // Guard against 0-byte or empty PDF files
+  if (!uint8Data || uint8Data.byteLength === 0) {
+    return {
+      markdown: `# 📕 ${cleanTitle}\n\n*(PDF 파일의 크기가 0 바이트이거나 비어 있어 내용을 추출할 수 없습니다.)*\n`,
+      pageCount: 0,
+      warnings: ['PDF 파일이 비어 있습니다 (0 바이트).'],
+      parserEngine: 'fast',
+    };
   }
 
   const loadingTask = pdfjsLib.getDocument({
@@ -157,7 +177,6 @@ export async function convertPdfToMarkdown(
 
   const pdfDoc = await loadingTask.promise;
   const numPages = pdfDoc.numPages;
-  const cleanTitle = fileName.replace(/\.[^/.]+$/, '');
 
   // 1. Extract raw text stream and layout line-by-line per page
   let fastMd = `# 📕 ${cleanTitle}\n\n`;
@@ -351,7 +370,21 @@ export async function convertDocxToMarkdown(
   fileName: string
 ): Promise<{ markdown: string; wordCount: number; warnings: string[] }> {
   const warnings: string[] = [];
-  const arrayBuffer = await file.arrayBuffer();
+  let arrayBuffer: ArrayBuffer;
+  try {
+    arrayBuffer = await file.arrayBuffer();
+  } catch {
+    arrayBuffer = new ArrayBuffer(0);
+  }
+
+  const cleanTitle = fileName.replace(/\.[^/.]+$/, '');
+  if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+    return {
+      markdown: `# 📄 ${cleanTitle}\n\n*(문서 파일의 크기가 0 바이트이거나 비어 있어 내용을 추출할 수 없습니다.)*\n`,
+      wordCount: 0,
+      warnings: ['문서 파일이 비어 있습니다 (0 바이트).'],
+    };
+  }
 
   const mammothResult = await mammoth.convertToHtml({ arrayBuffer });
   if (mammothResult.messages && mammothResult.messages.length > 0) {
@@ -401,7 +434,6 @@ export async function convertDocxToMarkdown(
   });
 
   let md = turndownService.turndown(html);
-  const cleanTitle = fileName.replace(/\.[^/.]+$/, '');
 
   if (!md.startsWith('# ')) {
     md = `# 📄 ${cleanTitle}\n\n` + md;
@@ -419,11 +451,25 @@ export async function convertXlsxToMarkdown(
   fileName: string
 ): Promise<{ markdown: string; sheetCount: number; rowCount: number; warnings: string[] }> {
   const warnings: string[] = [];
-  const arrayBuffer = await file.arrayBuffer();
+  let arrayBuffer: ArrayBuffer;
+  try {
+    arrayBuffer = await file.arrayBuffer();
+  } catch {
+    arrayBuffer = new ArrayBuffer(0);
+  }
+
+  const cleanTitle = fileName.replace(/\.[^/.]+$/, '');
+  if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+    return {
+      markdown: `# 📊 ${cleanTitle}\n\n*(스프레드시트 파일의 크기가 0 바이트이거나 비어 있어 내용을 추출할 수 없습니다.)*\n`,
+      sheetCount: 0,
+      rowCount: 0,
+      warnings: ['스프레드시트 파일이 비어 있습니다 (0 바이트).'],
+    };
+  }
 
   const workbook = XLSX.read(arrayBuffer, { type: 'array' });
   const sheetNames = workbook.SheetNames;
-  const cleanTitle = fileName.replace(/\.[^/.]+$/, '');
 
   let totalRows = 0;
   let md = `# 📊 ${cleanTitle}\n\n`;
@@ -483,10 +529,24 @@ export async function convertPptxToMarkdown(
   fileName: string
 ): Promise<{ markdown: string; slideCount: number; warnings: string[] }> {
   const warnings: string[] = [];
-  const arrayBuffer = await file.arrayBuffer();
+  let arrayBuffer: ArrayBuffer;
+  try {
+    arrayBuffer = await file.arrayBuffer();
+  } catch {
+    arrayBuffer = new ArrayBuffer(0);
+  }
+
+  const cleanTitle = fileName.replace(/\.[^/.]+$/, '');
+  if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+    return {
+      markdown: `# 📽️ ${cleanTitle}\n\n*(프레젠테이션 파일의 크기가 0 바이트이거나 비어 있어 내용을 추출할 수 없습니다.)*\n`,
+      slideCount: 0,
+      warnings: ['프레젠테이션 파일이 비어 있습니다 (0 바이트).'],
+    };
+  }
+
   const zip = await JSZip.loadAsync(arrayBuffer);
   const parser = new DOMParser();
-  const cleanTitle = fileName.replace(/\.[^/.]+$/, '');
 
   const slidePaths = Object.keys(zip.files).filter((path) =>
     /^ppt\/slides\/slide\d+\.xml$/i.test(path)

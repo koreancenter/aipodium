@@ -388,7 +388,7 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
     }
 
     try {
-      const { document, apiKey: clientApiKey } = req.body;
+      const { document, apiKey: clientApiKey, model: requestedModel } = req.body;
       const docText = typeof document === 'string' ? document.slice(0, 100000) : '';
 
       if (!docText.trim()) {
@@ -459,8 +459,12 @@ DOCUMENT TO AUDIT:
 ${docText}
 `;
 
+      const targetModel = typeof requestedModel === 'string' && requestedModel.trim()
+        ? requestedModel.trim()
+        : 'gemini-3.8-flash';
+
       const aiResponse = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+        model: targetModel,
         contents: auditPrompt,
         config: {
           temperature: 0.1,
@@ -493,7 +497,7 @@ ${docText}
     }
 
     try {
-      const { document, apiKey: clientApiKey } = req.body;
+      const { document, apiKey: clientApiKey, model: requestedModel } = req.body;
       const docText = typeof document === 'string' ? document.slice(0, 100000) : '';
 
       if (!docText.trim()) {
@@ -559,8 +563,12 @@ DOCUMENT TO AUDIT:
 ${docText}
 `;
 
+      const targetModel = typeof requestedModel === 'string' && requestedModel.trim()
+        ? requestedModel.trim()
+        : 'gemini-3.8-flash';
+
       const aiResponse = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+        model: targetModel,
         contents: councilPrompt,
         config: {
           temperature: 0.2,
@@ -585,6 +593,54 @@ ${docText}
     }
   });
 
+  // Dedicated SEO Endpoints for Crawlers & Google Lighthouse
+  app.get("/robots.txt", (req, res) => {
+    const host = req.get('host') || 'aipodium.net';
+    const protocol = req.protocol === 'http' && !req.secure && host.includes('localhost') ? 'http' : 'https';
+    const origin = `${protocol}://${host}`;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.send(
+`# Google Lighthouse & Web Crawler Configuration
+# https://developers.google.com/search/docs/crawling-indexing/robots/intro
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: ${origin}/sitemap.xml
+`
+    );
+  });
+
+  app.get("/sitemap.xml", (req, res) => {
+    const host = req.get('host') || 'aipodium.net';
+    const protocol = req.protocol === 'http' && !req.secure && host.includes('localhost') ? 'http' : 'https';
+    const origin = `${protocol}://${host}`;
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.send(
+`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+  <url>
+    <loc>${origin}/</loc>
+    <lastmod>2026-09-13T10:30:00+00:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>`
+    );
+  });
+
+  // Serve static assets from public folder
+  const publicPath = path.join(process.cwd(), 'public');
+  app.use(express.static(publicPath));
+
+  // Serve built assets and source maps if dist/assets exists (for Lighthouse audits & debugging)
+  const distAssetsPath = path.join(process.cwd(), 'dist', 'assets');
+  app.use('/assets', express.static(distAssetsPath));
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -595,7 +651,7 @@ ${docText}
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*all', (req, res) => {
+    app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

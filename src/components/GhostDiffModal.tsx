@@ -123,7 +123,7 @@ export const GhostDiffModal: React.FC<GhostDiffModalProps> = ({
 
           {/* View Mode Controls & Close */}
           <div className="flex items-center gap-2">
-            <div className="inline-flex rounded-lg bg-[#0e0f17] border border-[#2e3142] p-0.5 text-xs">
+            <div className="inline-flex rounded-md bg-[#0e0f17] border border-[#2e3142] p-0.5 text-xs">
               <button
                 type="button"
                 onClick={() => setViewMode('unified')}
@@ -132,10 +132,10 @@ export const GhostDiffModal: React.FC<GhostDiffModalProps> = ({
                     ? 'bg-[#6366f1] text-white shadow-xs'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
-                title="통합 인라인 뷰 (Unified Diff)"
+                title="통합 인라인 보기"
               >
                 <AlignJustify className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">단일 통합 (Unified)</span>
+                <span className="hidden sm:inline">단일 통합</span>
               </button>
               <button
                 type="button"
@@ -145,18 +145,18 @@ export const GhostDiffModal: React.FC<GhostDiffModalProps> = ({
                     ? 'bg-[#6366f1] text-white shadow-xs'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
-                title="좌우 분할 뷰 (Side-by-Side Split)"
+                title="좌우 분할 보기"
               >
                 <Columns className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">좌우 분할 (Split)</span>
+                <span className="hidden sm:inline">좌우 분할</span>
               </button>
             </div>
 
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-[#2e3142] text-slate-400 hover:text-slate-200 transition cursor-pointer"
-              title="닫기 (Esc)"
+              className="p-1.5 rounded-md hover:bg-[#2e3142] text-slate-400 hover:text-slate-200 transition cursor-pointer"
+              title="닫기"
             >
               <X className="w-4 h-4" />
             </button>
@@ -250,7 +250,7 @@ export const GhostDiffModal: React.FC<GhostDiffModalProps> = ({
             <button
               type="button"
               onClick={handleCopyProposed}
-              className="px-3 py-1.5 rounded-lg border border-[#2e3142] bg-[#1a1b26] hover:bg-[#282a38] text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              className="px-3 py-1.5 rounded-md border border-[#2e3142] bg-[#1a1b26] hover:bg-[#282a38] text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-medium cursor-pointer"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? '복사 완료!' : '제안본 복사'}</span>
@@ -263,7 +263,7 @@ export const GhostDiffModal: React.FC<GhostDiffModalProps> = ({
                   onAppendRevisions(proposedContent);
                   onClose();
                 }}
-                className="px-3 py-1.5 rounded-lg border border-[#2e3142] bg-[#1a1b26] hover:bg-[#282a38] text-[#818cf8] hover:text-white transition flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+                className="px-3 py-1.5 rounded-md border border-[#2e3142] bg-[#1a1b26] hover:bg-[#282a38] text-[#818cf8] hover:text-white transition flex items-center gap-1.5 text-xs font-medium cursor-pointer"
                 title="원본 문서를 지우지 않고 본문 하단에 부록 형태로 추가합니다"
               >
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -276,9 +276,9 @@ export const GhostDiffModal: React.FC<GhostDiffModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 rounded-lg border border-[#2e3142] hover:bg-[#282a38] text-slate-400 hover:text-slate-200 text-xs font-medium transition cursor-pointer"
+              className="px-3.5 py-1.5 rounded-md border border-[#2e3142] hover:bg-[#282a38] text-slate-400 hover:text-slate-200 text-xs font-medium transition cursor-pointer"
             >
-              닫기 (취소)
+              취소
             </button>
 
             <button
@@ -287,10 +287,10 @@ export const GhostDiffModal: React.FC<GhostDiffModalProps> = ({
                 onApplyRevisions(proposedContent);
                 onClose();
               }}
-              className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-950 cursor-pointer"
+              className="px-4 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-950 cursor-pointer"
             >
               <Check className="w-4 h-4" />
-              <span>문서에 스마트 반영 (Apply Revisions)</span>
+              <span>문서에 스마트 반영</span>
             </button>
           </div>
         </div>

@@ -32,6 +32,7 @@ interface SSOTDriftAuditorProps {
   onJumpToLine?: (line: number) => void;
   onClose: () => void;
   apiKey?: string;
+  model?: string;
   isDarkTheme?: boolean;
 }
 
@@ -41,6 +42,7 @@ export const SSOTDriftAuditor: React.FC<SSOTDriftAuditorProps> = ({
   onJumpToLine,
   onClose,
   apiKey,
+  model,
   isDarkTheme = true
 }) => {
   const [filterType, setFilterType] = useState<string>('all');
@@ -66,7 +68,8 @@ export const SSOTDriftAuditor: React.FC<SSOTDriftAuditorProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           document: content,
-          apiKey
+          apiKey,
+          model: model || 'gemini-3.1-pro-preview'
         })
       });
 
@@ -260,14 +263,14 @@ ${
           </div>
 
           <div
-            className={`px-2 py-0.5 rounded-full border text-[0.625rem] font-bold ${statusConfig.bg} ${statusConfig.color}`}
+            className={`px-2 py-0.5 rounded-sm border text-[0.625rem] font-bold ${statusConfig.bg} ${statusConfig.color}`}
           >
             {statusConfig.label}
           </div>
         </div>
 
         {/* Progress bar */}
-        <div className="w-full h-1.5 bg-[#252838] rounded-full overflow-hidden mb-2.5">
+        <div className="w-full h-1.5 bg-[#252838] rounded-sm overflow-hidden mb-2.5">
           <div
             className={`h-full transition-all duration-500 ${
               auditResult.score >= 85
@@ -351,7 +354,7 @@ ${
             key={tab.id}
             type="button"
             onClick={() => setFilterType(tab.id)}
-            className={`px-2 py-0.5 rounded-full transition shrink-0 cursor-pointer ${
+            className={`px-2 py-0.5 rounded-sm transition shrink-0 cursor-pointer ${
               filterType === tab.id
                 ? 'bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/40'
                 : 'text-slate-400 hover:text-slate-200'
@@ -378,7 +381,7 @@ ${
       <div className="flex-1 overflow-y-auto p-3 space-y-2.5 min-h-0 select-text">
         {visibleIssues.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-3">
+            <div className="w-12 h-12 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-3">
               <FileCheck2 className="w-6 h-6 text-emerald-400" />
             </div>
             <h4 className="text-xs font-bold text-slate-200 mb-1">
