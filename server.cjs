@@ -118,7 +118,7 @@ async function startServer() {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:",
-      "connect-src 'self' https://generativelanguage.googleapis.com https://api.openai.com https://api.anthropic.com https://api.deepseek.com https://api.groq.com ws: wss:",
+      "connect-src 'self' http://localhost:11434 http://127.0.0.1:11434 https://generativelanguage.googleapis.com https://api.openai.com https://api.anthropic.com https://api.deepseek.com https://api.groq.com ws: wss:",
       "media-src 'self' data: blob:",
       "object-src 'none'",
       "base-uri 'self'",
@@ -134,7 +134,8 @@ async function startServer() {
     res.setHeader("X-Security-Policy", "Local-First-Vault-Enforced");
     next();
   });
-  app.use(import_express.default.json({ limit: "500kb" }));
+  app.use(import_express.default.json({ limit: "50mb" }));
+  app.use(import_express.default.urlencoded({ limit: "50mb", extended: true }));
   app.post("/api/verify", async (req, res) => {
     const clientIp = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket.remoteAddress || "unknown";
     if (!checkRateLimit(clientIp)) {
@@ -212,8 +213,8 @@ async function startServer() {
     try {
       const { message, editorContent, model, parameters, apiKey: clientApiKey, googleSearchGrounding } = req.body;
       cleanMessage = typeof message === "string" ? message.trim() : "";
-      if (!cleanMessage || cleanMessage.length > 5e4) {
-        return res.status(400).json({ error: "A valid chat message between 1 and 50,000 characters is required." });
+      if (!cleanMessage || cleanMessage.length > 25e4) {
+        return res.status(400).json({ error: "A valid chat message between 1 and 250,000 characters is required." });
       }
       let effectiveApiKey = process.env.GEMINI_API_KEY || "";
       if (typeof clientApiKey === "string" && clientApiKey.trim()) {
@@ -223,7 +224,7 @@ async function startServer() {
         }
       }
       if (typeof editorContent === "string") {
-        safeEditorContent = editorContent.slice(0, 1e5);
+        safeEditorContent = editorContent.slice(0, 25e4);
       }
       if (typeof parameters?.systemInstruction === "string" && parameters.systemInstruction.trim()) {
         systemInstruction = parameters.systemInstruction.trim().slice(0, 1e4);
@@ -347,7 +348,7 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
     }
     try {
       const { document, apiKey: clientApiKey, model: requestedModel } = req.body;
-      const docText = typeof document === "string" ? document.slice(0, 1e5) : "";
+      const docText = typeof document === "string" ? document.slice(0, 25e4) : "";
       if (!docText.trim()) {
         return res.json({
           score: 100,
@@ -442,7 +443,7 @@ ${docText}
     }
     try {
       const { document, apiKey: clientApiKey, model: requestedModel } = req.body;
-      const docText = typeof document === "string" ? document.slice(0, 1e5) : "";
+      const docText = typeof document === "string" ? document.slice(0, 25e4) : "";
       if (!docText.trim()) {
         return res.json({ fallbackToLocal: true });
       }
@@ -524,6 +525,134 @@ ${docText}
     } catch (err) {
       console.warn("Critics review handled error:", err?.message || err);
       return res.json({ fallbackToLocal: true });
+    }
+  });
+  app.post("/api/pdf/parse-gemini", async (req, res) => {
+    const clientIp = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket.remoteAddress || "unknown";
+    if (!checkRateLimit(clientIp)) {
+      return res.status(429).json({ error: "\uC694\uCCAD\uC774 \uB108\uBB34 \uB9CE\uC2B5\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694." });
+    }
+    try {
+      const { textContent, imageBase64, fileName, pageNumber, apiKey: clientApiKey } = req.body;
+      let effectiveApiKey = process.env.GEMINI_API_KEY || "";
+      if (typeof clientApiKey === "string" && clientApiKey.trim()) {
+        const trimmedKey = clientApiKey.trim();
+        if (/^[A-Za-z0-9_\-]{20,128}$/.test(trimmedKey)) {
+          effectiveApiKey = trimmedKey;
+        }
+      }
+      if (!effectiveApiKey) {
+        return res.status(400).json({
+          error: "Gemini API \uD0A4\uAC00 \uC124\uC815\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4. \uD658\uACBD \uBCC0\uC218\uB098 \uC124\uC815 \uD654\uBA74\uC5D0\uC11C \uD0A4\uB97C \uD655\uC778\uD574 \uC8FC\uC138\uC694."
+        });
+      }
+      const ai = new import_genai.GoogleGenAI({
+        apiKey: effectiveApiKey,
+        httpOptions: { headers: { "User-Agent": "aistudio-build" } }
+      });
+      const systemPrompt = "\uB108\uB294 \uC804\uBB38 \uBB38\uC11C \uAD6C\uC870\uD654 \uBC0F PDF-\uD22C-\uB9C8\uD06C\uB2E4\uC6B4 \uBCC0\uD658 \uC5D4\uC9C0\uB2C8\uC5B4\uC774\uB2E4. \uC8FC\uC5B4\uC9C4 \uBB38\uC11C\uC758 \uC81C\uBAA9, \uBCF8\uBB38, \uD45C(Table), \uBAA9\uB85D, \uC218\uC2DD\uC744 \uC644\uBCBD\uD55C \uB9C8\uD06C\uB2E4\uC6B4 \uBB38\uBC95\uC73C\uB85C \uBCC0\uD658\uD558\uB77C. \uC624\uC9C1 \uB9C8\uD06C\uB2E4\uC6B4 \uD14D\uC2A4\uD2B8\uB9CC \uCD9C\uB825\uD558\uACE0 \uBD88\uD544\uC694\uD55C \uC11C\uB450\uB098 \uC0AC\uC871\uC740 \uC808\uB300 \uD3EC\uD568\uD558\uC9C0 \uB9C8\uB77C.";
+      let contents;
+      if (imageBase64 && typeof imageBase64 === "string") {
+        const cleanBase64 = imageBase64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
+        const imagePart = {
+          inlineData: {
+            mimeType: "image/jpeg",
+            data: cleanBase64
+          }
+        };
+        const textPrompt = `[\uBB38\uC11C\uBA85: ${fileName || "PDF \uBB38\uC11C"}${pageNumber ? ` - \uD398\uC774\uC9C0 ${pageNumber}` : ""}]
+\uC774 \uC774\uBBF8\uC9C0 \uD398\uC774\uC9C0\uC758 \uC2DC\uAC01\uC801 \uAD6C\uC870(\uC81C\uBAA9, \uBCF8\uBB38, \uD45C, \uBAA9\uB85D, \uC218\uC2DD \uB4F1)\uB97C \uD30C\uC545\uD558\uC5EC \uACE0\uD488\uC9C8 \uB9C8\uD06C\uB2E4\uC6B4\uC73C\uB85C \uC7AC\uAD6C\uC131\uD558\uB77C.`;
+        contents = { parts: [imagePart, { text: textPrompt }] };
+      } else if (textContent && typeof textContent === "string") {
+        const userPrompt = `[\uBB38\uC11C\uBA85: ${fileName || "PDF \uBB38\uC11C"}${pageNumber ? ` - \uD398\uC774\uC9C0 ${pageNumber}` : ""}]
+\uB2E4\uC74C \uCD94\uCD9C\uB41C \uD14D\uC2A4\uD2B8 \uC2A4\uD2B8\uB9BC\uC744 \uC81C\uBAA9(Heading), \uD45C(Table), \uBAA9\uB85D(List), \uB2E8\uB77D(Paragraph) \uAD6C\uC870\uB97C \uAC16\uCD98 \uC644\uBCBD\uD55C \uB9C8\uD06C\uB2E4\uC6B4 \uC591\uC2DD\uC73C\uB85C \uC7AC\uAD6C\uC131\uD574 \uC8FC\uC138\uC694:
+
+${textContent.slice(0, 8e4)}`;
+        contents = userPrompt;
+      } else {
+        return res.status(400).json({ error: "\uBCC0\uD658\uD560 \uD14D\uC2A4\uD2B8 \uC2A4\uD2B8\uB9BC\uC774\uB098 \uC774\uBBF8\uC9C0 \uB370\uC774\uD130\uAC00 \uC81C\uACF5\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4." });
+      }
+      const aiResponse = await ai.models.generateContent({
+        model: "gemini-3.8-flash",
+        contents,
+        config: {
+          systemInstruction: systemPrompt,
+          temperature: 0.1
+        }
+      });
+      let md = aiResponse.text?.trim() || "";
+      if (md.startsWith("```markdown")) {
+        md = md.replace(/^```markdown\s*/i, "").replace(/```\s*$/, "").trim();
+      } else if (md.startsWith("```")) {
+        md = md.replace(/^```[a-z]*\s*/i, "").replace(/```\s*$/, "").trim();
+      }
+      res.json({
+        markdown: md,
+        model: "gemini-3.8-flash",
+        pageNumber: pageNumber || 1
+      });
+    } catch (err) {
+      console.warn("Gemini PDF parse error:", err?.message || err);
+      const statusCode = err?.status || err?.statusCode || 500;
+      res.status(statusCode >= 400 && statusCode < 600 ? statusCode : 500).json({
+        error: `Gemini \uBCC0\uD658 \uC2E4\uD328: ${err?.message || "\uC54C \uC218 \uC5C6\uB294 \uC624\uB958"}`
+      });
+    }
+  });
+  app.post("/api/ollama/proxy-generate", async (req, res) => {
+    try {
+      const { endpoint = "http://localhost:11434", model, prompt, system, images } = req.body;
+      const cleanEndpoint = String(endpoint).trim().replace(/\/+$/, "");
+      const targetUrl = `${cleanEndpoint}/api/generate`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 9e4);
+      const forwardRes = await fetch(targetUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: String(model || "llama3.2-vision").replace(/^ollama\//, ""),
+          prompt: prompt || "",
+          system: system || "",
+          images: Array.isArray(images) ? images : void 0,
+          stream: false,
+          options: { temperature: 0.2 }
+        })
+      });
+      clearTimeout(timeout);
+      if (!forwardRes.ok) {
+        const errorText = await forwardRes.text().catch(() => "");
+        return res.status(forwardRes.status).json({
+          error: `Ollama \uC624\uB958 (${forwardRes.status}): ${errorText}`
+        });
+      }
+      const data = await forwardRes.json();
+      res.json(data);
+    } catch (err) {
+      res.status(502).json({
+        error: `Ollama \uC11C\uBC84 \uD504\uB85D\uC2DC \uC5F0\uACB0 \uC2E4\uD328: ${err?.message || "\uC5D4\uB4DC\uD3EC\uC778\uD2B8 \uC811\uC18D \uBD88\uAC00"}`
+      });
+    }
+  });
+  app.post("/api/ollama/proxy-tags", async (req, res) => {
+    try {
+      const { endpoint = "http://localhost:11434" } = req.body;
+      const cleanEndpoint = String(endpoint).trim().replace(/\/+$/, "");
+      const targetUrl = `${cleanEndpoint}/api/tags`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4e3);
+      const forwardRes = await fetch(targetUrl, {
+        method: "GET",
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+      if (!forwardRes.ok) {
+        return res.status(forwardRes.status).json({ models: [] });
+      }
+      const data = await forwardRes.json();
+      res.json(data);
+    } catch {
+      res.json({ models: [] });
     }
   });
   app.get("/robots.txt", (req, res) => {
