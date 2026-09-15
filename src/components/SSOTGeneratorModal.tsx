@@ -46,7 +46,7 @@ export const DOC_TEMPLATES: DocTemplatePreset[] = [
   {
     id: 'master_ssot',
     tag: '@마스터_SSOT',
-    name: '통합 마스터 SSOT (Master SSOT)',
+    name: '통합 마스터 SSOT',
     shortLabel: 'Master SSOT',
     desc: '프로젝트 전체를 아우르는 단일 진실 공급원 통합 표준',
     icon: Layers,
@@ -54,56 +54,56 @@ export const DOC_TEMPLATES: DocTemplatePreset[] = [
     bgColor: 'bg-amber-500/10 hover:bg-amber-500/20',
     borderColor: 'border-amber-500/30 hover:border-amber-500/60',
     defaultPrompt: '선택된 모든 폴더와 마크다운 파일의 핵심 내용을 통합하여 전체 프로젝트의 기준이 되는 마스터 SSOT 문서로 만들어 줘.',
-    structureSnippet: `# 🌟 [프로젝트명] Master SSOT (Single Source of Truth)
+    structureSnippet: `# 🌟 [프로젝트명] 통합 마스터 SSOT
 
 > **안내:** 본 문서는 프로젝트의 모든 AI 가공(슬라이드, 시트, 인보이스, 일정)의 기준이 되는 최상위 단일 진실 공급원입니다.
 
-## 1. 프로젝트 비전 및 목표 (Vision & Objectives)
+## 1. 프로젝트 비전 및 목표
 
-## 2. 시스템 및 비즈니스 구조 (Core Architecture & Structure)
+## 2. 시스템 및 비즈니스 구조
 
-## 3. 핵심 데이터 및 업무 프로세스 (Key Data & Operations)
+## 3. 핵심 데이터 및 업무 프로세스
 
-## 4. 마일스톤 및 릴리즈 현황 (Milestones & Deliverables)
+## 4. 마일스톤 및 릴리즈 현황
 `
   },
   {
     id: 'prd',
     tag: '@기획서_PRD',
-    name: '제품 기획서 (PRD)',
+    name: '제품 기획서',
     shortLabel: 'PRD',
     desc: '제품 비전, 타겟 사용자, 핵심 기능 명세 및 KPI',
     icon: Briefcase,
     color: 'text-indigo-400',
     bgColor: 'bg-indigo-500/10 hover:bg-indigo-500/20',
     borderColor: 'border-indigo-500/30 hover:border-indigo-500/60',
-    defaultPrompt: '선택된 문서들을 종합하여 명확한 비전과 기능 명세를 담은 표준 제품 기획서(PRD) 형태로 정리해 줘.',
-    structureSnippet: `# [프로젝트명] 제품 기획서 (PRD)
+    defaultPrompt: '선택된 문서들을 종합하여 명확한 비전과 기능 명세를 담은 표준 제품 기획서 형태로 정리해 줘.',
+    structureSnippet: `# [프로젝트명] 제품 기획서
 
-## 1. 개요 및 배경 (Overview & Background)
-- **문서 버전:** 1.0.0 (SSOT)
+## 1. 개요 및 배경
+- **문서 버전:** 1.0.0 (단일 진실 공급원)
 - **작성일:** {DATE}
 - **목표:** 
 
-## 2. 타겟 사용자 및 핵심 가치 (Target Audience & Value Proposition)
+## 2. 타겟 사용자 및 핵심 가치
 
-## 3. 핵심 기능 요구사항 명세 (Functional Specifications)
+## 3. 핵심 기능 요구사항 명세
 | ID | 기능명 | 우선순위 | 상세 설명 | 상태 |
 |---|---|---|---|---|
-| F-01 | 핵심 기능 | P0 (High) | 설명 작성 | 검토중 |
+| F-01 | 핵심 기능 | 최고 | 설명 작성 | 검토중 |
 
-## 4. 유저 시나리오 및 흐름 (User Flow & Scenarios)
+## 4. 유저 시나리오 및 흐름
 
-## 5. 성공 지표 및 KPI (Success Metrics & KPIs)
+## 5. 성공 지표 및 핵심 성과 지표
 - 활성 사용자 및 전환율 목표
 
-## 6. 마일스톤 및 릴리즈 계획 (Milestones & Release Plan)
+## 6. 마일스톤 및 출시 계획
 `
   },
   {
     id: 'architecture',
     tag: '@기술설계서_Architecture',
-    name: '기술 설계서 (Tech Spec)',
+    name: '기술 설계서',
     shortLabel: 'Technical Spec',
     desc: '시스템 컴포넌트 구조, 데이터 모델, API 명세 및 보안',
     icon: Cpu,
@@ -113,29 +113,29 @@ export const DOC_TEMPLATES: DocTemplatePreset[] = [
     defaultPrompt: '선택된 파일의 기술 명세와 구조를 분석하여 일관된 기술 아키텍처 설계서로 작성해 줘.',
     structureSnippet: `# [시스템명] 기술 아키텍처 설계서
 
-## 1. 시스템 아키텍처 개요 (System Architecture)
-- **설계 원칙:** High Availability, Loose Coupling, Single Source of Truth (SSOT)
+## 1. 시스템 아키텍처 개요
+- **설계 원칙:** 고가용성, 느슨한 결합, 단일 진실 공급원 준수
 
-## 2. 모듈 및 컴포넌트 구성 (Module Breakdown)
+## 2. 모듈 및 컴포넌트 구성
 \`\`\`
 [Client Layer] <---> [API Gateway] <---> [Microservices] <---> [Storage/DB]
 \`\`\`
 
-## 3. 데이터베이스 및 스키마 명세 (Data Models & Schemas)
+## 3. 데이터베이스 및 스키마 명세
 
-## 4. 핵심 API 엔드포인트 명세 (API Endpoints)
+## 4. 핵심 API 명세
 - \`POST /api/v1/resource\` : 설명
 
-## 5. 보안, 인증 및 암호화 (Security & Authentication)
+## 5. 보안, 인증 및 암호화
 - AES-256 / JWT / PBKDF2 암호화 적용
 
-## 6. 배포 및 인프라 파이프라인 (Deployment & Infra)
+## 6. 배포 및 인프라 파이프라인
 `
   },
   {
     id: 'minutes',
     tag: '@회의록_Minutes',
-    name: '회의록 (Meeting Notes)',
+    name: '회의록',
     shortLabel: 'Meeting Notes',
     desc: '회의 개요, 주요 논의 안건, 결정 사항 및 Action Items',
     icon: Clock,
@@ -143,21 +143,21 @@ export const DOC_TEMPLATES: DocTemplatePreset[] = [
     bgColor: 'bg-violet-500/10 hover:bg-violet-500/20',
     borderColor: 'border-violet-500/30 hover:border-violet-500/60',
     defaultPrompt: '회의 내용과 논의된 메모들을 정리하여 결정 사항과 액션 아이템이 분명한 회의록으로 만들어 줘.',
-    structureSnippet: `# [회의명] 회의록 (Meeting Minutes)
+    structureSnippet: `# [회의명] 회의록
 
 - **일시:** {DATE}
 - **참석자:** 
 - **회의 목적:** 
 
-## 1. 논의 안건 (Agenda Items)
+## 1. 논의 안건
 
-## 2. 주요 논의 내용 및 결과 (Discussion Details)
+## 2. 주요 논의 내용 및 결과
 
-## 3. 최종 결정 사항 (Key Decisions Made)
+## 3. 최종 결정 사항
 - [x] 결정 항목 1
 
-## 4. 담당자별 실행 과제 (Action Items)
-| 담당자 | 실행 항목 (Action Item) | 마감 기한 | 상태 |
+## 4. 담당자별 실행 과제
+| 담당자 | 실행 항목 | 마감 기한 | 상태 |
 |---|---|---|---|
 | 담당자A | 작업 내용 | 기한 | 진행중 |
 `
@@ -165,7 +165,7 @@ export const DOC_TEMPLATES: DocTemplatePreset[] = [
   {
     id: 'manual',
     tag: '@제품매뉴얼_Manual',
-    name: '사용자 매뉴얼 (User Manual)',
+    name: '사용자 매뉴얼',
     shortLabel: 'User Manual',
     desc: '제품 개요, 시작 가이드, 기능 상세 가이드 및 FAQ',
     icon: BookOpen,
@@ -173,17 +173,17 @@ export const DOC_TEMPLATES: DocTemplatePreset[] = [
     bgColor: 'bg-teal-500/10 hover:bg-teal-500/20',
     borderColor: 'border-teal-500/30 hover:border-teal-500/60',
     defaultPrompt: '선택된 파일의 기능과 사용법을 누구나 쉽게 따라 할 수 있는 제품 가이드/매뉴얼 형태로 작성해 줘.',
-    structureSnippet: `# [제품명] 사용자 및 운영 매뉴얼 (User Manual)
+    structureSnippet: `# [제품명] 사용자 및 운영 매뉴얼
 
-## 1. 제품 소개 및 개요 (Introduction)
+## 1. 제품 소개 및 개요
 
-## 2. 시작하기 (Quick Start Guide)
+## 2. 시작하기
 1. 설치 및 환경 구성
 2. 초기 설정
 
-## 3. 주요 기능 상세 사용법 (Core Feature Walkthrough)
+## 3. 주요 기능 상세 사용법
 
-## 4. 자주 묻는 질문 (FAQ & Troubleshooting)
+## 4. 자주 묻는 질문 및 해결 방법
 `
   }
 ];
@@ -235,7 +235,12 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          // Sync built-in template updates while preserving custom user templates
+          return parsed.map((item) => {
+            if (item.isCustom) return item;
+            const defaultMatch = DOC_TEMPLATES.find((d) => d.id === item.id);
+            return defaultMatch ? { ...item, ...defaultMatch } : item;
+          });
         }
       }
     } catch {
@@ -621,7 +626,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                   onClick={() => setShowFilePicker((prev) => !prev)}
                   className="text-xs text-[#818cf8] hover:underline font-normal flex items-center gap-0.5 cursor-pointer"
                 >
-                  <span>{showFilePicker ? '파일 숨기기' : `세부 파일 (${selectedFiles.length}/${currentFolderFiles.length})`}</span>
+                  <span>{showFilePicker ? '파일 숨기기' : `세부 파일 ${selectedFiles.length}개 / ${currentFolderFiles.length}개 선택`}</span>
                   <ChevronDown className={`w-3 h-3 transition-transform ${showFilePicker ? 'rotate-180' : ''}`} />
                 </button>
               )}
@@ -636,7 +641,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                 const count = filesByFolder[f] ? filesByFolder[f].length : 0;
                 return (
                   <option key={f} value={f} className="bg-[#121318] text-slate-200">
-                    📁 {f} ({count}개 소스)
+                    📁 {f} · {count}개 소스
                   </option>
                 );
               })}
@@ -782,7 +787,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[0.6875rem] text-slate-400 block">멘션 태그 (선택)</label>
+                    <label className="text-[0.6875rem] text-slate-400 block">멘션 태그</label>
                     <input
                       type="text"
                       value={templateTagInput}
@@ -861,7 +866,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
               {showMentionPopup && filteredMentions.length > 0 && (
                 <div className="absolute left-0 bottom-full mb-1 w-full bg-[#1e202b] border border-[#2e3142] rounded-lg shadow-2xl max-h-48 overflow-y-auto z-50 p-1 divide-y divide-[#2e3142]">
                   <div className="px-2.5 py-1.5 text-xs font-medium text-slate-400 flex items-center justify-between bg-[#121318] rounded-t-md">
-                    <span>멘션 선택 (방향키 탐색, 엔터 삽입)</span>
+                    <span>멘션 선택 · 방향키 탐색 및 엔터 삽입</span>
                     <span className="text-xs text-[#818cf8] font-mono">@{mentionQuery}</span>
                   </div>
                   <div className="py-1 space-y-0.5">
@@ -889,7 +894,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                               {item.tag}
                             </span>
                             <span className="text-xs text-slate-400 truncate">
-                              ({item.label})
+                              · {item.label}
                             </span>
                           </div>
                           <span className="text-[0.6875rem] text-slate-400 shrink-0 ml-2">

@@ -104,7 +104,7 @@ async function startServer() {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:",
-      "connect-src 'self' https://generativelanguage.googleapis.com https://api.openai.com https://api.anthropic.com https://api.deepseek.com https://api.groq.com ws: wss:",
+      "connect-src 'self' http://localhost:11434 http://127.0.0.1:11434 https://generativelanguage.googleapis.com https://api.openai.com https://api.anthropic.com https://api.deepseek.com https://api.groq.com ws: wss:",
       "media-src 'self' data: blob:",
       "object-src 'none'",
       "base-uri 'self'",
@@ -122,7 +122,8 @@ async function startServer() {
     next();
   });
 
-  app.use(express.json({ limit: '500kb' }));
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // API route for API Key and Connection Verification
   app.post("/api/verify", async (req, res) => {
@@ -221,8 +222,8 @@ async function startServer() {
 
       // 2. Validate Message
       cleanMessage = typeof message === 'string' ? message.trim() : '';
-      if (!cleanMessage || cleanMessage.length > 50000) {
-        return res.status(400).json({ error: 'A valid chat message between 1 and 50,000 characters is required.' });
+      if (!cleanMessage || cleanMessage.length > 250000) {
+        return res.status(400).json({ error: 'A valid chat message between 1 and 250,000 characters is required.' });
       }
 
       // 3. Resolve API Key Securely
@@ -237,7 +238,7 @@ async function startServer() {
 
       // 4. Validate and Sanitize Context
       if (typeof editorContent === 'string') {
-        safeEditorContent = editorContent.slice(0, 100000);
+        safeEditorContent = editorContent.slice(0, 250000);
       }
 
       if (typeof parameters?.systemInstruction === 'string' && parameters.systemInstruction.trim()) {
@@ -389,7 +390,7 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
 
     try {
       const { document, apiKey: clientApiKey, model: requestedModel } = req.body;
-      const docText = typeof document === 'string' ? document.slice(0, 100000) : '';
+      const docText = typeof document === 'string' ? document.slice(0, 250000) : '';
 
       if (!docText.trim()) {
         return res.json({
@@ -498,7 +499,7 @@ ${docText}
 
     try {
       const { document, apiKey: clientApiKey, model: requestedModel } = req.body;
-      const docText = typeof document === 'string' ? document.slice(0, 100000) : '';
+      const docText = typeof document === 'string' ? document.slice(0, 250000) : '';
 
       if (!docText.trim()) {
         return res.json({ fallbackToLocal: true });
@@ -590,6 +591,156 @@ ${docText}
     } catch (err: any) {
       console.warn('Critics review handled error:', err?.message || err);
       return res.json({ fallbackToLocal: true });
+    }
+  });
+
+  // API route for Server-Side Gemini PDF Parsing
+  app.post("/api/pdf/parse-gemini", async (req, res) => {
+    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+    if (!checkRateLimit(clientIp)) {
+      return res.status(429).json({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' });
+    }
+
+    try {
+      const { textContent, imageBase64, fileName, pageNumber, apiKey: clientApiKey } = req.body;
+
+      let effectiveApiKey = process.env.GEMINI_API_KEY || '';
+      if (typeof clientApiKey === 'string' && clientApiKey.trim()) {
+        const trimmedKey = clientApiKey.trim();
+        if (/^[A-Za-z0-9_\-]{20,128}$/.test(trimmedKey)) {
+          effectiveApiKey = trimmedKey;
+        }
+      }
+
+      if (!effectiveApiKey) {
+        return res.status(400).json({
+          error: 'Gemini API 키가 설정되지 않았습니다. 환경 변수나 설정 화면에서 키를 확인해 주세요.'
+        });
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey: effectiveApiKey,
+        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+      });
+
+      const systemPrompt = '너는 전문 문서 구조화 및 PDF-투-마크다운 변환 엔지니어이다. 주어진 문서의 제목, 본문, 표(Table), 목록, 수식을 완벽한 마크다운 문법으로 변환하라. 오직 마크다운 텍스트만 출력하고 불필요한 서두나 사족은 절대 포함하지 마라.';
+
+      let contents: any;
+
+      if (imageBase64 && typeof imageBase64 === 'string') {
+        const cleanBase64 = imageBase64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
+        const imagePart = {
+          inlineData: {
+            mimeType: 'image/jpeg',
+            data: cleanBase64
+          }
+        };
+        const textPrompt = `[문서명: ${fileName || 'PDF 문서'}${pageNumber ? ` - 페이지 ${pageNumber}` : ''}]\n이 이미지 페이지의 시각적 구조(제목, 본문, 표, 목록, 수식 등)를 파악하여 고품질 마크다운으로 재구성하라.`;
+        contents = { parts: [imagePart, { text: textPrompt }] };
+      } else if (textContent && typeof textContent === 'string') {
+        const userPrompt = `[문서명: ${fileName || 'PDF 문서'}${pageNumber ? ` - 페이지 ${pageNumber}` : ''}]\n다음 추출된 텍스트 스트림을 제목(Heading), 표(Table), 목록(List), 단락(Paragraph) 구조를 갖춘 완벽한 마크다운 양식으로 재구성해 주세요:\n\n${textContent.slice(0, 80000)}`;
+        contents = userPrompt;
+      } else {
+        return res.status(400).json({ error: '변환할 텍스트 스트림이나 이미지 데이터가 제공되지 않았습니다.' });
+      }
+
+      const aiResponse = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents,
+        config: {
+          systemInstruction: systemPrompt,
+          temperature: 0.1,
+        }
+      });
+
+      let md = aiResponse.text?.trim() || '';
+      if (md.startsWith('```markdown')) {
+        md = md.replace(/^```markdown\s*/i, '').replace(/```\s*$/, '').trim();
+      } else if (md.startsWith('```')) {
+        md = md.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/, '').trim();
+      }
+
+      res.json({
+        markdown: md,
+        model: 'gemini-3.8-flash',
+        pageNumber: pageNumber || 1
+      });
+    } catch (err: any) {
+      console.warn('Gemini PDF parse error:', err?.message || err);
+      const statusCode = err?.status || err?.statusCode || 500;
+      res.status(statusCode >= 400 && statusCode < 600 ? statusCode : 500).json({
+        error: `Gemini 변환 실패: ${err?.message || '알 수 없는 오류'}`
+      });
+    }
+  });
+
+  // API route for Ollama Proxy Generate (Bypasses Browser Mixed Content & CORS)
+  app.post("/api/ollama/proxy-generate", async (req, res) => {
+    try {
+      const { endpoint = 'http://localhost:11434', model, prompt, system, images } = req.body;
+      const cleanEndpoint = String(endpoint).trim().replace(/\/+$/, '');
+      const targetUrl = `${cleanEndpoint}/api/generate`;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 90000);
+
+      const forwardRes = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: String(model || 'llama3.2-vision').replace(/^ollama\//, ''),
+          prompt: prompt || '',
+          system: system || '',
+          images: Array.isArray(images) ? images : undefined,
+          stream: false,
+          options: { temperature: 0.2 }
+        })
+      });
+
+      clearTimeout(timeout);
+
+      if (!forwardRes.ok) {
+        const errorText = await forwardRes.text().catch(() => '');
+        return res.status(forwardRes.status).json({
+          error: `Ollama 오류 (${forwardRes.status}): ${errorText}`
+        });
+      }
+
+      const data = await forwardRes.json();
+      res.json(data);
+    } catch (err: any) {
+      res.status(502).json({
+        error: `Ollama 서버 프록시 연결 실패: ${err?.message || '엔드포인트 접속 불가'}`
+      });
+    }
+  });
+
+  // API route for Ollama Proxy Tags (Fetch Installed Models)
+  app.post("/api/ollama/proxy-tags", async (req, res) => {
+    try {
+      const { endpoint = 'http://localhost:11434' } = req.body;
+      const cleanEndpoint = String(endpoint).trim().replace(/\/+$/, '');
+      const targetUrl = `${cleanEndpoint}/api/tags`;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4000);
+
+      const forwardRes = await fetch(targetUrl, {
+        method: 'GET',
+        signal: controller.signal
+      });
+
+      clearTimeout(timeout);
+
+      if (!forwardRes.ok) {
+        return res.status(forwardRes.status).json({ models: [] });
+      }
+
+      const data = await forwardRes.json();
+      res.json(data);
+    } catch {
+      res.json({ models: [] });
     }
   });
 

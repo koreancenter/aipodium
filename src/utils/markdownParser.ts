@@ -651,7 +651,7 @@ export function renderMarkdownToHtml(md: string): string {
       continue;
     }
 
-    // Raw Block-level HTML elements: <details>, <summary>, <div>, <p>, <table>, <iframe ...>, <svg>, <canvas>, <figure>, <style>, etc.
+    // Raw Block-level HTML elements: <details>, <summary>, <div>, <p>, table, <iframe ...>, <svg>, <canvas>, <figure>, <style>, etc.
     const isBlockHtml = /^\s*<(\/)?(details|summary|div|p|table|thead|tbody|tr|th|td|iframe|svg|canvas|figure|figcaption|video|audio|form|center|blockquote|section|header|footer|nav|aside|article|style|script)\b/i.test(trimmed);
     if (isBlockHtml) {
       closeList();

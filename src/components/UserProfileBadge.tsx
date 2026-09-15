@@ -99,17 +99,17 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
     return (
       <div className="p-1 space-y-1 text-xs text-[#e2e8f0]">
         {/* User Info Header Card */}
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-[#16171e]">
+        <div className="flex items-center gap-2 px-2 py-1.5 rounded-xs bg-[#16171e]">
           <div className="relative shrink-0">
             {user.avatar ? (
               <img
                 src={user.avatar}
                 alt={user.name}
                 referrerPolicy="no-referrer"
-                className="w-6 h-6 rounded-full object-cover border border-[#2e3142]"
+                className="w-6 h-6 rounded-xs object-cover border border-[#2e3142]"
               />
             ) : (
-              <div className="w-6 h-6 rounded-full bg-[#6366f1] text-white font-bold flex items-center justify-center text-[0.625rem]">
+              <div className="w-6 h-6 rounded-xs bg-[#6366f1] text-white font-bold flex items-center justify-center text-[0.625rem]">
                 {initials}
               </div>
             )}
@@ -130,7 +130,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                 onActionComplete?.();
                 onOpenUpgrade();
               }}
-              className="w-full text-left px-2 py-1.5 rounded-md hover:bg-[#282a38] text-[#0ea5e9] hover:text-[#38bdf8] font-medium flex items-center gap-2 transition cursor-pointer text-xs"
+              className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#282a38] text-[#0ea5e9] hover:text-[#38bdf8] font-medium flex items-center gap-2 transition cursor-pointer text-xs"
             >
               <Zap className="w-3.5 h-3.5 text-[#0ea5e9] shrink-0" />
               <span>계정 연동 및 클라우드 백업</span>
@@ -144,7 +144,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                 onActionComplete?.();
                 onOpenGoogleAccount();
               }}
-              className="w-full text-left px-2 py-1.5 rounded-md hover:bg-[#282a38] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
+              className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#282a38] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
             >
               <HardDrive className="w-3.5 h-3.5 text-[#0ea5e9] shrink-0" />
               <span>Google Drive 계정 관리</span>
@@ -158,7 +158,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                 onActionComplete?.();
                 onOpenSettings();
               }}
-              className="w-full text-left px-2 py-1.5 rounded-md hover:bg-[#282a38] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
+              className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#282a38] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
             >
               <Settings className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <span>환경설정</span>
@@ -173,7 +173,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
               onActionComplete?.();
               onSignOut();
             }}
-            className="w-full text-left px-2 py-1.5 rounded-md hover:bg-rose-950/60 text-rose-400 hover:text-rose-300 flex items-center gap-2 transition cursor-pointer text-xs"
+            className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-rose-950/60 text-rose-400 hover:text-rose-300 flex items-center gap-2 transition cursor-pointer text-xs"
           >
             <LogOut className="w-3.5 h-3.5 shrink-0" />
             <span>{user.provider === 'guest' ? '게스트 세션 종료' : '로그아웃'}</span>
@@ -189,8 +189,8 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-6 h-6 flex items-center justify-center rounded-sm bg-[#1e202b] hover:bg-[#282a38] border border-[#2e3142] hover:border-[#6366f1]/50 transition cursor-pointer group select-none shrink-0"
-        title={`${user.name || '게스트'} (${user.email || '게스트 세션'})`}
+        className="w-6 h-6 flex items-center justify-center rounded-xs bg-[#1e202b] hover:bg-[#282a38] border border-[#2e3142] hover:border-[#6366f1]/50 transition cursor-pointer group select-none shrink-0"
+        title={`${user.name || '게스트'} - ${user.email || '게스트 세션'}`}
       >
         {/* Avatar Square */}
         <div className="relative shrink-0 flex items-center justify-center">
@@ -212,7 +212,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
 
       {/* Profile Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-52 bg-[#1e202b]/98 backdrop-blur-md border border-[#2e3142] rounded-md p-1 text-xs text-[#e2e8f0] z-50 animate-in fade-in duration-75 shadow-xl">
+        <div className="absolute right-0 top-full mt-1 w-52 bg-[#1e202b] border border-[#2e3142] rounded-xs p-1 text-xs text-[#e2e8f0] z-50 animate-in fade-in duration-75 shadow-xl">
           
           {/* User Info Header */}
           <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[#2e3142]">
@@ -243,7 +243,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                   setIsOpen(false);
                   onOpenUpgrade();
                 }}
-                className="w-full text-left px-2 py-1.5 rounded-md hover:bg-[#282a38] text-[#0ea5e9] hover:text-[#38bdf8] font-medium flex items-center gap-2 transition cursor-pointer text-xs"
+                className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#282a38] text-[#0ea5e9] hover:text-[#38bdf8] font-medium flex items-center gap-2 transition cursor-pointer text-xs"
               >
                 <Zap className="w-3.5 h-3.5 text-[#0ea5e9] shrink-0" />
                 <span>계정 연동 및 클라우드 백업</span>
@@ -257,7 +257,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                   onOpenGoogleAccount();
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-2 py-1.5 rounded-md hover:bg-[#282a38] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
+                className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#282a38] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
               >
                 <HardDrive className="w-3.5 h-3.5 text-[#0ea5e9] shrink-0" />
                 <span>Google Drive 계정 관리</span>
@@ -271,7 +271,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                   onOpenSettings();
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-2 py-1.5 rounded-md hover:bg-[#282a38] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
+                className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#282a38] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
               >
                 <Settings className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <span>환경설정</span>
@@ -285,7 +285,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                   setIsOpen(false);
                   onLockWorkspace();
                 }}
-                className="w-full text-left px-2 py-1.5 rounded-md hover:bg-indigo-950/50 text-indigo-300 hover:text-indigo-200 flex items-center justify-between transition cursor-pointer text-xs"
+                className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-indigo-950/50 text-indigo-300 hover:text-indigo-200 flex items-center justify-between transition cursor-pointer text-xs"
               >
                 <div className="flex items-center gap-2">
                   <Lock className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
@@ -304,7 +304,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                 setIsOpen(false);
                 onSignOut();
               }}
-              className="w-full text-left px-2 py-1.5 rounded-md hover:bg-rose-950/60 text-rose-400 hover:text-rose-300 flex items-center gap-2 transition cursor-pointer text-xs"
+              className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-rose-950/60 text-rose-400 hover:text-rose-300 flex items-center gap-2 transition cursor-pointer text-xs"
             >
               <LogOut className="w-3.5 h-3.5 shrink-0" />
               <span>{user.provider === 'guest' ? '게스트 세션 종료' : '로그아웃'}</span>

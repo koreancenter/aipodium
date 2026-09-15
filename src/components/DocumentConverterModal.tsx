@@ -71,6 +71,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
   const [installedOllamaModels, setInstalledOllamaModels] = useState<string[]>([]);
   const [isReconverting, setIsReconverting] = useState(false);
   const [reconvertStatus, setReconvertStatus] = useState<string>('');
+  const [reconvertProgress, setReconvertProgress] = useState<number>(0);
   const [currentWarnings, setCurrentWarnings] = useState<string[]>([]);
 
   useEffect(() => {
@@ -114,10 +115,13 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
         : modelToUse || selectedOllamaModel;
 
     setIsReconverting(true);
+    setReconvertProgress(10);
     setReconvertStatus(
-      engine === 'ollama'
-        ? 'Local AI가 PDF 양식을 분석하여 마크다운으로 변환 중...'
-        : '기본 텍스트 추출 엔진으로 변환 중...'
+      engine === 'gemini'
+        ? '클라우드 AI로 문서 구조 및 서식 정밀 분석 중...'
+        : engine === 'ollama'
+        ? '로컬 AI로 PDF 양식을 분석하여 마크다운으로 변환 중...'
+        : '고속 텍스트 추출 엔진으로 변환 중...'
     );
 
     try {
@@ -126,6 +130,10 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
         ollamaEndpoint,
         ollamaModel: targetModel,
         onStatusUpdate: (msg) => setReconvertStatus(msg),
+        onProgress: (pct, msg) => {
+          setReconvertProgress(pct);
+          if (msg) setReconvertStatus(msg);
+        },
         onFallback: (reason) => {
           onToast?.(reason, 'warn');
         },
@@ -137,16 +145,19 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
         setSelectedOllamaModel(res.ollamaModel);
       }
       setCurrentWarnings(res.warnings || []);
-      if (res.parserEngine === 'ollama') {
-        onToast?.(`🦙 Local AI (${res.ollamaModel || targetModel}) 파싱 완료!`, 'success');
+      if (res.parserEngine === 'gemini') {
+        onToast?.('클라우드 AI 정밀 마크다운 변환 완료!', 'success');
+      } else if (res.parserEngine === 'ollama') {
+        onToast?.(`로컬 AI (${res.ollamaModel || targetModel}) 파싱 완료!`, 'success');
       } else {
-        onToast?.('⚡ Fast Text Parser로 변환되었습니다.', 'info');
+        onToast?.('고속 텍스트 엔진으로 변환되었습니다.', 'info');
       }
     } catch (err: any) {
       onToast?.(`PDF 변환 실패: ${err.message}`, 'error');
     } finally {
       setIsReconverting(false);
       setReconvertStatus('');
+      setReconvertProgress(0);
     }
   };
 
@@ -161,25 +172,25 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
       case 'docx':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.6875rem] font-semibold bg-blue-950/80 text-blue-300 border border-blue-800/80">
-            <FileText className="w-3 h-3" /> Word (DOCX)
+            <FileText className="w-3 h-3" /> 워드 문서
           </span>
         );
       case 'xlsx':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.6875rem] font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-800/80">
-            <FileSpreadsheet className="w-3 h-3" /> Excel (XLSX)
+            <FileSpreadsheet className="w-3 h-3" /> 엑셀 스프레드시트
           </span>
         );
       case 'pptx':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.6875rem] font-semibold bg-amber-950/80 text-amber-300 border border-amber-800/80">
-            <Presentation className="w-3 h-3" /> PowerPoint (PPTX)
+            <Presentation className="w-3 h-3" /> 파워포인트 슬라이드
           </span>
         );
       default:
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.6875rem] font-semibold bg-indigo-950/80 text-indigo-300 border border-indigo-800/80">
-            <FileCheck className="w-3 h-3" /> 텍스트/문서
+            <FileCheck className="w-3 h-3" /> 텍스트 문서
           </span>
         );
     }
@@ -316,7 +327,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
               >
                 {uniqueFolders.map((f) => (
                   <option key={f} value={f}>
-                    📁 {f === 'root' ? '루트 폴더 (Root)' : f}
+                    📁 {f === 'root' ? '최상위 기본 폴더' : f}
                   </option>
                 ))}
               </select>
@@ -350,7 +361,26 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                   }`}
                 >
                   <Zap className="w-3 h-3 text-amber-400" />
-                  <span>Fast Text Parser</span>
+                  <span>고속 텍스트 엔진</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedEngine('gemini');
+                    if (selectedEngine !== 'gemini') {
+                      handleReconvertPdf('gemini');
+                    }
+                  }}
+                  disabled={isReconverting}
+                  className={`px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
+                    selectedEngine === 'gemini'
+                      ? 'bg-indigo-950/80 text-indigo-200 border border-indigo-600/40 shadow-xs font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Sparkles className="w-3 h-3 text-indigo-400" />
+                  <span>클라우드 AI 엔진</span>
                 </button>
 
                 <button
@@ -369,7 +399,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                   }`}
                 >
                   <Server className="w-3 h-3 text-sky-400" />
-                  <span>Local AI (Ollama)</span>
+                  <span>로컬 AI 엔진</span>
                 </button>
               </div>
             </div>
@@ -390,12 +420,12 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                     className="bg-[#1a1b24] border border-[#2e3142] focus:border-sky-500 rounded px-2.5 py-1 text-xs text-slate-200 outline-none pr-7 cursor-pointer"
                   >
                     <optgroup label="추천 파싱 모델">
-                      <option value="llama3.2-vision">ollama/llama3.2-vision</option>
-                      <option value="deepseek-ocr">ollama/deepseek-ocr</option>
-                      <option value="qwen3.5">ollama/qwen3.5</option>
-                      <option value="qwen2.5-coder">ollama/qwen2.5-coder</option>
-                      <option value="deepseek-r1:8b">ollama/deepseek-r1:8b</option>
-                      <option value="llama3.2:latest">ollama/llama3.2:latest</option>
+                      <option value="llama3.2-vision">llama3.2-vision</option>
+                      <option value="deepseek-ocr">deepseek-ocr</option>
+                      <option value="qwen3.5">qwen3.5</option>
+                      <option value="qwen2.5-coder">qwen2.5-coder</option>
+                      <option value="deepseek-r1:8b">deepseek-r1:8b</option>
+                      <option value="llama3.2:latest">llama3.2:latest</option>
                     </optgroup>
                     {installedOllamaModels.length > 0 && (
                       <optgroup label="내 PC 설치 모델">
@@ -451,14 +481,25 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
           {/* Loading Overlay when Re-converting */}
           {isReconverting && (
             <div className="absolute inset-0 z-30 bg-[#121318]/90 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-150">
-              <Loader2 className="w-8 h-8 text-sky-400 animate-spin mb-3" />
-              <p className="text-sm font-semibold text-slate-100 mb-1">
-                {reconvertStatus || 'Local AI가 PDF 양식을 분석하여 마크다운으로 변환 중...'}
+              <Loader2 className="w-8 h-8 text-indigo-400 animate-spin mb-3" />
+              <p className="text-sm font-semibold text-slate-100 mb-2">
+                {reconvertStatus || '문서를 분석하여 마크다운으로 변환하는 중입니다...'}
               </p>
+              
+              {/* Progress Bar */}
+              <div className="w-64 max-w-full bg-[#1e202b] border border-[#2e3142] rounded-full h-2 overflow-hidden mb-2">
+                <div
+                  className="bg-indigo-500 h-full transition-all duration-300 rounded-full"
+                  style={{ width: `${Math.max(reconvertProgress, 8)}%` }}
+                />
+              </div>
+
               <p className="text-xs text-slate-400 font-mono">
-                {selectedEngine === 'ollama'
-                  ? `Ollama (${ollamaEndpoint}) / 모델: ${selectedOllamaModel}`
-                  : 'Fast Text Parser 처리 중'}
+                {selectedEngine === 'gemini'
+                  ? '클라우드 AI 엔진 작동 중'
+                  : selectedEngine === 'ollama'
+                  ? `로컬 AI 모델: ${selectedOllamaModel}`
+                  : '고속 텍스트 엔진 처리 중'}
               </p>
             </div>
           )}

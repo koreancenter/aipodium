@@ -198,7 +198,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
           e.preventDefault();
         }
       }}
-      className="absolute z-40 flex flex-col bg-[#1e202b]/98 backdrop-blur-md border border-[#2e3142] rounded-lg shadow-2xl p-1 text-xs text-slate-200 select-none transition-[top,left] duration-150 ease-out animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100%-24px)]"
+      className="absolute z-40 flex flex-col bg-[#1e202b] border border-[#2e3142] rounded-xs p-1 text-xs text-slate-200 select-none transition-[top,left] duration-150 ease-out animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100%-24px)]"
     >
       {/* 1. Primary Compact Toolbar Row */}
       <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
@@ -207,7 +207,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
           <button
             type="button"
             onClick={() => onSetAlign('left')}
-            className={`w-6 h-6 flex items-center justify-center rounded transition cursor-pointer ${
+            className={`w-6 h-6 flex items-center justify-center rounded-xs transition cursor-pointer ${
               currentColAlign === 'left'
                 ? 'bg-[#6366f1] text-white font-bold'
                 : 'text-slate-400 hover:text-white hover:bg-[#282a38]'
@@ -219,7 +219,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
           <button
             type="button"
             onClick={() => onSetAlign('center')}
-            className={`w-6 h-6 flex items-center justify-center rounded transition cursor-pointer ${
+            className={`w-6 h-6 flex items-center justify-center rounded-xs transition cursor-pointer ${
               currentColAlign === 'center'
                 ? 'bg-[#6366f1] text-white font-bold'
                 : 'text-slate-400 hover:text-white hover:bg-[#282a38]'
@@ -231,7 +231,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
           <button
             type="button"
             onClick={() => onSetAlign('right')}
-            className={`w-6 h-6 flex items-center justify-center rounded transition cursor-pointer ${
+            className={`w-6 h-6 flex items-center justify-center rounded-xs transition cursor-pointer ${
               currentColAlign === 'right'
                 ? 'bg-[#6366f1] text-white font-bold'
                 : 'text-slate-400 hover:text-white hover:bg-[#282a38]'
@@ -251,7 +251,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
             type="button"
             onClick={onToggleBold}
             disabled={isSeparatorRow}
-            className={`w-6 h-6 flex items-center justify-center rounded transition cursor-pointer ${
+            className={`w-6 h-6 flex items-center justify-center rounded-xs transition cursor-pointer ${
               isSeparatorRow
                 ? 'opacity-30 cursor-not-allowed text-slate-500'
                 : isCellBold
@@ -266,7 +266,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
             type="button"
             onClick={onToggleItalic}
             disabled={isSeparatorRow}
-            className={`w-6 h-6 flex items-center justify-center rounded transition cursor-pointer ${
+            className={`w-6 h-6 flex items-center justify-center rounded-xs transition cursor-pointer ${
               isSeparatorRow
                 ? 'opacity-30 cursor-not-allowed text-slate-500'
                 : isCellItalic
@@ -287,7 +287,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
           <button
             type="button"
             onClick={() => onInsertRow('below')}
-            className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-slate-300 hover:text-white rounded transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-slate-300 hover:text-white rounded-xs transition cursor-pointer"
             title="아래에 행 삽입"
           >
             <div className="relative flex items-center justify-center">
@@ -299,7 +299,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
             type="button"
             disabled={isHeaderRow || isSeparatorRow}
             onClick={onDeleteRow}
-            className={`w-6 h-6 flex items-center justify-center rounded transition cursor-pointer ${
+            className={`w-6 h-6 flex items-center justify-center rounded-xs transition cursor-pointer ${
               isHeaderRow || isSeparatorRow
                 ? 'opacity-30 cursor-not-allowed text-slate-500'
                 : 'hover:bg-rose-500/80 text-rose-400 hover:text-white'
@@ -318,7 +318,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
           <button
             type="button"
             onClick={() => onInsertCol('right')}
-            className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-slate-300 hover:text-white rounded transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-slate-300 hover:text-white rounded-xs transition cursor-pointer"
             title="오른쪽에 열 삽입"
           >
             <div className="relative flex items-center justify-center">
@@ -330,7 +330,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
             type="button"
             disabled={tableInfo.totalCols <= 1}
             onClick={onDeleteCol}
-            className={`w-6 h-6 flex items-center justify-center rounded transition cursor-pointer ${
+            className={`w-6 h-6 flex items-center justify-center rounded-xs transition cursor-pointer ${
               tableInfo.totalCols <= 1
                 ? 'opacity-30 cursor-not-allowed text-slate-500'
                 : 'hover:bg-rose-500/80 text-rose-400 hover:text-white'
@@ -349,7 +349,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
           <button
             type="button"
             onClick={onClearSelectedCells}
-            className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-amber-400 hover:text-amber-300 rounded transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-amber-400 hover:text-amber-300 rounded-xs transition cursor-pointer"
             title="선택한 셀 내용 지우기"
           >
             <Eraser className="w-3.5 h-3.5" />
@@ -367,7 +367,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
               setIsAiOpen(!isAiOpen);
               setAiError(null);
             }}
-            className={`w-6 h-6 flex items-center justify-center rounded transition cursor-pointer border ${
+            className={`w-6 h-6 flex items-center justify-center rounded-xs transition cursor-pointer border ${
               isAiOpen
                 ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
                 : 'bg-indigo-600/15 hover:bg-indigo-600/30 text-amber-400 hover:text-amber-300 border-indigo-500/30'
@@ -383,7 +383,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
           <button
             type="button"
             onClick={onFormatTable}
-            className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-slate-400 hover:text-white rounded transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-slate-400 hover:text-white rounded-xs transition cursor-pointer"
             title="표 서식 자동 정렬"
           >
             <Wand2 className="w-3.5 h-3.5 hover:text-amber-300" />
@@ -391,7 +391,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
           <button
             type="button"
             onClick={onOpenVisualModal}
-            className="w-6 h-6 flex items-center justify-center bg-[#6366f1]/15 hover:bg-[#6366f1] hover:text-white text-indigo-300 rounded transition cursor-pointer border border-[#6366f1]/30"
+            className="w-6 h-6 flex items-center justify-center bg-[#6366f1]/15 hover:bg-[#6366f1] hover:text-white text-indigo-300 rounded-xs transition cursor-pointer border border-[#6366f1]/30"
             title="스프레드시트 편집기 열기"
           >
             <Edit3 className="w-3.5 h-3.5" />
@@ -410,7 +410,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
             <button
               type="button"
               onClick={() => setIsAiOpen(false)}
-              className="text-slate-400 hover:text-white p-0.5 rounded hover:bg-[#282a38]"
+              className="text-slate-400 hover:text-white p-0.5 rounded-xs hover:bg-[#282a38]"
               title="닫기"
             >
               <X className="w-3 h-3" />
@@ -429,7 +429,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
                 key={chip.label}
                 type="button"
                 onClick={() => handlePresetClick(chip.prompt)}
-                className="px-1.5 py-0.5 rounded bg-[#121318] hover:bg-[#282a38] text-[10px] text-slate-300 border border-[#2e3142] transition cursor-pointer whitespace-nowrap"
+                className="px-1.5 py-0.5 rounded-xs bg-[#121318] hover:bg-[#282a38] text-[10px] text-slate-300 border border-[#2e3142] transition cursor-pointer whitespace-nowrap"
               >
                 {chip.label}
               </button>
@@ -445,12 +445,12 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
               onChange={(e) => setAiPrompt(e.target.value)}
               placeholder="표 수정 또는 요약 지시 입력..."
               disabled={isAiLoading}
-              className="flex-1 bg-[#121318] border border-[#2e3142] focus:border-[#6366f1] rounded px-2 py-1 text-xs text-slate-200 outline-none placeholder:text-slate-500 disabled:opacity-50"
+              className="flex-1 bg-[#121318] border border-[#2e3142] focus:border-[#6366f1] rounded-xs px-2 py-1 text-xs text-slate-200 outline-none placeholder:text-slate-500 disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={isAiLoading || !aiPrompt.trim()}
-              className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded text-xs font-medium flex items-center gap-1 transition shrink-0 cursor-pointer"
+              className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xs text-xs font-medium flex items-center gap-1 transition shrink-0 cursor-pointer"
             >
               {isAiLoading ? (
                 <Loader2 className="w-3 h-3 animate-spin text-white" />

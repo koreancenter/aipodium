@@ -4,7 +4,7 @@ export interface PageOcrResult {
   markdown: string;
   rawText: string;
   confidence: number;
-  engineUsed: 'tesseract-ocr' | 'ollama-vision' | 'layout-vector';
+  engineUsed: 'gemini-cloud' | 'tesseract-ocr' | 'ollama-vision' | 'layout-vector';
   pageNumber: number;
 }
 
@@ -22,9 +22,10 @@ export interface ExtractPageOptions {
     width: number;
     height: number;
   }>;
-  engine?: 'auto' | 'tesseract' | 'ollama' | 'vector';
+  engine?: 'auto' | 'gemini' | 'tesseract' | 'ollama' | 'vector';
   ollamaEndpoint?: string;
   ollamaModel?: string;
+  geminiApiKey?: string;
   lang?: string; // 'kor+eng', 'eng', etc.
   onProgress?: (info: OcrProgressInfo) => void;
 }
@@ -269,53 +270,120 @@ export async function extractCurrentPageToMarkdown(
   // 1. Check if Vector Text exists from PDF.js
   const hasVectorText = pageTextItems && pageTextItems.filter((i) => i.str && i.str.trim()).length >= 5;
 
-  // 2. If Ollama Local AI is requested and endpoint is available, try Ollama Vision or prompt
-  if (engine === 'ollama' && ollamaEndpoint && canvas) {
+  // 2. Google Gemini Cloud Multimodal Vision Parser
+  if (engine === 'gemini') {
+    try {
+      onProgress?.({ status: `⚡ Google Gemini Flash AI로 페이지 ${pageNumber} 분석 중...`, progress: 30 });
+      let imageBase64: string | undefined;
+      if (canvas && canvas.width > 20) {
+        imageBase64 = canvas.toDataURL('image/jpeg', 0.85);
+      }
+
+      const vectorTextString = hasVectorText && pageTextItems
+        ? pageTextItems.map((i) => i.str).join(' ')
+        : undefined;
+
+      const resp = await fetch('/api/pdf/parse-gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64,
+          textContent: vectorTextString,
+          pageNumber,
+          apiKey: options.geminiApiKey,
+        }),
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        let md = (data.markdown || '').trim();
+        if (md.length > 10) {
+          onProgress?.({ status: 'Gemini Cloud AI 파싱 완료!', progress: 100 });
+          return {
+            markdown: `## [페이지 ${pageNumber}] (Google Gemini Flash)\n\n${md}`,
+            rawText: md,
+            confidence: 99,
+            engineUsed: 'gemini-cloud',
+            pageNumber,
+          };
+        }
+      }
+    } catch (geminiErr) {
+      console.warn('Gemini parse failed, falling back to OCR / Vector:', geminiErr);
+    }
+  }
+
+  // 3. Ollama Local AI Parser with Smart CORS / Mixed Content Proxy Failover
+  if (engine === 'ollama' && canvas) {
     try {
       onProgress?.({ status: `🤖 Local AI (${ollamaModel || 'vision'})로 페이지 이미지 전송 중...`, progress: 20 });
       const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
       const base64Data = dataUrl.replace(/^data:image\/jpeg;base64,/, '');
 
-      const endpoint = ollamaEndpoint.trim().replace(/\/+$/, '');
+      const endpoint = (ollamaEndpoint || 'http://localhost:11434').trim().replace(/\/+$/, '');
       const model = (ollamaModel || 'llama3.2-vision').trim().replace(/^ollama\//, '');
+      const prompt = '이 PDF 문서 페이지의 내용을 완벽한 마크다운(Markdown)으로 재구성해 주세요. 제목, 본문, 목록, 표가 있다면 정확한 마크다운 문법으로 변환해 주세요. 오직 마크다운 텍스트만 출력하세요.';
 
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 60000);
+      let md = '';
 
-      const resp = await fetch(`${endpoint}/api/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        body: JSON.stringify({
-          model: model,
-          prompt: '이 PDF 문서 페이지의 내용을 완벽한 마크다운(Markdown)으로 재구성해 주세요. 제목, 본문, 목록, 표가 있다면 정확한 마크다운 문법으로 변환해 주세요. 오직 마크다운 텍스트만 출력하세요.',
-          images: [base64Data],
-          stream: false,
-        }),
-      });
+      // Direct browser fetch attempt
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 45000);
 
-      clearTimeout(timer);
+        const resp = await fetch(`${endpoint}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: model,
+            prompt,
+            images: [base64Data],
+            stream: false,
+          }),
+        });
 
-      if (resp.ok) {
-        const data = await resp.json();
-        let md = data?.response || '';
-        if (md.startsWith('```markdown')) {
-          md = md.replace(/^```markdown\s*/i, '').replace(/```\s*$/, '');
-        } else if (md.startsWith('```')) {
-          md = md.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/, '');
+        clearTimeout(timer);
+
+        if (resp.ok) {
+          const data = await resp.json();
+          md = data?.response || '';
         }
-        md = md.trim();
-
-        if (md.length > 20) {
-          onProgress?.({ status: 'Local AI 비전 파싱 완료!', progress: 100 });
-          return {
-            markdown: `## [페이지 ${pageNumber}] (Local AI: ${model})\n\n${md}`,
-            rawText: md,
-            confidence: 95,
-            engineUsed: 'ollama-vision',
-            pageNumber,
-          };
+      } catch {
+        // Direct fetch failed (CORS or Mixed Content) -> Failover to server proxy
+        onProgress?.({ status: `CORS 제약 우회를 위해 서버 프록시로 안전하게 전환하여 재시도 중...`, progress: 40 });
+        const proxyResp = await fetch('/api/ollama/proxy-generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint,
+            model,
+            prompt,
+            images: [base64Data],
+          }),
+        });
+        if (proxyResp.ok) {
+          const proxyData = await proxyResp.json();
+          md = proxyData?.response || '';
         }
+      }
+
+      if (md.startsWith('```markdown')) {
+        md = md.replace(/^```markdown\s*/i, '').replace(/```\s*$/, '');
+      } else if (md.startsWith('```')) {
+        md = md.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/, '');
+      }
+      md = md.trim();
+
+      if (md.length > 20) {
+        onProgress?.({ status: 'Local AI 비전 파싱 완료!', progress: 100 });
+        return {
+          markdown: `## [페이지 ${pageNumber}] (Local AI: ${model})\n\n${md}`,
+          rawText: md,
+          confidence: 95,
+          engineUsed: 'ollama-vision',
+          pageNumber,
+        };
       }
     } catch (ollamaErr) {
       console.warn('Ollama Vision parse attempt failed or offline, falling back to OCR / Vector:', ollamaErr);

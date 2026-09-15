@@ -8,7 +8,9 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
+  Minimize2,
   RotateCw,
+  RotateCcw,
   Sparkles,
   Columns2,
   FileText,
@@ -26,10 +28,23 @@ import {
   Layers,
   ArrowDownUp,
   LocateFixed,
+  Square,
+  Cpu,
+  SlidersHorizontal,
+  CheckCircle2,
+  X,
+  Info,
+  ChevronDown,
+  MoreHorizontal,
 } from 'lucide-react';
 import { convertPdfToMarkdown, PdfParserEngine } from '../services/documentConverterService';
 import { extractCurrentPageToMarkdown, OcrProgressInfo } from '../services/pdfOcrService';
 import { SAMPLE_PDF_DATA_URL } from '../data/samplePdfData';
+import {
+  reducePdfSizeAndStripImageMetadata,
+  PdfReductionResult,
+  formatBytes,
+} from '../utils/pdfSizeReducer';
 
 // Polyfill Promise.try for environments where it is missing
 if (typeof Promise !== 'undefined' && typeof (Promise as any).try !== 'function') {
@@ -52,11 +67,32 @@ if (typeof window !== 'undefined') {
   }
 }
 
+export interface PdfViewerHandle {
+  clearCacheAndReparse: () => void;
+  openReducerModal: () => void;
+  extractToMarkdown: (engine?: PdfParserEngine | 'ocr') => void;
+  downloadPdf: () => void;
+  openFilePicker: () => void;
+  toggleSplitView: () => void;
+  setEngine: (engine: PdfParserEngine | 'ocr') => void;
+  setScope: (scope: 'current' | 'all') => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  fitWidth: () => void;
+  rotate: () => void;
+  getReductionStats: () => PdfReductionResult | null;
+  getCurrentPage: () => number;
+  getNumPages: () => number;
+  getExtractEngine: () => PdfParserEngine | 'ocr';
+  getExtractScope: () => 'current' | 'all';
+}
+
 export interface PdfViewerProps {
   fileName: string;
   pdfData?: string | ArrayBuffer | Uint8Array | null;
   markdownContent: string;
   onMarkdownChange: (newMarkdown: string) => void;
+  onClearMarkdownCache?: (fileName: string) => void;
   onUploadPdf?: (file: File) => void;
   ollamaEndpoint?: string;
   ollamaModel?: string;
@@ -64,17 +100,18 @@ export interface PdfViewerProps {
   renderMarkdownToHtml?: (md: string) => string;
 }
 
-export const PdfViewer: React.FC<PdfViewerProps> = ({
+export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
   fileName,
   pdfData,
   markdownContent,
   onMarkdownChange,
+  onClearMarkdownCache,
   onUploadPdf,
   ollamaEndpoint = 'http://localhost:11434',
   ollamaModel = 'llama3.2-vision',
   onToast,
   renderMarkdownToHtml,
-}) => {
+}, ref) => {
   const [pdfDoc, setPdfDoc] = useState<any>(null);
   const [numPages, setNumPages] = useState<number>(1);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -97,13 +134,47 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
   const [isSyncScrollEnabled, setIsSyncScrollEnabled] = useState<boolean>(true);
   const [hasCopied, setHasCopied] = useState<boolean>(false);
 
+  // PDF Size Reducer States (strips embedded high-res image metadata to reduce memory footprint)
+  const [isAutoReduceEnabled, setIsAutoReduceEnabled] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('aipodium_pdf_auto_reduce');
+      return stored !== null ? stored === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+  const [isOptimizingSize, setIsOptimizingSize] = useState<boolean>(false);
+  const [reductionStats, setReductionStats] = useState<PdfReductionResult | null>(null);
+  const [showReducerModal, setShowReducerModal] = useState<boolean>(false);
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const viewerContainerRef = useRef<HTMLDivElement | null>(null);
   const editorTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const previewContainerRef = useRef<HTMLDivElement | null>(null);
   const renderTaskRef = useRef<any>(null);
   const activePdfBytesRef = useRef<Uint8Array | null>(null);
+  const rawOriginalBytesRef = useRef<Uint8Array | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Popover menus state & refs
+  const [isExtractionMenuOpen, setIsExtractionMenuOpen] = useState<boolean>(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState<boolean>(false);
+  const extractionMenuRef = useRef<HTMLDivElement | null>(null);
+  const moreMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Close popovers on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (extractionMenuRef.current && !extractionMenuRef.current.contains(e.target as Node)) {
+        setIsExtractionMenuOpen(false);
+      }
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setIsMoreMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Helper to fallback to pre-compiled multi-page sample PDF
   const getSamplePdfBytes = useCallback((): Uint8Array => {
@@ -168,7 +239,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
     return getSamplePdfBytes();
   }, [getSamplePdfBytes]);
 
-  // 1. Load PDF Document via PDF.js
+  // 1. Load PDF Document via PDF.js with embedded image metadata stripping
   useEffect(() => {
     let isCancelled = false;
     setIsLoadingPdf(true);
@@ -177,6 +248,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
     const loadDocument = async () => {
       try {
         const bytes = resolvePdfBytes(pdfData);
+        rawOriginalBytesRef.current = bytes;
         activePdfBytesRef.current = bytes;
 
         if (!bytes || bytes.byteLength === 0) {
@@ -185,8 +257,34 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
           return;
         }
 
+        let bytesToUse = bytes;
+
+        // Strip embedded high-resolution image metadata during the parsing phase to reduce memory footprint
+        if (isAutoReduceEnabled && bytes.byteLength > 60 * 1024) {
+          try {
+            const reduction = await reducePdfSizeAndStripImageMetadata(bytes);
+            if (!isCancelled) {
+              setReductionStats(reduction);
+              if (reduction.wasOptimized && reduction.savedBytes > 0) {
+                bytesToUse = reduction.reducedPdfBytes;
+                activePdfBytesRef.current = bytesToUse;
+                if (reduction.savedPercentage >= 5) {
+                  onToast?.(
+                    `[PDF 크기 최적화] 고해상도 이미지 메타데이터를 정리하여 메모리를 ${reduction.savedPercentage}% 절감했습니다 (${formatBytes(reduction.originalSizeBytes)} → ${formatBytes(reduction.reducedSizeBytes)}).`,
+                    'info'
+                  );
+                }
+              }
+            }
+          } catch (optErr) {
+            console.warn('PDF size reducer optimization skipped during load:', optErr);
+          }
+        }
+
+        if (isCancelled) return;
+
         const loadingTask = pdfjsLib.getDocument({
-          data: bytes,
+          data: bytesToUse,
           useSystemFonts: true,
           disableFontFace: false,
         });
@@ -212,7 +310,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [pdfData, resolvePdfBytes]);
+  }, [pdfData, resolvePdfBytes, isAutoReduceEnabled, onToast]);
 
   // 2. Render Page on Canvas
   const renderCurrentPage = useCallback(async () => {
@@ -507,8 +605,12 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
   }, [currentPage, isSplitView, isSyncScrollEnabled, rightPaneTab, scrollToCurrentPageInEditor]);
 
   // Extract to Markdown Pipeline (Current Page OCR/Layout or Full Document)
-  const handleExtractToMarkdown = async (engine: PdfParserEngine | 'ocr' = extractEngine) => {
-    let bytesToUse = activePdfBytesRef.current;
+  const handleExtractToMarkdown = async (
+    engine: PdfParserEngine | 'ocr' = extractEngine,
+    overrideBytes?: Uint8Array,
+    overrideDoc?: any
+  ) => {
+    let bytesToUse = overrideBytes || activePdfBytesRef.current;
     if (!bytesToUse || bytesToUse.byteLength === 0) {
       bytesToUse = resolvePdfBytes(pdfData);
       activePdfBytesRef.current = bytesToUse;
@@ -523,20 +625,23 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
 
     if (extractScope === 'current') {
       const engineNameLabel =
-        engine === 'ocr'
-          ? 'Tesseract OCR'
+        engine === 'gemini'
+          ? '클라우드 AI 엔진'
+          : engine === 'ocr'
+          ? '문자 인식 엔진'
           : engine === 'ollama'
-          ? `Local AI (${ollamaModel})`
-          : 'Fast Layout Parser';
+          ? `로컬 AI (${ollamaModel})`
+          : '고속 텍스트 엔진';
 
-      onToast?.(`🔍 [페이지 ${currentPage}] 레이아웃 및 텍스트 정밀 분석을 시작합니다 (${engineNameLabel})...`, 'info');
+      onToast?.(`[페이지 ${currentPage}] 레이아웃 및 텍스트 정밀 분석을 시작합니다 (${engineNameLabel})...`, 'info');
       setOcrProgress({ status: `페이지 ${currentPage} 분석 준비 중...`, progress: 10 });
 
       try {
         let pageTextItems: any[] = [];
-        if (pdfDoc) {
+        const activeDoc = overrideDoc || pdfDoc;
+        if (activeDoc) {
           try {
-            const page = await pdfDoc.getPage(currentPage);
+            const page = await activeDoc.getPage(currentPage);
             const textContent = await page.getTextContent();
             pageTextItems = textContent.items || [];
           } catch (e) {
@@ -548,7 +653,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
           pageNumber: currentPage,
           canvas: canvasRef.current,
           pageTextItems,
-          engine: engine === 'ocr' ? 'tesseract' : engine === 'ollama' ? 'ollama' : 'vector',
+          engine: engine === 'gemini' ? 'gemini' : engine === 'ocr' ? 'tesseract' : engine === 'ollama' ? 'ollama' : 'vector',
           ollamaEndpoint,
           ollamaModel,
           lang: ocrLanguage,
@@ -582,14 +687,16 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
         setOcrProgress(null);
 
         const engineLabel =
-          result.engineUsed === 'tesseract-ocr'
-            ? `Tesseract OCR (${result.confidence}% 신뢰도)`
+          result.engineUsed === 'gemini-cloud'
+            ? '클라우드 AI 엔진'
+            : result.engineUsed === 'tesseract-ocr'
+            ? `문자 인식 (${result.confidence}% 신뢰도)`
             : result.engineUsed === 'ollama-vision'
-            ? `Local AI (${ollamaModel})`
-            : 'Vector Layout Parser';
+            ? `로컬 AI (${ollamaModel})`
+            : '고속 텍스트 엔진';
 
         onToast?.(
-          `✨ [페이지 ${currentPage}] 텍스트와 레이아웃이 마크다운 에디터에 반영되었습니다 (${engineLabel})!`,
+          `[페이지 ${currentPage}] 텍스트와 레이아웃이 마크다운 에디터에 반영되었습니다 (${engineLabel})!`,
           'success'
         );
       } catch (err: any) {
@@ -603,12 +710,14 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
 
     // Full Document Extraction
     onToast?.(
-      engine === 'ollama'
-        ? `🤖 Local AI (${ollamaModel})로 전체 PDF 마크다운 변환을 시작합니다...`
-        : `⚡ PDF 전체 텍스트 스트림을 마크다운으로 추출합니다...`,
+      engine === 'gemini'
+        ? '클라우드 AI로 전체 문서 구조 및 서식 정밀 분석을 시작합니다...'
+        : engine === 'ollama'
+        ? `로컬 AI (${ollamaModel})로 전체 마크다운 변환을 시작합니다...`
+        : '고속 텍스트 추출 엔진으로 전체 문서를 변환합니다...',
       'info'
     );
-    setOcrProgress({ status: '전체 문서 파싱 진행 중...', progress: 20 });
+    setOcrProgress({ status: '전체 문서 파싱 준비 중...', progress: 10 });
 
     try {
       const blob = new Blob([bytesToUse], { type: 'application/pdf' });
@@ -616,8 +725,11 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
         engine: engine === 'ocr' ? 'fast' : engine,
         ollamaEndpoint: ollamaEndpoint,
         ollamaModel: ollamaModel,
+        onProgress: (pct, msg) => {
+          setOcrProgress({ status: msg || '변환 진행 중...', progress: pct });
+        },
         onFallback: (reason) => {
-          onToast?.(`⚠️ 로컬 AI 추출 실패 (${reason}). 고속 브라우저 파서로 자동 대체되었습니다.`, 'info');
+          onToast?.(`로컬 AI 추출 실패 (${reason}). 고속 텍스트 엔진으로 자동 대체되었습니다.`, 'info');
         },
       });
 
@@ -628,10 +740,15 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
       setOcrProgress(null);
 
       if (result.pageCount === 0) {
-        onToast?.(`⚠️ '${fileName}' 파일이 비어 있어 추출된 마크다운 내용이 없습니다.`, 'info');
+        onToast?.(`'${fileName}' 파일이 비어 있어 추출된 마크다운 내용이 없습니다.`, 'info');
       } else {
-        const engineName = result.parserEngine === 'ollama' ? `Local AI (${result.ollamaModel || ollamaModel})` : 'Fast Text Parser';
-        onToast?.(`✓ '${fileName}' 전체 마크다운이 성공적으로 추출되었습니다 (${engineName})!`, 'success');
+        const engineName =
+          result.parserEngine === 'gemini'
+            ? '클라우드 AI 엔진'
+            : result.parserEngine === 'ollama'
+            ? `로컬 AI (${result.ollamaModel || ollamaModel})`
+            : '고속 텍스트 엔진';
+        onToast?.(`'${fileName}' 전체 마크다운이 성공적으로 추출되었습니다 (${engineName})!`, 'success');
       }
     } catch (err: any) {
       setIsExtracting(false);
@@ -665,18 +782,235 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    onToast?.(`📥 '${fileName}' 파일 다운로드를 시작했습니다.`, 'info');
+    onToast?.(`'${fileName}' 파일 다운로드를 시작했습니다.`, 'info');
   };
 
-  // Replace/Upload PDF Handler
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Manual clear markdown cache for current document, forcing re-reduction of metadata and re-parse
+  const handleClearCacheAndReparse = async () => {
+    if (isExtracting || isLoadingPdf || isOptimizingSize) return;
+
+    onToast?.(`'${fileName}' 마크다운 캐시를 삭제하고 메타데이터 재최적화 및 파싱을 시작합니다...`, 'info');
+
+    // 1. Clear Markdown Cache: in parent state and local storage
+    try {
+      const stored = localStorage.getItem('aipodium_pdf_markdowns');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        delete parsed[fileName];
+        delete parsed[fileName.replace(/\.pdf$/i, '.md')];
+        localStorage.setItem('aipodium_pdf_markdowns', JSON.stringify(parsed));
+      }
+    } catch (cacheErr) {
+      console.warn('Could not clear local markdown cache:', cacheErr);
+    }
+
+    if (onClearMarkdownCache) {
+      onClearMarkdownCache(fileName);
+    }
+    onMarkdownChange('');
+
+    // 2. Force Re-reduction of PDF Metadata
+    const rawBytes = rawOriginalBytesRef.current || activePdfBytesRef.current || resolvePdfBytes(pdfData);
+    if (!rawBytes || rawBytes.byteLength === 0) {
+      onToast?.('최적화할 PDF 원본 데이터가 없습니다.', 'error');
+      return;
+    }
+
+    let reducedBytes = rawBytes;
+    setIsOptimizingSize(true);
+    try {
+      const reduction = await reducePdfSizeAndStripImageMetadata(rawBytes);
+      setReductionStats(reduction);
+      if (reduction.wasOptimized && reduction.savedBytes > 0) {
+        reducedBytes = reduction.reducedPdfBytes;
+        activePdfBytesRef.current = reducedBytes;
+      }
+    } catch (redErr) {
+      console.warn('Re-reduction failed, proceeding with original bytes:', redErr);
+    } finally {
+      setIsOptimizingSize(false);
+    }
+
+    // 3. Re-initialize PDF.js and force Re-parse
+    try {
+      setIsLoadingPdf(true);
+      const loadingTask = pdfjsLib.getDocument({
+        data: reducedBytes,
+        useSystemFonts: true,
+        disableFontFace: false,
+      });
+      const newDoc = await loadingTask.promise;
+      setPdfDoc(newDoc);
+      setNumPages(newDoc.numPages);
+      setIsLoadingPdf(false);
+
+      // Trigger re-parsing with fresh document and newly reduced bytes
+      await handleExtractToMarkdown(extractEngine, reducedBytes, newDoc);
+
+      onToast?.(
+        `'${fileName}' 마크다운 캐시 삭제, 메타데이터 재최적화 및 파싱이 완료되었습니다!`,
+        'success'
+      );
+    } catch (parseErr: any) {
+      setIsLoadingPdf(false);
+      setIsExtracting(false);
+      console.error('Re-parse error:', parseErr);
+      onToast?.(`재파싱 실패: ${parseErr?.message || '오류가 발생했습니다.'}`, 'error');
+    }
+  };
+
+  // PDF Size Reducer: Apply optimization on current active document
+  const handleApplySizeReduction = async () => {
+    const bytes = rawOriginalBytesRef.current || activePdfBytesRef.current;
+    if (!bytes || bytes.byteLength === 0) {
+      onToast?.('최적화할 PDF 데이터가 없습니다.', 'info');
+      return;
+    }
+
+    setIsOptimizingSize(true);
+    try {
+      const result = await reducePdfSizeAndStripImageMetadata(bytes);
+      setReductionStats(result);
+
+      if (result.wasOptimized && result.savedBytes > 0) {
+        activePdfBytesRef.current = result.reducedPdfBytes;
+
+        setIsLoadingPdf(true);
+        const loadingTask = pdfjsLib.getDocument({
+          data: result.reducedPdfBytes,
+          useSystemFonts: true,
+          disableFontFace: false,
+        });
+        const doc = await loadingTask.promise;
+        setPdfDoc(doc);
+        setNumPages(doc.numPages);
+        setIsLoadingPdf(false);
+
+        onToast?.(
+          `[PDF 크기 최적화] 고해상도 이미지 메타데이터 제거 완료: ${result.savedPercentage}% 절감 (${formatBytes(result.originalSizeBytes)} → ${formatBytes(result.reducedSizeBytes)})`,
+          'success'
+        );
+      } else {
+        onToast?.('이미 고해상도 이미지 메타데이터가 정리되어 최적화된 상태입니다.', 'info');
+      }
+    } catch (err: any) {
+      console.error('PDF size reduction error:', err);
+      onToast?.(`크기 최적화 실패: ${err?.message || '알 수 없는 오류'}`, 'error');
+    } finally {
+      setIsOptimizingSize(false);
+    }
+  };
+
+  // PDF Size Reducer: Download cleaned PDF
+  const handleDownloadOptimizedPdf = () => {
+    const bytesToDownload = reductionStats?.reducedPdfBytes || activePdfBytesRef.current;
+    if (!bytesToDownload) return;
+    const blob = new Blob([bytesToDownload], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const baseName = fileName.replace(/\.pdf$/i, '');
+    a.download = `${baseName}_optimized.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    onToast?.(`최적화된 PDF 파일 (${formatBytes(bytesToDownload.byteLength)}) 다운로드를 시작했습니다.`, 'info');
+  };
+
+  // PDF Size Reducer: Toggle auto-reduce on import
+  const handleToggleAutoReduce = (checked: boolean) => {
+    setIsAutoReduceEnabled(checked);
+    try {
+      localStorage.setItem('aipodium_pdf_auto_reduce', String(checked));
+    } catch {}
+    onToast?.(
+      checked
+        ? '문서 불러오기 시 고해상도 이미지 메타데이터 자동 제거가 활성화되었습니다.'
+        : '자동 최적화가 비활성화되었습니다.',
+      'info'
+    );
+  };
+
+  // Replace/Upload PDF Handler with Size Reduction on Parsing Phase
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (e.target) e.target.value = '';
+
+    if (file.size === 0) {
+      onToast?.(`'${file.name}' 파일이 비어 있습니다 (0 바이트).`, 'info');
+      return;
+    }
+
+    // Process during import phase: strip embedded image metadata to reduce memory footprint
+    if (isAutoReduceEnabled && file.size > 60 * 1024) {
+      try {
+        setIsLoadingPdf(true);
+        const buffer = await file.arrayBuffer();
+        const rawBytes = new Uint8Array(buffer);
+        rawOriginalBytesRef.current = rawBytes;
+
+        const reduction = await reducePdfSizeAndStripImageMetadata(rawBytes);
+        setReductionStats(reduction);
+
+        const bytesToUse = reduction.savedBytes > 0 ? reduction.reducedPdfBytes : rawBytes;
+        activePdfBytesRef.current = bytesToUse;
+
+        if (reduction.savedBytes > 0 && reduction.savedPercentage >= 5) {
+          onToast?.(
+            `[PDF 크기 최적화] 가져오기 단계에서 고해상도 이미지 메타데이터를 제거하여 메모리를 ${reduction.savedPercentage}% 절감했습니다 (${formatBytes(reduction.originalSizeBytes)} → ${formatBytes(reduction.reducedSizeBytes)}).`,
+            'info'
+          );
+        }
+
+        if (onUploadPdf) {
+          const optimizedFile = new File([bytesToUse], file.name, { type: 'application/pdf' });
+          onUploadPdf(optimizedFile);
+        }
+
+        const loadingTask = pdfjsLib.getDocument({
+          data: bytesToUse,
+          useSystemFonts: true,
+          disableFontFace: false,
+        });
+        const doc = await loadingTask.promise;
+        setPdfDoc(doc);
+        setNumPages(doc.numPages);
+        setCurrentPage(1);
+        setPageInputValue('1');
+        setIsLoadingPdf(false);
+        return;
+      } catch (optErr) {
+        console.warn('Import optimization error, falling back to standard upload:', optErr);
+        setIsLoadingPdf(false);
+      }
+    }
+
     if (onUploadPdf) {
       onUploadPdf(file);
     }
-    if (e.target) e.target.value = '';
   };
+
+  React.useImperativeHandle(ref, () => ({
+    clearCacheAndReparse: handleClearCacheAndReparse,
+    openReducerModal: () => setShowReducerModal(true),
+    extractToMarkdown: (engine) => handleExtractToMarkdown(engine || extractEngine),
+    downloadPdf: handleDownloadPdf,
+    openFilePicker: () => fileInputRef.current?.click(),
+    toggleSplitView: () => setIsSplitView((prev) => !prev),
+    setEngine: (engine) => setExtractEngine(engine),
+    setScope: (scope) => setExtractScope(scope),
+    zoomIn: handleZoomIn,
+    zoomOut: handleZoomOut,
+    fitWidth: handleFitWidth,
+    rotate: handleRotate,
+    getReductionStats: () => reductionStats,
+    getCurrentPage: () => currentPage,
+    getNumPages: () => numPages,
+    getExtractEngine: () => extractEngine,
+    getExtractScope: () => extractScope,
+  }));
 
   return (
     <div className="flex-1 flex flex-col h-full min-h-0 bg-[#121318] text-slate-100 select-none overflow-hidden">
@@ -689,49 +1023,23 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
         onChange={handleFileChange}
       />
 
-      {/* Mini Toolbar: Fixed Height, High Contrast, Enhanced Controls */}
-      <div className="h-9 px-2 bg-[#181a24] border-b border-[#2e3142] flex items-center justify-between gap-2 shrink-0 z-20 text-xs overflow-x-auto select-none no-scrollbar">
-        {/* Left Section: File Title, Page Navigation & 10% Zoom Controls */}
-        <div className="flex items-center gap-1.5 min-w-0">
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-[#222433] border border-[#2e3142] text-slate-200 shrink-0">
-            <FileText className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-            <span className="font-mono text-[0.6875rem] truncate max-w-[130px]" title={fileName}>
-              {fileName}
-            </span>
-            <span className="text-[0.5625rem] bg-rose-500/20 text-rose-300 px-1 py-0.2 rounded border border-rose-500/30 uppercase font-bold">
-              PDF
-            </span>
-          </div>
-
-          <div className="h-4 w-px bg-[#2e3142] shrink-0" />
-
-          {/* Enhanced Page Navigation Controls with Direct Jump Input */}
-          <div className="flex items-center gap-0.5 shrink-0 bg-[#121318] border border-[#2e3142] rounded-sm p-0.5">
-            {/* First Page (1P) */}
-            <button
-              type="button"
-              onClick={() => handleJumpPage(1)}
-              disabled={currentPage <= 1 || isLoadingPdf}
-              className="p-1 rounded-xs text-slate-400 hover:text-white hover:bg-[#282a38] disabled:opacity-25 disabled:pointer-events-none transition cursor-pointer"
-              title="첫 페이지로 이동 (1P)"
-            >
-              <ChevronsLeft className="w-3.5 h-3.5" />
-            </button>
-
-            {/* Previous Page */}
+      {/* Main Toolbar: Compact IDE Design Constitution Compliant */}
+      <div className="h-8.5 px-2 bg-[#181a24] border-b border-[#2e3142] flex items-center justify-between gap-1.5 shrink-0 z-20 text-xs select-none">
+        {/* Left Section: Pure Viewer Controls */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Page Navigation */}
+          <div className="flex items-center bg-[#121318] border border-[#2e3142] rounded-md p-0.5 shrink-0">
             <button
               type="button"
               onClick={handlePrevPage}
               disabled={currentPage <= 1 || isLoadingPdf}
-              className="p-1 rounded-xs text-slate-300 hover:text-white hover:bg-[#282a38] disabled:opacity-25 disabled:pointer-events-none transition cursor-pointer"
+              className="w-5.5 h-5.5 flex items-center justify-center rounded-xs text-slate-300 hover:text-white hover:bg-[#282a38] disabled:opacity-25 disabled:pointer-events-none transition cursor-pointer"
               title="이전 페이지"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
 
-            {/* Page Jump Input Box */}
-            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-[#181a24] rounded-xs font-mono text-[0.6875rem] border border-[#282b3d] focus-within:border-[#6366f1]">
-              <span className="text-slate-400 text-[0.625rem]">P.</span>
+            <div className="flex items-center gap-0.5 px-1 font-mono text-[0.6875rem]">
               <input
                 type="number"
                 min={1}
@@ -740,324 +1048,403 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
                 onChange={(e) => setPageInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handlePageInputCommit()}
                 onBlur={handlePageInputCommit}
-                className="w-7 text-center bg-transparent text-indigo-300 font-semibold outline-none py-0 leading-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                title="페이지 번호 입력 후 Enter 또는 이동 클릭"
+                className="w-6 text-center bg-transparent text-indigo-300 font-semibold outline-none py-0 leading-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                title="페이지 번호 입력 후 Enter"
               />
               <span className="text-slate-500">/</span>
-              <span className="text-slate-300 font-semibold min-w-[14px] text-center">{numPages}</span>
-              <button
-                type="button"
-                onClick={handlePageInputCommit}
-                className="ml-0.5 px-1 py-0.2 rounded-xs bg-[#2b2d3e] hover:bg-[#6366f1] active:bg-[#4f46e5] text-[0.5625rem] text-slate-300 hover:text-white font-sans transition cursor-pointer"
-                title="입력한 페이지로 바로 이동"
-              >
-                이동
-              </button>
+              <span className="text-slate-300 font-semibold px-0.5">{numPages}</span>
             </div>
 
-            {/* Next Page */}
             <button
               type="button"
               onClick={handleNextPage}
               disabled={currentPage >= numPages || isLoadingPdf}
-              className="p-1 rounded-xs text-slate-300 hover:text-white hover:bg-[#282a38] disabled:opacity-25 disabled:pointer-events-none transition cursor-pointer"
+              className="w-5.5 h-5.5 flex items-center justify-center rounded-xs text-slate-300 hover:text-white hover:bg-[#282a38] disabled:opacity-25 disabled:pointer-events-none transition cursor-pointer"
               title="다음 페이지"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
-
-            {/* Last Page */}
-            <button
-              type="button"
-              onClick={() => handleJumpPage(numPages)}
-              disabled={currentPage >= numPages || isLoadingPdf}
-              className="p-1 rounded-xs text-slate-400 hover:text-white hover:bg-[#282a38] disabled:opacity-25 disabled:pointer-events-none transition cursor-pointer"
-              title={`마지막 페이지로 이동 (${numPages}P)`}
-            >
-              <ChevronsRight className="w-3.5 h-3.5" />
-            </button>
           </div>
 
-          <div className="h-4 w-px bg-[#2e3142] shrink-0" />
+          <div className="h-3.5 w-px bg-[#2e3142] shrink-0" />
 
-          {/* Enhanced Zoom Controls: 10% Step Fine-Grained Adjustments */}
-          <div className="flex items-center gap-0.5 shrink-0 bg-[#121318] border border-[#2e3142] rounded-sm p-0.5">
-            {/* Zoom Out (-10%) */}
+          {/* Zoom & View Controls */}
+          <div className="flex items-center gap-0.5 bg-[#121318] border border-[#2e3142] rounded-md p-0.5 shrink-0">
             <button
               type="button"
               onClick={handleZoomOut}
               disabled={isLoadingPdf}
-              className="px-1 py-0.5 rounded-xs text-slate-300 hover:text-white hover:bg-[#282a38] transition cursor-pointer flex items-center gap-0.5"
-              title="10% 축소 (Ctrl + 마우스 휠 아래)"
+              className="w-5.5 h-5.5 flex items-center justify-center rounded-xs text-slate-300 hover:text-white hover:bg-[#282a38] transition cursor-pointer"
+              title="축소"
             >
               <ZoomOut className="w-3.5 h-3.5" />
-              <span className="text-[0.5625rem] font-mono text-slate-400">-10%</span>
             </button>
 
-            {/* Zoom Direct Input & 10% Stepped Dropdown */}
-            <div className="flex items-center gap-0.5 bg-[#181a24] rounded-xs px-1 py-0.5 font-mono text-[0.6875rem] border border-[#282b3d] focus-within:border-[#6366f1]">
-              <input
-                type="text"
-                value={zoomInputValue}
-                onChange={(e) => setZoomInputValue(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleZoomInputCommit()}
-                onBlur={handleZoomInputCommit}
-                className="w-7 text-right bg-transparent text-indigo-300 font-semibold outline-none py-0 leading-tight"
-                title="확대/축소 배율(%) 직접 입력 후 Enter"
-              />
-              <span className="text-slate-400 text-[0.625rem] mr-0.5">%</span>
-
-              {/* 10% Stepped Preset Dropdown */}
-              <select
-                value={fitMode === 'width' ? 'width' : String(Math.round(scale * 100))}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === 'width') {
-                    handleFitWidth();
-                  } else {
-                    const num = parseInt(val, 10);
-                    if (!isNaN(num)) {
-                      handleSetExactZoom(num / 100);
-                    }
+            <select
+              value={fitMode === 'width' ? 'width' : String(Math.round(scale * 100))}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'width') {
+                  handleFitWidth();
+                } else {
+                  const num = parseInt(val, 10);
+                  if (!isNaN(num)) {
+                    handleSetExactZoom(num / 100);
                   }
-                }}
-                className="bg-[#242738] text-slate-300 text-[0.625rem] rounded-xs px-1 py-0.2 border border-[#2e3142] outline-none cursor-pointer hover:border-[#6366f1] transition"
-                title="배율 10% 단위 프리셋 선택"
-              >
-                <option value="width">너비맞춤</option>
-                <option value="50">50%</option>
-                <option value="60">60%</option>
-                <option value="70">70%</option>
-                <option value="80">80%</option>
-                <option value="90">90%</option>
-                <option value="100">100% (1:1)</option>
-                <option value="110">110%</option>
-                <option value="120">120%</option>
-                <option value="130">130%</option>
-                <option value="140">140%</option>
-                <option value="150">150%</option>
-                <option value="160">160%</option>
-                <option value="170">170%</option>
-                <option value="180">180%</option>
-                <option value="190">190%</option>
-                <option value="200">200%</option>
-                <option value="250">250%</option>
-                <option value="300">300%</option>
-                <option value="400">400%</option>
-              </select>
-            </div>
+                }
+              }}
+              className="bg-[#242738] text-slate-200 text-[0.6875rem] font-mono rounded-xs px-1.5 py-0.5 border border-[#2e3142] outline-none cursor-pointer hover:border-[#6366f1] transition h-5.5"
+              title="배율 선택"
+            >
+              <option value="width">너비 맞춤</option>
+              <option value="50">50%</option>
+              <option value="75">75%</option>
+              <option value="90">90%</option>
+              <option value="100">100%</option>
+              <option value="125">125%</option>
+              <option value="150">150%</option>
+              <option value="200">200%</option>
+            </select>
 
-            {/* Zoom In (+10%) */}
             <button
               type="button"
               onClick={handleZoomIn}
               disabled={isLoadingPdf}
-              className="px-1 py-0.5 rounded-xs text-slate-300 hover:text-white hover:bg-[#282a38] transition cursor-pointer flex items-center gap-0.5"
-              title="10% 확대 (Ctrl + 마우스 휠 위)"
+              className="w-5.5 h-5.5 flex items-center justify-center rounded-xs text-slate-300 hover:text-white hover:bg-[#282a38] transition cursor-pointer"
+              title="확대"
             >
               <ZoomIn className="w-3.5 h-3.5" />
-              <span className="text-[0.5625rem] font-mono text-slate-400">+10%</span>
             </button>
 
-            {/* 100% Reset Button */}
-            <button
-              type="button"
-              onClick={handleResetZoom}
-              className={`px-1.5 py-0.5 rounded-xs text-[0.625rem] font-mono transition cursor-pointer ${
-                fitMode === 'custom' && Math.round(scale * 10) === 10
-                  ? 'bg-[#6366f1]/30 text-indigo-300 border border-[#6366f1]/50'
-                  : 'text-slate-400 hover:text-white hover:bg-[#282a38]'
-              }`}
-              title="100% 원래 크기로 초기화 (1:1)"
-            >
-              100%
-            </button>
-
-            {/* Fit Width */}
             <button
               type="button"
               onClick={handleFitWidth}
-              className={`p-1 rounded-xs transition cursor-pointer ${
+              className={`w-5.5 h-5.5 flex items-center justify-center rounded-xs transition cursor-pointer ${
                 fitMode === 'width'
                   ? 'bg-[#6366f1]/30 text-indigo-300 border border-[#6366f1]/50'
                   : 'text-slate-400 hover:text-white hover:bg-[#282a38]'
               }`}
-              title="너비 맞춤 (Fit to Width)"
+              title="너비 맞춤"
             >
               <Maximize2 className="w-3.5 h-3.5" />
             </button>
 
-            {/* Rotate */}
             <button
               type="button"
               onClick={handleRotate}
-              className="p-1 rounded-xs text-slate-400 hover:text-white hover:bg-[#282a38] transition cursor-pointer"
-              title="90° 시계방향 회전"
+              className="w-5.5 h-5.5 flex items-center justify-center rounded-xs text-slate-400 hover:text-white hover:bg-[#282a38] transition cursor-pointer"
+              title="90도 회전"
             >
               <RotateCw className="w-3.5 h-3.5" />
             </button>
           </div>
-        </div>
 
-        {/* Right Section: Action Buttons */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {/* Scope Selector: Current Page vs All Pages */}
-          <div className="flex items-center bg-[#121318] border border-[#2e3142] rounded-sm p-0.5" title="마크다운 추출 범위 선택">
+          {/* Size Optimization Badge (Compact Indicator) */}
+          {reductionStats && reductionStats.wasOptimized && reductionStats.savedPercentage > 0 && (
             <button
               type="button"
-              onClick={() => setExtractScope('current')}
-              className={`px-1.5 py-0.5 rounded-xs text-[0.625rem] font-mono transition cursor-pointer ${
-                extractScope === 'current'
-                  ? 'bg-[#2b2d3e] text-indigo-300 font-semibold border border-[#6366f1]/40'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="현재 보고 있는 페이지만 정밀 추출 (OCR / Layout)"
+              onClick={() => setShowReducerModal(true)}
+              className="h-6 px-1.5 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[0.625rem] font-mono flex items-center gap-1 transition cursor-pointer shrink-0"
+              title="PDF 메타데이터 최적화 상태 확인"
             >
-              현재 {currentPage}P
-            </button>
-            <button
-              type="button"
-              onClick={() => setExtractScope('all')}
-              className={`px-1.5 py-0.5 rounded-xs text-[0.625rem] font-mono transition cursor-pointer ${
-                extractScope === 'all'
-                  ? 'bg-[#2b2d3e] text-indigo-300 font-semibold border border-[#6366f1]/40'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="전체 페이지 일괄 변환"
-            >
-              전체 {numPages}P
-            </button>
-          </div>
-
-          {/* Engine Selector Dropdown for Extract */}
-          <div className="flex items-center bg-[#121318] border border-[#2e3142] rounded-sm p-0.5">
-            <button
-              type="button"
-              onClick={() => setExtractEngine('ollama')}
-              className={`px-1.5 py-0.5 rounded-xs text-[0.625rem] font-mono transition cursor-pointer ${
-                extractEngine === 'ollama'
-                  ? 'bg-[#6366f1] text-white font-medium shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="로컬 AI (Ollama) 의미론적 / 비전 마크다운 변환 엔진"
-            >
-              Local AI
-            </button>
-            <button
-              type="button"
-              onClick={() => setExtractEngine('ocr')}
-              className={`px-1.5 py-0.5 rounded-xs text-[0.625rem] font-mono transition cursor-pointer ${
-                extractEngine === 'ocr'
-                  ? 'bg-[#6366f1] text-white font-medium shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="Tesseract.js 브라우저 OCR 엔진 (한국어+영어 지원, 레이아웃/표/제목 인식)"
-            >
-              OCR
-            </button>
-            <button
-              type="button"
-              onClick={() => setExtractEngine('fast')}
-              className={`px-1.5 py-0.5 rounded-xs text-[0.625rem] font-mono transition cursor-pointer ${
-                extractEngine === 'fast'
-                  ? 'bg-[#6366f1] text-white font-medium shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-              title="고속 브라우저 텍스트 스트림 파서"
-            >
-              Fast
-            </button>
-          </div>
-
-          {/* OCR Language indicator/toggle if OCR selected */}
-          {extractEngine === 'ocr' && (
-            <button
-              type="button"
-              onClick={() => setOcrLanguage((prev) => (prev === 'kor+eng' ? 'eng' : 'kor+eng'))}
-              className="px-1.5 py-0.5 bg-[#121318] hover:bg-[#222433] border border-emerald-500/40 rounded-xs text-[0.5625rem] font-mono text-emerald-300 transition cursor-pointer"
-              title="OCR 인식 언어 모델 전환 (kor+eng / eng)"
-            >
-              {ocrLanguage === 'kor+eng' ? '한/영' : 'ENG'}
+              <Minimize2 className="w-3 h-3 text-emerald-400" />
+              <span>{reductionStats.savedPercentage}% 최적화됨</span>
             </button>
           )}
+        </div>
 
-          {/* Extract to Markdown Button */}
-          <button
-            type="button"
-            onClick={() => handleExtractToMarkdown(extractEngine)}
-            disabled={isExtracting || isLoadingPdf}
-            className="h-6 px-2.5 rounded-sm bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 active:from-indigo-700 active:to-violet-700 text-white font-medium flex items-center gap-1.5 transition shadow-xs cursor-pointer disabled:opacity-50"
-            title="현재 보고 있는 PDF 페이지의 텍스트와 레이아웃을 마크다운 에디터에 자동 반영"
-          >
-            {isExtracting ? (
-              <>
-                <Loader2 className="w-3 h-3 animate-spin text-amber-300" />
-                <span className="text-[0.6875rem] max-w-[130px] truncate">
-                  {ocrProgress?.status || '추출 중...'}
-                </span>
-              </>
-            ) : (
-              <>
-                {extractEngine === 'ocr' ? (
-                  <ScanText className="w-3 h-3 text-emerald-300" />
+        {/* Right Section: Smart Extraction Combo, Split View, and More Menu */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Smart Extraction Combo Button & Popover */}
+          <div className="relative" ref={extractionMenuRef}>
+            <div className="flex items-center">
+              <button
+                type="button"
+                onClick={() => handleExtractToMarkdown(extractEngine)}
+                disabled={isExtracting || isLoadingPdf}
+                className="h-6.5 px-2.5 rounded-l-md bg-[#6366f1] hover:bg-[#5254e0] active:bg-[#4345c9] text-white font-medium flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 text-xs shadow-xs"
+                title={`${extractScope === 'current' ? `현재 ${currentPage}쪽` : '전체 문서'} 마크다운 추출 실행 (${
+                  extractEngine === 'fast' ? '고속 텍스트' : extractEngine === 'gemini' ? '클라우드 AI' : extractEngine === 'ollama' ? '로컬 AI' : '문자 인식'
+                })`}
+              >
+                {isExtracting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-300 shrink-0" />
+                    <span className="text-[0.6875rem] max-w-[90px] truncate whitespace-nowrap">
+                      {ocrProgress?.status || '추출 중...'}
+                    </span>
+                  </>
                 ) : (
-                  <Sparkles className="w-3 h-3 text-amber-300" />
+                  <>
+                    {extractEngine === 'ocr' ? (
+                      <ScanText className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    )}
+                    <span className="text-[0.6875rem] font-medium whitespace-nowrap">
+                      마크다운 추출
+                    </span>
+                  </>
                 )}
-                <span className="text-[0.6875rem]">
-                  {extractScope === 'current'
-                    ? extractEngine === 'ollama'
-                      ? '마크다운으로 추출 (Local AI)'
-                      : extractEngine === 'ocr'
-                      ? '현재 페이지 OCR 추출'
-                      : '현재 페이지 추출 (Fast)'
-                    : extractEngine === 'ollama'
-                    ? '전체 추출 (Local AI)'
-                    : extractEngine === 'ocr'
-                    ? '전체 OCR 추출'
-                    : '전체 고속 추출'}
-                </span>
-              </>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsExtractionMenuOpen((prev) => !prev)}
+                disabled={isExtracting || isLoadingPdf}
+                className="h-6.5 px-1.5 rounded-r-md bg-[#5254e0] hover:bg-[#4345c9] text-white/90 hover:text-white border-l border-indigo-400/30 flex items-center justify-center transition cursor-pointer disabled:opacity-50"
+                title="추출 설정 (엔진 및 범위)"
+              >
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            </div>
+
+            {/* Extraction Settings Popover */}
+            {isExtractionMenuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-64 bg-[#1e202b]/98 backdrop-blur-md border border-[#2e3142] rounded-md shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs text-slate-200">
+                <div className="flex items-center justify-between pb-1.5 border-b border-[#2e3142]/70 mb-2">
+                  <span className="font-semibold text-slate-200 text-xs flex items-center gap-1.5">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+                    마크다운 추출 설정
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsExtractionMenuOpen(false)}
+                    className="text-slate-400 hover:text-white p-0.5 rounded-xs cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+
+                {/* Scope Selector */}
+                <div className="mb-2.5">
+                  <div className="text-[0.625rem] text-slate-400 font-medium mb-1">추출 범위</div>
+                  <div className="grid grid-cols-2 gap-1 bg-[#121318] p-0.5 rounded-md border border-[#2e3142]">
+                    <button
+                      type="button"
+                      onClick={() => setExtractScope('current')}
+                      className={`py-1 px-1.5 rounded-xs text-[0.6875rem] font-medium transition cursor-pointer text-center ${
+                        extractScope === 'current'
+                          ? 'bg-[#6366f1] text-white shadow-xs'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      현재 쪽 ({currentPage}쪽)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setExtractScope('all')}
+                      className={`py-1 px-1.5 rounded-xs text-[0.6875rem] font-medium transition cursor-pointer text-center ${
+                        extractScope === 'all'
+                          ? 'bg-[#6366f1] text-white shadow-xs'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      전체 문서 ({numPages}쪽)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Engine Options */}
+                <div className="mb-2.5 space-y-1">
+                  <div className="text-[0.625rem] text-slate-400 font-medium mb-1">변환 엔진</div>
+                  {[
+                    { id: 'fast', name: '고속 텍스트 엔진', desc: '내장 텍스트 스트림 즉각 추출 (초고속)' },
+                    { id: 'gemini', name: '클라우드 AI', desc: 'Gemini 정밀 서식 및 구조화 파싱' },
+                    { id: 'ollama', name: '로컬 AI', desc: 'Ollama 비전 모델 기반 로컬 변환' },
+                    { id: 'ocr', name: '문자 인식', desc: '스캔 문서용 이미지 광학 문자 인식' },
+                  ].map((eng) => (
+                    <button
+                      key={eng.id}
+                      type="button"
+                      onClick={() => setExtractEngine(eng.id as any)}
+                      className={`w-full text-left p-1.5 rounded-md border transition cursor-pointer flex items-start gap-2 ${
+                        extractEngine === eng.id
+                          ? 'bg-[#282a38] border-[#6366f1]/60 text-white'
+                          : 'bg-[#121318]/60 border-[#2e3142]/60 text-slate-300 hover:bg-[#282a38]/60 hover:text-white'
+                      }`}
+                    >
+                      <div className="pt-0.5">
+                        <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${
+                          extractEngine === eng.id ? 'border-[#6366f1] bg-[#6366f1]' : 'border-slate-500'
+                        }`}>
+                          {extractEngine === eng.id && <div className="w-1 h-1 rounded-full bg-white" />}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium leading-tight">{eng.name}</div>
+                        <div className="text-[0.5625rem] text-slate-400 leading-tight mt-0.5">{eng.desc}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* OCR Language if OCR */}
+                {extractEngine === 'ocr' && (
+                  <div className="mb-2.5 p-1.5 bg-[#121318] rounded-md border border-emerald-500/30">
+                    <div className="text-[0.625rem] text-emerald-400 font-medium mb-1">문자 인식 언어</div>
+                    <div className="grid grid-cols-2 gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setOcrLanguage('kor+eng')}
+                        className={`py-0.5 px-1 rounded-xs text-[0.625rem] transition cursor-pointer text-center ${
+                          ocrLanguage === 'kor+eng'
+                            ? 'bg-emerald-600 text-white font-medium'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        한글/영문
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOcrLanguage('eng')}
+                        className={`py-0.5 px-1 rounded-xs text-[0.625rem] transition cursor-pointer text-center ${
+                          ocrLanguage === 'eng'
+                            ? 'bg-emerald-600 text-white font-medium'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        영문 전용
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Run Action */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsExtractionMenuOpen(false);
+                    handleExtractToMarkdown(extractEngine);
+                  }}
+                  disabled={isExtracting || isLoadingPdf}
+                  className="w-full py-1.5 bg-[#6366f1] hover:bg-[#5254e0] text-white rounded-md text-xs font-medium transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>설정 적용 후 추출 실행</span>
+                </button>
+              </div>
             )}
-          </button>
+          </div>
 
-          <div className="h-4 w-px bg-[#2e3142] shrink-0" />
+          <div className="h-3.5 w-px bg-[#2e3142] shrink-0" />
 
-          {/* Split View Toggle Button */}
+          {/* Split View Toggle */}
           <button
             type="button"
             onClick={() => setIsSplitView((prev) => !prev)}
-            className={`h-6 px-2 rounded-sm border text-xs flex items-center gap-1 transition cursor-pointer ${
+            className={`h-6.5 px-2 rounded-md border text-xs flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
               isSplitView
                 ? 'bg-[#2b2d3e] text-indigo-300 border-[#6366f1]/50 font-medium'
                 : 'bg-[#121318] text-slate-300 border-[#2e3142] hover:bg-[#282a38] hover:text-white'
             }`}
-            title="마크다운 편집 전환 (원본 PDF와 마크다운 에디터 2분할 화면 토글)"
+            title="단일 뷰 및 분할 편집 전환"
           >
-            <Columns2 className="w-3.5 h-3.5" />
-            <span className="text-[0.6875rem]">
-              {isSplitView ? '단일 뷰 (PDF만)' : '마크다운 편집 전환 (Split View)'}
-            </span>
+            {isSplitView ? (
+              <>
+                <Square className="w-3.5 h-3.5" />
+                <span className="text-[0.6875rem] whitespace-nowrap">단일 뷰</span>
+              </>
+            ) : (
+              <>
+                <Columns2 className="w-3.5 h-3.5" />
+                <span className="text-[0.6875rem] whitespace-nowrap">분할 뷰</span>
+              </>
+            )}
           </button>
 
-          {/* Upload / Replace PDF */}
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="p-1 rounded-sm text-slate-400 hover:text-white hover:bg-[#282a38] transition cursor-pointer"
-            title="다른 PDF 파일 열기 / 교체"
-          >
-            <Upload className="w-3.5 h-3.5" />
-          </button>
+          <div className="h-3.5 w-px bg-[#2e3142] shrink-0" />
 
-          {/* Download PDF */}
-          <button
-            type="button"
-            onClick={handleDownloadPdf}
-            className="p-1 rounded-sm text-slate-400 hover:text-white hover:bg-[#282a38] transition cursor-pointer"
-            title="원본 PDF 파일 다운로드"
-          >
-            <Download className="w-3.5 h-3.5" />
-          </button>
+          {/* More Options Menu */}
+          <div className="relative" ref={moreMenuRef}>
+            <button
+              type="button"
+              onClick={() => setIsMoreMenuOpen((prev) => !prev)}
+              className={`h-6.5 w-6.5 flex items-center justify-center rounded-md border text-slate-300 hover:text-white transition cursor-pointer shrink-0 ${
+                isMoreMenuOpen
+                  ? 'bg-[#282a38] border-[#6366f1]/60 text-white'
+                  : 'bg-[#121318] border-[#2e3142] hover:bg-[#282a38]'
+              }`}
+              title="추가 도구 및 관리"
+            >
+              <MoreHorizontal className="w-3.5 h-3.5" />
+            </button>
+
+            {isMoreMenuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-56 bg-[#1e202b]/98 backdrop-blur-md border border-[#2e3142] rounded-md shadow-2xl p-1 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMoreMenuOpen(false);
+                    handleClearCacheAndReparse();
+                  }}
+                  disabled={isExtracting || isLoadingPdf || isOptimizingSize}
+                  className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center gap-2 transition cursor-pointer group"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-amber-400 group-hover:text-white shrink-0" />
+                  <div className="flex flex-col">
+                    <span>캐시 초기화 및 재파싱</span>
+                    <span className="text-[0.5625rem] text-slate-400 group-hover:text-indigo-100">마크다운 캐시 삭제 및 새로 파싱</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMoreMenuOpen(false);
+                    setShowReducerModal(true);
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center gap-2 transition cursor-pointer group"
+                >
+                  <Minimize2 className="w-3.5 h-3.5 text-emerald-400 group-hover:text-white shrink-0" />
+                  <div className="flex flex-col">
+                    <span>PDF 크기 최적화...</span>
+                    <span className="text-[0.5625rem] text-slate-400 group-hover:text-indigo-100">
+                      {reductionStats?.savedPercentage ? `${reductionStats.savedPercentage}% 절감됨 (메타데이터 제거)` : '메타데이터 제거 및 메모리 최적화'}
+                    </span>
+                  </div>
+                </button>
+
+                <div className="my-1 border-t border-[#2e3142]" />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMoreMenuOpen(false);
+                    fileInputRef.current?.click();
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center gap-2 transition cursor-pointer"
+                >
+                  <Upload className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>다른 PDF 파일 열기...</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMoreMenuOpen(false);
+                    handleDownloadPdf();
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center gap-2 transition cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>현재 PDF 다운로드</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMoreMenuOpen(false);
+                    handleRotate();
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center gap-2 transition cursor-pointer"
+                >
+                  <RotateCw className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>시계 방향 90도 회전</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1133,6 +1520,22 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
                 <span>렌더링 중...</span>
               </div>
             )}
+            {isExtracting && (
+              <div className="absolute inset-0 bg-[#121318]/85 backdrop-blur-xs flex flex-col items-center justify-center p-4 text-center z-10 animate-in fade-in duration-100">
+                <Loader2 className="w-7 h-7 text-indigo-400 animate-spin mb-2.5" />
+                <p className="text-xs font-semibold text-slate-100 mb-1">
+                  {ocrProgress?.status || '문서 텍스트 및 서식 분석 중...'}
+                </p>
+                {ocrProgress?.progress !== undefined && (
+                  <div className="w-48 max-w-full bg-[#1e202b] border border-[#2e3142] rounded-full h-1.5 overflow-hidden mt-1">
+                    <div
+                      className="bg-indigo-500 h-full transition-all duration-300 rounded-full"
+                      style={{ width: `${Math.max(ocrProgress.progress, 5)}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -1140,86 +1543,86 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
         {isSplitView && (
           <div className="w-1/2 h-full min-h-0 flex flex-col bg-[#14151e] overflow-hidden select-text">
             {/* Editor Sub-Header */}
-            <div className="h-8 px-3 bg-[#191b26] border-b border-[#2e3142] flex items-center justify-between shrink-0 select-none">
-              <div className="flex items-center gap-2 text-xs">
-                <span className="font-semibold text-slate-200 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse" />
-                  마크다운 에디터
+            <div className="h-8 px-2.5 bg-[#191b26] border-b border-[#2e3142] flex items-center justify-between gap-2 shrink-0 select-none overflow-hidden text-xs">
+              <div className="flex items-center gap-2 min-w-0 shrink-0">
+                <span className="font-semibold text-slate-200 flex items-center gap-1.5 text-xs whitespace-nowrap shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block shrink-0" />
+                  마크다운 편집
                 </span>
-                <span className="text-[0.625rem] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">
-                  실시간 로컬 DB 동기화
+                <span className="text-[0.5625rem] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 whitespace-nowrap shrink-0">
+                  로컬 동기화
                 </span>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 shrink-0">
                 {/* Sync Scroll Toggle Button */}
                 <button
                   type="button"
                   onClick={() => setIsSyncScrollEnabled((prev) => !prev)}
-                  className={`px-2 py-0.5 rounded-xs text-[0.625rem] font-mono transition cursor-pointer flex items-center gap-1 border ${
+                  className={`px-1.5 py-0.5 rounded-xs text-[0.625rem] transition cursor-pointer flex items-center gap-1 border whitespace-nowrap shrink-0 ${
                     isSyncScrollEnabled
                       ? 'bg-indigo-950/60 text-indigo-300 border-indigo-500/40 font-medium'
                       : 'bg-[#121318] text-slate-400 border-[#2e3142] hover:text-slate-200'
                   }`}
                   title={
                     isSyncScrollEnabled
-                      ? '페이지 연동 스크롤 (Sync Scroll) 활성화됨 - PDF 페이지 변경 시 에디터 자동 이동'
-                      : '페이지 연동 스크롤 (Sync Scroll) 일시 해제됨 - 클릭하여 활성화'
+                      ? '페이지 연동 스크롤 켜짐 - PDF 페이지 변경 시 에디터 자동 이동'
+                      : '페이지 연동 스크롤 꺼짐 - 클릭하여 활성화'
                   }
                 >
-                  <ArrowDownUp className={`w-3 h-3 ${isSyncScrollEnabled ? 'text-indigo-400' : 'text-slate-500'}`} />
-                  <span>동기화 스크롤 {isSyncScrollEnabled ? 'ON' : 'OFF'}</span>
+                  <ArrowDownUp className={`w-3 h-3 shrink-0 ${isSyncScrollEnabled ? 'text-indigo-400' : 'text-slate-500'}`} />
+                  <span>스크롤 연동</span>
                 </button>
 
                 {/* Instant Page Scroll Trigger */}
                 <button
                   type="button"
                   onClick={() => scrollToCurrentPageInEditor(currentPage)}
-                  className="p-1 rounded-sm text-slate-400 hover:text-indigo-300 hover:bg-[#282a38] transition cursor-pointer"
-                  title={`현재 PDF ${currentPage}페이지 위치로 에디터 즉시 스크롤`}
+                  className="p-1 rounded-xs text-slate-400 hover:text-indigo-300 hover:bg-[#282a38] transition cursor-pointer shrink-0"
+                  title={`현재 PDF ${currentPage}페이지 위치로 에디터 이동`}
                 >
                   <LocateFixed className="w-3.5 h-3.5" />
                 </button>
 
-                <div className="h-3.5 w-px bg-[#2e3142]" />
+                <div className="h-3.5 w-px bg-[#2e3142] shrink-0" />
 
                 {/* Tab Switcher: Edit vs Preview */}
-                <div className="flex bg-[#121318] border border-[#2e3142] rounded-xs p-0.5">
+                <div className="flex bg-[#121318] border border-[#2e3142] rounded-xs p-0.5 shrink-0">
                   <button
                     type="button"
                     onClick={() => setRightPaneTab('edit')}
-                    className={`px-2 py-0.5 rounded-xs text-[0.625rem] font-mono transition cursor-pointer flex items-center gap-1 ${
+                    className={`px-2 py-0.5 rounded-xs text-[0.625rem] transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
                       rightPaneTab === 'edit'
                         ? 'bg-[#282a38] text-white font-medium'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
                     <Edit3 className="w-3 h-3" />
-                    <span>편집 (Edit)</span>
+                    <span>편집</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setRightPaneTab('preview')}
-                    className={`px-2 py-0.5 rounded-xs text-[0.625rem] font-mono transition cursor-pointer flex items-center gap-1 ${
+                    className={`px-2 py-0.5 rounded-xs text-[0.625rem] transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
                       rightPaneTab === 'preview'
                         ? 'bg-[#282a38] text-white font-medium'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
                     <Eye className="w-3 h-3" />
-                    <span>미리보기 (Preview)</span>
+                    <span>미리보기</span>
                   </button>
                 </div>
 
-                <div className="h-3.5 w-px bg-[#2e3142]" />
+                <div className="h-3.5 w-px bg-[#2e3142] shrink-0" />
 
                 {/* Copy Markdown */}
                 <button
                   type="button"
                   onClick={handleCopyMarkdown}
-                  className="p-1 rounded-sm text-slate-400 hover:text-white hover:bg-[#282a38] transition cursor-pointer"
-                  title="마크다운 전체 복사"
+                  className="p-1 rounded-xs text-slate-400 hover:text-white hover:bg-[#282a38] transition cursor-pointer shrink-0"
+                  title="마크다운 복사"
                 >
                   {hasCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
@@ -1234,7 +1637,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
                     ref={editorTextareaRef}
                     value={markdownContent}
                     onChange={(e) => onMarkdownChange(e.target.value)}
-                    placeholder="# PDF 마크다운 내용&#10;&#10;상단의 [마크다운으로 추출 (Local AI)] 버튼을 누르면 원본 PDF의 표, 목록, 텍스트가 자동으로 완벽하게 구조화되어 여기에 채워집니다. 직접 마크다운을 타이핑하거나 수정할 수도 있습니다."
+                    placeholder="# PDF 마크다운 내용&#10;&#10;상단의 [마크다운 추출] 버튼을 누르면 원본 PDF의 표, 목록, 텍스트가 자동으로 완벽하게 구조화되어 여기에 채워집니다. 직접 마크다운을 타이핑하거나 수정할 수도 있습니다."
                     className="flex-1 w-full h-full p-4 bg-transparent text-slate-200 font-mono text-xs leading-relaxed resize-none outline-none custom-scrollbar selection:bg-[#6366f1]/30 selection:text-white border-none"
                     spellCheck={false}
                   />
@@ -1276,7 +1679,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
                       <FileText className="w-8 h-8 mx-auto text-slate-600" />
                       <p className="text-xs">추출된 마크다운 내용이 없습니다.</p>
                       <p className="text-[0.6875rem] text-slate-600">
-                        상단 미니 툴바의 <strong>[마크다운으로 추출 (Local AI)]</strong> 버튼을 눌러보세요.
+                        상단 미니 툴바의 <strong>[마크다운 추출]</strong> 버튼을 눌러보세요.
                       </p>
                     </div>
                   )}
@@ -1286,6 +1689,196 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({
           </div>
         )}
       </div>
+
+      {/* PDF Size Reducer Modal */}
+      {showReducerModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div
+            className="bg-[#1e202b] border border-[#2e3142] rounded-lg shadow-2xl w-full max-w-lg overflow-hidden text-slate-100 flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="h-12 px-5 bg-[#181a24] border-b border-[#2e3142] flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  <Minimize2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-white tracking-tight">PDF 크기 최적화 유틸리티</h3>
+                  <p className="text-[0.6875rem] text-slate-400">
+                    문서 파싱 단계에서 고해상도 이미지 메타데이터를 제거하여 메모리 점유율을 대폭 낮춥니다.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReducerModal(false)}
+                className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-[#282a38] transition cursor-pointer"
+                title="닫기"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-5 space-y-4 text-xs overflow-y-auto max-h-[75vh] custom-scrollbar">
+              {/* Stats Overview */}
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="p-3 bg-[#121318] border border-[#2e3142] rounded-md flex flex-col">
+                  <span className="text-[0.6875rem] text-slate-400">원본 문서 크기</span>
+                  <span className="text-sm font-semibold text-slate-200 mt-1">
+                    {formatBytes(
+                      reductionStats?.originalSizeBytes ||
+                        rawOriginalBytesRef.current?.byteLength ||
+                        activePdfBytesRef.current?.byteLength ||
+                        0
+                    )}
+                  </span>
+                </div>
+
+                <div className="p-3 bg-[#121318] border border-[#2e3142] rounded-md flex flex-col">
+                  <span className="text-[0.6875rem] text-slate-400">최적화 후 크기</span>
+                  <span className="text-sm font-semibold text-emerald-400 mt-1">
+                    {formatBytes(
+                      reductionStats?.reducedSizeBytes ||
+                        activePdfBytesRef.current?.byteLength ||
+                        0
+                    )}
+                  </span>
+                </div>
+
+                <div className="p-3 bg-[#121318] border border-[#2e3142] rounded-md flex flex-col">
+                  <span className="text-[0.6875rem] text-slate-400">메모리 절감량</span>
+                  <span className="text-sm font-semibold text-indigo-400 mt-1">
+                    {reductionStats && reductionStats.wasOptimized && reductionStats.savedPercentage > 0
+                      ? `${formatBytes(reductionStats.savedBytes)} (${reductionStats.savedPercentage}%)`
+                      : '최적화 가능'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Stripped Breakdown Details */}
+              <div className="p-3.5 bg-[#121318] border border-[#2e3142] rounded-md space-y-2.5">
+                <div className="flex items-center justify-between border-b border-[#2e3142]/60 pb-2">
+                  <span className="font-medium text-slate-200 flex items-center gap-1.5">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+                    제거된 고해상도 메타데이터 항목
+                  </span>
+                  <span className="text-[0.6875rem] text-slate-400">
+                    {reductionStats?.wasOptimized ? '정리 완료' : '분석 대기'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[0.6875rem]">
+                  <div className="p-2 bg-[#161822] rounded border border-[#2e3142]/40 flex justify-between items-center">
+                    <span className="text-slate-300">이미지 메타데이터 블록</span>
+                    <span className="font-mono text-emerald-400 font-semibold">
+                      {reductionStats?.strippedItems.imageMetadataCount || 0}개
+                    </span>
+                  </div>
+                  <div className="p-2 bg-[#161822] rounded border border-[#2e3142]/40 flex justify-between items-center">
+                    <span className="text-slate-300">내장 압축 마커 세그먼트</span>
+                    <span className="font-mono text-emerald-400 font-semibold">
+                      {reductionStats?.strippedItems.jpegSegmentsCount || 0}개
+                    </span>
+                  </div>
+                  <div className="p-2 bg-[#161822] rounded border border-[#2e3142]/40 flex justify-between items-center">
+                    <span className="text-slate-300">문서 메타데이터 스트림</span>
+                    <span className="font-mono text-emerald-400 font-semibold">
+                      {reductionStats?.strippedItems.xmpStreamCount || 0}개
+                    </span>
+                  </div>
+                  <div className="p-2 bg-[#161822] rounded border border-[#2e3142]/40 flex justify-between items-center">
+                    <span className="text-slate-300">내장 썸네일 캐시 스트림</span>
+                    <span className="font-mono text-emerald-400 font-semibold">
+                      {reductionStats?.strippedItems.thumbnailStreamCount || 0}개
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-[0.6875rem] text-slate-400 leading-relaxed pt-1">
+                  내장 이미지의 압축 계수와 시각적 품질은 온전히 유지하면서 불필요한 촬영 정보, 컬러 프로필, 포토샵 헤더 등 메모리 점유 메타데이터만을 선택적으로 분리 제거합니다.
+                </p>
+              </div>
+
+              {/* Preferences: Auto Reduce On Import Toggle */}
+              <div className="p-3.5 bg-[#121318] border border-[#2e3142] rounded-md flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="auto_reduce_checkbox"
+                  checked={isAutoReduceEnabled}
+                  onChange={(e) => handleToggleAutoReduce(e.target.checked)}
+                  className="mt-0.5 accent-indigo-600 rounded cursor-pointer"
+                />
+                <label htmlFor="auto_reduce_checkbox" className="cursor-pointer select-none space-y-0.5">
+                  <div className="font-medium text-slate-200">문서 불러올 때 자동 최적화</div>
+                  <div className="text-[0.6875rem] text-slate-400 leading-relaxed">
+                    대용량 문서를 열 때 파싱 단계에서 불필요한 고해상도 이미지 메타데이터를 자동으로 분리하여 브라우저 메모리 부하와 버벅임을 사전에 방지합니다.
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="h-14 px-5 bg-[#181a24] border-t border-[#2e3142] flex items-center justify-between shrink-0">
+              <button
+                type="button"
+                onClick={handleDownloadOptimizedPdf}
+                disabled={!activePdfBytesRef.current}
+                className="h-8 px-3 rounded-md border border-[#2e3142] bg-[#121318] text-slate-300 hover:text-white hover:bg-[#282a38] text-xs font-medium flex items-center gap-1.5 transition cursor-pointer disabled:opacity-40"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>최적화된 PDF 저장</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowReducerModal(false);
+                  handleClearCacheAndReparse();
+                }}
+                disabled={isExtracting || isLoadingPdf || isOptimizingSize}
+                className="h-8 px-3 rounded-md border border-amber-500/30 bg-[#1e1c18] text-amber-300 hover:bg-[#28241d] text-xs font-medium flex items-center gap-1.5 transition cursor-pointer disabled:opacity-40"
+                title="현재 문서의 마크다운 캐시를 삭제하고 메타데이터 재최적화 및 파싱을 다시 실행합니다"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                <span>캐시 삭제 후 전체 재파싱</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowReducerModal(false)}
+                  className="h-8 px-3.5 rounded-md border border-[#2e3142] bg-[#121318] text-slate-300 hover:text-white hover:bg-[#282a38] text-xs font-medium transition cursor-pointer"
+                >
+                  닫기
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleApplySizeReduction}
+                  disabled={isOptimizingSize || isLoadingPdf}
+                  className="h-8 px-4 rounded-md bg-[#6366f1] hover:bg-[#5254e0] active:bg-[#4345c9] text-white text-xs font-medium flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                >
+                  {isOptimizingSize ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>최적화 처리 중...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Minimize2 className="w-3.5 h-3.5" />
+                      <span>지금 최적화 실행</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
+});
+
+PdfViewer.displayName = 'PdfViewer';

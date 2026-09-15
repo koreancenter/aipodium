@@ -1,6 +1,6 @@
 {
-  "name": "Remix aipodium",
-  "description": "Private knowledge workspace and research synthesis platform for university students, professors, and researchers.",
+  "name": "Remix aipodium modify login",
+  "description": "Imported from GitHub: koreancenter/aipodium",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

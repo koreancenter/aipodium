@@ -111,7 +111,7 @@ export interface UserPreferences {
   googleSearchGrounding?: boolean;
   // PDF Parsing Engine Config
   pdfParser?: {
-    engine: 'fast' | 'ollama';
+    engine: 'fast' | 'gemini' | 'ollama';
     ollamaEndpoint?: string;
     ollamaModel?: string;
   };
@@ -554,7 +554,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   });
 
   // PDF Parser Engine State
-  const [pdfParserEngine, setPdfParserEngine] = useState<'fast' | 'ollama'>(
+  const [pdfParserEngine, setPdfParserEngine] = useState<'fast' | 'gemini' | 'ollama'>(
     preferences.pdfParser?.engine || 'fast'
   );
   const [pdfOllamaEndpoint, setPdfOllamaEndpoint] = useState<string>(
@@ -1665,6 +1665,19 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
                         <button
                           type="button"
+                          onClick={() => setPdfParserEngine('gemini')}
+                          className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center gap-1.5 ${
+                            pdfParserEngine === 'gemini'
+                              ? 'bg-[#282a38] text-white font-medium border border-[#2e3142]'
+                              : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <Sparkles className="w-3 h-3 text-indigo-400" />
+                          <span>클라우드 AI 정밀 파서</span>
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() => setPdfParserEngine('ollama')}
                           className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center gap-1.5 ${
                             pdfParserEngine === 'ollama'
@@ -1672,7 +1685,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               : 'text-slate-400 hover:text-slate-200'
                           }`}
                         >
-                          <Server className="w-3 h-3 text-indigo-400" />
+                          <Server className="w-3 h-3 text-sky-400" />
                           <span>로컬 AI 구조화 파서</span>
                         </button>
                       </div>
@@ -1842,212 +1855,197 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
               {/* TAB: Integrations & Accounts */}
               {activeTab === 'integrations' && (
-                <div className="space-y-4 animate-in fade-in duration-150 text-xs">
-                  <div className="flex items-center justify-between pb-2 border-b border-[#2e3142]">
-                    <div className="flex items-center gap-1.5">
-                      <h3 className="text-xs font-medium text-slate-200">외부 계정 및 작업 영역 연동</h3>
-                      <HelpTooltip
-                        title="외부 계정 연동 안내"
-                        content="클라우드 저장소 구글 드라이브, 원격 저장소 GitHub, 리눅스 서버 SSH 및 SFTP와 연동하여 어디서나 작업을 이어갈 수 있습니다."
-                      />
-                    </div>
-                  </div>
+                <div className="bg-[#16171e] border border-[#2e3142] rounded-md p-3.5 space-y-2 animate-in fade-in duration-150 text-xs">
+                  {/* Item 1: Google Drive On-Demand & Workspace Integration */}
+                  {(() => {
+                    const isConnected = googleTokenStatus === 'connected' && !!googleUser;
+                    const isExpired = googleTokenStatus === 'expired';
 
-                  <div className="space-y-2.5">
-                    {/* Item 1: Google Drive On-Demand & Workspace Integration */}
-                    {(() => {
-                      const isConnected = googleTokenStatus === 'connected' && !!googleUser;
-                      const isExpired = googleTokenStatus === 'expired';
-
-                      return (
-                        <div className="bg-[#16171e] border border-[#2e3142] rounded-md p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-indigo-500/40 transition">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-9 h-9 rounded-md bg-[#282a38] flex items-center justify-center shrink-0 border border-[#2e3142] text-indigo-400">
-                              <Globe className="w-4 h-4" />
-                            </div>
-                            <div className="min-w-0 space-y-0.5">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-medium text-xs text-slate-200">구글 드라이브</span>
-                                {isConnected ? (
-                                  <span className="badge-success text-[10px] px-1.5 py-0.5 rounded-sm font-mono flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                    연동됨
-                                  </span>
-                                ) : isExpired ? (
-                                  <span className="badge-warning text-[10px] px-1.5 py-0.5 rounded-sm font-mono">
-                                    토큰 만료
-                                  </span>
-                                ) : (
-                                  <span className="badge-muted text-[10px] px-1.5 py-0.5 rounded-sm font-mono">
-                                    단독 연동 가능
-                                  </span>
-                                )}
-                                <span className="badge-muted text-[10px] px-1.5 py-0.5 rounded-sm font-mono text-indigo-300">
-                                  단독 권한 연동
+                    return (
+                      <div className="flex items-center justify-between py-2 border-b border-white/[0.06] gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-7 h-7 rounded-md bg-[#282a38] text-indigo-400 border border-[#2e3142] flex items-center justify-center shrink-0">
+                            <Globe className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-xs font-medium text-slate-200">구글 드라이브</span>
+                              {isConnected ? (
+                                <span className="badge-success text-[10px] px-1.5 py-0.5 rounded-sm font-mono flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                  연동됨
                                 </span>
-                              </div>
-                              <p className="text-[11px] text-slate-400 truncate">
-                                {isConnected && googleUser ? (
-                                  <span className="font-mono text-slate-300">
-                                    {googleUser.email}
-                                  </span>
-                                ) : (
-                                  '게스트 모드와 무관하게 문서 불러오기 및 저장을 위한 온디맨드 연동'
-                                )}
-                              </p>
+                              ) : isExpired ? (
+                                <span className="badge-warning text-[10px] px-1.5 py-0.5 rounded-sm font-mono">
+                                  토큰 만료
+                                </span>
+                              ) : (
+                                <span className="badge-muted text-[10px] px-1.5 py-0.5 rounded-sm font-mono">
+                                  단독 연동 가능
+                                </span>
+                              )}
                             </div>
+                            <p className="text-[11px] text-slate-400 truncate">
+                              {isConnected && googleUser ? (
+                                <span className="font-mono text-slate-300">
+                                  {googleUser.email}
+                                </span>
+                              ) : (
+                                '문서 불러오기 및 저장을 위한 온디맨드 연동'
+                              )}
+                            </p>
                           </div>
+                        </div>
 
-                          <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
-                            {isConnected ? (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={onOpenGoogleDrive}
-                                  className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-4 py-2 rounded-md text-sm font-medium transition-colors inline-flex items-center gap-2"
-                                  title="Google Drive 파일 탐색 모달 열기"
-                                >
-                                  <FolderOpen className="w-4 h-4" />
-                                  <span>드라이브 탐색</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={onOpenGoogleAccount}
-                                  className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-4 py-2 rounded-md text-sm font-medium transition-colors inline-flex items-center gap-2"
-                                  title="Google 계정 및 연결 관리"
-                                >
-                                  <KeyRound className="w-4 h-4 text-indigo-400" />
-                                  <span>계정 관리</span>
-                                </button>
-                              </>
-                            ) : isExpired ? (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isConnected ? (
+                            <>
                               <button
                                 type="button"
-                                onClick={onOpenGoogleDrive || onOpenGoogleAccount}
-                                className="bg-zinc-800/80 hover:bg-zinc-700 text-amber-300 hover:text-amber-200 border border-amber-500/40 px-4 py-2 rounded-md text-sm font-medium transition-colors inline-flex items-center gap-2"
+                                onClick={onOpenGoogleDrive}
+                                className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
+                                title="Google Drive 파일 탐색 모달 열기"
                               >
-                                <KeyRound className="w-4 h-4" />
-                                <span>토큰 재인증 및 열기</span>
+                                <FolderOpen className="w-3.5 h-3.5 text-slate-400" />
+                                <span>드라이브 탐색</span>
                               </button>
-                            ) : (
                               <button
                                 type="button"
-                                onClick={onOpenGoogleDrive || onOpenGoogleAccount}
-                                className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-4 py-2 rounded-md text-sm font-medium transition-colors inline-flex items-center gap-2"
-                                title="Google OAuth 연동을 시작합니다."
+                                onClick={onOpenGoogleAccount}
+                                className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
+                                title="Google 계정 및 연결 관리"
                               >
-                                <Globe className="w-4 h-4" />
-                                <span>구글 드라이브 연결</span>
+                                <KeyRound className="w-3.5 h-3.5 text-indigo-400" />
+                                <span>계정 관리</span>
                               </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {/* Item 2: GitHub */}
-                    {(() => {
-                      const isConnected = !!(githubConfig?.owner && githubConfig?.repo);
-                      const hasPat = !!githubConfig?.token;
-
-                      return (
-                        <div className="bg-[#16171e] border border-[#2e3142] rounded-md p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-indigo-500/40 transition">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-9 h-9 rounded-md bg-[#282a38] flex items-center justify-center shrink-0 border border-[#2e3142] text-purple-400">
-                              <Github className="w-4 h-4" />
-                            </div>
-                            <div className="min-w-0 space-y-0.5">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-medium text-xs text-slate-200">GitHub</span>
-                                {isConnected ? (
-                                  <span className="badge-success text-[10px] px-1.5 py-0.5 rounded-sm font-mono flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                    연결됨
-                                  </span>
-                                ) : hasPat ? (
-                                  <span className="badge-warning text-[10px] px-1.5 py-0.5 rounded-sm font-mono">
-                                    토큰 등록됨
-                                  </span>
-                                ) : (
-                                  <span className="badge-muted text-[10px] px-1.5 py-0.5 rounded-sm font-mono">
-                                    미연결
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[11px] text-slate-400 truncate">
-                                {isConnected ? (
-                                  <span className="font-mono text-purple-300">{githubConfig?.owner}/{githubConfig?.repo}</span>
-                                ) : (
-                                  '원격 저장소 커밋, 푸시, 브랜치 관리 및 동기화'
-                                )}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                            </>
+                          ) : isExpired ? (
                             <button
                               type="button"
-                              onClick={onOpenGithub}
-                              className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-4 py-2 rounded-md text-sm font-medium transition-colors inline-flex items-center gap-2"
+                              onClick={onOpenGoogleDrive || onOpenGoogleAccount}
+                              className="bg-zinc-800/80 hover:bg-zinc-700 text-amber-300 hover:text-amber-200 border border-amber-500/40 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
                             >
-                              <Github className="w-4 h-4" />
-                              <span>{isConnected ? '저장소 관리' : '연결 설정'}</span>
+                              <KeyRound className="w-3.5 h-3.5" />
+                              <span>토큰 재인증 및 열기</span>
                             </button>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {/* Item 3: Remote SSH / SFTP */}
-                    {(() => {
-                      const isConnected = !!remoteConfig?.host;
-
-                      return (
-                        <div className="bg-[#16171e] border border-[#2e3142] rounded-md p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-indigo-500/40 transition">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-9 h-9 rounded-md bg-[#282a38] flex items-center justify-center shrink-0 border border-[#2e3142] text-indigo-400">
-                              <Server className="w-4 h-4" />
-                            </div>
-                            <div className="min-w-0 space-y-0.5">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-medium text-xs text-slate-200">원격 서버</span>
-                                {isConnected ? (
-                                  <span className="badge-success text-[10px] px-1.5 py-0.5 rounded-sm font-mono flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                    연결됨
-                                  </span>
-                                ) : (
-                                  <span className="badge-muted text-[10px] px-1.5 py-0.5 rounded-sm font-mono">
-                                    미연결
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[11px] text-slate-400 truncate">
-                                {isConnected ? (
-                                  <span className="font-mono text-indigo-300">
-                                    {remoteConfig?.username || 'root'}@{remoteConfig?.host}:{remoteConfig?.port || 22}
-                                  </span>
-                                ) : (
-                                  '원격 리눅스 서버 터미널 및 SFTP 파일 시스템 탐색'
-                                )}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                          ) : (
                             <button
                               type="button"
-                              onClick={onOpenRemoteSSH}
-                              className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-4 py-2 rounded-md text-sm font-medium transition-colors inline-flex items-center gap-2"
+                              onClick={onOpenGoogleDrive || onOpenGoogleAccount}
+                              className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
+                              title="Google OAuth 연동을 시작합니다."
                             >
-                              <Server className="w-4 h-4" />
-                              <span>{isConnected ? '서버 관리' : '서버 설정'}</span>
+                              <Globe className="w-3.5 h-3.5 text-slate-400" />
+                              <span>구글 드라이브 연결</span>
                             </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Item 2: GitHub */}
+                  {(() => {
+                    const isConnected = !!(githubConfig?.owner && githubConfig?.repo);
+                    const hasPat = !!githubConfig?.token;
+
+                    return (
+                      <div className="flex items-center justify-between py-2 border-b border-white/[0.06] gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-7 h-7 rounded-md bg-[#282a38] text-purple-400 border border-[#2e3142] flex items-center justify-center shrink-0">
+                            <Github className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-xs font-medium text-slate-200">GitHub</span>
+                              {isConnected ? (
+                                <span className="badge-success text-[10px] px-1.5 py-0.5 rounded-sm font-mono flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                  연결됨
+                                </span>
+                              ) : hasPat ? (
+                                <span className="badge-warning text-[10px] px-1.5 py-0.5 rounded-sm font-mono">
+                                  토큰 등록됨
+                                </span>
+                              ) : (
+                                <span className="badge-muted text-[10px] px-1.5 py-0.5 rounded-sm font-mono">
+                                  미연결
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-slate-400 truncate">
+                              {isConnected ? (
+                                <span className="font-mono text-purple-300">{githubConfig?.owner}/{githubConfig?.repo}</span>
+                              ) : (
+                                '원격 저장소 커밋, 푸시, 브랜치 관리 및 동기화'
+                              )}
+                            </p>
                           </div>
                         </div>
-                      );
-                    })()}
-                  </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={onOpenGithub}
+                            className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Github className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{isConnected ? '저장소 관리' : '연결 설정'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Item 3: Remote SSH / SFTP */}
+                  {(() => {
+                    const isConnected = !!remoteConfig?.host;
+
+                    return (
+                      <div className="flex items-center justify-between py-2 gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-7 h-7 rounded-md bg-[#282a38] text-indigo-400 border border-[#2e3142] flex items-center justify-center shrink-0">
+                            <Server className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-xs font-medium text-slate-200">원격 서버</span>
+                              {isConnected ? (
+                                <span className="badge-success text-[10px] px-1.5 py-0.5 rounded-sm font-mono flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                  연결됨
+                                </span>
+                              ) : (
+                                <span className="badge-muted text-[10px] px-1.5 py-0.5 rounded-sm font-mono">
+                                  미연결
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-slate-400 truncate">
+                              {isConnected ? (
+                                <span className="font-mono text-indigo-300">
+                                  {remoteConfig?.username || 'root'}@{remoteConfig?.host}:{remoteConfig?.port || 22}
+                                </span>
+                              ) : (
+                                '원격 리눅스 서버 터미널 및 SFTP 파일 시스템 탐색'
+                              )}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={onOpenRemoteSSH}
+                            className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Server className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{isConnected ? '서버 관리' : '서버 설정'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 

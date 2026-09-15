@@ -20,13 +20,15 @@ if (typeof window !== 'undefined') {
 
 export type SupportedDocFormat = 'pdf' | 'docx' | 'xlsx' | 'pptx' | 'text' | 'unknown';
 
-export type PdfParserEngine = 'fast' | 'ollama';
+export type PdfParserEngine = 'fast' | 'gemini' | 'ollama';
 
 export interface PdfConversionOptions {
   engine?: PdfParserEngine;
   ollamaEndpoint?: string;
   ollamaModel?: string;
+  geminiApiKey?: string;
   onStatusUpdate?: (status: string) => void;
+  onProgress?: (percent: number, status: string) => void;
   onFallback?: (reason: string) => void;
 }
 
@@ -54,22 +56,44 @@ export interface DocumentConversionResult {
 
 /**
  * Fetch installed models from local Ollama endpoint (/api/tags)
+ * Supports browser direct fetch with intelligent fallback to server proxy to bypass CORS / Mixed Content
  */
 export async function fetchOllamaInstalledModels(endpoint: string = 'http://localhost:11434'): Promise<string[]> {
+  const cleanEp = endpoint.trim().replace(/\/+$/, '');
+
+  // 1. Direct browser fetch
   try {
-    const cleanEp = endpoint.trim().replace(/\/+$/, '');
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
     const res = await fetch(`${cleanEp}/api/tags`, { signal: controller.signal });
     clearTimeout(timeoutId);
-    if (!res.ok) return [];
-    const data = await res.json();
-    if (Array.isArray(data?.models)) {
-      return data.models.map((m: any) => m.name || m.model).filter(Boolean);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data?.models)) {
+        return data.models.map((m: any) => m.name || m.model).filter(Boolean);
+      }
     }
   } catch {
-    // Offline or CORS restricted
+    // Fallthrough to server proxy if CORS or Mixed Content blocked direct access
   }
+
+  // 2. Server Proxy fetch fallback (bypasses browser CORS & Mixed Content constraints)
+  try {
+    const proxyRes = await fetch('/api/ollama/proxy-tags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: cleanEp })
+    });
+    if (proxyRes.ok) {
+      const proxyData = await proxyRes.json();
+      if (Array.isArray(proxyData?.models)) {
+        return proxyData.models.map((m: any) => m.name || m.model).filter(Boolean);
+      }
+    }
+  } catch {
+    // Network or proxy failure
+  }
+
   return [];
 }
 
@@ -178,100 +202,157 @@ export async function convertPdfToMarkdown(
   const pdfDoc = await loadingTask.promise;
   const numPages = pdfDoc.numPages;
 
-  // 1. Extract raw text stream and layout line-by-line per page
+  // 1. Extract raw text stream with concurrent chunking and memory cleanup
+  // Concurrency: 5 pages per chunk for high throughput without main thread blocking
+  const CHUNK_SIZE = 5;
+  const pageResults: Array<{ pageNum: number; mdSnippet: string; rawText: string }> = new Array(numPages);
+
+  options?.onStatusUpdate?.(`PDF 문서 분석 시작 (총 ${numPages}페이지)...`);
+  options?.onProgress?.(5, `PDF 문서 분석 시작 (총 ${numPages}페이지)`);
+
+  for (let chunkStart = 1; chunkStart <= numPages; chunkStart += CHUNK_SIZE) {
+    const chunkEnd = Math.min(chunkStart + CHUNK_SIZE - 1, numPages);
+    const chunkPromises = [];
+
+    for (let pageNum = chunkStart; pageNum <= chunkEnd; pageNum++) {
+      chunkPromises.push(
+        (async (pNum: number) => {
+          try {
+            const page = await pdfDoc.getPage(pNum);
+            const textContent = await page.getTextContent();
+            const items = textContent.items as Array<{
+              str: string;
+              transform: number[];
+              width: number;
+              height: number;
+            }>;
+
+            let snippet = '';
+            let pageText = '';
+
+            if (!items || items.length === 0) {
+              snippet = `## [페이지 ${pNum}]\n\n*(텍스트가 없거나 스캔 이미지 형태의 페이지입니다.)*\n\n---\n\n`;
+              pageText = `[페이지 ${pNum}]\n(텍스트 없음)`;
+            } else {
+              const validItems = items.filter((it) => it.str && it.str.trim().length > 0);
+              if (validItems.length === 0) {
+                snippet = `## [페이지 ${pNum}]\n\n*(공백 또는 그래픽 요소 전용 페이지입니다.)*\n\n---\n\n`;
+                pageText = `[페이지 ${pNum}]\n(공백 페이지)`;
+              } else {
+                const lineTolerance = 4;
+                const lines: Array<{ y: number; text: string; fontSize: number }> = [];
+                let currentLine: { y: number; items: typeof items; fontSize: number } | null = null;
+
+                validItems.forEach((item) => {
+                  const y = item.transform[5];
+                  const fontSize = Math.abs(item.transform[0] || item.height || 12);
+
+                  if (!currentLine || Math.abs(currentLine.y - y) > lineTolerance) {
+                    if (currentLine) {
+                      currentLine.items.sort((a, b) => a.transform[4] - b.transform[4]);
+                      lines.push({
+                        y: currentLine.y,
+                        text: currentLine.items.map((i) => i.str).join(' ').trim(),
+                        fontSize: currentLine.fontSize,
+                      });
+                    }
+                    currentLine = { y, items: [item], fontSize };
+                  } else {
+                    currentLine.items.push(item);
+                    if (fontSize > currentLine.fontSize) {
+                      currentLine.fontSize = fontSize;
+                    }
+                  }
+                });
+
+                if (currentLine) {
+                  (currentLine as any).items.sort((a: any, b: any) => a.transform[4] - b.transform[4]);
+                  lines.push({
+                    y: (currentLine as any).y,
+                    text: (currentLine as any).items.map((i: any) => i.str).join(' ').trim(),
+                    fontSize: (currentLine as any).fontSize,
+                  });
+                }
+
+                // Sort lines top-to-bottom (Y descending)
+                lines.sort((a, b) => b.y - a.y);
+
+                let pageMd = `## [페이지 ${pNum}]\n\n`;
+                const pageLines: string[] = [];
+
+                for (const line of lines) {
+                  const trimmed = line.text.trim();
+                  if (!trimmed) continue;
+                  pageLines.push(trimmed);
+
+                  if (line.fontSize >= 16 && trimmed.length < 80) {
+                    pageMd += `### ${trimmed}\n\n`;
+                  } else if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('·')) {
+                    pageMd += `- ${trimmed.replace(/^[•\-·]\s*/, '')}\n`;
+                  } else if (/^\d+[\.\)]\s/.test(trimmed)) {
+                    pageMd += `${trimmed}\n`;
+                  } else {
+                    pageMd += `${trimmed}\n\n`;
+                  }
+                }
+
+                pageMd += `\n---\n\n`;
+                snippet = pageMd;
+                pageText = `[페이지 ${pNum}]\n` + pageLines.join('\n');
+              }
+            }
+
+            // Immediately cleanup page rendering cache to prevent memory explosion
+            try {
+              if (typeof (page as any).cleanup === 'function') {
+                (page as any).cleanup();
+              }
+            } catch {
+              // Ignore cleanup error
+            }
+
+            return { pageNum: pNum, mdSnippet: snippet, rawText: pageText };
+          } catch {
+            return {
+              pageNum: pNum,
+              mdSnippet: `## [페이지 ${pNum}]\n\n*(페이지 파싱 중 경고 발생)*\n\n---\n\n`,
+              rawText: `[페이지 ${pNum}]\n(파싱 경고)`,
+            };
+          }
+        })(pageNum)
+      );
+    }
+
+    const chunkResolved = await Promise.all(chunkPromises);
+    for (const res of chunkResolved) {
+      pageResults[res.pageNum - 1] = res;
+    }
+
+    const currentProcessed = Math.min(chunkEnd, numPages);
+    const progressPercent = Math.round((currentProcessed / numPages) * 75);
+    options?.onProgress?.(progressPercent, `${currentProcessed}/${numPages} 페이지 분석 완료`);
+    options?.onStatusUpdate?.(`${currentProcessed}/${numPages} 페이지 고속 추출 중 (${progressPercent}%)`);
+
+    // Non-blocking UI tick to prevent browser frame drop
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  // Assemble full Fast Text Markdown
   let fastMd = `# 📕 ${cleanTitle}\n\n`;
-  fastMd += `> **문서 출처**: \`${fileName}\` | 총 ${numPages} 페이지 | 순수 브라우저 PDF 엔진 (Fast Text Parser) 변환\n\n---\n\n`;
+  fastMd += `> **문서 출처**: \`${fileName}\` | 총 ${numPages} 페이지 | 순수 브라우저 고속 엔진 변환\n\n---\n\n`;
 
   const pageTexts: string[] = [];
-
-  for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-    const page = await pdfDoc.getPage(pageNum);
-    const textContent = await page.getTextContent();
-    const items = textContent.items as Array<{
-      str: string;
-      transform: number[];
-      width: number;
-      height: number;
-    }>;
-
-    if (!items || items.length === 0) {
-      fastMd += `## [페이지 ${pageNum}]\n\n*(텍스트가 없거나 스캔 이미지 형태의 페이지입니다.)*\n\n---\n\n`;
-      pageTexts.push(`[페이지 ${pageNum}]\n(텍스트 없음)`);
-      continue;
+  for (let i = 0; i < numPages; i++) {
+    const res = pageResults[i];
+    if (res) {
+      fastMd += res.mdSnippet;
+      pageTexts.push(res.rawText);
     }
-
-    // Filter valid text
-    const validItems = items.filter((it) => it.str && it.str.trim().length > 0);
-    if (validItems.length === 0) {
-      fastMd += `## [페이지 ${pageNum}]\n\n*(공백 또는 그래픽 요소 전용 페이지입니다.)*\n\n---\n\n`;
-      pageTexts.push(`[페이지 ${pageNum}]\n(공백 페이지)`);
-      continue;
-    }
-
-    // Group items into lines based on Y coordinate
-    const lineTolerance = 4;
-    const lines: Array<{ y: number; text: string; fontSize: number }> = [];
-    let currentLine: { y: number; items: typeof items; fontSize: number } | null = null;
-
-    validItems.forEach((item) => {
-      const y = item.transform[5];
-      const fontSize = Math.abs(item.transform[0] || item.height || 12);
-
-      if (!currentLine || Math.abs(currentLine.y - y) > lineTolerance) {
-        if (currentLine) {
-          currentLine.items.sort((a, b) => a.transform[4] - b.transform[4]);
-          lines.push({
-            y: currentLine.y,
-            text: currentLine.items.map((i) => i.str).join(' ').trim(),
-            fontSize: currentLine.fontSize,
-          });
-        }
-        currentLine = { y, items: [item], fontSize };
-      } else {
-        currentLine.items.push(item);
-        if (fontSize > currentLine.fontSize) {
-          currentLine.fontSize = fontSize;
-        }
-      }
-    });
-
-    if (currentLine) {
-      (currentLine as any).items.sort((a: any, b: any) => a.transform[4] - b.transform[4]);
-      lines.push({
-        y: (currentLine as any).y,
-        text: (currentLine as any).items.map((i: any) => i.str).join(' ').trim(),
-        fontSize: (currentLine as any).fontSize,
-      });
-    }
-
-    // Sort lines top-to-bottom in PDF coordinates (Y descending)
-    lines.sort((a, b) => b.y - a.y);
-
-    fastMd += `## [페이지 ${pageNum}]\n\n`;
-    const pageLines: string[] = [];
-
-    for (const line of lines) {
-      const trimmed = line.text.trim();
-      if (!trimmed) continue;
-      pageLines.push(trimmed);
-
-      if (line.fontSize >= 16 && trimmed.length < 80) {
-        fastMd += `### ${trimmed}\n\n`;
-      } else if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('·')) {
-        fastMd += `- ${trimmed.replace(/^[•\-·]\s*/, '')}\n`;
-      } else if (/^\d+[\.\)]\s/.test(trimmed)) {
-        fastMd += `${trimmed}\n`;
-      } else {
-        fastMd += `${trimmed}\n\n`;
-      }
-    }
-
-    fastMd += `\n---\n\n`;
-    pageTexts.push(`[페이지 ${pageNum}]\n` + pageLines.join('\n'));
   }
 
   // If Fast Text Parser is selected, return immediately
-  if (options?.engine !== 'ollama') {
+  if (options?.engine === 'fast' || !options?.engine) {
+    options?.onProgress?.(100, '변환 완료');
     return {
       markdown: fastMd.trim(),
       pageCount: numPages,
@@ -280,7 +361,62 @@ export async function convertPdfToMarkdown(
     };
   }
 
-  // 2. Ollama Local AI Parser Pipeline
+  // 2. Server-Side Google Gemini AI Parser Pipeline
+  if (options.engine === 'gemini') {
+    options.onStatusUpdate?.('Google Gemini Flash AI가 문서 구조 및 서식을 정밀 분석 중...');
+    options.onProgress?.(85, '클라우드 AI 구조화 분석 중...');
+
+    try {
+      const rawPdfText = pageTexts.join('\n\n---\n\n');
+      const res = await fetch('/api/pdf/parse-gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          textContent: rawPdfText,
+          fileName,
+          apiKey: options.geminiApiKey,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.error || `Gemini 서버 오류 (HTTP ${res.status})`);
+      }
+
+      const data = await res.json();
+      const generatedMd = (data.markdown || '').trim();
+
+      if (!generatedMd) {
+        throw new Error('Gemini로부터 생성된 마크다운 내용이 비어 있습니다.');
+      }
+
+      const formattedHeader = `# 📕 ${cleanTitle}\n\n> **문서 출처**: \`${fileName}\` | 총 ${numPages} 페이지 | ⚡ Google Gemini Flash 정밀 마크다운 변환\n\n---\n\n`;
+
+      options.onProgress?.(100, '변환 완료');
+
+      return {
+        markdown: (formattedHeader + generatedMd).trim(),
+        pageCount: numPages,
+        warnings: [],
+        parserEngine: 'gemini',
+      };
+    } catch (err: any) {
+      const fallbackReason = 'Gemini AI 변환 실패로 인해 고속 텍스트 추출 결과로 자동 전환되었습니다.';
+      if (options.onFallback) {
+        options.onFallback(fallbackReason);
+      }
+      warnings.push(`${fallbackReason} (${err?.message || '알 수 없는 오류'})`);
+
+      return {
+        markdown: fastMd.trim(),
+        pageCount: numPages,
+        warnings,
+        parserEngine: 'fast',
+      };
+    }
+  }
+
+  // 3. Ollama Local AI Parser Pipeline (with Smart CORS & Mixed Content Failover)
   const rawPdfText = pageTexts.join('\n\n---\n\n');
   const targetEndpoint = (options.ollamaEndpoint || 'http://localhost:11434').trim().replace(/\/+$/, '');
   let targetModel = (options.ollamaModel || 'llama3.2-vision').trim();
@@ -289,77 +425,107 @@ export async function convertPdfToMarkdown(
   }
 
   options.onStatusUpdate?.('Local AI가 PDF 양식을 분석하여 마크다운으로 변환 중...');
+  options.onProgress?.(80, 'Local AI 모델 추론 중...');
 
   const systemPrompt = '너는 전문 마크다운 문서 가공기이다. 전달받은 PDF 텍스트의 제목(Heading), 표(Table), 목록(List), 단락(Paragraph)을 완벽한 마크다운 양식으로 재구성하라. 오직 마크다운 텍스트만 출력하라.';
   const userPrompt = `[문서 제목: ${cleanTitle}] (총 ${numPages}페이지)\n\n다음은 PDF에서 1차 추출된 원본 텍스트 스트림입니다. 상기 규칙에 따라 제목(Heading), 표(Table), 목록(List), 단락(Paragraph)을 완벽한 마크다운 양식으로 재구성해 주세요:\n\n${rawPdfText}`;
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 90000); // 90-second timeout
+  let generatedMarkdown = '';
+  let usedProxy = false;
 
+  // Attempt 1: Direct browser fetch
   try {
-    const response = await fetch(`${targetEndpoint}/api/generate`, {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+
+    const directResponse = await fetch(`${targetEndpoint}/api/generate`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
       body: JSON.stringify({
         model: targetModel,
         system: systemPrompt,
         prompt: userPrompt,
         stream: false,
-        options: {
-          temperature: 0.2,
-        },
+        options: { temperature: 0.2 },
       }),
     });
 
     clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      const errText = await response.text().catch(() => '');
-      throw new Error(`Ollama HTTP ${response.status}: ${errText}`);
+    if (directResponse.ok) {
+      const data = await directResponse.json();
+      generatedMarkdown = data?.response || '';
+    } else {
+      throw new Error(`Direct fetch status: ${directResponse.status}`);
     }
+  } catch (directErr: any) {
+    // Attempt 2: Auto Failover to Server Proxy (Bypasses browser CORS & Mixed Content)
+    options.onStatusUpdate?.('CORS 제약 우회를 위해 서버 프록시로 안전하게 전환하여 재시도 중...');
+    try {
+      const proxyRes = await fetch('/api/ollama/proxy-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          endpoint: targetEndpoint,
+          model: targetModel,
+          prompt: userPrompt,
+          system: systemPrompt,
+        }),
+      });
 
-    const data = await response.json();
-    let generatedMarkdown = data?.response || '';
+      if (proxyRes.ok) {
+        const proxyData = await proxyRes.json();
+        generatedMarkdown = proxyData?.response || '';
+        usedProxy = true;
+      } else {
+        const pErr = await proxyRes.json().catch(() => ({}));
+        throw new Error(pErr?.error || `Proxy error ${proxyRes.status}`);
+      }
+    } catch (proxyErr: any) {
+      const fallbackReason = 'Local AI(Ollama)에 연결할 수 없어 고속 텍스트 추출 방식으로 전환합니다.';
+      if (options.onFallback) {
+        options.onFallback(fallbackReason);
+      }
+      warnings.push(`${fallbackReason} (${proxyErr?.message || directErr?.message || '포트 11434 접근 실패'})`);
 
-    if (!generatedMarkdown.trim()) {
-      throw new Error('Ollama로부터 반환된 마크다운 내용이 비어 있습니다.');
+      return {
+        markdown: fastMd.trim(),
+        pageCount: numPages,
+        warnings,
+        parserEngine: 'fast',
+      };
     }
+  }
 
-    // Strip wrapping markdown code fences if generated by the model
-    if (generatedMarkdown.startsWith('```markdown')) {
-      generatedMarkdown = generatedMarkdown.replace(/^```markdown\s*/i, '').replace(/```\s*$/, '');
-    } else if (generatedMarkdown.startsWith('```')) {
-      generatedMarkdown = generatedMarkdown.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/, '');
-    }
-    generatedMarkdown = generatedMarkdown.trim();
-
-    const formattedHeader = `# 📕 ${cleanTitle}\n\n> **문서 출처**: \`${fileName}\` | 총 ${numPages} 페이지 | 🦙 Local AI (Ollama: \`${targetModel}\`) 정밀 마크다운 변환\n\n---\n\n`;
-
-    return {
-      markdown: (formattedHeader + generatedMarkdown).trim(),
-      pageCount: numPages,
-      warnings: [],
-      parserEngine: 'ollama',
-      ollamaModel: targetModel,
-    };
-  } catch (err: any) {
-    clearTimeout(timeoutId);
-    const fallbackReason = 'Local AI가 연결되지 않아 기본 텍스트 추출 방식으로 전환합니다';
-    if (options.onFallback) {
-      options.onFallback(fallbackReason);
-    }
-    warnings.push(`${fallbackReason} (${err?.message || '포트 11434 오프라인 또는 연결 거부'})`);
-
+  if (!generatedMarkdown.trim()) {
     return {
       markdown: fastMd.trim(),
       pageCount: numPages,
-      warnings,
+      warnings: ['Ollama 응답이 비어 있어 고속 추출 결과로 표시합니다.'],
       parserEngine: 'fast',
     };
   }
+
+  // Strip wrapping markdown code fences if generated by the model
+  if (generatedMarkdown.startsWith('```markdown')) {
+    generatedMarkdown = generatedMarkdown.replace(/^```markdown\s*/i, '').replace(/```\s*$/, '');
+  } else if (generatedMarkdown.startsWith('```')) {
+    generatedMarkdown = generatedMarkdown.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/, '');
+  }
+  generatedMarkdown = generatedMarkdown.trim();
+
+  const formattedHeader = `# 📕 ${cleanTitle}\n\n> **문서 출처**: \`${fileName}\` | 총 ${numPages} 페이지 | 🦙 Local AI (Ollama: \`${targetModel}\`${usedProxy ? ' / 프록시 우회' : ''}) 정밀 마크다운 변환\n\n---\n\n`;
+
+  options.onProgress?.(100, '변환 완료');
+
+  return {
+    markdown: (formattedHeader + generatedMarkdown).trim(),
+    pageCount: numPages,
+    warnings: [],
+    parserEngine: 'ollama',
+    ollamaModel: targetModel,
+  };
 }
 
 /**

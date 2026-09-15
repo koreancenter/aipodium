@@ -59,7 +59,7 @@ interface SlashCommandItem {
 const SLASH_COMMANDS: SlashCommandItem[] = [
   {
     id: 'h1',
-    label: '# 제목 1 (H1)',
+    label: '# 제목 1',
     sublabel: '가장 큰 대제목',
     icon: <Heading1 className="w-3.5 h-3.5 text-sky-400" />,
     category: 'headings',
@@ -68,7 +68,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
   },
   {
     id: 'h2',
-    label: '## 제목 2 (H2)',
+    label: '## 제목 2',
     sublabel: '중간 크기 섹션 제목',
     icon: <Heading2 className="w-3.5 h-3.5 text-sky-400" />,
     category: 'headings',
@@ -77,7 +77,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
   },
   {
     id: 'h3',
-    label: '### 제목 3 (H3)',
+    label: '### 제목 3',
     sublabel: '소제목 및 하위 항목',
     icon: <Heading3 className="w-3.5 h-3.5 text-sky-400" />,
     category: 'headings',
@@ -122,7 +122,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
   },
   {
     id: 'table',
-    label: '| 표 (Table)',
+    label: '| 표 삽입',
     sublabel: '3x3 마크다운 데이터 표',
     icon: <TableIcon className="w-3.5 h-3.5 text-indigo-400" />,
     category: 'blocks',
@@ -131,7 +131,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
   },
   {
     id: 'quote',
-    label: '> 인용문 (Quote)',
+    label: '> 인용구',
     sublabel: '강조 인용 문구',
     icon: <Quote className="w-3.5 h-3.5 text-purple-400" />,
     category: 'blocks',
@@ -141,7 +141,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
   {
     id: 'note',
     label: '> [!NOTE] 알림창',
-    sublabel: 'GitHub 스타일 안내 알림',
+    sublabel: '안내 알림 상자',
     icon: <Sparkles className="w-3.5 h-3.5 text-indigo-400" />,
     category: 'blocks',
     insertText: '> [!NOTE]\n> 중요한 정보나 참고 사항을 작성하세요.\n',
@@ -150,7 +150,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
   {
     id: 'tip',
     label: '> [!TIP] 유용한 팁',
-    sublabel: 'GitHub 스타일 팁 알림',
+    sublabel: '권장 팁 알림 상자',
     icon: <Sparkles className="w-3.5 h-3.5 text-indigo-300" />,
     category: 'blocks',
     insertText: '> [!TIP]\n> 권장하는 유용한 팁을 작성하세요.\n',
@@ -158,8 +158,8 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
   },
   {
     id: 'math',
-    label: '$$ 수식 블록 (KaTeX)',
-    sublabel: 'LaTeX 수학 공식 렌더링',
+    label: '$$ 수식 블록',
+    sublabel: '수학 공식 수식 렌더링',
     icon: <Sigma className="w-3.5 h-3.5 text-rose-400" />,
     category: 'blocks',
     insertText: '$$\nE = mc^2\n$$\n',
@@ -171,7 +171,7 @@ const SLASH_COMMANDS: SlashCommandItem[] = [
     sublabel: '아코디언 형태 상세 내용',
     icon: <ChevronDown className="w-3.5 h-3.5 text-slate-300" />,
     category: 'blocks',
-    insertText: '<details>\n<summary>상세 내용 보기 (클릭)</summary>\n\n여기에 숨겨진 상세 내용을 입력하세요.\n</details>\n',
+    insertText: '<details>\n<summary>상세 내용 보기</summary>\n\n여기에 숨겨진 상세 내용을 입력하세요.\n</details>\n',
     cursorOffset: 19
   },
   {
@@ -329,10 +329,17 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
     }
 
     // 2. Normal General Text Context
-    setSelectedText(hasSel ? text.slice(selStart, end) : '');
+    const selText = hasSel ? text.slice(selStart, end) : '';
+    setSelectedText(selText);
     setHasSelection(hasSel);
 
-    // If dismissed, check if user changed selection or cursor position to un-dismiss
+    // Only show text bubble menu when text is actually selected in a block (non-empty)
+    if (!hasSel || !selText.trim()) {
+      setIsTextBubbleVisible(false);
+      return;
+    }
+
+    // If dismissed, check if user changed selection to un-dismiss
     let dismissed = isTextBubbleDismissed;
     if (dismissed && lastDismissedSelectionRef.current) {
       if (
@@ -351,7 +358,7 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
       const lineIndex = linesBefore.length - 1;
       const colChars = linesBefore[lineIndex]?.length || 0;
 
-      const selLengthOnLine = hasSel ? Math.min(end - selStart, 40) : 0;
+      const selLengthOnLine = Math.min(end - selStart, 40);
       const midCol = colChars + Math.floor(selLengthOnLine / 2);
 
       const lineHeight = 19.5;
@@ -362,17 +369,17 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
       const lineVisibleTop = paddingTop + lineIndex * lineHeight - textarea.scrollTop;
       const cursorVisibleLeft = paddingLeft + midCol * approxCharWidth - textarea.scrollLeft;
 
-      let bubbleTop = lineVisibleTop - 32;
+      let bubbleTop = lineVisibleTop - 36;
       if (bubbleTop < 4) {
         bubbleTop = lineVisibleTop + lineHeight + 6;
       }
-      const clampedTop = Math.max(4, Math.min(textarea.clientHeight - 36, bubbleTop));
+      const clampedTop = Math.max(4, Math.min(textarea.clientHeight - 42, bubbleTop));
 
-      // Compact rectangular button (~80px) sits near cursor;
-      // When expanded, TextFloatingBubbleMenu automatically adapts and clamps to safe right margin
-      const rightSafeMargin = 20;
-      const maxLeft = Math.max(8, textarea.clientWidth - 85 - rightSafeMargin);
-      const clampedLeft = Math.max(8, Math.min(maxLeft, cursorVisibleLeft - 10));
+      const toolbarEstimatedWidth = 470;
+      const rightSafeMargin = 16;
+      const maxLeft = Math.max(8, textarea.clientWidth - toolbarEstimatedWidth - rightSafeMargin);
+      const centerLeft = cursorVisibleLeft - Math.floor(toolbarEstimatedWidth / 2);
+      const clampedLeft = Math.max(8, Math.min(maxLeft, centerLeft));
 
       const isLineInView = lineVisibleTop >= -40 && lineVisibleTop <= textarea.clientHeight + 40;
 
@@ -689,7 +696,7 @@ ${tableMarkdown}
           const rows = currentTableInfo.rows;
           const cols = currentTableInfo.totalCols;
           const totals: string[] = new Array(cols).fill('');
-          totals[0] = prompt.includes('평균') ? '평균 (Avg)' : '합계 (Total)';
+          totals[0] = prompt.includes('평균') ? '평균' : '합계';
 
           for (let c = 1; c < cols; c++) {
             let sum = 0;
@@ -1862,7 +1869,7 @@ ${targetText}
     <div
       id="slash-autocomplete-menu"
       style={{ top: `${slashPosition.top}px`, left: `${slashPosition.left}px` }}
-      className="absolute z-50 w-72 max-h-72 flex flex-col bg-[#1e202b]/98 backdrop-blur-md border border-[#2e3142] rounded-xl shadow-2xl p-1.5 text-xs text-[#e2e8f0] animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
+      className="absolute z-50 w-72 max-h-72 flex flex-col bg-[#1e202b] border border-[#2e3142] rounded-xs p-1.5 text-xs text-[#e2e8f0] animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
       onMouseDown={(e) => e.preventDefault()} // Prevent textarea blur on click
     >
       <div className="shrink-0 px-2 py-1 mb-1 border-b border-[#2e3142] flex items-center justify-between text-[0.625rem] text-[#94a3b8] font-semibold uppercase tracking-wider">
@@ -1890,9 +1897,9 @@ ${targetText}
                 type="button"
                 onClick={() => executeSlashCommand(cmd)}
                 onMouseEnter={() => setSlashIndex(idx)}
-                className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
+                className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xs text-left transition-colors cursor-pointer ${
                   isSelected
-                    ? 'bg-[#6366f1] text-white font-medium shadow-xs'
+                    ? 'bg-[#6366f1] text-white font-medium'
                     : 'text-[#e2e8f0] hover:bg-[#282a38] hover:text-white'
                 }`}
               >
