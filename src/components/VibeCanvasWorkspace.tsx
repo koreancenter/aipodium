@@ -344,27 +344,27 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0 bg-[#121318] text-slate-100 overflow-hidden relative select-none">
+    <div className="flex-1 flex flex-col h-full min-h-0 bg-[#09090b] text-slate-100 overflow-hidden relative select-none">
       
       {/* 1. TOP VIBE CANVAS MASTER HEADER & SSOT TOOLBAR */}
-      <div className="bg-[#1e202b] border-b border-[#2e3142] px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 shrink-0 z-20 shadow-md">
+      <div className="bg-[#121214] border-b border-[#222226] px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 shrink-0 z-20 shadow-md">
         
         {/* Left: Branding, Title, Folder & SSOT Status */}
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <button
             type="button"
             onClick={onExit}
-            className="p-1 rounded hover:bg-[#282a38] text-slate-400 hover:text-white transition flex items-center gap-1 text-xs shrink-0"
+            className="p-1 rounded hover:bg-[#18181b] text-slate-400 hover:text-white transition flex items-center gap-1 text-xs shrink-0"
             title="일반 3패널 에디터로 복귀"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">에디터 복귀</span>
           </button>
 
-          <div className="h-4 w-px bg-[#2e3142] shrink-0" />
+          <div className="h-4 w-px bg-[#222226] shrink-0" />
 
           {/* Vibe Canvas Logo Badge (Word + Spreadsheet Unified) */}
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#16171e] border border-[#6366f1]/60 text-indigo-200 text-xs font-bold shrink-0 shadow-xs">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#0c0c0e] border border-[#6366f1]/60 text-indigo-200 text-xs font-bold shrink-0 shadow-xs">
             <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
             <span>Vibe Canvas</span>
             <span className="text-[0.625rem] bg-[#6366f1] text-white px-1.5 py-0.2 rounded font-mono font-semibold">
@@ -379,13 +379,13 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
               value={currentFileName}
               onChange={(e) => setCurrentFileName(e.target.value)}
               placeholder="SSOT 파일명..."
-              className="w-full bg-[#121318] border border-[#2e3142] focus:border-[#6366f1] rounded px-2.5 py-1 text-xs text-white font-mono focus:outline-none transition truncate"
+              className="w-full bg-[#09090b] border border-[#222226] focus:border-[#6366f1] rounded px-2.5 py-1 text-xs text-white font-mono focus:outline-none transition truncate"
               title="SSOT 문서 파일명 수정"
             />
           </div>
 
           {/* Target Project Folder Pill */}
-          <div className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded bg-[#16171e] border border-[#2e3142] text-amber-300 text-[0.6875rem] font-mono shrink-0">
+          <div className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded bg-[#0c0c0e] border border-[#222226] text-amber-300 text-[0.6875rem] font-mono shrink-0">
             <Folder className="w-3 h-3 text-amber-400" />
             <span>{targetFolder}</span>
           </div>
@@ -393,12 +393,12 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
           {/* Status Indicator */}
           <div className="hidden xl:flex items-center gap-1.5 text-[0.6875rem] font-medium shrink-0">
             {isSaved ? (
-              <span className="flex items-center gap-1 text-emerald-400 bg-[#16171e] px-2 py-0.5 rounded border border-emerald-800/80 font-mono">
+              <span className="flex items-center gap-1 text-emerald-400 bg-[#0c0c0e] px-2 py-0.5 rounded border border-emerald-800/80 font-mono">
                 <Check className="w-3 h-3" />
                 <span>SSOT 확정됨 ({lastSavedTimestamp})</span>
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-amber-300 bg-[#16171e] px-2 py-0.5 rounded border border-amber-800/80 font-mono animate-pulse">
+              <span className="flex items-center gap-1 text-amber-300 bg-[#0c0c0e] px-2 py-0.5 rounded border border-amber-800/80 font-mono animate-pulse">
                 <Star className="w-3 h-3 text-amber-400" />
                 <span>SSOT 작성 중...</span>
               </span>
@@ -409,7 +409,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
         {/* Right: View mode, Width, Theme & Primary Save */}
         <div className="flex items-center gap-2 shrink-0">
           {/* View Mode Tabs (Edit / Split / Preview) */}
-          <div className="flex bg-[#121318] border border-[#2e3142] rounded p-0.5 text-xs">
+          <div className="flex bg-[#09090b] border border-[#222226] rounded p-0.5 text-xs">
             <button
               type="button"
               onClick={() => setEditorMode('edit')}
@@ -454,7 +454,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
           </div>
 
           {/* Canvas Page Width Selector */}
-          <div className="hidden sm:flex bg-[#121318] border border-[#2e3142] rounded p-0.5 text-xs">
+          <div className="hidden sm:flex bg-[#09090b] border border-[#222226] rounded p-0.5 text-xs">
             <button
               type="button"
               onClick={() => setPageWidth('standard')}
@@ -494,7 +494,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
             className={`px-2 py-1 rounded text-xs border transition flex items-center gap-1 font-medium ${
               canvasTheme === 'paper'
                 ? 'bg-slate-100 text-slate-900 border-slate-300 hover:bg-white'
-                : 'bg-[#16171e] text-slate-200 border-[#2e3142] hover:bg-[#282a38]'
+                : 'bg-[#0c0c0e] text-slate-200 border-[#222226] hover:bg-[#18181b]'
             }`}
             title="용지 뷰 테마 변경 (워드프로세서 백색 용지 / 다크 스튜디오)"
           >
@@ -515,7 +515,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
       </div>
 
       {/* 2. SUB FORMATTING TOOLBAR & SMART SPREADSHEET SHORTCUTS */}
-      <div className="bg-[#1e202b] border-b border-[#2e3142] px-3 py-1 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none shrink-0 z-10">
+      <div className="bg-[#121214] border-b border-[#222226] px-3 py-1 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none shrink-0 z-10">
         
         {/* Word + Sheet compound tools */}
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -524,7 +524,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
           <button
             type="button"
             onClick={() => handleInsertSpreadsheetBlock('2024-2030 분기별 실적 및 추이 분석')}
-            className="px-2 py-1 rounded bg-[#16171e] hover:bg-[#282a38] text-emerald-400 hover:text-emerald-300 border border-emerald-700/80 transition flex items-center gap-1 font-semibold text-xs shadow-xs"
+            className="px-2 py-1 rounded bg-[#0c0c0e] hover:bg-[#18181b] text-emerald-400 hover:text-emerald-300 border border-emerald-700/80 transition flex items-center gap-1 font-semibold text-xs shadow-xs"
             title="수식 및 차트가 내장된 스마트 스프레드시트 블록 삽입 (/sheet)"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
@@ -535,21 +535,21 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
           <button
             type="button"
             onClick={handleConvertMarkdownTablesToSheets}
-            className="px-2 py-1 rounded bg-[#16171e] hover:bg-[#282a38] text-[#818cf8] hover:text-white border border-[#2e3142] transition flex items-center gap-1 text-xs"
+            className="px-2 py-1 rounded bg-[#0c0c0e] hover:bg-[#18181b] text-[#818cf8] hover:text-white border border-[#222226] transition flex items-center gap-1 text-xs"
             title="문서 내 모든 마크다운 표를 수식/차트 지원 스마트 스프레드시트로 자동 변환"
           >
             <RotateCcw className="w-3.5 h-3.5 text-[#818cf8]" />
             <span className="hidden sm:inline">표 ➔ 스마트 시트 변환</span>
           </button>
 
-          <div className="h-4 w-px bg-[#2e3142]" />
+          <div className="h-4 w-px bg-[#222226]" />
 
           {/* Heading buttons */}
-          <div className="flex items-center bg-[#121318] border border-[#2e3142] rounded p-0.5 text-xs text-slate-300 divide-x divide-[#2e3142]">
+          <div className="flex items-center bg-[#09090b] border border-[#222226] rounded p-0.5 text-xs text-slate-300 divide-x divide-[#222226]">
             <button
               type="button"
               onClick={() => insertSyntax('# ', '', '제목 1')}
-              className="px-1.5 py-0.5 hover:bg-[#282a38] hover:text-white font-bold transition"
+              className="px-1.5 py-0.5 hover:bg-[#18181b] hover:text-white font-bold transition"
               title="Heading 1 (# 제목)"
             >
               H1
@@ -557,7 +557,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
             <button
               type="button"
               onClick={() => insertSyntax('## ', '', '제목 2')}
-              className="px-1.5 py-0.5 hover:bg-[#282a38] hover:text-white font-bold transition"
+              className="px-1.5 py-0.5 hover:bg-[#18181b] hover:text-white font-bold transition"
               title="Heading 2 (## 소제목)"
             >
               H2
@@ -565,7 +565,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
             <button
               type="button"
               onClick={() => insertSyntax('### ', '', '제목 3')}
-              className="px-1.5 py-0.5 hover:bg-[#282a38] hover:text-white font-bold transition"
+              className="px-1.5 py-0.5 hover:bg-[#18181b] hover:text-white font-bold transition"
               title="Heading 3 (### 상세 항목)"
             >
               H3
@@ -573,11 +573,11 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
           </div>
 
           {/* Basic text styling */}
-          <div className="flex items-center bg-[#121318] border border-[#2e3142] rounded p-0.5 text-xs text-slate-300">
+          <div className="flex items-center bg-[#09090b] border border-[#222226] rounded p-0.5 text-xs text-slate-300">
             <button
               type="button"
               onClick={() => insertSyntax('**', '**', '강조 텍스트')}
-              className="p-1 hover:bg-[#282a38] hover:text-white rounded transition"
+              className="p-1 hover:bg-[#18181b] hover:text-white rounded transition"
               title="굵게 (Bold **텍스트**)"
             >
               <Bold className="w-3.5 h-3.5" />
@@ -585,7 +585,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
             <button
               type="button"
               onClick={() => insertSyntax('*', '*', '기울임 텍스트')}
-              className="p-1 hover:bg-[#282a38] hover:text-white rounded transition"
+              className="p-1 hover:bg-[#18181b] hover:text-white rounded transition"
               title="기울임 (Italic *텍스트*)"
             >
               <Italic className="w-3.5 h-3.5" />
@@ -593,7 +593,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
             <button
               type="button"
               onClick={() => insertSyntax('- ', '', '목록 항목')}
-              className="p-1 hover:bg-[#282a38] hover:text-white rounded transition"
+              className="p-1 hover:bg-[#18181b] hover:text-white rounded transition"
               title="글머리 기호 목록 (- 항목)"
             >
               <List className="w-3.5 h-3.5" />
@@ -601,7 +601,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
             <button
               type="button"
               onClick={() => insertSyntax('- [ ] ', '', '할 일 항목')}
-              className="p-1 hover:bg-[#282a38] hover:text-white rounded transition"
+              className="p-1 hover:bg-[#18181b] hover:text-white rounded transition"
               title="체크리스트 (- [ ] 작업)"
             >
               <CheckSquare className="w-3.5 h-3.5" />
@@ -609,7 +609,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
             <button
               type="button"
               onClick={() => insertSyntax('> **안내:** ', '', '중요 안내 내용')}
-              className="p-1 hover:bg-[#282a38] hover:text-white rounded transition"
+              className="p-1 hover:bg-[#18181b] hover:text-white rounded transition"
               title="콜아웃/인용문 (> 인용문)"
             >
               <Quote className="w-3.5 h-3.5 text-amber-400" />
@@ -617,7 +617,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
             <button
               type="button"
               onClick={() => insertSyntax('\n---\n', '', '')}
-              className="p-1 hover:bg-[#282a38] hover:text-white rounded transition"
+              className="p-1 hover:bg-[#18181b] hover:text-white rounded transition"
               title="가로 구분선 (---)"
             >
               <Minus className="w-3.5 h-3.5" />
@@ -638,13 +638,13 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
       </div>
 
       {/* 3. COMPOUND SMART CANVAS WORKSPACE BODY */}
-      <div className="flex-1 flex overflow-hidden min-h-0 relative p-3 sm:p-6 bg-[#121318] justify-center">
+      <div className="flex-1 flex overflow-hidden min-h-0 relative p-3 sm:p-6 bg-[#09090b] justify-center">
         
         <div className={`w-full ${getWidthClass()} h-full flex flex-col transition-all duration-200 relative`}>
           
           {/* AI Generating Indicator Banner */}
           {isGeneratingAi && (
-            <div className="mb-3 px-4 py-2 rounded-lg bg-[#16171e] border border-[#6366f1]/60 flex items-center justify-between text-xs text-indigo-200 animate-pulse shadow-lg">
+            <div className="mb-3 px-4 py-2 rounded-lg bg-[#0c0c0e] border border-[#6366f1]/60 flex items-center justify-between text-xs text-indigo-200 animate-pulse shadow-lg">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[#818cf8] animate-spin" />
                 <span className="font-semibold">AI가 SSOT 자료를 통합 분석하여 스마트 문서를 스트리밍 중입니다...</span>
@@ -658,8 +658,8 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 h-full min-h-0">
               
               {/* Left Column: Markdown & Spreadsheet Code Editor */}
-              <div className="flex flex-col h-full min-h-0 bg-[#1e202b] border border-[#2e3142] rounded-xl overflow-hidden shadow-2xl relative">
-                <div className="px-3 py-1.5 bg-[#121318] border-b border-[#2e3142] flex items-center justify-between text-xs font-semibold text-slate-300">
+              <div className="flex flex-col h-full min-h-0 bg-[#121214] border border-[#222226] rounded-xl overflow-hidden shadow-2xl relative">
+                <div className="px-3 py-1.5 bg-[#09090b] border-b border-[#222226] flex items-center justify-between text-xs font-semibold text-slate-300">
                   <div className="flex items-center gap-1.5">
                     <Edit3 className="w-3.5 h-3.5 text-[#818cf8]" />
                     <span>마크다운 & 스프레드시트 편집기</span>
@@ -667,7 +667,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
                   <span className="text-[0.625rem] text-slate-500 font-mono">/ 입력 시 빠른 명령</span>
                 </div>
                 
-                <div className="flex-1 p-3 overflow-hidden flex flex-col bg-[#16171e] relative">
+                <div className="flex-1 p-3 overflow-hidden flex flex-col bg-[#0c0c0e] relative">
                   <textarea
                     ref={textareaRef}
                     value={content}
@@ -718,12 +718,12 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
 
                   {/* Slash Command Autocomplete Popup Menu */}
                   {showSlashMenu && (
-                    <div className="absolute left-4 top-12 z-40 w-72 bg-[#1e202b] border border-[#6366f1]/60 rounded-xl shadow-2xl overflow-hidden animate-fade-in text-xs select-none">
-                      <div className="px-3 py-1.5 bg-[#16171e] border-b border-[#2e3142] text-[0.6875rem] font-bold text-indigo-300 flex items-center justify-between">
+                    <div className="absolute left-4 top-12 z-40 w-72 bg-[#121214] border border-[#6366f1]/60 rounded-xl shadow-2xl overflow-hidden animate-fade-in text-xs select-none">
+                      <div className="px-3 py-1.5 bg-[#0c0c0e] border-b border-[#222226] text-[0.6875rem] font-bold text-indigo-300 flex items-center justify-between">
                         <span>빠른 삽입 명령어 (Slash Commands)</span>
                         <span className="text-[0.5625rem] font-mono text-slate-400">↑↓ 이동 · ↵ 선택 · Esc 취소</span>
                       </div>
-                      <div className="max-h-60 overflow-y-auto p-1 divide-y divide-[#2e3142]/40 custom-scrollbar">
+                      <div className="max-h-60 overflow-y-auto p-1 divide-y divide-[#222226]/40 custom-scrollbar">
                         {filteredSlashCommands.map((cmdItem, idx) => (
                           <button
                             key={cmdItem.cmd}
@@ -740,7 +740,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
                             className={`w-full p-2 text-left rounded-lg transition flex flex-col gap-0.5 ${
                               slashMenuIndex === idx
                                 ? 'bg-[#6366f1] text-white'
-                                : 'hover:bg-[#282a38] text-slate-200'
+                                : 'hover:bg-[#18181b] text-slate-200'
                             }`}
                           >
                             <span className="font-semibold">{cmdItem.label}</span>
@@ -758,14 +758,14 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
                 className={`flex flex-col h-full min-h-0 border rounded-xl overflow-hidden shadow-2xl transition-colors ${
                   canvasTheme === 'paper'
                     ? 'bg-slate-100 text-slate-900 border-slate-300'
-                    : 'bg-[#1e202b] text-slate-100 border-[#2e3142]'
+                    : 'bg-[#121214] text-slate-100 border-[#222226]'
                 }`}
               >
                 <div
                   className={`px-3 py-1.5 border-b flex items-center justify-between text-xs font-semibold ${
                     canvasTheme === 'paper'
                       ? 'bg-slate-200/90 text-slate-800 border-slate-300'
-                      : 'bg-[#121318] text-slate-300 border-[#2e3142]'
+                      : 'bg-[#09090b] text-slate-300 border-[#222226]'
                   }`}
                 >
                   <div className="flex items-center gap-1.5">
@@ -776,7 +776,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
                 </div>
 
                 {/* Render Mixed Segments */}
-                <div className="flex-1 p-6 overflow-y-auto leading-normal select-text markdown-preview prose prose-invert max-w-none bg-[#16171e]">
+                <div className="flex-1 p-6 overflow-y-auto leading-normal select-text markdown-preview prose prose-invert max-w-none bg-[#0c0c0e]">
                   {parsedSegments.map((seg, idx) => {
                     if (seg.type === 'spreadsheet' && seg.spreadsheetData) {
                       return (
@@ -805,15 +805,15 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
 
           {/* EDIT ONLY MODE */}
           {editorMode === 'edit' && (
-            <div className="flex-1 flex flex-col h-full min-h-0 bg-[#1e202b] border border-[#2e3142] rounded-xl overflow-hidden shadow-2xl">
-              <div className="px-4 py-2 bg-[#121318] border-b border-[#2e3142] flex items-center justify-between text-xs font-semibold text-slate-300">
+            <div className="flex-1 flex flex-col h-full min-h-0 bg-[#121214] border border-[#222226] rounded-xl overflow-hidden shadow-2xl">
+              <div className="px-4 py-2 bg-[#09090b] border-b border-[#222226] flex items-center justify-between text-xs font-semibold text-slate-300">
                 <div className="flex items-center gap-2">
                   <Edit3 className="w-4 h-4 text-[#818cf8]" />
                   <span>Vibe Canvas 풀 편집기 (Full Edit Mode)</span>
                 </div>
                 <span className="text-[0.6875rem] text-slate-500 font-mono">단축키: Ctrl + S (저장)</span>
               </div>
-              <div className="flex-1 p-4 sm:p-6 overflow-hidden flex flex-col bg-[#16171e]">
+              <div className="flex-1 p-4 sm:p-6 overflow-hidden flex flex-col bg-[#0c0c0e]">
                 <textarea
                   ref={textareaRef}
                   value={content}
@@ -833,7 +833,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
                 className={`w-full ${getWidthClass()} min-h-full rounded-xl shadow-2xl p-6 sm:p-10 leading-normal border transition-colors select-text markdown-preview prose prose-invert max-w-none ${
                   canvasTheme === 'paper'
                     ? 'bg-white text-slate-900 border-slate-200'
-                    : 'bg-[#16171e] text-slate-100 border-[#2e3142]'
+                    : 'bg-[#0c0c0e] text-slate-100 border-[#222226]'
                 }`}
               >
                 {parsedSegments.map((seg, idx) => {

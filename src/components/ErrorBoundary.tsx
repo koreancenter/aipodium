@@ -38,8 +38,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="flex h-screen w-screen items-center justify-center bg-[#121318] text-slate-100 p-6 font-sans">
-          <div className="max-w-md w-full rounded-2xl bg-[#1e202b] border border-[#2e3142] p-8 shadow-2xl space-y-6 text-center">
+        <div className="flex h-screen w-screen items-center justify-center bg-[#09090b] text-slate-100 p-6 font-sans">
+          <div className="max-w-md w-full rounded-2xl bg-[#121214] border border-[#222226] p-8 shadow-2xl space-y-6 text-center">
             <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mx-auto flex items-center justify-center">
               <AlertTriangle className="w-7 h-7" />
             </div>
@@ -52,7 +52,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             </div>
 
             {this.state.error?.message && (
-              <div className="p-3 rounded-lg bg-[#121318] border border-[#2e3142] text-[0.6875rem] text-rose-300 font-mono text-left max-h-32 overflow-y-auto break-words">
+              <div className="p-3 rounded-lg bg-[#09090b] border border-[#222226] text-[0.6875rem] text-rose-300 font-mono text-left max-h-32 overflow-y-auto break-words">
                 {this.state.error.message}
               </div>
             )}
@@ -61,7 +61,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
               <button
                 type="button"
                 onClick={this.handleReset}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#121318] hover:bg-[#282a38] text-slate-200 border border-[#2e3142] transition cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#09090b] hover:bg-[#18181b] text-slate-200 border border-[#222226] transition cursor-pointer"
               >
                 다시 시도
               </button>

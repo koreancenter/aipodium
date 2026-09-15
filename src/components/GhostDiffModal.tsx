@@ -90,12 +90,12 @@ export const GhostDiffModal: React.FC<GhostDiffModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150">
       <div
-        className="bg-[#1a1b26] border border-[#2e3142] rounded-xl shadow-2xl flex flex-col w-full max-w-5xl h-[88vh] overflow-hidden text-slate-100"
+        className="bg-[#1a1b26] border border-[#222226] rounded-xl shadow-2xl flex flex-col w-full max-w-5xl h-[88vh] overflow-hidden text-slate-100"
         role="dialog"
         aria-modal="true"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-[#13141f] border-b border-[#2e3142]">
+        <div className="flex items-center justify-between px-4 py-3 bg-[#13141f] border-b border-[#222226]">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-[#6366f1]/20 border border-[#6366f1]/40 flex items-center justify-center text-[#818cf8]">
               <GitCompare className="w-4 h-4" />
@@ -123,7 +123,7 @@ export const GhostDiffModal: React.FC<GhostDiffModalProps> = ({
 
           {/* View Mode Controls & Close */}
           <div className="flex items-center gap-2">
-            <div className="inline-flex rounded-md bg-[#0e0f17] border border-[#2e3142] p-0.5 text-xs">
+            <div className="inline-flex rounded-md bg-[#0e0f17] border border-[#222226] p-0.5 text-xs">
               <button
                 type="button"
                 onClick={() => setViewMode('unified')}
@@ -155,7 +155,7 @@ export const GhostDiffModal: React.FC<GhostDiffModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-md hover:bg-[#2e3142] text-slate-400 hover:text-slate-200 transition cursor-pointer"
+              className="p-1.5 rounded-md hover:bg-[#222226] text-slate-400 hover:text-slate-200 transition cursor-pointer"
               title="닫기"
             >
               <X className="w-4 h-4" />
@@ -215,10 +215,10 @@ export const GhostDiffModal: React.FC<GhostDiffModalProps> = ({
             </div>
           ) : (
             /* Side-by-Side Split Diff */
-            <div className="grid grid-cols-2 divide-x divide-[#2e3142] h-full min-h-full">
+            <div className="grid grid-cols-2 divide-x divide-[#222226] h-full min-h-full">
               {/* Left: Original */}
               <div className="flex flex-col h-full overflow-auto">
-                <div className="sticky top-0 z-10 px-3 py-1.5 bg-[#171824] border-b border-[#2e3142] text-[0.6875rem] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                <div className="sticky top-0 z-10 px-3 py-1.5 bg-[#171824] border-b border-[#222226] text-[0.6875rem] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
                   <span>원본 문서 (Current)</span>
                   <span className="font-mono text-slate-500">{totalLinesOriginal} lines</span>
                 </div>
@@ -229,7 +229,7 @@ export const GhostDiffModal: React.FC<GhostDiffModalProps> = ({
 
               {/* Right: Proposed Revision */}
               <div className="flex flex-col h-full overflow-auto bg-[#13141f]">
-                <div className="sticky top-0 z-10 px-3 py-1.5 bg-[#171824] border-b border-[#2e3142] text-[0.6875rem] font-bold text-emerald-400 uppercase tracking-wider flex items-center justify-between">
+                <div className="sticky top-0 z-10 px-3 py-1.5 bg-[#171824] border-b border-[#222226] text-[0.6875rem] font-bold text-emerald-400 uppercase tracking-wider flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
                     <Sparkles className="w-3 h-3" />
                     <span>개정 제안본 (Proposed)</span>
@@ -245,12 +245,12 @@ export const GhostDiffModal: React.FC<GhostDiffModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-[#13141f] border-t border-[#2e3142]">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-[#13141f] border-t border-[#222226]">
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={handleCopyProposed}
-              className="px-3 py-1.5 rounded-md border border-[#2e3142] bg-[#1a1b26] hover:bg-[#282a38] text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              className="px-3 py-1.5 rounded-md border border-[#222226] bg-[#1a1b26] hover:bg-[#18181b] text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-medium cursor-pointer"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? '복사 완료!' : '제안본 복사'}</span>
@@ -263,7 +263,7 @@ export const GhostDiffModal: React.FC<GhostDiffModalProps> = ({
                   onAppendRevisions(proposedContent);
                   onClose();
                 }}
-                className="px-3 py-1.5 rounded-md border border-[#2e3142] bg-[#1a1b26] hover:bg-[#282a38] text-[#818cf8] hover:text-white transition flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+                className="px-3 py-1.5 rounded-md border border-[#222226] bg-[#1a1b26] hover:bg-[#18181b] text-[#818cf8] hover:text-white transition flex items-center gap-1.5 text-xs font-medium cursor-pointer"
                 title="원본 문서를 지우지 않고 본문 하단에 부록 형태로 추가합니다"
               >
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -276,7 +276,7 @@ export const GhostDiffModal: React.FC<GhostDiffModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 rounded-md border border-[#2e3142] hover:bg-[#282a38] text-slate-400 hover:text-slate-200 text-xs font-medium transition cursor-pointer"
+              className="px-3.5 py-1.5 rounded-md border border-[#222226] hover:bg-[#18181b] text-slate-400 hover:text-slate-200 text-xs font-medium transition cursor-pointer"
             >
               취소
             </button>

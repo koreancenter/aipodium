@@ -222,7 +222,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
   return (
     <div className="space-y-4 animate-in fade-in duration-150 text-xs">
       {/* Settings Rows Container */}
-      <div className="bg-[#16171e] border border-[#2e3142] rounded-md p-3 divide-y divide-[#2e3142]">
+      <div className="bg-[#0c0c0e] border border-[#222226] rounded-md p-3 divide-y divide-[#222226]">
         {/* Row 1: AES-256 Storage Encryption */}
         <div className="py-3 space-y-2.5 first:pt-0">
           <div className="flex items-center justify-between gap-4">
@@ -255,7 +255,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
               title={securityConfig.isEncryptionEnabled ? "암호화 비활성화" : "암호화 활성화"}
               aria-label={securityConfig.isEncryptionEnabled ? "암호화 비활성화" : "암호화 활성화"}
               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                securityConfig.isEncryptionEnabled ? 'bg-indigo-600' : 'bg-[#282a38]'
+                securityConfig.isEncryptionEnabled ? 'bg-indigo-600' : 'bg-[#18181b]'
               }`}
             >
               <span
@@ -281,7 +281,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                 spellCheck={false}
                 data-lpignore="true"
                 data-form-type="other"
-                className="flex-1 bg-[#121318] border border-[#2e3142] rounded-md px-2.5 py-1.5 text-xs font-mono text-slate-200 outline-none focus:border-amber-400"
+                className="flex-1 bg-[#09090b] border border-[#222226] rounded-md px-2.5 py-1.5 text-xs font-mono text-slate-200 outline-none focus:border-amber-400"
               />
               <button
                 type="button"
@@ -326,7 +326,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
 
           {/* Passcode modal inline */}
           {isSettingPasscode && (
-            <div className="p-3 bg-[#121318] border border-indigo-500/40 rounded-md space-y-2.5 animate-in fade-in">
+            <div className="p-3 bg-[#09090b] border border-indigo-500/40 rounded-md space-y-2.5 animate-in fade-in">
               <div className="flex items-center justify-between text-xs font-medium text-indigo-300">
                 <span className="flex items-center gap-1.5">
                   <Fingerprint className="w-3.5 h-3.5" /> 마스터 PIN 설정
@@ -353,7 +353,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                     spellCheck={false}
                     data-lpignore="true"
                     data-form-type="other"
-                    className="w-full bg-[#16171e] border border-[#2e3142] rounded-md px-2.5 py-1.5 text-xs text-slate-200 pr-7 focus:border-indigo-500 outline-none font-mono"
+                    className="w-full bg-[#0c0c0e] border border-[#222226] rounded-md px-2.5 py-1.5 text-xs text-slate-200 pr-7 focus:border-indigo-500 outline-none font-mono"
                   />
                   <button
                     type="button"
@@ -375,7 +375,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                   spellCheck={false}
                   data-lpignore="true"
                   data-form-type="other"
-                  className="w-full bg-[#16171e] border border-[#2e3142] rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:border-indigo-500 outline-none font-mono"
+                  className="w-full bg-[#0c0c0e] border border-[#222226] rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:border-indigo-500 outline-none font-mono"
                 />
               </div>
               <div className="flex justify-end gap-1.5">
@@ -431,7 +431,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
               }}
               title="접속 시 잠금 토글"
               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                securityConfig.lockOnStartup !== false ? 'bg-indigo-600' : 'bg-[#282a38]'
+                securityConfig.lockOnStartup !== false ? 'bg-indigo-600' : 'bg-[#18181b]'
               }`}
             >
               <span
@@ -466,7 +466,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                 onUpdateSecurityConfig(updated);
                 onToast(val > 0 ? `자동 잠금이 ${val}분으로 설정되었습니다.` : '자동 잠금이 해제되었습니다.', 'info');
               }}
-              className="bg-[#121318] border border-[#2e3142] hover:border-indigo-500 rounded-md px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+              className="bg-[#09090b] border border-[#222226] hover:border-indigo-500 rounded-md px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
             >
               <option value={1}>1분 후 잠금</option>
               <option value={3}>3분 후 잠금</option>
@@ -507,7 +507,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
               }}
               title="브라우저 종료 시 세션 삭제 토글"
               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                securityConfig.clearSessionOnClose ? 'bg-indigo-600' : 'bg-[#282a38]'
+                securityConfig.clearSessionOnClose ? 'bg-indigo-600' : 'bg-[#18181b]'
               }`}
             >
               <span
@@ -548,7 +548,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
       {/* Emergency Purge Confirmation Modal */}
       {isPurgeModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-3 bg-black/80 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-sm bg-[#1e202b] border border-rose-500/50 rounded-xl p-4 shadow-2xl space-y-3 animate-in zoom-in-95 text-xs text-slate-200">
+          <div className="w-full max-w-sm bg-[#121214] border border-rose-500/50 rounded-xl p-4 shadow-2xl space-y-3 animate-in zoom-in-95 text-xs text-slate-200">
             <div className="flex items-start gap-2.5">
               <div className="w-8 h-8 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
                 <AlertTriangle className="w-4 h-4" />
@@ -571,7 +571,7 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                 onChange={(e) => setPurgeConfirmationText(e.target.value)}
                 placeholder="초기화"
                 autoFocus
-                className="w-full bg-[#121318] border border-rose-500/60 rounded-md px-2.5 py-1.5 text-xs text-rose-200 font-mono outline-none focus:ring-1 focus:ring-rose-500"
+                className="w-full bg-[#09090b] border border-rose-500/60 rounded-md px-2.5 py-1.5 text-xs text-rose-200 font-mono outline-none focus:ring-1 focus:ring-rose-500"
               />
             </div>
 

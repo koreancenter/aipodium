@@ -77,7 +77,7 @@ export interface ToastInfo {
   type?: 'success' | 'warn' | 'info' | 'error';
 }
 
-export type MenuType = 'file' | 'edit' | 'view' | 'pdf' | 'settings' | 'ai' | 'window' | 'help' | null;
+export type MenuType = 'file' | 'edit' | 'view' | 'ssot' | 'pdf' | 'settings' | 'ai' | 'window' | 'help' | null;
 
 export interface RecentAiChange {
   file: string;

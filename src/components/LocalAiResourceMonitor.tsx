@@ -246,9 +246,9 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
       return 'bg-[#1c1417] border-[#ef4444]/80 shadow-[0_0_8px_rgba(239,68,68,0.2)]';
     }
     if (isGenerating) {
-      return 'bg-[#16171e] border-[#ea580c]/60';
+      return 'bg-[#0c0c0e] border-[#ea580c]/60';
     }
-    return 'bg-[#16171e] border-[#2e3142] hover:border-[#6366f1]/50';
+    return 'bg-[#0c0c0e] border-[#222226] hover:border-[#6366f1]/50';
   };
 
   const getTooltipText = () => {
@@ -288,7 +288,7 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
             </span>
           </div>
 
-          <span className="text-[#2e3142]">|</span>
+          <span className="text-[#222226]">|</span>
 
           {/* CPU Indicator */}
           <div className="flex items-center gap-1.5 leading-none">

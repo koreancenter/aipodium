@@ -581,10 +581,10 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
       />
 
       {/* Main Dialog: Clean, Minimal, Unboxed */}
-      <div className="relative bg-[#16171e] border border-[#2e3142] rounded-md max-w-md w-full p-5 shadow-2xl space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans">
+      <div className="relative bg-[#0c0c0e] border border-[#222226] rounded-md max-w-md w-full p-5 shadow-2xl space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans">
         
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#2e3142]/70">
+        <div className="flex items-center justify-between pb-3 border-b border-[#222226]/70">
           <div className="flex items-center gap-2">
             <FolderOpen className="w-4 h-4 text-indigo-400" />
             <h2 className="text-sm font-semibold text-slate-100">프로젝트 폴더 관리</h2>
@@ -592,7 +592,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 p-1 rounded-md hover:bg-[#282a38] transition cursor-pointer"
+            className="text-slate-400 hover:text-slate-200 p-1 rounded-md hover:bg-[#18181b] transition cursor-pointer"
             title="닫기"
           >
             <X className="w-4 h-4" />
@@ -614,7 +614,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
           <button
             type="button"
             onClick={() => docInputRef.current?.click()}
-            className="w-full bg-[#202230] hover:bg-[#282a3c] text-indigo-300 hover:text-indigo-200 border border-[#2e3142] py-2 px-4 rounded-md font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
+            className="w-full bg-[#202230] hover:bg-[#282a3c] text-indigo-300 hover:text-indigo-200 border border-[#222226] py-2 px-4 rounded-md font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
           >
             <FileText className="w-4 h-4 shrink-0 text-indigo-400" />
             <span>오피스 및 PDF 문서 변환 가져오기...</span>
@@ -665,7 +665,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
             )}
           </div>
 
-          <div className="max-h-52 overflow-y-auto rounded bg-[#121318] border border-[#2e3142]/70 divide-y divide-[#2e3142]/40 custom-scrollbar">
+          <div className="max-h-52 overflow-y-auto rounded bg-[#09090b] border border-[#222226]/70 divide-y divide-[#222226]/40 custom-scrollbar">
             {recentList.length === 0 ? (
               <div className="py-7 text-center text-xs text-slate-400 space-y-1">
                 <p>최근 열었던 프로젝트 폴더가 없습니다.</p>
@@ -678,7 +678,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
                 <div
                   key={item.id}
                   onClick={() => handleSelectRecent(item)}
-                  className="px-3 py-2 flex items-center justify-between hover:bg-[#1e202b] transition cursor-pointer group select-none"
+                  className="px-3 py-2 flex items-center justify-between hover:bg-[#121214] transition cursor-pointer group select-none"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Folder className="w-4 h-4 text-indigo-400 shrink-0 group-hover:scale-105 transition-transform" />
@@ -719,7 +719,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
         </div>
 
         {/* Remote & Other Storages (Subtle text dropdown at bottom) */}
-        <div className="pt-2 border-t border-[#2e3142]/60">
+        <div className="pt-2 border-t border-[#222226]/60">
           <button
             type="button"
             onClick={() => setShowRemoteOptions(!showRemoteOptions)}
@@ -738,7 +738,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
               <button
                 type="button"
                 onClick={() => handleConnectOption('gdrive')}
-                className="py-1.5 px-2 rounded bg-[#121318] hover:bg-[#1e202b] border border-[#2e3142]/60 flex items-center justify-center gap-1.5 text-slate-300 hover:text-white text-xs transition cursor-pointer"
+                className="py-1.5 px-2 rounded bg-[#09090b] hover:bg-[#121214] border border-[#222226]/60 flex items-center justify-center gap-1.5 text-slate-300 hover:text-white text-xs transition cursor-pointer"
               >
                 <Cloud className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="text-[0.6875rem]">Google Drive</span>
@@ -747,7 +747,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
               <button
                 type="button"
                 onClick={() => handleConnectOption('ssh')}
-                className="py-1.5 px-2 rounded bg-[#121318] hover:bg-[#1e202b] border border-[#2e3142]/60 flex items-center justify-center gap-1.5 text-slate-300 hover:text-white text-xs transition cursor-pointer"
+                className="py-1.5 px-2 rounded bg-[#09090b] hover:bg-[#121214] border border-[#222226]/60 flex items-center justify-center gap-1.5 text-slate-300 hover:text-white text-xs transition cursor-pointer"
               >
                 <Server className="w-3.5 h-3.5 text-cyan-400" />
                 <span className="text-[0.6875rem]">Remote SSH</span>
@@ -756,7 +756,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
               <button
                 type="button"
                 onClick={() => handleConnectOption('vault')}
-                className="py-1.5 px-2 rounded bg-[#121318] hover:bg-[#1e202b] border border-[#2e3142]/60 flex items-center justify-center gap-1.5 text-slate-300 hover:text-white text-xs transition cursor-pointer"
+                className="py-1.5 px-2 rounded bg-[#09090b] hover:bg-[#121214] border border-[#222226]/60 flex items-center justify-center gap-1.5 text-slate-300 hover:text-white text-xs transition cursor-pointer"
               >
                 <Database className="w-3.5 h-3.5 text-indigo-400" />
                 <span className="text-[0.6875rem]">브라우저 Vault</span>

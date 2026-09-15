@@ -270,13 +270,13 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
           left: `${coords.left}px`,
           maxWidth: 'min(480px, calc(100vw - 24px))'
         }}
-        className="w-[480px] max-h-[520px] flex flex-col bg-[#181a24]/98 backdrop-blur-2xl border border-[#2e3142] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] z-[100000] text-slate-200 text-xs animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
+        className="w-[480px] max-h-[520px] flex flex-col bg-[#181a24]/98 backdrop-blur-2xl border border-[#222226] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] z-[100000] text-slate-200 text-xs animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-[#2e3142] bg-[#121318]/70 shrink-0">
+        <div className="flex items-center justify-between p-3 border-b border-[#222226] bg-[#09090b]/70 shrink-0">
           <div className="flex items-center gap-2 font-bold text-slate-100">
             <div className="w-6 h-6 rounded-md bg-[#6366f1]/20 border border-[#6366f1]/40 flex items-center justify-center text-[#818cf8]">
               <HelpCircle className="w-3.5 h-3.5" />
@@ -296,7 +296,7 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-[#282a38] transition cursor-pointer"
+            className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-[#18181b] transition cursor-pointer"
             title="닫기"
           >
             <X className="w-4 h-4" />
@@ -304,19 +304,19 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
         </div>
 
         {/* Search Input */}
-        <div className="p-2 border-b border-[#2e3142] bg-[#161720] shrink-0">
+        <div className="p-2 border-b border-[#222226] bg-[#161720] shrink-0">
           <input
             type="text"
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
             placeholder="문법 검색 (예: 표, 체크박스, bold, quote, kbd)..."
-            className="w-full bg-[#1e202b] border border-[#2e3142] rounded-md px-2.5 py-1 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-[#6366f1] transition"
+            className="w-full bg-[#121214] border border-[#222226] rounded-md px-2.5 py-1 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-[#6366f1] transition"
           />
         </div>
 
         {/* Category Tabs (when not searching) */}
         {!filterQuery.trim() && (
-          <div className="flex items-center gap-1 px-2.5 py-1.5 border-b border-[#2e3142] bg-[#121318]/50 overflow-x-auto scrollbar-none shrink-0">
+          <div className="flex items-center gap-1 px-2.5 py-1.5 border-b border-[#222226] bg-[#09090b]/50 overflow-x-auto scrollbar-none shrink-0">
             {HELP_CATEGORIES.map((cat, idx) => {
               const isActive = idx === activeTab;
               return (
@@ -327,7 +327,7 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
                   className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[0.6875rem] font-medium whitespace-nowrap transition cursor-pointer ${
                     isActive
                       ? 'bg-[#6366f1] text-white shadow-xs'
-                      : 'text-slate-400 hover:text-white hover:bg-[#282a38]'
+                      : 'text-slate-400 hover:text-white hover:bg-[#18181b]'
                   }`}
                 >
                   <span className="shrink-0">{cat.icon}</span>
@@ -360,14 +360,14 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
                     return (
                       <div
                         key={item.label}
-                        className="p-2 rounded-lg bg-[#1e202b]/70 border border-[#2e3142] hover:border-[#6366f1]/50 transition group flex items-start justify-between gap-2"
+                        className="p-2 rounded-lg bg-[#121214]/70 border border-[#222226] hover:border-[#6366f1]/50 transition group flex items-start justify-between gap-2"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-semibold text-slate-200 text-xs">{item.label}</span>
                             <span className="text-[0.625rem] text-slate-400">{item.description}</span>
                           </div>
-                          <pre className="font-mono text-[0.6875rem] bg-[#121318] text-[#a5b4fc] p-1.5 rounded border border-[#2e3142]/60 overflow-x-auto whitespace-pre-wrap select-all">
+                          <pre className="font-mono text-[0.6875rem] bg-[#09090b] text-[#a5b4fc] p-1.5 rounded border border-[#222226]/60 overflow-x-auto whitespace-pre-wrap select-all">
                             {item.syntax}
                           </pre>
                         </div>
@@ -386,7 +386,7 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
                           <button
                             type="button"
                             onClick={() => handleCopy(item.exampleSnippet, itemId)}
-                            className="p-1 px-1.5 rounded bg-[#282a38] hover:bg-[#34384b] text-slate-300 hover:text-white text-[0.625rem] transition flex items-center gap-1 cursor-pointer border border-[#2e3142]"
+                            className="p-1 px-1.5 rounded bg-[#18181b] hover:bg-[#34384b] text-slate-300 hover:text-white text-[0.625rem] transition flex items-center gap-1 cursor-pointer border border-[#222226]"
                             title="클립보드에 복사"
                           >
                             {isCopied ? (
@@ -412,11 +412,11 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
         </div>
 
         {/* Footer Quick Shortcuts */}
-        <div className="p-2 px-3 border-t border-[#2e3142] bg-[#121318]/80 text-[0.625rem] text-slate-400 flex items-center justify-between shrink-0 font-mono">
+        <div className="p-2 px-3 border-t border-[#222226] bg-[#09090b]/80 text-[0.625rem] text-slate-400 flex items-center justify-between shrink-0 font-mono">
           <div className="flex items-center gap-2">
-            <span><kbd className="px-1 py-0.5 rounded bg-[#282a38] text-slate-300 border border-[#2e3142]">Ctrl+B</kbd> 굵게</span>
-            <span><kbd className="px-1 py-0.5 rounded bg-[#282a38] text-slate-300 border border-[#2e3142]">Ctrl+I</kbd> 기울임</span>
-            <span><kbd className="px-1 py-0.5 rounded bg-[#282a38] text-slate-300 border border-[#2e3142]">/</kbd> 자동완성</span>
+            <span><kbd className="px-1 py-0.5 rounded bg-[#18181b] text-slate-300 border border-[#222226]">Ctrl+B</kbd> 굵게</span>
+            <span><kbd className="px-1 py-0.5 rounded bg-[#18181b] text-slate-300 border border-[#222226]">Ctrl+I</kbd> 기울임</span>
+            <span><kbd className="px-1 py-0.5 rounded bg-[#18181b] text-slate-300 border border-[#222226]">/</kbd> 자동완성</span>
           </div>
           <span className="text-slate-500">Esc 키로 닫기</span>
         </div>

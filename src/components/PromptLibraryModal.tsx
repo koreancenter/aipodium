@@ -176,11 +176,11 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.98, y: 6 }}
           transition={{ duration: 0.15 }}
-          className="bg-[#1e202b] border border-[#2e3142] rounded-xl shadow-2xl w-full max-w-xl h-[520px] max-h-[88vh] flex flex-col overflow-hidden text-slate-200 font-sans"
+          className="bg-[#121214] border border-[#222226] rounded-xl shadow-2xl w-full max-w-xl h-[520px] max-h-[88vh] flex flex-col overflow-hidden text-slate-200 font-sans"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-4 py-3 border-b border-[#2e3142] bg-[#1e202b] flex items-center justify-between shrink-0">
+          <div className="px-4 py-3 border-b border-[#222226] bg-[#121214] flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <div className="p-1.5 rounded-md bg-[#6366f1]/15 text-[#818cf8] border border-[#6366f1]/30">
                 <Settings className="w-4 h-4" />
@@ -190,7 +190,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                   <h2 className="font-semibold text-xs text-slate-200 tracking-wide flex items-center gap-1.5">
                     <span>프롬프트 관리</span>
                   </h2>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-sm bg-[#121318] text-[#818cf8] border border-[#2e3142]">
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-sm bg-[#09090b] text-[#818cf8] border border-[#222226]">
                     {activePrompts.length}개 저장됨
                   </span>
                 </div>
@@ -202,7 +202,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-[#282a38] rounded-md transition cursor-pointer"
+              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-[#18181b] rounded-md transition cursor-pointer"
               title="닫기"
             >
               <X className="w-4 h-4" />
@@ -210,7 +210,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
           </div>
 
           {/* Search & Action Bar */}
-          <div className="px-4 py-2.5 border-b border-[#2e3142] bg-[#121318] flex items-center gap-2 shrink-0">
+          <div className="px-4 py-2.5 border-b border-[#222226] bg-[#09090b] flex items-center gap-2 shrink-0">
             <div className="relative flex-1">
               <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
@@ -218,7 +218,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="제목, 설명, 프롬프트 내용 검색..."
-                className="w-full bg-[#16171e] border border-[#2e3142] rounded-md pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:border-[#6366f1] outline-none transition"
+                className="w-full bg-[#0c0c0e] border border-[#222226] rounded-md pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:border-[#6366f1] outline-none transition"
               />
               {searchQuery && (
                 <button
@@ -244,11 +244,11 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
           </div>
 
           {/* Body Content */}
-          <div className="flex-1 overflow-y-auto p-4 min-h-0 bg-[#121318]">
+          <div className="flex-1 overflow-y-auto p-4 min-h-0 bg-[#09090b]">
             {isAddingPrompt || editingPrompt ? (
               /* Add/Edit Form */
-              <div className="bg-[#1e202b] border border-[#2e3142] rounded-lg p-4 space-y-3 animate-in fade-in duration-100">
-                <div className="flex items-center justify-between pb-2 border-b border-[#2e3142]">
+              <div className="bg-[#121214] border border-[#222226] rounded-lg p-4 space-y-3 animate-in fade-in duration-100">
+                <div className="flex items-center justify-between pb-2 border-b border-[#222226]">
                   <span className="text-xs font-semibold text-indigo-400 flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>{isAddingPrompt ? '새 프롬프트 템플릿 작성' : '프롬프트 템플릿 수정'}</span>
@@ -259,7 +259,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                       setIsAddingPrompt(false);
                       setEditingPrompt(null);
                     }}
-                    className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-[#282a38] transition cursor-pointer"
+                    className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-[#18181b] transition cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -272,7 +272,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                     value={promptForm.title}
                     onChange={(e) => setPromptForm({ ...promptForm, title: e.target.value })}
                     placeholder="예: 코드 검토 (보안 및 성능)"
-                    className="w-full bg-[#121318] border border-[#2e3142] rounded-md px-3 py-1.5 text-xs text-slate-200 outline-none focus:border-[#6366f1] transition"
+                    className="w-full bg-[#09090b] border border-[#222226] rounded-md px-3 py-1.5 text-xs text-slate-200 outline-none focus:border-[#6366f1] transition"
                     autoFocus
                   />
                 </div>
@@ -284,7 +284,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                     value={promptForm.description}
                     onChange={(e) => setPromptForm({ ...promptForm, description: e.target.value })}
                     placeholder="예: 보안 취약점 점검 및 최적화 리팩토링 제안"
-                    className="w-full bg-[#121318] border border-[#2e3142] rounded-md px-3 py-1.5 text-xs text-slate-200 outline-none focus:border-[#6366f1] transition"
+                    className="w-full bg-[#09090b] border border-[#222226] rounded-md px-3 py-1.5 text-xs text-slate-200 outline-none focus:border-[#6366f1] transition"
                   />
                 </div>
 
@@ -295,18 +295,18 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                     value={promptForm.body}
                     onChange={(e) => setPromptForm({ ...promptForm, body: e.target.value })}
                     placeholder="에디터 또는 AI 채팅창에 원터치로 삽입할 프롬프트 상세 내용을 입력하세요..."
-                    className="w-full bg-[#121318] border border-[#2e3142] rounded-md p-3 text-xs font-mono text-slate-200 outline-none focus:border-[#6366f1] resize-none leading-relaxed transition"
+                    className="w-full bg-[#09090b] border border-[#222226] rounded-md p-3 text-xs font-mono text-slate-200 outline-none focus:border-[#6366f1] resize-none leading-relaxed transition"
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2 border-t border-[#2e3142]">
+                <div className="flex justify-end gap-2 pt-2 border-t border-[#222226]">
                   <button
                     type="button"
                     onClick={() => {
                       setIsAddingPrompt(false);
                       setEditingPrompt(null);
                     }}
-                    className="px-3 py-1.5 bg-[#282a38] hover:bg-[#323648] text-slate-300 rounded-md text-xs transition cursor-pointer"
+                    className="px-3 py-1.5 bg-[#18181b] hover:bg-[#323648] text-slate-300 rounded-md text-xs transition cursor-pointer"
                   >
                     취소
                   </button>
@@ -340,7 +340,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                   <button
                     type="button"
                     onClick={startAdd}
-                    className="mt-3 text-[#818cf8] hover:underline text-xs cursor-pointer inline-flex items-center gap-1.5 bg-[#1e202b] px-3 py-1.5 rounded-md border border-[#2e3142]"
+                    className="mt-3 text-[#818cf8] hover:underline text-xs cursor-pointer inline-flex items-center gap-1.5 bg-[#121214] px-3 py-1.5 rounded-md border border-[#222226]"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>첫 번째 템플릿 만들기</span>
@@ -353,18 +353,18 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                 {filteredPrompts.map((prompt) => (
                   <div
                     key={prompt.id}
-                    className="p-3 bg-[#1e202b] border border-[#2e3142] rounded-md hover:border-[#6366f1]/50 transition flex items-start justify-between gap-3 group"
+                    className="p-3 bg-[#121214] border border-[#222226] rounded-md hover:border-[#6366f1]/50 transition flex items-start justify-between gap-3 group"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-xs text-slate-200">{prompt.title}</span>
                         {prompt.description && (
-                          <span className="text-[10px] text-slate-400 bg-[#121318] px-2 py-0.5 rounded-sm border border-[#2e3142] truncate max-w-[200px]">
+                          <span className="text-[10px] text-slate-400 bg-[#09090b] px-2 py-0.5 rounded-sm border border-[#222226] truncate max-w-[200px]">
                             {prompt.description}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-400 font-mono mt-1.5 line-clamp-2 bg-[#121318] p-2 rounded-md border border-[#2e3142]/60 select-all">
+                      <p className="text-[11px] text-slate-400 font-mono mt-1.5 line-clamp-2 bg-[#09090b] p-2 rounded-md border border-[#222226]/60 select-all">
                         {prompt.body}
                       </p>
                     </div>
@@ -386,7 +386,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleCopyBody(prompt.body)}
-                        className="p-1.5 rounded-md bg-[#282a38] hover:bg-[#323648] text-slate-300 hover:text-white transition cursor-pointer"
+                        className="p-1.5 rounded-md bg-[#18181b] hover:bg-[#323648] text-slate-300 hover:text-white transition cursor-pointer"
                         title="프롬프트 복사"
                       >
                         <Copy className="w-3.5 h-3.5" />
@@ -395,7 +395,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                       <button
                         type="button"
                         onClick={() => startEdit(prompt)}
-                        className="p-1.5 rounded-md hover:bg-[#282a38] text-slate-400 hover:text-slate-200 transition cursor-pointer"
+                        className="p-1.5 rounded-md hover:bg-[#18181b] text-slate-400 hover:text-slate-200 transition cursor-pointer"
                         title="수정"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
@@ -417,12 +417,12 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="px-4 py-2.5 border-t border-[#2e3142] bg-[#121318] flex items-center justify-between shrink-0 text-slate-400 text-[11px]">
+          <div className="px-4 py-2.5 border-t border-[#222226] bg-[#09090b] flex items-center justify-between shrink-0 text-slate-400 text-[11px]">
             <span>💡 상단 [편집] &gt; [프롬프트 주입] 서브메뉴에서 1클릭으로 바로 주입할 수 있습니다.</span>
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1 rounded-md bg-[#282a38] hover:bg-[#323648] text-slate-200 transition cursor-pointer"
+              className="px-3 py-1 rounded-md bg-[#18181b] hover:bg-[#323648] text-slate-200 transition cursor-pointer"
             >
               닫기
             </button>

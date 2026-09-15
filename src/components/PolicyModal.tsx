@@ -31,12 +31,12 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150">
       <div
-        className="bg-[#1e202b] border border-[#2e3142] rounded-xl shadow-2xl flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-zinc-100 font-sans"
+        className="bg-[#121214] border border-[#222226] rounded-xl shadow-2xl flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-zinc-100 font-sans"
         role="dialog"
         aria-modal="true"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 bg-[#181a23] border-b border-[#2e3142]">
+        <div className="flex items-center justify-between px-5 py-4 bg-[#181a23] border-b border-[#222226]">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
               <FileText className="w-4.5 h-4.5" />
@@ -63,7 +63,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
         </div>
 
         {/* Tab Navigation (IDE Flat Tabs) */}
-        <div className="flex items-center gap-1 px-5 pt-1.5 bg-[#181a23] border-b border-[#2e3142]">
+        <div className="flex items-center gap-1 px-5 pt-1.5 bg-[#181a23] border-b border-[#222226]">
           <button
             type="button"
             onClick={() => setActiveTab('disclaimer')}
@@ -105,7 +105,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
         </div>
 
         {/* Body Content - Flattened Clean Document Sections */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs text-zinc-300 leading-relaxed bg-[#1e202b]">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs text-zinc-300 leading-relaxed bg-[#121214]">
           {activeTab === 'disclaimer' && (
             <div className="space-y-5">
               <div className="p-3 rounded-md bg-amber-950/25 border border-amber-500/25 text-amber-200 text-xs leading-relaxed flex items-start gap-2.5">
@@ -123,7 +123,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
               </div>
 
               {/* Section 1 */}
-              <section className="space-y-1.5 pb-4 border-b border-[#2e3142]/60">
+              <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
                 <h3 className="text-sm font-medium text-zinc-200">
                   {isKr ? '1. 데이터 보관 및 백업 책임' : '1. Local Data Ownership & Backup'}
                 </h3>
@@ -135,7 +135,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
               </section>
 
               {/* Section 2 */}
-              <section className="space-y-1.5 pb-4 border-b border-[#2e3142]/60">
+              <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
                 <h3 className="text-sm font-medium text-zinc-200">
                   {isKr ? '2. AI 답변의 학술적 검증' : '2. Academic Verification & AI Accuracy'}
                 </h3>
@@ -147,7 +147,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
               </section>
 
               {/* Section 3 */}
-              <section className="space-y-1.5 pb-4 border-b border-[#2e3142]/60">
+              <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
                 <h3 className="text-sm font-medium text-zinc-200">
                   {isKr ? '3. 개인 API 키 관리 및 과금' : '3. Custom API Key & Costs'}
                 </h3>
@@ -188,7 +188,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
                 </div>
               </div>
 
-              <section className="space-y-1.5 pb-4 border-b border-[#2e3142]/60">
+              <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
                 <h3 className="text-sm font-medium text-zinc-200">
                   {isKr ? '1. 정보 구조' : '1. Information Architecture'}
                 </h3>
@@ -199,7 +199,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
                 </p>
               </section>
 
-              <section className="space-y-1.5 pb-4 border-b border-[#2e3142]/60">
+              <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
                 <h3 className="text-sm font-medium text-zinc-200">
                   {isKr ? '2. 로컬 데이터 격리' : '2. Local Data Isolation'}
                 </h3>
@@ -225,7 +225,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
 
           {activeTab === 'terms' && (
             <div className="space-y-5">
-              <section className="space-y-1.5 pb-4 border-b border-[#2e3142]/60">
+              <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
                 <h3 className="text-sm font-medium text-zinc-200">
                   {isKr ? '1. 교육 및 학술 연구 목적' : '1. Educational & Research Purpose'}
                 </h3>
@@ -236,7 +236,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
                 </p>
               </section>
 
-              <section className="space-y-1.5 pb-4 border-b border-[#2e3142]/60">
+              <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
                 <h3 className="text-sm font-medium text-zinc-200">
                   {isKr ? '2. 올바른 이용 규정' : '2. Acceptable Use'}
                 </h3>
@@ -262,7 +262,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3.5 bg-[#181a23] border-t border-[#2e3142] flex items-center justify-between">
+        <div className="px-5 py-3.5 bg-[#181a23] border-t border-[#222226] flex items-center justify-between">
           <span className="text-xs text-zinc-400 font-mono">
             {isKr ? '최신 개정: 2026년 9월' : 'Updated: September 2026'}
           </span>

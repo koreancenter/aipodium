@@ -909,13 +909,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.98, y: 6 }}
           transition={{ duration: 0.15 }}
-          className="bg-[#1e202b] border border-[#2e3142] rounded-xl shadow-2xl w-full max-w-4xl h-[630px] max-h-[92vh] flex flex-col overflow-hidden text-slate-200"
+          className="bg-[#121214] border border-[#222226] rounded-xl shadow-2xl w-full max-w-4xl h-[630px] max-h-[92vh] flex flex-col overflow-hidden text-slate-200"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-4 py-3 border-b border-[#2e3142] bg-[#1e202b] flex items-center justify-between shrink-0">
+          <div className="px-4 py-3 border-b border-[#222226] bg-[#121214] flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-md bg-[#282a38] text-indigo-400 border border-[#2e3142]">
+              <div className="p-1.5 rounded-md bg-[#18181b] text-indigo-400 border border-[#222226]">
                 <Settings className="w-3.5 h-3.5" />
               </div>
               <div>
@@ -927,7 +927,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-[#282a38] rounded transition cursor-pointer"
+              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-[#18181b] rounded transition cursor-pointer"
               title="닫기"
               aria-label="닫기"
             >
@@ -938,22 +938,22 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           {/* Main Body */}
           <div className="flex flex-1 overflow-hidden min-h-0">
             {/* Sidebar Tabs */}
-            <div className="w-52 bg-[#16171e] border-r border-[#2e3142] p-2 flex flex-col gap-1 shrink-0 select-none overflow-y-auto min-h-0">
+            <div className="w-52 bg-[#0c0c0e] border-r border-[#222226] p-2 flex flex-col gap-1 shrink-0 select-none overflow-y-auto min-h-0">
               {/* TAB: AI Engine & Provider */}
               <button
                 type="button"
                 onClick={() => setActiveTab('ai-engine')}
                 className={`w-full flex items-center justify-between text-left px-2.5 py-2 rounded-md text-xs font-medium transition cursor-pointer ${
                   activeTab === 'ai-engine'
-                    ? 'bg-[#282a38] text-indigo-300 font-medium border-l-2 border-indigo-500'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#282a38]/50'
+                    ? 'bg-[#18181b] text-indigo-300 font-medium border-l-2 border-indigo-500'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#18181b]/50'
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
                   <Cpu className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'ai-engine' ? 'text-indigo-400' : 'text-slate-400'}`} />
                   <span className="truncate">AI 엔진 설정</span>
                 </div>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#121318] text-slate-400 border border-[#2e3142] shrink-0 ml-1 font-normal">
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#09090b] text-slate-400 border border-[#222226] shrink-0 ml-1 font-normal">
                   {localProviderType === 'cloud' ? '클라우드' : '로컬'}
                 </span>
               </button>
@@ -963,8 +963,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                 onClick={() => setActiveTab('persona')}
                 className={`w-full flex items-center justify-between text-left px-2.5 py-2 rounded-md text-xs font-medium transition cursor-pointer ${
                   activeTab === 'persona'
-                    ? 'bg-[#282a38] text-indigo-300 font-medium border-l-2 border-indigo-500'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#282a38]/50'
+                    ? 'bg-[#18181b] text-indigo-300 font-medium border-l-2 border-indigo-500'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#18181b]/50'
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
@@ -978,8 +978,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                 onClick={() => setActiveTab('ghost-writer')}
                 className={`w-full flex items-center justify-between text-left px-2.5 py-2 rounded-md text-xs font-medium transition cursor-pointer ${
                   activeTab === 'ghost-writer'
-                    ? 'bg-[#282a38] text-indigo-300 font-medium border-l-2 border-indigo-500'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#282a38]/50'
+                    ? 'bg-[#18181b] text-indigo-300 font-medium border-l-2 border-indigo-500'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#18181b]/50'
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
@@ -990,7 +990,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   className={`text-[10px] font-mono px-1.5 py-0.5 rounded border shrink-0 ml-1 ${
                     localPrefs.ghostWriterLevel && localPrefs.ghostWriterLevel !== 'off'
                       ? 'bg-indigo-950/60 text-indigo-300 border-indigo-500/40 font-medium'
-                      : 'bg-[#121318] text-slate-500 border-[#2e3142] font-normal'
+                      : 'bg-[#09090b] text-slate-500 border-[#222226] font-normal'
                   }`}
                 >
                   {localPrefs.ghostWriterLevel && localPrefs.ghostWriterLevel !== 'off'
@@ -1010,8 +1010,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     onClick={() => setActiveTab('integrations')}
                     className={`w-full flex items-center justify-between text-left px-2.5 py-2 rounded-md text-xs font-medium transition cursor-pointer ${
                       activeTab === 'integrations'
-                        ? 'bg-[#282a38] text-indigo-300 font-medium border-l-2 border-indigo-500'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-[#282a38]/50'
+                        ? 'bg-[#18181b] text-indigo-300 font-medium border-l-2 border-indigo-500'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-[#18181b]/50'
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
@@ -1023,7 +1023,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         {connectedCount}개 연결
                       </span>
                     ) : (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#121318] text-slate-500 border border-[#2e3142] font-normal shrink-0 ml-1">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#09090b] text-slate-500 border border-[#222226] font-normal shrink-0 ml-1">
                         미연결
                       </span>
                     )}
@@ -1036,15 +1036,15 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                 onClick={() => setActiveTab('storage')}
                 className={`w-full flex items-center justify-between text-left px-2.5 py-2 rounded-md text-xs font-medium transition cursor-pointer ${
                   activeTab === 'storage'
-                    ? 'bg-[#282a38] text-indigo-300 font-medium border-l-2 border-indigo-500'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#282a38]/50'
+                    ? 'bg-[#18181b] text-indigo-300 font-medium border-l-2 border-indigo-500'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#18181b]/50'
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
                   <Database className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'storage' ? 'text-indigo-400' : 'text-slate-400'}`} />
                   <span className="truncate">저장소 및 DB</span>
                 </div>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#121318] text-slate-400 border border-[#2e3142] font-normal shrink-0 ml-1">
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#09090b] text-slate-400 border border-[#222226] font-normal shrink-0 ml-1">
                   로컬 DB
                 </span>
               </button>
@@ -1054,8 +1054,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                 onClick={() => setActiveTab('security')}
                 className={`w-full flex items-center justify-between text-left px-2.5 py-2 rounded-md text-xs font-medium transition cursor-pointer ${
                   activeTab === 'security'
-                    ? 'bg-[#282a38] text-indigo-300 font-medium border-l-2 border-indigo-500'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#282a38]/50'
+                    ? 'bg-[#18181b] text-indigo-300 font-medium border-l-2 border-indigo-500'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#18181b]/50'
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
@@ -1065,7 +1065,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               </button>
 
               {/* System Status & Environment Info Widget */}
-              <div className="mt-auto pt-3 border-t border-[#2e3142]/60 px-2 py-1.5 text-[11px] text-slate-400 space-y-1.5 select-none">
+              <div className="mt-auto pt-3 border-t border-[#222226]/60 px-2 py-1.5 text-[11px] text-slate-400 space-y-1.5 select-none">
                 <div className="flex items-center justify-between text-[10px]">
                   <span className="text-slate-500 font-normal">빌드 환경</span>
                   <span className="font-mono text-indigo-300 font-normal">v2.4.0 (IDE)</span>
@@ -1081,19 +1081,19 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             </div>
 
             {/* Tab Content Area */}
-            <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 bg-[#1e202b] min-h-0">
+            <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 bg-[#121214] min-h-0">
               {/* TAB 0: AI Engine & Provider */}
               {activeTab === 'ai-engine' && (
                 <div className="space-y-4 animate-in fade-in duration-150">
                   {/* 1. Mode Switcher (Top-Left): Cloud API vs Local Ollama */}
                   <div className="flex items-center">
-                    <div className="inline-flex p-0.5 bg-[#121318] border border-[#2e3142] rounded-md">
+                    <div className="inline-flex p-0.5 bg-[#09090b] border border-[#222226] rounded-md">
                       <button
                         type="button"
                         onClick={() => handleSwitchProvider('cloud')}
                         className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center gap-1.5 ${
                           localProviderType === 'cloud'
-                            ? 'bg-[#282a38] text-white font-medium border border-[#2e3142]'
+                            ? 'bg-[#18181b] text-white font-medium border border-[#222226]'
                             : 'text-slate-400 hover:text-slate-200'
                         }`}
                       >
@@ -1106,7 +1106,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         onClick={() => handleSwitchProvider('local')}
                         className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center gap-1.5 ${
                           localProviderType === 'local'
-                            ? 'bg-[#282a38] text-white font-medium border border-[#2e3142]'
+                            ? 'bg-[#18181b] text-white font-medium border border-[#222226]'
                             : 'text-slate-400 hover:text-slate-200'
                         }`}
                       >
@@ -1118,9 +1118,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
                   {/* 2. Provider Specific Credentials / Endpoint */}
                   {localProviderType === 'cloud' ? (
-                    <div className="bg-[#16171e] border border-[#2e3142] rounded-md overflow-hidden">
+                    <div className="bg-[#0c0c0e] border border-[#222226] rounded-md overflow-hidden">
                       {/* BYOK Multi-Vendor Tabs - Flat Bottom-Border Tabs */}
-                      <div className="flex items-stretch border-b border-[#2e3142] bg-[#121318]/70">
+                      <div className="flex items-stretch border-b border-[#222226] bg-[#09090b]/70">
                         {CLOUD_VENDORS.map((v) => {
                           const isSelected = selectedVendor === v.id;
                           const hasKey = !!(localPrefs.apiKeys?.[v.id] || (v.id === selectedVendor && localApiKeyInput.trim()));
@@ -1133,8 +1133,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               onClick={() => handleSelectVendor(v.id)}
                               className={`flex-1 py-2.5 px-1.5 text-center transition cursor-pointer flex flex-col items-center justify-center gap-0.5 relative -mb-[1px] border-b-2 ${
                                 isSelected
-                                  ? 'border-indigo-500 text-white font-medium bg-[#1e202b]/60'
-                                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#282a38]/30'
+                                  ? 'border-indigo-500 text-white font-medium bg-[#121214]/60'
+                                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#18181b]/30'
                               }`}
                             >
                               <div className="flex items-center gap-1.5 text-xs font-normal">
@@ -1175,7 +1175,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                     }));
                                   }}
                                   placeholder={`${currentVendorMeta.name} API 키 입력`}
-                                  className="w-full bg-[#121318] border border-[#2e3142] focus:border-indigo-500 rounded-md px-3 pr-8 py-1.5 text-xs font-mono text-slate-200 placeholder:text-slate-500 outline-none transition"
+                                  className="w-full bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded-md px-3 pr-8 py-1.5 text-xs font-mono text-slate-200 placeholder:text-slate-500 outline-none transition"
                                 />
                                 <button
                                   type="button"
@@ -1227,10 +1227,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                       <select
                                         value={localSelectedModel}
                                         onChange={(e) => setLocalSelectedModel(e.target.value)}
-                                        className="w-full bg-[#121318] border border-[#2e3142] hover:border-indigo-500/50 rounded-md px-3 py-1.5 text-xs text-slate-200 outline-none appearance-none cursor-pointer pr-8 font-normal"
+                                        className="w-full bg-[#09090b] border border-[#222226] hover:border-indigo-500/50 rounded-md px-3 py-1.5 text-xs text-slate-200 outline-none appearance-none cursor-pointer pr-8 font-normal"
                                       >
                                         {(VENDOR_MODELS_MAP[selectedVendor] || []).map((m) => (
-                                          <option key={m.id} value={m.id} className="bg-[#121318] text-slate-200 py-1 font-normal">
+                                          <option key={m.id} value={m.id} className="bg-[#09090b] text-slate-200 py-1 font-normal">
                                             {m.name}
                                           </option>
                                         ))}
@@ -1283,7 +1283,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                     onChange={(e) => setLocalGoogleGrounding(e.target.checked)}
                                     className="sr-only peer"
                                   />
-                                  <div className="w-7 h-4 bg-[#282a38] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-3 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                                  <div className="w-7 h-4 bg-[#18181b] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-3 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
                                 </label>
                               </div>
                             )}
@@ -1292,7 +1292,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       })()}
                     </div>
                   ) : (
-                    <div className="bg-[#16171e] border border-[#2e3142] rounded-md p-3 space-y-2.5">
+                    <div className="bg-[#0c0c0e] border border-[#222226] rounded-md p-3 space-y-2.5">
                       {/* Local Endpoint & Model Selector (2-Column Grid) */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {/* Endpoint */}
@@ -1302,7 +1302,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             value={localEndpointInput}
                             onChange={(e) => setLocalEndpointInput(e.target.value)}
                             placeholder="http://localhost:11434"
-                            className="flex-1 bg-[#121318] border border-[#2e3142] focus:border-indigo-500 rounded-md px-2.5 py-1.5 text-xs font-mono text-slate-200 placeholder:text-slate-500 outline-none"
+                            className="flex-1 bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded-md px-2.5 py-1.5 text-xs font-mono text-slate-200 placeholder:text-slate-500 outline-none"
                           />
                           <button
                             type="button"
@@ -1316,7 +1316,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         </div>
 
                         {/* Local Model Selector */}
-                        <div className="relative flex items-center bg-[#121318] border border-[#2e3142] rounded-md px-2.5 py-1">
+                        <div className="relative flex items-center bg-[#09090b] border border-[#222226] rounded-md px-2.5 py-1">
                           <span className="text-[11px] font-normal text-slate-400 shrink-0 mr-1.5">로컬 모델</span>
                           <select
                             value={localSelectedModel}
@@ -1324,7 +1324,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             className="w-full bg-transparent text-xs text-slate-200 outline-none appearance-none cursor-pointer pr-5 truncate text-right font-normal"
                           >
                             {localModelOptions.map((m) => (
-                              <option key={m.id} value={m.id} className="bg-[#121318] text-slate-200 py-1 text-left">
+                              <option key={m.id} value={m.id} className="bg-[#09090b] text-slate-200 py-1 text-left">
                                 {m.name}
                               </option>
                             ))}
@@ -1334,12 +1334,12 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       </div>
 
                       {/* Local AI Free Indicator */}
-                      <div className="flex items-center justify-between bg-[#121318] border border-[#2e3142] rounded-md px-2.5 py-1.5 text-[11px]">
+                      <div className="flex items-center justify-between bg-[#09090b] border border-[#222226] rounded-md px-2.5 py-1.5 text-[11px]">
                         <div className="flex items-center gap-2">
                           <Coins className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                           <span className="text-slate-300 font-medium">로컬 하드웨어 추론:</span>
                           <span className="text-emerald-400 font-mono font-medium">토큰 비용 무료</span>
-                          <span className="text-[#2e3142]">|</span>
+                          <span className="text-[#222226]">|</span>
                           <span className="text-slate-400">외부 네트워크 전송 없음 - 로컬 보안 보장</span>
                         </div>
                         <span className="badge-success text-[10px] px-1.5 py-0.5 rounded-sm">
@@ -1355,7 +1355,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             value={customModelInput}
                             onChange={(e) => setCustomModelInput(e.target.value)}
                             placeholder="예: llama3:latest 또는 mistral"
-                            className="flex-1 bg-[#121318] border border-[#2e3142] focus:border-indigo-500 rounded px-2.5 py-1 text-xs text-slate-200 outline-none transition"
+                            className="flex-1 bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-2.5 py-1 text-xs text-slate-200 outline-none transition"
                           />
                         </div>
                       )}
@@ -1394,7 +1394,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                 ? 'bg-amber-950/30 border-amber-800/50 text-amber-200'
                                 : corsStatus === 'offline'
                                 ? 'bg-rose-950/30 border-rose-800/50 text-rose-200'
-                                : 'bg-[#121318] border-[#2e3142] text-slate-300'
+                                : 'bg-[#09090b] border-[#222226] text-slate-300'
                             }`}
                           >
                             {corsStatus === 'success' ? (
@@ -1410,8 +1410,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
                         {/* Collapsible Accordion Content for CORS Commands */}
                         {isCorsGuideOpen && (
-                          <div className="p-2.5 bg-[#121318] border border-[#2e3142] rounded space-y-2 text-xs animate-in fade-in duration-100">
-                            <div className="flex items-center justify-between border-b border-[#2e3142] pb-1">
+                          <div className="p-2.5 bg-[#09090b] border border-[#222226] rounded space-y-2 text-xs animate-in fade-in duration-100">
+                            <div className="flex items-center justify-between border-b border-[#222226] pb-1">
                               <div className="flex gap-1">
                                 {[
                                   { id: 'powershell', label: 'Windows 파워셸' },
@@ -1425,7 +1425,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                     onClick={() => setCorsOsTab(tab.id as any)}
                                     className={`px-2 py-0.5 rounded text-[11px] font-normal transition cursor-pointer ${
                                       corsOsTab === tab.id
-                                        ? 'bg-[#282a38] text-white font-medium border border-[#2e3142]'
+                                        ? 'bg-[#18181b] text-white font-medium border border-[#222226]'
                                         : 'text-slate-400 hover:text-slate-200'
                                     }`}
                                   >
@@ -1451,7 +1451,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               const isCopied = corsCopiedCmd === cmdText;
 
                               return (
-                                <div className="flex items-center justify-between bg-[#16171e] border border-[#2e3142] rounded px-2.5 py-1 font-mono text-xs text-indigo-300">
+                                <div className="flex items-center justify-between bg-[#0c0c0e] border border-[#222226] rounded px-2.5 py-1 font-mono text-xs text-indigo-300">
                                   <span className="select-all truncate mr-2">{cmdText}</span>
                                   <button
                                     type="button"
@@ -1485,7 +1485,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           content="코딩이나 정밀 분석에는 '정밀·코드'를, 일반 용도에는 '균형', 창의적 아이디어 발상에는 '창의적'을 권장합니다."
                         />
                       </div>
-                      <div className="inline-flex p-0.5 bg-[#121318] border border-[#2e3142] rounded-md">
+                      <div className="inline-flex p-0.5 bg-[#09090b] border border-[#222226] rounded-md">
                         {[
                           { id: 'precision', label: '정밀·코드' },
                           { id: 'balanced', label: '균형' },
@@ -1499,7 +1499,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               onClick={() => handleApplyPreset(p.id as any)}
                               className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer ${
                                 isSelected
-                                  ? 'bg-[#282a38] text-white font-medium border border-[#2e3142]'
+                                  ? 'bg-[#18181b] text-white font-medium border border-[#222226]'
                                   : 'text-slate-400 hover:text-slate-200'
                               }`}
                             >
@@ -1527,7 +1527,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
                   {/* 4. Collapsible Advanced Parameters (Clean Spaced Rows without inner dividers) */}
                   {isAdvancedParamsOpen && (
-                    <div className="bg-[#16171e] border border-[#2e3142] rounded-md px-3.5 py-1.5 animate-in fade-in duration-150">
+                    <div className="bg-[#0c0c0e] border border-[#222226] rounded-md px-3.5 py-1.5 animate-in fade-in duration-150">
                       {/* Temperature Row */}
                       <div className="py-1.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div className="sm:w-48 shrink-0 flex items-center justify-between sm:justify-start gap-1.5">
@@ -1547,7 +1547,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             onChange={(e) =>
                               setLocalAiParams((prev) => ({ ...prev, temperature: parseFloat(e.target.value) }))
                             }
-                            className="flex-1 accent-indigo-500 cursor-pointer h-1.5 bg-[#282a38] rounded appearance-none"
+                            className="flex-1 accent-indigo-500 cursor-pointer h-1.5 bg-[#18181b] rounded appearance-none"
                           />
                           <span className="w-14 text-right font-mono text-xs font-medium text-indigo-300 shrink-0">
                             {localAiParams.temperature.toFixed(2)}
@@ -1574,7 +1574,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             onChange={(e) =>
                               setLocalAiParams((prev) => ({ ...prev, maxTokens: parseInt(e.target.value, 10) }))
                             }
-                            className="flex-1 accent-indigo-500 cursor-pointer h-1.5 bg-[#282a38] rounded appearance-none"
+                            className="flex-1 accent-indigo-500 cursor-pointer h-1.5 bg-[#18181b] rounded appearance-none"
                           />
                           <span className="w-14 text-right font-mono text-xs font-medium text-indigo-300 shrink-0">
                             {localAiParams.maxTokens}
@@ -1601,7 +1601,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             onChange={(e) =>
                               setLocalAiParams((prev) => ({ ...prev, topP: parseFloat(e.target.value) }))
                             }
-                            className="flex-1 accent-indigo-500 cursor-pointer h-1.5 bg-[#282a38] rounded appearance-none"
+                            className="flex-1 accent-indigo-500 cursor-pointer h-1.5 bg-[#18181b] rounded appearance-none"
                           />
                           <span className="w-14 text-right font-mono text-xs font-medium text-indigo-300 shrink-0">
                             {localAiParams.topP.toFixed(2)}
@@ -1627,7 +1627,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             }
                             className="sr-only peer"
                           />
-                          <div className="w-7 h-4 bg-[#282a38] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-3 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                          <div className="w-7 h-4 bg-[#18181b] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-3 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
                         </label>
                       </div>
                     </div>
@@ -1649,13 +1649,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       </div>
 
                       {/* Parser Selector Segments */}
-                      <div className="inline-flex p-0.5 bg-[#121318] border border-[#2e3142] rounded-md shrink-0">
+                      <div className="inline-flex p-0.5 bg-[#09090b] border border-[#222226] rounded-md shrink-0">
                         <button
                           type="button"
                           onClick={() => setPdfParserEngine('fast')}
                           className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center gap-1.5 ${
                             pdfParserEngine === 'fast'
-                              ? 'bg-[#282a38] text-white font-medium border border-[#2e3142]'
+                              ? 'bg-[#18181b] text-white font-medium border border-[#222226]'
                               : 'text-slate-400 hover:text-slate-200'
                           }`}
                         >
@@ -1668,7 +1668,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           onClick={() => setPdfParserEngine('gemini')}
                           className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center gap-1.5 ${
                             pdfParserEngine === 'gemini'
-                              ? 'bg-[#282a38] text-white font-medium border border-[#2e3142]'
+                              ? 'bg-[#18181b] text-white font-medium border border-[#222226]'
                               : 'text-slate-400 hover:text-slate-200'
                           }`}
                         >
@@ -1681,7 +1681,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           onClick={() => setPdfParserEngine('ollama')}
                           className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center gap-1.5 ${
                             pdfParserEngine === 'ollama'
-                              ? 'bg-[#282a38] text-white font-medium border border-[#2e3142]'
+                              ? 'bg-[#18181b] text-white font-medium border border-[#222226]'
                               : 'text-slate-400 hover:text-slate-200'
                           }`}
                         >
@@ -1701,7 +1701,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               value={pdfOllamaEndpoint}
                               onChange={(e) => setPdfOllamaEndpoint(e.target.value)}
                               placeholder="http://localhost:11434"
-                              className="flex-1 bg-[#121318] border border-[#2e3142] focus:border-indigo-500 rounded px-2.5 py-1 text-xs font-mono text-slate-200 placeholder:text-slate-500 outline-none"
+                              className="flex-1 bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-2.5 py-1 text-xs font-mono text-slate-200 placeholder:text-slate-500 outline-none"
                             />
                             <button
                               type="button"
@@ -1719,7 +1719,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             <select
                               value={pdfOllamaModel}
                               onChange={(e) => setPdfOllamaModel(e.target.value)}
-                              className="w-full bg-[#121318] border border-[#2e3142] focus:border-indigo-500 rounded px-2.5 py-1 text-xs text-slate-200 outline-none transition appearance-none cursor-pointer pr-6 truncate"
+                              className="w-full bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-2.5 py-1 text-xs text-slate-200 outline-none transition appearance-none cursor-pointer pr-6 truncate"
                             >
                               <optgroup label="추천 파싱 모델">
                                 <option value="llama3.2-vision">ollama/llama3.2-vision - 서식 및 비전 추천</option>
@@ -1752,7 +1752,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               value={pdfCustomModel}
                               onChange={(e) => setPdfCustomModel(e.target.value)}
                               placeholder="예: llava:latest 또는 mistral:instruct"
-                              className="flex-1 bg-[#121318] border border-[#2e3142] focus:border-indigo-500 rounded px-2.5 py-1 text-xs font-mono text-slate-200 outline-none"
+                              className="flex-1 bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-2.5 py-1 text-xs font-mono text-slate-200 outline-none"
                             />
                           </div>
                         )}
@@ -1785,7 +1785,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           })
                         }
                         placeholder="Podium Assistant"
-                        className="w-full bg-[#121318] border border-white/10 focus:border-indigo-500 rounded-md px-3 py-2 text-xs text-slate-200 outline-none transition placeholder:text-slate-600"
+                        className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 py-2 text-xs text-slate-200 outline-none transition placeholder:text-slate-600"
                       />
                     </div>
 
@@ -1807,7 +1807,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           })
                         }
                         placeholder="소프트웨어 엔지니어 및 기술 작가"
-                        className="w-full bg-[#121318] border border-white/10 focus:border-indigo-500 rounded-md px-3 py-2 text-xs text-slate-200 outline-none transition placeholder:text-slate-600"
+                        className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 py-2 text-xs text-slate-200 outline-none transition placeholder:text-slate-600"
                       />
                     </div>
                   </div>
@@ -1846,7 +1846,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           aiPersona: { ...localPrefs.aiPersona, systemInstruction: e.target.value }
                         })
                       }
-                      className="w-full flex-1 min-h-[360px] bg-[#121318] border border-white/10 focus:border-indigo-500 rounded-md p-3 text-xs font-mono text-slate-200 outline-none transition resize-none leading-relaxed placeholder:text-slate-600"
+                      className="w-full flex-1 min-h-[360px] bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md p-3 text-xs font-mono text-slate-200 outline-none transition resize-none leading-relaxed placeholder:text-slate-600"
                       placeholder="AI에게 전달할 프롬프트 지침 입력..."
                     />
                   </div>
@@ -1855,7 +1855,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
               {/* TAB: Integrations & Accounts */}
               {activeTab === 'integrations' && (
-                <div className="bg-[#16171e] border border-[#2e3142] rounded-md p-3.5 space-y-2 animate-in fade-in duration-150 text-xs">
+                <div className="bg-[#0c0c0e] border border-[#222226] rounded-md p-3.5 space-y-2 animate-in fade-in duration-150 text-xs">
                   {/* Item 1: Google Drive On-Demand & Workspace Integration */}
                   {(() => {
                     const isConnected = googleTokenStatus === 'connected' && !!googleUser;
@@ -1864,7 +1864,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     return (
                       <div className="flex items-center justify-between py-2 border-b border-white/[0.06] gap-3">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-7 h-7 rounded-md bg-[#282a38] text-indigo-400 border border-[#2e3142] flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-md bg-[#18181b] text-indigo-400 border border-[#222226] flex items-center justify-center shrink-0">
                             <Globe className="w-3.5 h-3.5" />
                           </div>
                           <div className="min-w-0">
@@ -1952,7 +1952,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     return (
                       <div className="flex items-center justify-between py-2 border-b border-white/[0.06] gap-3">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-7 h-7 rounded-md bg-[#282a38] text-purple-400 border border-[#2e3142] flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-md bg-[#18181b] text-purple-400 border border-[#222226] flex items-center justify-center shrink-0">
                             <Github className="w-3.5 h-3.5" />
                           </div>
                           <div className="min-w-0">
@@ -2004,7 +2004,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     return (
                       <div className="flex items-center justify-between py-2 gap-3">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-7 h-7 rounded-md bg-[#282a38] text-indigo-400 border border-[#2e3142] flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-md bg-[#18181b] text-indigo-400 border border-[#222226] flex items-center justify-center shrink-0">
                             <Server className="w-3.5 h-3.5" />
                           </div>
                           <div className="min-w-0">
@@ -2074,7 +2074,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               {/* TAB 6: Ghost Writer Mode */}
               {activeTab === 'ghost-writer' && (
                 <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="space-y-3.5 divide-y divide-[#2e3142]">
+                  <div className="space-y-3.5 divide-y divide-[#222226]">
                     {/* Mode & Level Selection */}
                     <div className="flex items-center justify-between gap-4 pt-1 first:pt-0">
                       <div className="flex items-center gap-1.5">
@@ -2084,7 +2084,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           content="에디터에서 문서를 작성하는 동안 백그라운드에서 실시간 번역 및 문맥 완성을 제안하는 강도입니다."
                         />
                       </div>
-                      <div className="flex rounded bg-[#121318] p-0.5 border border-[#2e3142]">
+                      <div className="flex rounded bg-[#09090b] p-0.5 border border-[#222226]">
                         {[
                           { id: 'off', label: '사용 안 함' },
                           { id: '30', label: '30%' },
@@ -2100,7 +2100,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               onClick={() => setLocalPrefs({ ...localPrefs, ghostWriterLevel: lvl.id as any })}
                               className={`px-2.5 py-1 text-xs font-medium rounded transition cursor-pointer ${
                                 isSelected
-                                  ? 'bg-[#282a38] text-indigo-300 font-medium shadow-xs border border-indigo-500/40'
+                                  ? 'bg-[#18181b] text-indigo-300 font-medium shadow-xs border border-indigo-500/40'
                                   : 'text-slate-400 hover:text-slate-200'
                               }`}
                             >
@@ -2123,7 +2123,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       <select
                         value={localPrefs.ghostWriterModel || 'gemini-3.8-flash'}
                         onChange={(e) => setLocalPrefs({ ...localPrefs, ghostWriterModel: e.target.value })}
-                        className="w-64 bg-[#121318] border border-[#2e3142] rounded px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-indigo-500 transition cursor-pointer"
+                        className="w-64 bg-[#09090b] border border-[#222226] rounded px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-indigo-500 transition cursor-pointer"
                       >
                         <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
                         <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
@@ -2139,7 +2139,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="px-5 py-3 border-t border-[#2e3142] bg-[#1e202b] flex justify-between items-center shrink-0">
+          <div className="px-5 py-3 border-t border-[#222226] bg-[#121214] flex justify-between items-center shrink-0">
             <span className="text-xs text-slate-400 flex items-center gap-1.5">
               <Check className="w-3.5 h-3.5 text-emerald-400" />
               <span>설정은 브라우저 로컬 저장소에 안전하게 보존됩니다</span>

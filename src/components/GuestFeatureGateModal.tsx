@@ -54,14 +54,14 @@ export const GuestFeatureGateModal: React.FC<GuestFeatureGateModalProps> = ({
     >
       <div
         id="guest-feature-gate-modal-content"
-        className="relative bg-[#1e202b] border border-[#2e3142] rounded-xl max-w-md w-full p-6 shadow-2xl text-slate-100 animate-in fade-in zoom-in-95 duration-150 font-sans"
+        className="relative bg-[#121214] border border-[#222226] rounded-xl max-w-md w-full p-6 shadow-2xl text-slate-100 animate-in fade-in zoom-in-95 duration-150 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1.5 rounded-md hover:bg-[#282a38] transition cursor-pointer"
+          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1.5 rounded-md hover:bg-[#18181b] transition cursor-pointer"
           title="닫기"
         >
           <X className="w-4 h-4" />
@@ -70,7 +70,7 @@ export const GuestFeatureGateModal: React.FC<GuestFeatureGateModalProps> = ({
         {/* Feature Icon Header */}
         <div className="flex flex-col items-center text-center space-y-3 pt-2">
           <div className="relative">
-            <div className="w-14 h-14 rounded-md bg-[#121318] border border-[#2e3142] flex items-center justify-center shadow-lg">
+            <div className="w-14 h-14 rounded-md bg-[#09090b] border border-[#222226] flex items-center justify-center shadow-lg">
               {renderIcon()}
             </div>
             <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-sm bg-[#6366f1] text-white flex items-center justify-center font-bold text-xs shadow-md">
@@ -93,7 +93,7 @@ export const GuestFeatureGateModal: React.FC<GuestFeatureGateModalProps> = ({
         </div>
 
         {/* Benefit Callouts */}
-        <div className="my-5 p-3.5 rounded-md bg-[#121318] border border-[#2e3142] space-y-2.5 text-xs text-slate-300">
+        <div className="my-5 p-3.5 rounded-md bg-[#09090b] border border-[#222226] space-y-2.5 text-xs text-slate-300">
           <div className="flex items-start gap-2.5">
             <CheckCircle2 className="w-4 h-4 text-[#6366f1] shrink-0 mt-0.5" />
             <span>
@@ -119,7 +119,7 @@ export const GuestFeatureGateModal: React.FC<GuestFeatureGateModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-1/2 h-9 flex items-center justify-center rounded-md border border-[#2e3142] bg-[#121318] hover:bg-[#282a38] text-slate-300 text-xs font-medium transition cursor-pointer"
+            className="w-full sm:w-1/2 h-9 flex items-center justify-center rounded-md border border-[#222226] bg-[#09090b] hover:bg-[#18181b] text-slate-300 text-xs font-medium transition cursor-pointer"
           >
             로컬에서 계속 작업하기
           </button>

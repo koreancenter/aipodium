@@ -1869,10 +1869,10 @@ ${targetText}
     <div
       id="slash-autocomplete-menu"
       style={{ top: `${slashPosition.top}px`, left: `${slashPosition.left}px` }}
-      className="absolute z-50 w-72 max-h-72 flex flex-col bg-[#1e202b] border border-[#2e3142] rounded-xs p-1.5 text-xs text-[#e2e8f0] animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
+      className="absolute z-50 w-72 max-h-72 flex flex-col bg-[#121214] border border-[#222226] rounded-xs p-1.5 text-xs text-[#e2e8f0] animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
       onMouseDown={(e) => e.preventDefault()} // Prevent textarea blur on click
     >
-      <div className="shrink-0 px-2 py-1 mb-1 border-b border-[#2e3142] flex items-center justify-between text-[0.625rem] text-[#94a3b8] font-semibold uppercase tracking-wider">
+      <div className="shrink-0 px-2 py-1 mb-1 border-b border-[#222226] flex items-center justify-between text-[0.625rem] text-[#94a3b8] font-semibold uppercase tracking-wider">
         <span className="flex items-center gap-1 text-[#6366f1]">
           <Sparkles className="w-3 h-3 text-[#6366f1]" />
           마크다운 자동 완성
@@ -1900,7 +1900,7 @@ ${targetText}
                 className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xs text-left transition-colors cursor-pointer ${
                   isSelected
                     ? 'bg-[#6366f1] text-white font-medium'
-                    : 'text-[#e2e8f0] hover:bg-[#282a38] hover:text-white'
+                    : 'text-[#e2e8f0] hover:bg-[#18181b] hover:text-white'
                 }`}
               >
                 <span className="shrink-0">{cmd.icon}</span>

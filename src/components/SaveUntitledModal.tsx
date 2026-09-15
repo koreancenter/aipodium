@@ -101,15 +101,15 @@ export const SaveUntitledModal: React.FC<SaveUntitledModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-[#121318]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-[#09090b]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       {/* Deep Charcoal & Electric Purple Modal */}
-      <div className="relative bg-[#1e202b] border border-[#2e3142] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-5 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans">
+      <div className="relative bg-[#121214] border border-[#222226] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-5 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans">
         
         {/* Top-Right Minimal Close Button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-1.5 rounded-md hover:bg-[#282a38] transition cursor-pointer"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-1.5 rounded-md hover:bg-[#18181b] transition cursor-pointer"
           title="닫기"
         >
           <X className="w-4 h-4" />
@@ -144,7 +144,7 @@ export const SaveUntitledModal: React.FC<SaveUntitledModalProps> = ({
                 }
               }}
               placeholder="예: project_spec.md"
-              className="w-full bg-[#121318] border border-[#2e3142] rounded-md px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1]/50 transition placeholder-slate-500"
+              className="w-full bg-[#09090b] border border-[#222226] rounded-md px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1]/50 transition placeholder-slate-500"
               autoFocus
             />
           </div>
@@ -157,10 +157,10 @@ export const SaveUntitledModal: React.FC<SaveUntitledModalProps> = ({
             <select
               value={selectedFolder}
               onChange={(e) => setSelectedFolder(e.target.value)}
-              className="w-full bg-[#121318] border border-[#2e3142] rounded-md px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1]/50 transition font-sans cursor-pointer"
+              className="w-full bg-[#09090b] border border-[#222226] rounded-md px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1]/50 transition font-sans cursor-pointer"
             >
               {availableFolders.map((folder) => (
-                <option key={folder} value={folder} className="bg-[#1e202b] text-slate-200">
+                <option key={folder} value={folder} className="bg-[#121214] text-slate-200">
                   📁 {folder}
                 </option>
               ))}
@@ -173,11 +173,11 @@ export const SaveUntitledModal: React.FC<SaveUntitledModalProps> = ({
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#2e3142]">
+          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#222226]">
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 rounded-md text-xs text-slate-300 hover:text-white bg-[#121318] hover:bg-[#282a38] transition cursor-pointer"
+              className="px-3.5 py-1.5 rounded-md text-xs text-slate-300 hover:text-white bg-[#09090b] hover:bg-[#18181b] transition cursor-pointer"
             >
               취소
             </button>

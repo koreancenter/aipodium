@@ -127,13 +127,13 @@ export function renderMarkdownToHtml(md: string): string {
   text = text.replace(/\$\$([\s\S]*?)\$\$/g, (_match, formula) => {
     const rendered = renderMath(formula, true);
     return storeProtected(
-      `<div class="my-3 px-3 py-2.5 bg-[#16171e] border border-[#2e3142] rounded-lg overflow-x-auto text-center font-sans text-slate-100 flex items-center justify-center shadow-xs">${rendered}</div>`
+      `<div class="my-3 px-3 py-2.5 bg-[#0c0c0e] border border-[#222226] rounded-lg overflow-x-auto text-center font-sans text-slate-100 flex items-center justify-center shadow-xs">${rendered}</div>`
     );
   });
   text = text.replace(/\\\[([\s\S]*?)\\\]/g, (_match, formula) => {
     const rendered = renderMath(formula, true);
     return storeProtected(
-      `<div class="my-3 px-3 py-2.5 bg-[#16171e] border border-[#2e3142] rounded-lg overflow-x-auto text-center font-sans text-slate-100 flex items-center justify-center shadow-xs">${rendered}</div>`
+      `<div class="my-3 px-3 py-2.5 bg-[#0c0c0e] border border-[#222226] rounded-lg overflow-x-auto text-center font-sans text-slate-100 flex items-center justify-center shadow-xs">${rendered}</div>`
     );
   });
 
@@ -146,8 +146,8 @@ export function renderMarkdownToHtml(md: string): string {
       .replace(/\n$/, '');
     const languageLabel = lang ? lang.trim().toLowerCase() : 'code';
     return storeProtected(
-      `<div class="my-2.5 rounded-lg border border-[#2e3142] bg-[#16171e] shadow-sm overflow-hidden group">
-        <div class="px-3 py-1 bg-[#1e202b] border-b border-[#2e3142] flex items-center justify-between text-[0.625rem] text-slate-400 font-mono select-none">
+      `<div class="my-2.5 rounded-lg border border-[#222226] bg-[#0c0c0e] shadow-sm overflow-hidden group">
+        <div class="px-3 py-1 bg-[#121214] border-b border-[#222226] flex items-center justify-between text-[0.625rem] text-slate-400 font-mono select-none">
           <span class="font-semibold text-[#818cf8] uppercase tracking-wider">${languageLabel}</span>
           <span class="text-[0.5625rem] text-slate-500">code block</span>
         </div>
@@ -170,13 +170,13 @@ export function renderMarkdownToHtml(md: string): string {
   text = text.replace(/``([^`\n]+)``/g, (_match, code) => {
     const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return storeProtected(
-      `<code class="bg-[#1e202b] text-emerald-300 px-1 py-0.2 rounded font-mono text-[0.6875rem] border border-[#2e3142]">${escaped}</code>`
+      `<code class="bg-[#121214] text-emerald-300 px-1 py-0.2 rounded font-mono text-[0.6875rem] border border-[#222226]">${escaped}</code>`
     );
   });
   text = text.replace(/`([^`\n]+)`/g, (_match, code) => {
     const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return storeProtected(
-      `<code class="bg-[#1e202b] text-emerald-300 px-1 py-0.2 rounded font-mono text-[0.6875rem] border border-[#2e3142]">${escaped}</code>`
+      `<code class="bg-[#121214] text-emerald-300 px-1 py-0.2 rounded font-mono text-[0.6875rem] border border-[#222226]">${escaped}</code>`
     );
   });
 
@@ -378,7 +378,7 @@ export function renderMarkdownToHtml(md: string): string {
       const headersHtml = headers.map((h, colIdx) => {
         const align = tableAlignments[colIdx] || 'left';
         const alignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
-        return `<th class="px-3 py-1.5 bg-[#1e202b] text-[#818cf8] font-semibold text-[0.6875rem] border border-[#2e3142] ${alignClass}">${formatInline(h.trim())}</th>`;
+        return `<th class="px-3 py-1.5 bg-[#121214] text-[#818cf8] font-semibold text-[0.6875rem] border border-[#222226] ${alignClass}">${formatInline(h.trim())}</th>`;
       }).join('');
 
       const rowsHtml = tableRows.map((r) => {
@@ -391,12 +391,12 @@ export function renderMarkdownToHtml(md: string): string {
           const content = isDitto
             ? `<span class="text-[#818cf8] font-bold opacity-80 cursor-help" title="상단 항목과 동일">${txt}</span>`
             : formatInline(txt);
-          return `<td class="px-3 py-1 border border-[#2e3142] text-slate-300 text-[0.6875rem] ${alignClass}">${content}</td>`;
+          return `<td class="px-3 py-1 border border-[#222226] text-slate-300 text-[0.6875rem] ${alignClass}">${content}</td>`;
         }).join('');
-        return `<tr class="hover:bg-[#1e202b]/60 transition-colors">${colsHtml}</tr>`;
+        return `<tr class="hover:bg-[#121214]/60 transition-colors">${colsHtml}</tr>`;
       }).join('');
 
-      result.push(`<div class="overflow-x-auto my-2.5 rounded-lg border border-[#2e3142] shadow-xs"><table class="w-full border-collapse border-hidden text-xs"><thead><tr>${headersHtml}</tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
+      result.push(`<div class="overflow-x-auto my-2.5 rounded-lg border border-[#222226] shadow-xs"><table class="w-full border-collapse border-hidden text-xs"><thead><tr>${headersHtml}</tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
       inTable = false;
       tableRows = [];
       tableHeader = '';
@@ -410,23 +410,23 @@ export function renderMarkdownToHtml(md: string): string {
         const trimmed = line.trim();
         if (trimmed.startsWith('>')) {
           const innerContent = trimmed.replace(/^>+\s?/, '');
-          return `<blockquote class="border-l-2 border-[#2e3142] bg-[#16171e] pl-2.5 py-1 my-1 text-slate-300 text-xs italic">${formatInline(innerContent)}</blockquote>`;
+          return `<blockquote class="border-l-2 border-[#222226] bg-[#0c0c0e] pl-2.5 py-1 my-1 text-slate-300 text-xs italic">${formatInline(innerContent)}</blockquote>`;
         }
         return formatInline(line);
       }).join('<br/>');
       
       if (blockquoteType === 'note') {
-        result.push(`<div class="my-2.5 border-l-3 border-blue-500 bg-[#16171e] text-blue-200 px-3.5 py-2 rounded-r-lg text-xs leading-normal shadow-xs border border-[#2e3142] border-l-blue-500"><div class="font-semibold text-blue-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">ℹ️ NOTE</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-2.5 border-l-3 border-blue-500 bg-[#0c0c0e] text-blue-200 px-3.5 py-2 rounded-r-lg text-xs leading-normal shadow-xs border border-[#222226] border-l-blue-500"><div class="font-semibold text-blue-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">ℹ️ NOTE</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'tip') {
-        result.push(`<div class="my-2.5 border-l-3 border-emerald-500 bg-[#16171e] text-emerald-200 px-3.5 py-2 rounded-r-lg text-xs leading-normal shadow-xs border border-[#2e3142] border-l-emerald-500"><div class="font-semibold text-emerald-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">💡 TIP</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-2.5 border-l-3 border-emerald-500 bg-[#0c0c0e] text-emerald-200 px-3.5 py-2 rounded-r-lg text-xs leading-normal shadow-xs border border-[#222226] border-l-emerald-500"><div class="font-semibold text-emerald-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">💡 TIP</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'important') {
-        result.push(`<div class="my-2.5 border-l-3 border-[#6366f1] bg-[#16171e] text-indigo-200 px-3.5 py-2 rounded-r-lg text-xs leading-normal shadow-xs border border-[#2e3142] border-l-[#6366f1]"><div class="font-semibold text-[#818cf8] text-[0.6875rem] mb-1 flex items-center gap-1.5">📌 IMPORTANT</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-2.5 border-l-3 border-[#6366f1] bg-[#0c0c0e] text-indigo-200 px-3.5 py-2 rounded-r-lg text-xs leading-normal shadow-xs border border-[#222226] border-l-[#6366f1]"><div class="font-semibold text-[#818cf8] text-[0.6875rem] mb-1 flex items-center gap-1.5">📌 IMPORTANT</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'warning') {
-        result.push(`<div class="my-2.5 border-l-3 border-amber-500 bg-[#16171e] text-amber-200 px-3.5 py-2 rounded-r-lg text-xs leading-normal shadow-xs border border-[#2e3142] border-l-amber-500"><div class="font-semibold text-amber-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">⚠️ WARNING</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-2.5 border-l-3 border-amber-500 bg-[#0c0c0e] text-amber-200 px-3.5 py-2 rounded-r-lg text-xs leading-normal shadow-xs border border-[#222226] border-l-amber-500"><div class="font-semibold text-amber-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">⚠️ WARNING</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'caution') {
-        result.push(`<div class="my-2.5 border-l-3 border-rose-500 bg-[#16171e] text-rose-200 px-3.5 py-2 rounded-r-lg text-xs leading-normal shadow-xs border border-[#2e3142] border-l-rose-500"><div class="font-semibold text-rose-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">🛑 CAUTION</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-2.5 border-l-3 border-rose-500 bg-[#0c0c0e] text-rose-200 px-3.5 py-2 rounded-r-lg text-xs leading-normal shadow-xs border border-[#222226] border-l-rose-500"><div class="font-semibold text-rose-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">🛑 CAUTION</div><div>${processedHtml}</div></div>`);
       } else {
-        result.push(`<blockquote class="border-l-3 border-[#6366f1] bg-[#16171e] text-slate-200 pl-3 py-1.5 my-2 text-xs rounded-r-lg leading-relaxed shadow-xs border border-[#2e3142] border-l-[#6366f1]">${processedHtml}</blockquote>`);
+        result.push(`<blockquote class="border-l-3 border-[#6366f1] bg-[#0c0c0e] text-slate-200 pl-3 py-1.5 my-2 text-xs rounded-r-lg leading-relaxed shadow-xs border border-[#222226] border-l-[#6366f1]">${processedHtml}</blockquote>`);
       }
 
       inBlockquote = false;
@@ -461,7 +461,7 @@ export function renderMarkdownToHtml(md: string): string {
       closeList();
       closeTable();
       closeBlockquote();
-      result.push(`<h1 class="text-base sm:text-lg font-bold text-white border-b border-[#2e3142] pb-1.5 mt-3.5 mb-2 leading-snug">${formatInline(trimmed)}</h1>`);
+      result.push(`<h1 class="text-base sm:text-lg font-bold text-white border-b border-[#222226] pb-1.5 mt-3.5 mb-2 leading-snug">${formatInline(trimmed)}</h1>`);
       i++; // Skip the underline row
       continue;
     }
@@ -471,7 +471,7 @@ export function renderMarkdownToHtml(md: string): string {
       closeList();
       closeTable();
       closeBlockquote();
-      result.push(`<h2 class="text-sm sm:text-base font-semibold text-[#818cf8] border-b border-[#2e3142] pb-1 mt-3 mb-1.5 leading-snug">${formatInline(trimmed)}</h2>`);
+      result.push(`<h2 class="text-sm sm:text-base font-semibold text-[#818cf8] border-b border-[#222226] pb-1 mt-3 mb-1.5 leading-snug">${formatInline(trimmed)}</h2>`);
       i++; // Skip the underline row
       continue;
     }
@@ -486,9 +486,9 @@ export function renderMarkdownToHtml(md: string): string {
       closeBlockquote();
 
       if (level === 1) {
-        result.push(`<h1 class="text-base sm:text-lg font-bold text-white border-b border-[#2e3142] pb-1.5 mt-3.5 mb-2 leading-snug">${formatInline(headingContent)}</h1>`);
+        result.push(`<h1 class="text-base sm:text-lg font-bold text-white border-b border-[#222226] pb-1.5 mt-3.5 mb-2 leading-snug">${formatInline(headingContent)}</h1>`);
       } else if (level === 2) {
-        result.push(`<h2 class="text-sm sm:text-base font-semibold text-[#818cf8] border-b border-[#2e3142] pb-1 mt-3 mb-1.5 leading-snug">${formatInline(headingContent)}</h2>`);
+        result.push(`<h2 class="text-sm sm:text-base font-semibold text-[#818cf8] border-b border-[#222226] pb-1 mt-3 mb-1.5 leading-snug">${formatInline(headingContent)}</h2>`);
       } else if (level === 3) {
         result.push(`<h3 class="text-xs sm:text-sm font-semibold text-indigo-200 mt-2.5 mb-1 leading-snug">${formatInline(headingContent)}</h3>`);
       } else if (level === 4) {
@@ -506,7 +506,7 @@ export function renderMarkdownToHtml(md: string): string {
       closeList();
       closeTable();
       closeBlockquote();
-      result.push('<hr class="border-[#2e3142] my-3" />');
+      result.push('<hr class="border-[#222226] my-3" />');
       continue;
     }
 

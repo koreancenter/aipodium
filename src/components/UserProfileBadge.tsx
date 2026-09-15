@@ -55,7 +55,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
   // Variant 1: Sidebar compact footer chip
   if (variant === 'sidebar') {
     return (
-      <div className="flex items-center justify-between px-2 py-1 w-full bg-[#16171e] border border-[#2e3142] rounded-sm text-xs">
+      <div className="flex items-center justify-between px-2 py-1 w-full bg-[#0c0c0e] border border-[#222226] rounded-sm text-xs">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <div className="relative shrink-0">
             {user.avatar ? (
@@ -63,14 +63,14 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                 src={user.avatar}
                 alt={user.name}
                 referrerPolicy="no-referrer"
-                className="w-4.5 h-4.5 rounded-xs object-cover border border-[#2e3142]"
+                className="w-4.5 h-4.5 rounded-xs object-cover border border-[#222226]"
               />
             ) : (
               <div className="w-4.5 h-4.5 rounded-xs bg-[#6366f1] text-white font-bold flex items-center justify-center text-[0.5625rem]">
                 {initials}
               </div>
             )}
-            <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-[#16171e] ${user.provider === 'guest' ? 'bg-[#0ea5e9]' : 'bg-[#6366f1]'}`} />
+            <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-[#0c0c0e] ${user.provider === 'guest' ? 'bg-[#0ea5e9]' : 'bg-[#6366f1]'}`} />
           </div>
           <div className="min-w-0 flex-1 leading-none">
             <div className="text-[0.6875rem] font-semibold text-[#e2e8f0] truncate" title={user.name}>
@@ -85,7 +85,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
         <button
           type="button"
           onClick={onSignOut}
-          className="p-1 text-[#94a3b8] hover:text-rose-400 hover:bg-[#282a38] rounded-sm transition cursor-pointer"
+          className="p-1 text-[#94a3b8] hover:text-rose-400 hover:bg-[#18181b] rounded-sm transition cursor-pointer"
           title="로그아웃"
         >
           <LogOut className="w-3.5 h-3.5" />
@@ -99,14 +99,14 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
     return (
       <div className="p-1 space-y-1 text-xs text-[#e2e8f0]">
         {/* User Info Header Card */}
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded-xs bg-[#16171e]">
+        <div className="flex items-center gap-2 px-2 py-1.5 rounded-xs bg-[#0c0c0e]">
           <div className="relative shrink-0">
             {user.avatar ? (
               <img
                 src={user.avatar}
                 alt={user.name}
                 referrerPolicy="no-referrer"
-                className="w-6 h-6 rounded-xs object-cover border border-[#2e3142]"
+                className="w-6 h-6 rounded-xs object-cover border border-[#222226]"
               />
             ) : (
               <div className="w-6 h-6 rounded-xs bg-[#6366f1] text-white font-bold flex items-center justify-center text-[0.625rem]">
@@ -130,7 +130,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                 onActionComplete?.();
                 onOpenUpgrade();
               }}
-              className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#282a38] text-[#0ea5e9] hover:text-[#38bdf8] font-medium flex items-center gap-2 transition cursor-pointer text-xs"
+              className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#18181b] text-[#0ea5e9] hover:text-[#38bdf8] font-medium flex items-center gap-2 transition cursor-pointer text-xs"
             >
               <Zap className="w-3.5 h-3.5 text-[#0ea5e9] shrink-0" />
               <span>계정 연동 및 클라우드 백업</span>
@@ -144,7 +144,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                 onActionComplete?.();
                 onOpenGoogleAccount();
               }}
-              className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#282a38] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
+              className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#18181b] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
             >
               <HardDrive className="w-3.5 h-3.5 text-[#0ea5e9] shrink-0" />
               <span>Google Drive 계정 관리</span>
@@ -158,14 +158,14 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                 onActionComplete?.();
                 onOpenSettings();
               }}
-              className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#282a38] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
+              className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#18181b] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
             >
               <Settings className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <span>환경설정</span>
             </button>
           )}
 
-          <div className="my-1 border-t border-[#2e3142]" />
+          <div className="my-1 border-t border-[#222226]" />
 
           <button
             type="button"
@@ -189,7 +189,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-6 h-6 flex items-center justify-center rounded-xs bg-[#1e202b] hover:bg-[#282a38] border border-[#2e3142] hover:border-[#6366f1]/50 transition cursor-pointer group select-none shrink-0"
+        className="w-6 h-6 flex items-center justify-center rounded-xs bg-[#121214] hover:bg-[#18181b] border border-[#222226] hover:border-[#6366f1]/50 transition cursor-pointer group select-none shrink-0"
         title={`${user.name || '게스트'} - ${user.email || '게스트 세션'}`}
       >
         {/* Avatar Square */}
@@ -199,29 +199,29 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
               src={user.avatar}
               alt={user.name}
               referrerPolicy="no-referrer"
-              className="w-4.5 h-4.5 rounded-xs object-cover border border-[#2e3142] group-hover:border-[#6366f1] transition"
+              className="w-4.5 h-4.5 rounded-xs object-cover border border-[#222226] group-hover:border-[#6366f1] transition"
             />
           ) : (
             <div className="w-4.5 h-4.5 rounded-xs bg-[#6366f1] text-white font-bold flex items-center justify-center text-[0.5625rem] tracking-tight">
               {initials}
             </div>
           )}
-          <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-[#1e202b] ${user.provider === 'guest' ? 'bg-[#0ea5e9]' : 'bg-[#6366f1]'}`} />
+          <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-[#121214] ${user.provider === 'guest' ? 'bg-[#0ea5e9]' : 'bg-[#6366f1]'}`} />
         </div>
       </button>
 
       {/* Profile Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-52 bg-[#1e202b] border border-[#2e3142] rounded-xs p-1 text-xs text-[#e2e8f0] z-50 animate-in fade-in duration-75 shadow-xl">
+        <div className="absolute right-0 top-full mt-1 w-52 bg-[#121214] border border-[#222226] rounded-xs p-1 text-xs text-[#e2e8f0] z-50 animate-in fade-in duration-75 shadow-xl">
           
           {/* User Info Header */}
-          <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[#2e3142]">
+          <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[#222226]">
             {user.avatar ? (
               <img
                 src={user.avatar}
                 alt={user.name}
                 referrerPolicy="no-referrer"
-                className="w-5 h-5 rounded-xs object-cover border border-[#2e3142] shrink-0"
+                className="w-5 h-5 rounded-xs object-cover border border-[#222226] shrink-0"
               />
             ) : (
               <div className="w-5 h-5 rounded-xs bg-[#6366f1] text-white font-bold flex items-center justify-center text-xs shrink-0">
@@ -243,7 +243,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                   setIsOpen(false);
                   onOpenUpgrade();
                 }}
-                className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#282a38] text-[#0ea5e9] hover:text-[#38bdf8] font-medium flex items-center gap-2 transition cursor-pointer text-xs"
+                className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#18181b] text-[#0ea5e9] hover:text-[#38bdf8] font-medium flex items-center gap-2 transition cursor-pointer text-xs"
               >
                 <Zap className="w-3.5 h-3.5 text-[#0ea5e9] shrink-0" />
                 <span>계정 연동 및 클라우드 백업</span>
@@ -257,7 +257,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                   onOpenGoogleAccount();
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#282a38] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
+                className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#18181b] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
               >
                 <HardDrive className="w-3.5 h-3.5 text-[#0ea5e9] shrink-0" />
                 <span>Google Drive 계정 관리</span>
@@ -271,7 +271,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                   onOpenSettings();
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#282a38] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
+                className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#18181b] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
               >
                 <Settings className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <span>환경설정</span>
@@ -297,7 +297,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
           </div>
 
           {/* Sign Out Button */}
-          <div className="pt-1 border-t border-[#2e3142]">
+          <div className="pt-1 border-t border-[#222226]">
             <button
               type="button"
               onClick={() => {

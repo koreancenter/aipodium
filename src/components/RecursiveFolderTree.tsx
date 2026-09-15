@@ -77,7 +77,7 @@ export const InlineRenameInput: React.FC<{
       onKeyDown={handleKeyDown}
       onBlur={() => onCommit(val)}
       onClick={(e) => e.stopPropagation()}
-      className="bg-[#121318] border border-[#6366f1] rounded px-1.5 py-0.5 text-xs text-white outline-none ring-1 ring-[#6366f1] min-w-0 w-full font-sans shadow-inner z-10"
+      className="bg-[#09090b] border border-[#6366f1] rounded px-1.5 py-0.5 text-xs text-white outline-none ring-1 ring-[#6366f1] min-w-0 w-full font-sans shadow-inner z-10"
     />
   );
 };
@@ -199,8 +199,8 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
           }}
           className={`group flex items-center justify-between px-2 h-[26px] cursor-pointer transition-colors rounded-xs ${
             isSubfolderFocused
-              ? 'bg-[#2b2d3e] text-white ring-1 ring-[#6366f1] font-medium'
-              : 'text-slate-300 hover:bg-[#1e202b]/70 hover:text-slate-100'
+              ? 'bg-[#1c1c20] text-white ring-1 ring-[#6366f1] font-medium'
+              : 'text-slate-300 hover:bg-[#121214]/70 hover:text-slate-100'
           }`}
           style={{ paddingLeft: `${Math.max(level * 10, 8)}px` }}
         >
@@ -261,7 +261,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                       sessionId,
                     });
                   }}
-                  className="p-1 rounded-xs hover:bg-[#282a38] hover:text-slate-100 transition cursor-pointer"
+                  className="p-1 rounded-xs hover:bg-[#18181b] hover:text-slate-100 transition cursor-pointer"
                   title="폴더 이름 변경"
                 >
                   <Pencil className="w-3 h-3" />
@@ -274,7 +274,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                     e.stopPropagation();
                     onDeleteFolder(node.path);
                   }}
-                  className="p-1 rounded-xs hover:bg-[#282a38] hover:text-rose-400 transition cursor-pointer"
+                  className="p-1 rounded-xs hover:bg-[#18181b] hover:text-rose-400 transition cursor-pointer"
                   title="폴더 삭제"
                 >
                   <Trash2 className="w-3 h-3" />
@@ -290,7 +290,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
         <div
           className={
             !isLevelZero
-              ? 'relative pl-2.5 before:absolute before:left-[14px] before:top-0 before:bottom-1 before:w-[1px] before:bg-[#2e3142]'
+              ? 'relative pl-2.5 before:absolute before:left-[14px] before:top-0 before:bottom-1 before:w-[1px] before:bg-[#222226]'
               : ''
           }
         >
@@ -348,12 +348,12 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                 }}
                 className={`group flex items-center justify-between pr-2 h-[26px] cursor-pointer transition-colors rounded-xs ${
                   isDraggingFile
-                    ? 'opacity-40 bg-[#282a38]'
+                    ? 'opacity-40 bg-[#18181b]'
                     : isFocused
-                    ? 'bg-[#2b2d3e] text-white ring-1 ring-[#6366f1] font-medium'
+                    ? 'bg-[#1c1c20] text-white ring-1 ring-[#6366f1] font-medium'
                     : isSelectedFile
-                    ? 'bg-[#1e202b]/90 text-indigo-300 font-medium border-l-2 border-[#6366f1]'
-                    : 'text-slate-300 hover:bg-[#1e202b]/70 hover:text-slate-100'
+                    ? 'bg-[#121214]/90 text-indigo-300 font-medium border-l-2 border-[#6366f1]'
+                    : 'text-slate-300 hover:bg-[#121214]/70 hover:text-slate-100'
                 }`}
                 style={{
                   paddingLeft: isLevelZero
@@ -405,7 +405,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                           sessionId,
                         });
                       }}
-                      className="p-1 rounded-xs hover:bg-[#282a38] hover:text-slate-100 transition cursor-pointer"
+                      className="p-1 rounded-xs hover:bg-[#18181b] hover:text-slate-100 transition cursor-pointer"
                       title="파일명 변경"
                     >
                       <Pencil className="w-3 h-3" />
@@ -417,7 +417,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                         e.stopPropagation();
                         onRenameFile(file.path);
                       }}
-                      className="p-1 rounded-xs hover:bg-[#282a38] hover:text-slate-100 transition cursor-pointer"
+                      className="p-1 rounded-xs hover:bg-[#18181b] hover:text-slate-100 transition cursor-pointer"
                       title="파일명 변경"
                     >
                       <Pencil className="w-3 h-3" />
@@ -431,7 +431,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                         e.stopPropagation();
                         onDeleteFile(file.path);
                       }}
-                      className="p-1 rounded-xs hover:bg-[#282a38] hover:text-rose-400 transition cursor-pointer"
+                      className="p-1 rounded-xs hover:bg-[#18181b] hover:text-rose-400 transition cursor-pointer"
                       title="파일 삭제"
                     >
                       <Trash2 className="w-3 h-3" />

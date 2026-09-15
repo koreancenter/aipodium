@@ -233,8 +233,8 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
         aria-label="도움말 안내"
         className={`p-0.5 rounded transition-colors duration-150 inline-flex items-center justify-center align-middle cursor-pointer ${
           isOpen
-            ? 'text-indigo-400 bg-[#282a38]'
-            : 'text-slate-400 hover:text-slate-200 hover:bg-[#282a38] focus:text-slate-200'
+            ? 'text-indigo-400 bg-[#18181b]'
+            : 'text-slate-400 hover:text-slate-200 hover:bg-[#18181b] focus:text-slate-200'
         } ${className}`}
       >
         <HelpCircle className="w-3.5 h-3.5" />
@@ -261,31 +261,31 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
                   filter: 'drop-shadow(0 12px 28px rgba(0, 0, 0, 0.75))',
                   transformOrigin: getTransformOrigin()
                 }}
-                className="w-72 max-w-[calc(100vw-24px)] rounded-md bg-[#1e202b] border border-[#2e3142] text-left pointer-events-auto select-text overflow-visible shadow-xl shadow-black/70"
+                className="w-72 max-w-[calc(100vw-24px)] rounded-md bg-[#121214] border border-[#222226] text-left pointer-events-auto select-text overflow-visible shadow-xl shadow-black/70"
               >
                 {/* Pointer arrow pointing to trigger button */}
                 {position.actualSide === 'top' && (
                   <div
                     style={{ left: `${position.arrowLeft}px` }}
-                    className="absolute -bottom-[5.5px] -translate-x-1/2 w-2.5 h-2.5 bg-[#1e202b] border-r border-b border-[#2e3142] rotate-45"
+                    className="absolute -bottom-[5.5px] -translate-x-1/2 w-2.5 h-2.5 bg-[#121214] border-r border-b border-[#222226] rotate-45"
                   />
                 )}
                 {position.actualSide === 'bottom' && (
                   <div
                     style={{ left: `${position.arrowLeft}px` }}
-                    className="absolute -top-[5.5px] -translate-x-1/2 w-2.5 h-2.5 bg-[#1e202b] border-l border-t border-[#2e3142] rotate-45"
+                    className="absolute -top-[5.5px] -translate-x-1/2 w-2.5 h-2.5 bg-[#121214] border-l border-t border-[#222226] rotate-45"
                   />
                 )}
                 {position.actualSide === 'left' && (
                   <div
                     style={{ top: `${position.arrowTop}px` }}
-                    className="absolute -right-[5.5px] -translate-y-1/2 w-2.5 h-2.5 bg-[#1e202b] border-r border-t border-[#2e3142] rotate-45"
+                    className="absolute -right-[5.5px] -translate-y-1/2 w-2.5 h-2.5 bg-[#121214] border-r border-t border-[#222226] rotate-45"
                   />
                 )}
                 {position.actualSide === 'right' && (
                   <div
                     style={{ top: `${position.arrowTop}px` }}
-                    className="absolute -left-[5.5px] -translate-y-1/2 w-2.5 h-2.5 bg-[#1e202b] border-l border-b border-[#2e3142] rotate-45"
+                    className="absolute -left-[5.5px] -translate-y-1/2 w-2.5 h-2.5 bg-[#121214] border-l border-b border-[#222226] rotate-45"
                   />
                 )}
 

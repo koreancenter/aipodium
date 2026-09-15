@@ -220,9 +220,9 @@ ${
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#121318] border-l border-[#2e3142] w-88 md:w-96 shrink-0 shadow-2xl z-30 select-none">
+    <div className="flex flex-col h-full bg-[#09090b] border-l border-[#222226] w-88 md:w-96 shrink-0 shadow-2xl z-30 select-none">
       {/* Header */}
-      <div className="p-3 bg-[#1a1b24] border-b border-[#2e3142] flex items-center justify-between shrink-0">
+      <div className="p-3 bg-[#1a1b24] border-b border-[#222226] flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center">
             {auditResult.status === 'critical' ? (
@@ -247,7 +247,7 @@ ${
         <button
           type="button"
           onClick={onClose}
-          className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-[#282a38] transition cursor-pointer"
+          className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-[#18181b] transition cursor-pointer"
           title="닫기"
         >
           <X className="w-4 h-4" />
@@ -255,7 +255,7 @@ ${
       </div>
 
       {/* Health Score Overview Card */}
-      <div className="p-3 bg-[#161720] border-b border-[#2e3142] shrink-0">
+      <div className="p-3 bg-[#161720] border-b border-[#222226] shrink-0">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-baseline gap-1.5">
             <span className="text-2xl font-black text-white font-mono">{auditResult.score}</span>
@@ -285,15 +285,15 @@ ${
 
         {/* Quick Counters */}
         <div className="grid grid-cols-3 gap-1.5 text-[0.625rem] font-mono">
-          <div className="bg-[#1e202b] border border-[#2e3142] p-1.5 rounded text-center">
+          <div className="bg-[#121214] border border-[#222226] p-1.5 rounded text-center">
             <span className="text-slate-400 block text-[0.5625rem]">위험 (Critical)</span>
             <span className="font-bold text-rose-400 text-xs">{auditResult.criticalCount}</span>
           </div>
-          <div className="bg-[#1e202b] border border-[#2e3142] p-1.5 rounded text-center">
+          <div className="bg-[#121214] border border-[#222226] p-1.5 rounded text-center">
             <span className="text-slate-400 block text-[0.5625rem]">주의 (Warning)</span>
             <span className="font-bold text-amber-400 text-xs">{auditResult.warningCount}</span>
           </div>
-          <div className="bg-[#1e202b] border border-[#2e3142] p-1.5 rounded text-center">
+          <div className="bg-[#121214] border border-[#222226] p-1.5 rounded text-center">
             <span className="text-slate-400 block text-[0.5625rem]">권고 (Info)</span>
             <span className="font-bold text-sky-400 text-xs">{auditResult.infoCount}</span>
           </div>
@@ -341,7 +341,7 @@ ${
       </div>
 
       {/* Filter Tabs */}
-      <div className="px-3 py-1.5 bg-[#14151d] border-b border-[#2e3142] flex items-center gap-1 overflow-x-auto shrink-0 scrollbar-none text-[0.625rem]">
+      <div className="px-3 py-1.5 bg-[#14151d] border-b border-[#222226] flex items-center gap-1 overflow-x-auto shrink-0 scrollbar-none text-[0.625rem]">
         {[
           { id: 'all', label: '전체' },
           { id: 'critical', label: '위험' },
@@ -400,7 +400,7 @@ ${
                   ? 'border-rose-500/40'
                   : issue.severity === 'warning'
                   ? 'border-amber-500/30'
-                  : 'border-[#2e3142]'
+                  : 'border-[#222226]'
               }`}
             >
               {/* Issue Header */}
@@ -480,7 +480,7 @@ ${
       </div>
 
       {/* Footer info */}
-      <div className="p-2 bg-[#14151d] border-t border-[#2e3142] flex items-center justify-between text-[0.5625rem] text-slate-500 shrink-0 font-mono">
+      <div className="p-2 bg-[#14151d] border-t border-[#222226] flex items-center justify-between text-[0.5625rem] text-slate-500 shrink-0 font-mono">
         <span>최근 점검: {auditResult.analyzedAt}</span>
         <span>Living SSOT Guard v2.0</span>
       </div>

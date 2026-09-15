@@ -134,10 +134,10 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
       {/* Upper Grid: 1. DB Status & Quota + 2. Persistence Mode */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Card 1: Storage Engine & Usage */}
-        <div className="bg-[#16171e] border border-[#2e3142] rounded-md p-3.5 flex flex-col justify-between space-y-3">
+        <div className="bg-[#0c0c0e] border border-[#222226] rounded-md p-3.5 flex flex-col justify-between space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-md bg-[#282a38] border border-[#2e3142] flex items-center justify-center text-emerald-400 shrink-0">
+              <div className="w-8 h-8 rounded-md bg-[#18181b] border border-[#222226] flex items-center justify-center text-emerald-400 shrink-0">
                 <Database className="w-4 h-4" />
               </div>
               <div className="min-w-0">
@@ -169,8 +169,8 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
           </div>
 
           {/* Usage Bar & Percentage */}
-          <div className="space-y-1.5 pt-2 border-t border-[#2e3142]">
-            <div className="w-full bg-[#121318] rounded-full h-1.5 overflow-hidden border border-[#2e3142]">
+          <div className="space-y-1.5 pt-2 border-t border-[#222226]">
+            <div className="w-full bg-[#09090b] rounded-full h-1.5 overflow-hidden border border-[#222226]">
               <div
                 className={`h-full rounded-full transition-all duration-300 ${
                   (estimate?.usagePercent || 0) > 90
@@ -190,10 +190,10 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
         </div>
 
         {/* Card 2: Persistence Protection Mode */}
-        <div className="bg-[#16171e] border border-[#2e3142] rounded-md p-3.5 flex flex-col justify-between space-y-3">
+        <div className="bg-[#0c0c0e] border border-[#222226] rounded-md p-3.5 flex flex-col justify-between space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-md bg-[#282a38] border border-[#2e3142] flex items-center justify-center text-indigo-400 shrink-0">
+              <div className="w-8 h-8 rounded-md bg-[#18181b] border border-[#222226] flex items-center justify-center text-indigo-400 shrink-0">
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <div className="min-w-0">
@@ -221,7 +221,7 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
             </div>
           </div>
 
-          <div className="pt-2 border-t border-[#2e3142] flex items-center justify-between gap-2">
+          <div className="pt-2 border-t border-[#222226] flex items-center justify-between gap-2">
             <span className="text-[10px] font-mono text-slate-400 font-normal">
               {estimate?.isPersisted ? '영구 보호 상태' : '보호 요청 필요'}
             </span>
@@ -246,7 +246,7 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
       </div>
 
       {/* 3. Backup & Snapshot Restore (Flattened Single Card Container) */}
-      <div className="bg-[#16171e] border border-[#2e3142] rounded-md p-3.5 space-y-2">
+      <div className="bg-[#0c0c0e] border border-[#222226] rounded-md p-3.5 space-y-2">
         <div className="flex items-center justify-between pb-1">
           <div className="flex items-center gap-2">
             <Layers className="w-3.5 h-3.5 text-indigo-400" />
@@ -262,7 +262,7 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
         {/* Row 1: Backup */}
         <div className="flex items-center justify-between py-2 border-b border-white/[0.06] gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 rounded-md bg-[#282a38] text-indigo-400 border border-[#2e3142] flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 rounded-md bg-[#18181b] text-indigo-400 border border-[#222226] flex items-center justify-center shrink-0">
               <Download className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
@@ -284,7 +284,7 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
         {/* Row 2: Restore */}
         <div className="flex items-center justify-between py-2 gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 rounded-md bg-[#282a38] text-indigo-400 border border-[#2e3142] flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 rounded-md bg-[#18181b] text-indigo-400 border border-[#222226] flex items-center justify-center shrink-0">
               <Upload className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">

@@ -459,7 +459,7 @@ class GoogleDriveService {
       return '# 🚀 AI Podium Workspace\n\nGoogle Drive에서 불러온 프로젝트 시작 가이드입니다.\n\n- 이 문서는 구글 드라이브와 양방향 동기화됩니다.\n- HTML 및 Markdown 파일 변환을 지원합니다.\n';
     }
     if (fileId === 'file_html_spec') {
-      return '<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <title>Vibe Coding Specification</title>\n  <style>\n    body { font-family: sans-serif; background: #121318; color: #f1f5f9; padding: 2rem; }\n    h1 { color: #818cf8; }\n  </style>\n</head>\n<body>\n  <h1>Google Drive HTML Document</h1>\n  <p>구글 드라이브 API (drive.file scope)로 불러온 HTML 문서입니다.</p>\n</body>\n</html>';
+      return '<!DOCTYPE html>\n<html lang="ko">\n<head>\n  <meta charset="UTF-8">\n  <title>Vibe Coding Specification</title>\n  <style>\n    body { font-family: sans-serif; background: #09090b; color: #f1f5f9; padding: 2rem; }\n    h1 { color: #818cf8; }\n  </style>\n</head>\n<body>\n  <h1>Google Drive HTML Document</h1>\n  <p>구글 드라이브 API (drive.file scope)로 불러온 HTML 문서입니다.</p>\n</body>\n</html>';
     }
 
     return `# SSOT Document\n\nGoogle Drive에서 불러온 문서입니다.\n- 파일 ID: ${fileId}\n- 동기화 시각: ${new Date().toLocaleString()}`;

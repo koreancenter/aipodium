@@ -49,14 +49,14 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
     >
       <div
         id="google-account-modal-content"
-        className="relative bg-[#1e202b] border border-[#2e3142] rounded-lg max-w-md w-full p-5 space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans"
+        className="relative bg-[#121214] border border-[#222226] rounded-lg max-w-md w-full p-5 space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Minimal Close Button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-1.5 rounded hover:bg-[#282a38] transition cursor-pointer"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-1.5 rounded hover:bg-[#18181b] transition cursor-pointer"
           title="닫기"
         >
           <X className="w-4 h-4" />
@@ -72,7 +72,7 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
         {user ? (
           <div className="space-y-3.5 text-xs">
             {/* User Profile Card */}
-            <div className="flex items-center gap-3 p-3 bg-[#121318] border border-[#2e3142] rounded-md">
+            <div className="flex items-center gap-3 p-3 bg-[#09090b] border border-[#222226] rounded-md">
               {user.picture ? (
                 <img
                   src={user.picture}
@@ -97,7 +97,7 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
             </div>
 
             {/* Storage Quota */}
-            <div className="p-3 bg-[#121318] border border-[#2e3142] rounded-md space-y-2">
+            <div className="p-3 bg-[#09090b] border border-[#222226] rounded-md space-y-2">
               <div className="flex items-center justify-between text-slate-300">
                 <span className="flex items-center gap-1.5 font-normal text-xs text-slate-400">
                   <HardDrive className="w-3.5 h-3.5 text-indigo-400" />
@@ -107,7 +107,7 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
                   {formatBytes(user.storageQuota?.usage)} / {formatBytes(user.storageQuota?.limit)} ({quotaPercent}%)
                 </span>
               </div>
-              <div className="w-full bg-[#16171e] h-1.5 rounded-full overflow-hidden border border-[#2e3142]">
+              <div className="w-full bg-[#0c0c0e] h-1.5 rounded-full overflow-hidden border border-[#222226]">
                 <div
                   className={`h-full transition-all duration-300 ${
                     quotaPercent > 90 ? 'bg-rose-500' : quotaPercent > 70 ? 'bg-amber-500' : 'bg-indigo-500'

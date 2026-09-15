@@ -23,9 +23,9 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
       aria-modal="true"
       aria-labelledby="privacy-title"
     >
-      <div className="bg-[#1e202b] border border-[#2e3142] rounded-xl shadow-2xl flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-zinc-100 font-sans">
+      <div className="bg-[#121214] border border-[#222226] rounded-xl shadow-2xl flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-zinc-100 font-sans">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 bg-[#181a23] border-b border-[#2e3142]">
+        <div className="flex items-center justify-between px-5 py-4 bg-[#181a23] border-b border-[#222226]">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
               <ShieldCheck className="w-4.5 h-4.5" />
@@ -52,7 +52,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
         </div>
 
         {/* Scrollable Content - Flattened Clean Document Layout */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs text-zinc-300 leading-relaxed bg-[#1e202b]">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs text-zinc-300 leading-relaxed bg-[#121214]">
           {/* Policy Compact Banner */}
           <div className="p-3 rounded-md bg-indigo-950/30 border border-indigo-500/25 text-indigo-200 text-xs leading-relaxed flex items-start gap-2.5">
             <ShieldCheck className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
@@ -77,7 +77,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
           {/* Clauses: Pure Flattened Document Sections without Box-in-Box */}
           <div className="space-y-5 pt-1">
             {/* Section 1 */}
-            <section className="space-y-1.5 pb-4 border-b border-[#2e3142]/60">
+            <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
               <h3 className="text-sm font-medium text-zinc-200">
                 {isKr ? '1. 개인정보의 수집 및 이용 목적' : '1. Purposes of Processing'}
               </h3>
@@ -89,7 +89,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
             </section>
 
             {/* Section 2 */}
-            <section className="space-y-1.5 pb-4 border-b border-[#2e3142]/60">
+            <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
               <h3 className="text-sm font-medium text-zinc-200">
                 {isKr ? '2. 수집하는 개인정보 항목 및 수집 방법' : '2. Items Collected and Storage Location'}
               </h3>
@@ -108,7 +108,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
             </section>
 
             {/* Section 3 */}
-            <section className="space-y-1.5 pb-4 border-b border-[#2e3142]/60">
+            <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
               <h3 className="text-sm font-medium text-zinc-200">
                 {isKr ? '3. 개인정보의 보유 및 이용 기간' : '3. Retention and Disposal'}
               </h3>
@@ -120,7 +120,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
             </section>
 
             {/* Section 4 */}
-            <section className="space-y-1.5 pb-4 border-b border-[#2e3142]/60">
+            <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
               <h3 className="text-sm font-medium text-zinc-200">
                 {isKr ? '4. 제3자 제공 및 처리위탁' : '4. Third-Party Sharing & Transfers'}
               </h3>
@@ -146,7 +146,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3.5 bg-[#181a23] border-t border-[#2e3142] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="px-5 py-3.5 bg-[#181a23] border-t border-[#222226] flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-xs text-zinc-400 font-mono">
             {isKr ? '개정 시행일: 2026년 9월 9일' : 'Effective: September 9, 2026'}
           </div>

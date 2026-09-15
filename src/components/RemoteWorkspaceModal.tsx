@@ -150,13 +150,13 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
     >
       <div
         id="remote-workspace-modal-content"
-        className="relative bg-[#1e202b] border border-[#2e3142] rounded-lg max-w-lg w-full p-5 space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans"
+        className="relative bg-[#121214] border border-[#222226] rounded-lg max-w-lg w-full p-5 space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between pb-3 border-b border-[#2e3142]">
+        <div className="flex items-start justify-between pb-3 border-b border-[#222226]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[#282a38] border border-[#2e3142] flex items-center justify-center text-slate-100 shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-[#18181b] border border-[#222226] flex items-center justify-center text-slate-100 shrink-0">
               <Server className="w-5 h-5 text-indigo-400" />
             </div>
             <div>
@@ -179,7 +179,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 p-1.5 rounded hover:bg-[#282a38] transition cursor-pointer shrink-0"
+            className="text-slate-400 hover:text-slate-200 p-1.5 rounded hover:bg-[#18181b] transition cursor-pointer shrink-0"
             title="닫기"
             aria-label="닫기"
           >
@@ -206,7 +206,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                 onChange={(e) => setHost(e.target.value)}
                 placeholder="192.168.1.100 또는 host.domain.com"
                 required
-                className="w-full bg-[#121318] border border-[#2e3142] focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition"
+                className="w-full bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition"
               />
             </div>
 
@@ -220,7 +220,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                 onChange={(e) => setPort(parseInt(e.target.value, 10) || 22)}
                 placeholder="22"
                 required
-                className="w-full bg-[#121318] border border-[#2e3142] focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition"
+                className="w-full bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition"
               />
             </div>
           </div>
@@ -235,7 +235,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="ubuntu, root, developer"
                 required
-                className="w-full bg-[#121318] border border-[#2e3142] focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition"
+                className="w-full bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition"
               />
             </div>
 
@@ -243,7 +243,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
               <div className="flex items-center gap-1.5">
                 <label className="font-medium text-slate-300">인증 방식</label>
               </div>
-              <div className="flex rounded bg-[#121318] p-0.5 border border-[#2e3142]">
+              <div className="flex rounded bg-[#09090b] p-0.5 border border-[#222226]">
                 <button
                   type="button"
                   onClick={() => setAuthType('password')}
@@ -283,7 +283,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="접속 비밀번호 입력"
-                  className="w-full bg-[#121318] border border-[#2e3142] focus:border-indigo-500 rounded px-3 py-2 pr-9 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition"
+                  className="w-full bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-3 py-2 pr-9 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition"
                 />
                 <button
                   type="button"
@@ -310,7 +310,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                 value={privateKey}
                 onChange={(e) => setPrivateKey(e.target.value)}
                 placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;..."
-                className="w-full bg-[#121318] border border-[#2e3142] focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition resize-none"
+                className="w-full bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition resize-none"
               />
             </div>
           )}
@@ -331,7 +331,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
               onChange={(e) => setRemotePath(e.target.value)}
               placeholder="/home/developer/workspace"
               required
-              className="w-full bg-[#121318] border border-[#2e3142] focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition"
+              className="w-full bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition"
             />
           </div>
 
@@ -398,7 +398,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
           </div>
 
           {/* Cloud Account Sync Hint */}
-          <div className="pt-3 border-t border-[#2e3142] flex items-center justify-between text-[11px] text-slate-400">
+          <div className="pt-3 border-t border-[#222226] flex items-center justify-between text-[11px] text-slate-400">
             <span className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
               <span>다중 기기 동기화 및 클라우드 보관이 필요하신가요?</span>

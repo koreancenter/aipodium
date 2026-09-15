@@ -7,13 +7,13 @@
 }
 
 /* ==========================================================================
-   Design System CSS Custom Properties: VS Code Ultra-Dense IDE Theme
+   Design System CSS Custom Properties: VS Code Ultra-Dense Obsidian Theme
    ========================================================================== */
 :root {
-  --bg-main: #121318;        /* 메인 배경 (딥 차콜) */
-  --bg-surface: #1e202b;     /* 사이드바, 카드, 패널 배경 */
-  --bg-editor: #16171e;      /* 마크다운 에디터 배경 */
-  --border-color: #2e3142;   /* 패널 경계선 */
+  --bg-main: #09090b;        /* 메인 배경 (순도 높은 딥 옵시디언 블랙) */
+  --bg-surface: #121214;     /* 사이드바, 카드, 패널 배경 */
+  --bg-editor: #0c0c0e;      /* 마크다운 에디터 배경 */
+  --border-color: #222226;   /* 패널 경계선 */
   --text-main: #e2e8f0;      /* 기본 폰트 색상 */
   --text-muted: #94a3b8;     /* 보조/설명 폰트 색상 */
   --accent-primary: #6366f1; /* 포인트 컬러 (일렉트릭 퍼플) */
@@ -23,15 +23,15 @@
   --bg-primary: var(--bg-main);
   --bg-panel: var(--bg-surface);
   --bg-secondary: var(--bg-surface);
-  --bg-surface-hover: #282a38;
-  --bg-surface-active: #323548;
+  --bg-surface-hover: #18181b;
+  --bg-surface-active: #27272a;
   --bg-editor-surface: var(--bg-editor);
   --border-glass: var(--border-color);
-  --border-color-subtle: #2e3142;
+  --border-color-subtle: #222226;
   --border-color-strong: #6366f1;
-  --bg-surface-glass: #1e202b;
-  --bg-surface-glass-subtle: #181922;
-  --bg-surface-glass-card: #1e202b;
+  --bg-surface-glass: #121214;
+  --bg-surface-glass-subtle: #0f0f12;
+  --bg-surface-glass-card: #121214;
 
   --text-primary: var(--text-main);
   --text-secondary: var(--text-muted);
@@ -48,7 +48,7 @@
 
 /* Base Body Styles - VS Code Monospace IDE Standard */
 body {
-  background: var(--bg-main, #121318);
+  background: var(--bg-main, #09090b);
   color: var(--text-main, #e2e8f0);
   font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Consolas, monospace, sans-serif;
   font-size: 12px;
@@ -64,19 +64,19 @@ body {
 
 /* High-End Surface & Panel Utilities */
 .bg-main {
-  background-color: var(--bg-main, #121318) !important;
+  background-color: var(--bg-main, #09090b) !important;
 }
 
 .bg-surface {
-  background-color: var(--bg-surface, #1e202b) !important;
+  background-color: var(--bg-surface, #121214) !important;
 }
 
 .bg-editor {
-  background-color: var(--bg-editor, #16171e) !important;
+  background-color: var(--bg-editor, #0c0c0e) !important;
 }
 
 .border-main {
-  border-color: var(--border-color, #2e3142) !important;
+  border-color: var(--border-color, #222226) !important;
 }
 
 .text-main {
@@ -96,34 +96,34 @@ body {
 }
 
 .glass-panel {
-  background: var(--bg-surface, #1e202b);
-  border: 1px solid var(--border-color, #2e3142);
+  background: var(--bg-surface, #121214);
+  border: 1px solid var(--border-color, #222226);
   border-radius: 0px;
 }
 
 .glass-panel-header {
-  background: var(--bg-surface, #1e202b);
-  border-bottom: 1px solid var(--border-color, #2e3142);
+  background: var(--bg-surface, #121214);
+  border-bottom: 1px solid var(--border-color, #222226);
 }
 
 .glass-panel-sidebar {
-  background: var(--bg-surface, #1e202b);
-  border-right: 1px solid var(--border-color, #2e3142);
+  background: var(--bg-surface, #121214);
+  border-right: 1px solid var(--border-color, #222226);
 }
 
 .glass-card {
-  background: var(--bg-surface, #1e202b);
-  border: 1px solid var(--border-color, #2e3142);
+  background: var(--bg-surface, #121214);
+  border: 1px solid var(--border-color, #222226);
   border-radius: 2px;
 }
 
 .glass-card:hover {
-  background: var(--bg-surface-hover, #282a38);
-  border-color: #3b3e54;
+  background: var(--bg-surface-hover, #18181b);
+  border-color: #2e2e33;
 }
 
 .editor-code-surface {
-  background: var(--bg-editor, #16171e);
+  background: var(--bg-editor, #0c0c0e);
 }
 
 .glow-teal-subtle,
@@ -167,9 +167,9 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  background-color: var(--bg-main, #121318);
+  background-color: var(--bg-main, #09090b);
   color: var(--text-main, #e2e8f0);
-  border: 1px solid var(--border-color, #2e3142);
+  border: 1px solid var(--border-color, #222226);
   font-size: 0.75rem;
   font-weight: 400;
   border-radius: 0.375rem;
@@ -179,8 +179,8 @@ body {
   white-space: nowrap;
 }
 .btn-secondary:hover:not(:disabled) {
-  background-color: var(--bg-surface-hover, #282a38);
-  border-color: #3f4258;
+  background-color: var(--bg-surface-hover, #18181b);
+  border-color: #2e2e33;
   color: #ffffff;
 }
 .btn-secondary:disabled {
@@ -202,7 +202,7 @@ body {
   cursor: pointer;
 }
 .btn-ghost:hover:not(:disabled) {
-  background-color: var(--bg-surface-hover, #282a38);
+  background-color: var(--bg-surface-hover, #18181b);
   color: var(--text-main, #e2e8f0);
 }
 
@@ -211,9 +211,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  background-color: var(--bg-main, #121318);
+  background-color: var(--bg-main, #09090b);
   color: var(--text-muted, #94a3b8);
-  border: 1px solid var(--border-color, #2e3142);
+  border: 1px solid var(--border-color, #222226);
   font-size: 0.625rem;
   font-weight: 400;
   line-height: 1;
@@ -277,7 +277,7 @@ body,
 *::before,
 *::after {
   scrollbar-width: thin;
-  scrollbar-color: #2e3142 transparent;
+  scrollbar-color: #222226 transparent;
 }
 
 ::-webkit-scrollbar {
@@ -290,13 +290,13 @@ body,
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #2e3142;
+  background-color: #222226;
   border-radius: 0px;
   border: none;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #4f526b;
+  background-color: #3f3f46;
 }
 
 /* Hide scrollbar utility */

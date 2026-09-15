@@ -132,12 +132,12 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150">
         <div
-          className="bg-[#161722] border border-[#2e3142] rounded-xl shadow-2xl flex flex-col w-full max-w-5xl h-[88vh] overflow-hidden text-slate-100"
+          className="bg-[#161722] border border-[#222226] rounded-xl shadow-2xl flex flex-col w-full max-w-5xl h-[88vh] overflow-hidden text-slate-100"
           role="dialog"
           aria-modal="true"
         >
           {/* Top Bar Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-[#11121c] border-b border-[#2e3142]">
+          <div className="flex items-center justify-between px-4 py-3 bg-[#11121c] border-b border-[#222226]">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-300">
                 <Users className="w-4 h-4" />
@@ -165,7 +165,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-md hover:bg-[#2e3142] text-slate-400 hover:text-slate-200 transition cursor-pointer"
+                className="p-1.5 rounded-md hover:bg-[#222226] text-slate-400 hover:text-slate-200 transition cursor-pointer"
                 title="닫기"
               >
                 <X className="w-4 h-4" />
@@ -174,7 +174,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
           </div>
 
           {/* Council Score & Overall Readiness Banner */}
-          <div className="px-4 py-2.5 bg-[#141520] border-b border-[#2e3142] flex flex-wrap items-center justify-between gap-3">
+          <div className="px-4 py-2.5 bg-[#141520] border-b border-[#222226] flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-400 font-medium">종합 준비도:</span>
@@ -240,7 +240,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
           {/* Persona Tabs & Main Content */}
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
             {/* Left Sidebar: 4 Critics Selector */}
-            <div className="w-full md:w-64 bg-[#12131c] border-b md:border-b-0 md:border-r border-[#2e3142] p-2 flex md:flex-col gap-1.5 overflow-x-auto md:overflow-y-auto">
+            <div className="w-full md:w-64 bg-[#12131c] border-b md:border-b-0 md:border-r border-[#222226] p-2 flex md:flex-col gap-1.5 overflow-x-auto md:overflow-y-auto">
               {summary.critics.map((critic) => {
                 const isSelected = activePersona === critic.persona;
                 const Icon =
@@ -302,7 +302,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
               {currentCritic && (
                 <>
                   {/* Critic Profile Card */}
-                  <div className="p-3.5 rounded-xl bg-[#1a1c2a] border border-[#2e3142] flex flex-wrap items-center justify-between gap-3">
+                  <div className="p-3.5 rounded-xl bg-[#1a1c2a] border border-[#222226] flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-bold text-slate-100">
@@ -352,7 +352,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
                     </div>
 
                     {currentCritic.issues.length === 0 ? (
-                      <div className="p-8 text-center rounded-xl bg-[#181926] border border-[#2e3142] text-slate-400 space-y-2">
+                      <div className="p-8 text-center rounded-xl bg-[#181926] border border-[#222226] text-slate-400 space-y-2">
                         <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
                         <div className="text-sm font-semibold text-slate-200">
                           이 관점에서는 중대한 결함이 발견되지 않았습니다.
@@ -413,7 +413,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
                             {issue.description}
                           </p>
 
-                          <div className="mt-2.5 p-2 rounded-lg bg-[#11121c] border border-[#2e3142]/60 text-xs flex items-start gap-2">
+                          <div className="mt-2.5 p-2 rounded-lg bg-[#11121c] border border-[#222226]/60 text-xs flex items-start gap-2">
                             <Info className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
                             <div>
                               <span className="font-semibold text-indigo-300">시정 방안: </span>
@@ -430,11 +430,11 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
           </div>
 
           {/* Footer Actions */}
-          <div className="px-4 py-3 bg-[#11121c] border-t border-[#2e3142] flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="px-4 py-3 bg-[#11121c] border-t border-[#222226] flex flex-col sm:flex-row items-center justify-between gap-3">
             <button
               type="button"
               onClick={handleCopyReport}
-              className="px-3 py-1.5 rounded-lg border border-[#2e3142] bg-[#1a1c2a] hover:bg-[#282a38] text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              className="px-3 py-1.5 rounded-lg border border-[#222226] bg-[#1a1c2a] hover:bg-[#18181b] text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-medium cursor-pointer"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? '보고서 복사 완료!' : '종합 감사 보고서 클립보드 복사'}</span>
@@ -444,7 +444,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-1.5 rounded-md border border-[#2e3142] hover:bg-[#282a38] text-slate-400 hover:text-slate-200 text-xs font-medium transition cursor-pointer"
+                className="px-3.5 py-1.5 rounded-md border border-[#222226] hover:bg-[#18181b] text-slate-400 hover:text-slate-200 text-xs font-medium transition cursor-pointer"
               >
                 닫기
               </button>

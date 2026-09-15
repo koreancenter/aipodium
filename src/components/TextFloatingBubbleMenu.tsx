@@ -177,7 +177,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           e.preventDefault();
         }
       }}
-      className="absolute z-40 flex flex-col bg-[#1e202b] border border-[#2e3142] rounded-xs p-1 text-xs text-slate-200 select-none transition-[top,left] duration-150 ease-out shadow-lg animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100%-16px)]"
+      className="absolute z-40 flex flex-col bg-[#121214] border border-[#222226] rounded-xs p-1 text-xs text-slate-200 select-none transition-[top,left] duration-150 ease-out shadow-lg animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100%-16px)]"
     >
       {/* 1. Primary Formatting Toolbar Row */}
       <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
@@ -186,7 +186,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('h1')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#282a38] text-slate-300 hover:text-white font-bold text-[11px] font-mono transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white font-bold text-[11px] font-mono transition cursor-pointer"
             title="대제목"
             aria-label="대제목"
           >
@@ -195,7 +195,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('h2')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#282a38] text-slate-300 hover:text-white font-bold text-[11px] font-mono transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white font-bold text-[11px] font-mono transition cursor-pointer"
             title="중제목"
             aria-label="중제목"
           >
@@ -204,7 +204,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('h3')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#282a38] text-slate-300 hover:text-white font-bold text-[11px] font-mono transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white font-bold text-[11px] font-mono transition cursor-pointer"
             title="소제목"
             aria-label="소제목"
           >
@@ -213,14 +213,14 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-[#2e3142] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-[#222226] shrink-0" />
 
         {/* Text Style: Bold, Italic, Strikethrough, Inline Code */}
         <div className="flex items-center gap-0.5 shrink-0">
           <button
             type="button"
             onClick={() => onApplyFormat('bold')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
             title="굵게"
             aria-label="굵게"
           >
@@ -229,7 +229,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('italic')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
             title="기울임"
             aria-label="기울임"
           >
@@ -238,7 +238,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('strikethrough')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
             title="취소선"
             aria-label="취소선"
           >
@@ -247,7 +247,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('code')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
             title="인라인 코드"
             aria-label="인라인 코드"
           >
@@ -256,14 +256,14 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-[#2e3142] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-[#222226] shrink-0" />
 
         {/* Link & Code Block */}
         <div className="flex items-center gap-0.5 shrink-0">
           <button
             type="button"
             onClick={() => onApplyFormat('link')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
             title="링크 삽입"
             aria-label="링크 삽입"
           >
@@ -272,7 +272,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('codeblock')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
             title="코드 블록"
             aria-label="코드 블록"
           >
@@ -281,14 +281,14 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-[#2e3142] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-[#222226] shrink-0" />
 
         {/* Lists & Quote */}
         <div className="flex items-center gap-0.5 shrink-0">
           <button
             type="button"
             onClick={() => onApplyFormat('bullet')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
             title="글머리 기호 목록"
             aria-label="글머리 기호 목록"
           >
@@ -297,7 +297,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('number')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
             title="번호 순서 목록"
             aria-label="번호 순서 목록"
           >
@@ -306,7 +306,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('task')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
             title="할 일 체크박스"
             aria-label="할 일 체크박스"
           >
@@ -315,7 +315,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('quote')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#282a38] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
             title="인용구"
             aria-label="인용구"
           >
@@ -324,7 +324,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-[#2e3142] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-[#222226] shrink-0" />
 
         {/* AI Text Assistant Trigger (Sparkles) */}
         <div className="flex items-center shrink-0">
@@ -352,7 +352,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             <button
               type="button"
               onClick={onCleanText}
-              className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-slate-400 hover:text-white rounded-xs transition cursor-pointer"
+              className="w-6 h-6 flex items-center justify-center hover:bg-[#18181b] text-slate-400 hover:text-white rounded-xs transition cursor-pointer"
               title="텍스트 서식 및 들여쓰기 정돈"
               aria-label="텍스트 정돈"
             >
@@ -367,7 +367,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-6 h-6 flex items-center justify-center hover:bg-[#282a38] text-slate-400 hover:text-white rounded-xs transition cursor-pointer"
+              className="w-6 h-6 flex items-center justify-center hover:bg-[#18181b] text-slate-400 hover:text-white rounded-xs transition cursor-pointer"
               title="닫기"
               aria-label="닫기"
             >
@@ -379,7 +379,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
 
       {/* 2. Inline Expandable AI Prompt Input Tray */}
       {isAiOpen && (
-        <div className="mt-1.5 pt-1.5 border-t border-[#2e3142] flex flex-col gap-1.5 w-80 text-xs animate-in fade-in slide-in-from-top-1 duration-100">
+        <div className="mt-1.5 pt-1.5 border-t border-[#222226] flex flex-col gap-1.5 w-80 text-xs animate-in fade-in slide-in-from-top-1 duration-100">
           <div className="flex items-center justify-between text-[11px] font-semibold text-indigo-300 px-0.5">
             <span className="flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-amber-400" />
@@ -388,7 +388,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             <button
               type="button"
               onClick={() => setIsAiOpen(false)}
-              className="text-slate-400 hover:text-white p-0.5 rounded-xs hover:bg-[#282a38] cursor-pointer"
+              className="text-slate-400 hover:text-white p-0.5 rounded-xs hover:bg-[#18181b] cursor-pointer"
               title="닫기"
             >
               <X className="w-3 h-3" />
@@ -427,7 +427,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
                 key={chip.label}
                 type="button"
                 onClick={() => handlePresetClick(chip.prompt)}
-                className="px-1.5 py-0.5 rounded-xs bg-[#121318] hover:bg-[#282a38] text-[10px] text-slate-300 border border-[#2e3142] transition cursor-pointer whitespace-nowrap"
+                className="px-1.5 py-0.5 rounded-xs bg-[#09090b] hover:bg-[#18181b] text-[10px] text-slate-300 border border-[#222226] transition cursor-pointer whitespace-nowrap"
               >
                 {chip.label}
               </button>
@@ -447,7 +447,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
                   : '텍스트 가공 또는 생성 지시 입력...'
               }
               disabled={isAiLoading}
-              className="flex-1 bg-[#121318] border border-[#2e3142] focus:border-[#6366f1] rounded-xs px-2 py-1 text-xs text-slate-200 outline-none placeholder:text-slate-500 disabled:opacity-50"
+              className="flex-1 bg-[#09090b] border border-[#222226] focus:border-[#6366f1] rounded-xs px-2 py-1 text-xs text-slate-200 outline-none placeholder:text-slate-500 disabled:opacity-50"
             />
             <button
               type="submit"

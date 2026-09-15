@@ -5,7 +5,7 @@ export interface ThemeConfig {
 
 /**
  * Apply fixed Theme from the Design System guide:
- * - Main Background: 딥 차콜 (Deep Charcoal) #121318
+ * - Main Background: 딥 차콜 (Deep Charcoal) #09090b
  * - Surface/Card: 슬레이트 그레이 (Slate Gray) #1E202B
  * - Primary/Point: 일렉트릭 퍼플 (Electric Purple) #6366F1
  * - Secondary Accent: 사이언 블루 (Cyan Blue) #0EA5E9
@@ -33,24 +33,24 @@ export function applyThemeToDocument(
     // Exact Palette mapping according to the guideline
     const varsToSet: Record<string, string> = {
       // Direct Design System Spec Tokens
-      '--bg-main': '#121318',
-      '--bg-surface': '#1e202b',
-      '--bg-editor': '#16171e',
-      '--border-color': '#2e3142',
+      '--bg-main': '#09090b',
+      '--bg-surface': '#121214',
+      '--bg-editor': '#0c0c0e',
+      '--border-color': '#222226',
       '--text-main': '#e2e8f0',
       '--text-muted': '#94a3b8',
       '--accent-primary': '#6366f1',
 
-      // Main Background (#121318)
-      '--bg-app': '#121318',
-      '--bg-app-gradient': 'radial-gradient(circle at 50% 0%, #1a1b24 0%, #121318 75%)',
-      '--bg-primary': '#121318',
+      // Main Background (#09090b)
+      '--bg-app': '#09090b',
+      '--bg-app-gradient': 'radial-gradient(circle at 50% 0%, #1a1b24 0%, #09090b 75%)',
+      '--bg-primary': '#09090b',
 
-      // Surface / Card (#1e202b)
-      '--bg-panel': '#1e202b',
-      '--bg-editor-surface': '#16171e',
-      '--bg-surface-hover': '#282a38',
-      '--bg-secondary': '#1e202b',
+      // Surface / Card (#121214)
+      '--bg-panel': '#121214',
+      '--bg-editor-surface': '#0c0c0e',
+      '--bg-surface-hover': '#18181b',
+      '--bg-secondary': '#121214',
       '--bg-surface-glass': 'rgba(30, 32, 43, 0.95)',
       '--bg-surface-glass-subtle': 'rgba(24, 25, 34, 0.9)',
       '--bg-surface-glass-card': 'rgba(30, 32, 43, 0.7)',
@@ -79,8 +79,8 @@ export function applyThemeToDocument(
       '--text-primary': '#e2e8f0',
       '--text-secondary': '#94a3b8',
 
-      // Borders (#2e3142)
-      '--border-glass': '#2e3142',
+      // Borders (#222226)
+      '--border-glass': '#222226',
       '--border-color-subtle': 'rgba(255, 255, 255, 0.08)',
       '--border-color-strong': 'rgba(99, 102, 241, 0.35)',
       '--border-glass-subtle': 'rgba(255, 255, 255, 0.08)',
@@ -97,7 +97,7 @@ export function applyThemeToDocument(
     root.style.colorScheme = 'dark';
 
     if (body) {
-      body.style.background = '#121318';
+      body.style.background = '#09090b';
       body.style.color = '#E2E8F0';
     }
 
