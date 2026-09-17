@@ -202,6 +202,40 @@ async function startServer() {
       });
     }
   });
+  app.post("/api/models", async (req, res) => {
+    try {
+      const { vendor = "gemini", apiKey: clientApiKey } = req.body;
+      const trimmedKey = typeof clientApiKey === "string" ? clientApiKey.trim() : "";
+      const catalogMap = {
+        gemini: [
+          { id: "gemini-3.8-flash", name: "Gemini 3.8 Flash", desc: "\uCD08\uACE0\uC18D \uC885\uD569", tier: "\u26A1 Ultra Fast" },
+          { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro", desc: "\uACE0\uC131\uB2A5\xB7\uCD94\uB860", tier: "\u{1F48E} Premium Depth" },
+          { id: "gemini-3.1-flash-lite", name: "Gemini 3.1 Flash-Lite", desc: "\uCD08\uC800\uC9C0\uC5F0", tier: "\u26A1 Lightning Fast" }
+        ],
+        openai: [
+          { id: "gpt-4o", name: "GPT-4o", desc: "\uD50C\uB798\uADF8\uC2ED", tier: "\u{1F31F} Flagship" },
+          { id: "gpt-4o-mini", name: "GPT-4o Mini", desc: "\uACE0\uC18D \uACBD\uB7C9", tier: "\u26A1 Fast" },
+          { id: "o3-mini", name: "o3-mini", desc: "\uC2EC\uCE35 \uCD94\uB860", tier: "\u{1F9E0} Reasoning" }
+        ],
+        anthropic: [
+          { id: "claude-3.5-sonnet", name: "Claude 3.5 Sonnet", desc: "\uC815\uBC00 \uCF54\uB529", tier: "\u{1F3AF} Precision" },
+          { id: "claude-3.5-haiku", name: "Claude 3.5 Haiku", desc: "\uCD08\uACBD\uB7C9 \uACE0\uC18D", tier: "\u26A1 Fast" }
+        ],
+        deepseek: [
+          { id: "deepseek-r1", name: "DeepSeek R1", desc: "\uC2EC\uCE35 \uCD94\uB860", tier: "\u{1F9E0} High Reasoning" },
+          { id: "deepseek-v3", name: "DeepSeek V3", desc: "\uAC00\uC131\uBE44 \uCF54\uB529", tier: "\u2696\uFE0F Balanced" }
+        ],
+        groq: [
+          { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B Groq", desc: "\uCD08\uACE0\uC18D LPU", tier: "\u26A1 LPU Fast" },
+          { id: "mixtral-8x7b-32768", name: "Mixtral 8x7B", desc: "MoE \uACE0\uC18D", tier: "\u26A1 High Throughput" }
+        ]
+      };
+      const models = catalogMap[vendor] || catalogMap.gemini;
+      return res.json({ models, vendor });
+    } catch (err) {
+      return res.status(500).json({ error: "Failed to fetch models" });
+    }
+  });
   app.post("/api/chat", async (req, res) => {
     const clientIp = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket.remoteAddress || "unknown";
     if (!checkRateLimit(clientIp)) {
@@ -241,6 +275,7 @@ ${safeEditorContent || "(Document is empty)"}
 
 Please provide a helpful, concise response. If the user asks for suggestions or code based on the document, provide it. Keep your formatting in Markdown.`;
       }
+      const isStreamingRequested = req.body?.stream === true || req.headers.accept?.includes("text/event-stream");
       if (!effectiveApiKey) {
         if (cleanMessage.includes("[\uC591\uC2DD \uAD6C\uC870 \uAC00\uC774\uB4DC]") || cleanMessage.includes("SSOT \uBB38\uC11C") || cleanMessage.includes("Vibe Canvas")) {
           return res.status(400).json({
@@ -248,14 +283,32 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
           });
         }
         const fallbackText = generateLocalAssistantResponse(cleanMessage, safeEditorContent, systemInstruction);
+        const usage = {
+          prompt: Math.ceil(cleanMessage.length / 4),
+          completion: Math.ceil(fallbackText.length / 4),
+          total: Math.ceil((cleanMessage.length + fallbackText.length) / 4),
+          costEstimate: "\uB85C\uCEEC \uC548\uB0B4 \uBAA8\uB4DC (0\uC6D0)"
+        };
+        if (isStreamingRequested) {
+          res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+          res.setHeader("Cache-Control", "no-cache, no-transform");
+          res.setHeader("Connection", "keep-alive");
+          res.flushHeaders?.();
+          const chunks = fallbackText.match(/.{1,16}/gs) || [fallbackText];
+          for (const chunk of chunks) {
+            res.write(`data: ${JSON.stringify({ chunk })}
+
+`);
+          }
+          res.write(`data: ${JSON.stringify({ done: true, usage, groundingSources: [] })}
+
+`);
+          res.end();
+          return;
+        }
         return res.json({
           text: fallbackText,
-          usage: {
-            prompt: Math.ceil(cleanMessage.length / 4),
-            completion: Math.ceil(fallbackText.length / 4),
-            total: Math.ceil((cleanMessage.length + fallbackText.length) / 4),
-            costEstimate: "\uB85C\uCEEC \uC548\uB0B4 \uBAA8\uB4DC (0\uC6D0)"
-          },
+          usage,
           groundingSources: []
         });
       }
@@ -295,6 +348,52 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
         model: aiModel,
         config
       });
+      if (isStreamingRequested) {
+        res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+        res.setHeader("Cache-Control", "no-cache, no-transform");
+        res.setHeader("Connection", "keep-alive");
+        res.flushHeaders?.();
+        const streamResponse = await chat.sendMessageStream({ message: cleanMessage });
+        let accumulatedText = "";
+        let lastCandidate = null;
+        for await (const chunk of streamResponse) {
+          const c = chunk;
+          const chunkText = c.text || "";
+          if (chunkText) {
+            accumulatedText += chunkText;
+            res.write(`data: ${JSON.stringify({ chunk: chunkText })}
+
+`);
+          }
+          if (c.candidates?.[0]) {
+            lastCandidate = c.candidates[0];
+          }
+        }
+        const promptTokens2 = Math.ceil(cleanMessage.length / 4);
+        const completionTokens2 = Math.ceil(accumulatedText.length / 4);
+        let groundingSources2 = [];
+        const groundingMetadata2 = lastCandidate?.groundingMetadata;
+        if (groundingMetadata2?.groundingChunks && Array.isArray(groundingMetadata2.groundingChunks)) {
+          groundingSources2 = groundingMetadata2.groundingChunks.map((item) => ({
+            title: item.web?.title || "Google \uC6F9 \uAC80\uC0C9 \uCD9C\uCC98",
+            url: item.web?.uri || ""
+          })).filter((src) => Boolean(src.url));
+        }
+        res.write(`data: ${JSON.stringify({
+          done: true,
+          usage: {
+            prompt: promptTokens2,
+            completion: completionTokens2,
+            total: promptTokens2 + completionTokens2,
+            costEstimate: "Gemini Free Tier (\uC57D 0\uC6D0)"
+          },
+          groundingSources: groundingSources2
+        })}
+
+`);
+        res.end();
+        return;
+      }
       const response = await chat.sendMessage({ message: cleanMessage });
       const usageMetadata = response.usageMetadata;
       const promptTokens = usageMetadata?.promptTokenCount || Math.ceil(cleanMessage.length / 4);
@@ -335,6 +434,13 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
         safeErrorMessage = "Gemini API \uD0A4\uAC00 \uC720\uD6A8\uD558\uC9C0 \uC54A\uAC70\uB098 \uC811\uADFC \uAD8C\uD55C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4. \uC124\uC815\uC5D0\uC11C \uD0A4\uB97C \uD655\uC778\uD574 \uC8FC\uC138\uC694.";
       } else if (statusCode === 400) {
         safeErrorMessage = "\uC694\uCCAD \uB9E4\uAC1C\uBCC0\uC218\uAC00 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.";
+      }
+      if (res.headersSent) {
+        res.write(`data: ${JSON.stringify({ error: safeErrorMessage })}
+
+`);
+        res.end();
+        return;
       }
       res.status(statusCode >= 400 && statusCode < 600 ? statusCode : 500).json({
         error: safeErrorMessage
