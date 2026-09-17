@@ -10,7 +10,7 @@ import { PreferencesModal, UserPreferences, DEFAULT_PREFERENCES, AiInferencePara
 import { PromptLibraryModal, DEFAULT_SYSTEM_PROMPTS } from './components/PromptLibraryModal';
 import { GoogleAccountModal } from './components/GoogleAccountModal';
 import { GithubIntegrationModal, GithubConfig } from './components/GithubIntegrationModal';
-import { SSOTGeneratorModal, VibeCanvasConfig, DOC_TEMPLATES } from './components/SSOTGeneratorModal';
+import { SSOTGeneratorModal, VibeCanvasConfig } from './components/SSOTGeneratorModal';
 import { VibeCanvasWorkspace } from './components/VibeCanvasWorkspace';
 import { WorkspaceConnectionModal } from './components/WorkspaceConnectionModal';
 import { SaveUntitledModal } from './components/SaveUntitledModal';
@@ -42,20 +42,38 @@ import {
 } from './services/indexedDbService';
 import { AuthPage } from './components/AuthPage';
 import { UserProfileBadge } from './components/UserProfileBadge';
-import { GuestFeatureGateModal } from './components/GuestFeatureGateModal';
 import { GUEST_SAMPLE_FILES, GUEST_SAMPLE_FOLDERS } from './data/guestSampleWorkspace';
 import { authService, AuthUser } from './services/authService';
 import { renderMarkdownToHtml } from './utils/markdownParser';
 import { TableGridPicker } from './components/TableGridPicker';
 import { MarkdownHelpPopover } from './components/MarkdownHelpPopover';
+import { TiptapWysiwygEditorRef } from './components/TiptapWysiwygEditor';
 import { generateEmptyTable } from './utils/markdownTableHelper';
 import { SSOTDriftAuditor } from './components/SSOTDriftAuditor';
 import { analyzeSSOTDriftLocally } from './utils/ssotDriftEngine';
 import { CouncilOfCriticsModal } from './components/CouncilOfCriticsModal';
 import { GhostDiffModal } from './components/GhostDiffModal';
 import { AiRoleAssignmentModal } from './components/AiRoleAssignmentModal';
+import { AiMessageBubble } from './components/AiMessageBubble';
 import { evaluateDocumentLocally } from './utils/criticsEngine';
 import { LocalAiResourceMonitor } from './components/LocalAiResourceMonitor';
+import { getOnboardingResponse } from './utils/onboardingBot';
+import { WebLlmBanner } from './components/WebLlmBanner';
+import {
+  DEFAULT_FALLBACK_MODELS,
+  RECOMMENDED_QUICK_MODELS,
+  getModelDisplayName,
+  fetchProviderActiveModels,
+  fetchOllamaTags
+} from './config/models.config';
+import {
+  WEB_LLM_MODEL_ID,
+  WEB_LLM_MODEL_DISPLAY_NAME,
+  isWebGPUSupported,
+  initWebLLMEngine,
+  getLoadedWebLLMEngine,
+  streamWebLLMCompletion
+} from './utils/webllmService';
 import type {
   ChatAttachment,
   ChatMessage,
@@ -137,6 +155,8 @@ import {
   RotateCcw,
   FolderPlus,
   HelpCircle,
+  Undo2,
+  Redo2,
   FilePlus,
   AtSign,
   Ghost,
@@ -362,14 +382,14 @@ export default function App() {
   const [ghostWriterModel, setGhostWriterModel] = useState<string>(() => {
     return roleModels.ghostWriter || 'gemini-3.8-flash';
   });
-  const ghostWriterModelOptions = useMemo(() => [
-    { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', tier: '⚡ Ultra Fast • 1x Credits', desc: 'Credit-saving fast translation & drafting' },
-    { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', tier: '💎 Premium Depth • 3x Credits', desc: 'Maximum context depth' },
-    { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash-Lite', tier: '⚡ Lightning Fast • 0.5x Credits', desc: 'Ultra-low latency lightweight tasks' },
-    { id: 'deepseek-r1', name: 'DeepSeek R1', tier: '🧠 High Reasoning • 2x Credits', desc: 'Deep technical reasoning & logic' },
-    { id: 'qwen-2.5-coder', name: 'Qwen 2.5 Coder 32B', tier: '💻 Code Specialist • 1.5x Credits', desc: 'Optimal for code refactoring' },
-    { id: 'llama-3.3-70b', name: 'Llama 3.3 70B (Local)', tier: '🏠 Free (0 Credits)', desc: 'Local Ollama execution' },
-  ], []);
+  const ghostWriterModelOptions = useMemo(() => {
+    return DEFAULT_FALLBACK_MODELS.map((m) => ({
+      id: m.id,
+      name: m.name,
+      tier: m.tier || '1x 크레딧',
+      desc: m.desc || ''
+    }));
+  }, []);
 
   const handleSaveRoleModels = useCallback((newRoles: AiRoleModels) => {
     setRoleModels(newRoles);
@@ -427,19 +447,55 @@ export default function App() {
     } catch {}
   }, [discoveredLocalModels]);
 
+  // WebLLM browser-native AI state
+  const [webllmProgress, setWebllmProgress] = useState<{ isSupported: boolean; isLoading: boolean; isReady: boolean; progressText: string; progressPercent: number }>({
+    isSupported: isWebGPUSupported(),
+    isLoading: false,
+    isReady: Boolean(getLoadedWebLLMEngine()),
+    progressText: '',
+    progressPercent: 0,
+  });
+
+  const [isWebLlmBannerDismissed, setIsWebLlmBannerDismissed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('aipodium_webllm_banner_dismissed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Dynamic models discovered/fetched from active providers
+  const [dynamicProviderModels, setDynamicProviderModels] = useState<Record<string, { id: string; name: string }[]>>({});
+
   // Unified available models for chat panel (Single, Routing, Multi)
   const availableChatModels = useMemo(() => {
-    const cloudModels: { id: string; name: string; desc: string; group: 'cloud' | 'local' }[] = [
-      { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', desc: '초고속 종합', group: 'cloud' },
-      { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', desc: '고성능·추론', group: 'cloud' },
-      { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash-Lite', desc: '초저지연', group: 'cloud' },
-      { id: 'deepseek-r1', name: 'DeepSeek R1', desc: '심층 추론', group: 'cloud' },
-      { id: 'deepseek-v3', name: 'DeepSeek V3', desc: '가성비 코딩', group: 'cloud' },
-      { id: 'gpt-4o', name: 'GPT-4o', desc: '플래그십', group: 'cloud' },
-      { id: 'gpt-4o-mini', name: 'GPT-4o Mini', desc: '고속 경량', group: 'cloud' },
-      { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', desc: '정밀 코딩', group: 'cloud' },
-      { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B (Groq)', desc: '초고속 LPU', group: 'cloud' },
-    ];
+    const cloudModels: { id: string; name: string; desc: string; group: 'cloud' | 'local' }[] = [];
+
+    // 1. Include dynamically fetched active vendor models
+    Object.entries(dynamicProviderModels).forEach(([_vendor, models]) => {
+      models.forEach((m) => {
+        if (!cloudModels.some((cm) => cm.id === m.id)) {
+          cloudModels.push({
+            id: m.id,
+            name: m.name,
+            desc: '활성 프로바이더',
+            group: 'cloud'
+          });
+        }
+      });
+    });
+
+    // 2. Include default fallback cloud models
+    DEFAULT_FALLBACK_MODELS.filter((m) => m.group === 'cloud').forEach((m) => {
+      if (!cloudModels.some((cm) => cm.id === m.id)) {
+        cloudModels.push({
+          id: m.id,
+          name: m.name,
+          desc: m.desc || '',
+          group: 'cloud'
+        });
+      }
+    });
 
     const localModels: { id: string; name: string; desc: string; group: 'cloud' | 'local' }[] = [];
 
@@ -454,16 +510,25 @@ export default function App() {
       });
     }
 
-    const defaultLocals = [
-      { id: 'llama-3.3-70b', name: 'Llama 3.3 70B', desc: 'Ollama', group: 'local' as const },
-      { id: 'qwen-2.5-coder', name: 'Qwen 2.5 Coder', desc: '32B', group: 'local' as const },
-    ];
-
-    defaultLocals.forEach((dl) => {
+    DEFAULT_FALLBACK_MODELS.filter((m) => m.group === 'local').forEach((dl) => {
       if (!localModels.some((lm) => lm.id === dl.id)) {
-        localModels.push(dl);
+        localModels.push({
+          id: dl.id,
+          name: dl.name,
+          desc: dl.desc || '',
+          group: 'local'
+        });
       }
     });
+
+    if (webllmProgress.isReady) {
+      localModels.unshift({
+        id: WEB_LLM_MODEL_ID,
+        name: WEB_LLM_MODEL_DISPLAY_NAME,
+        desc: '브라우저 WebGPU',
+        group: 'local'
+      });
+    }
 
     const all = [...cloudModels, ...localModels];
     if (selectedModel && !all.some((m) => m.id === selectedModel)) {
@@ -476,7 +541,8 @@ export default function App() {
     }
 
     return all;
-  }, [discoveredLocalModels, selectedModel, provider]);
+  }, [dynamicProviderModels, discoveredLocalModels, selectedModel, provider, webllmProgress.isReady]);
+
   const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState<boolean>(false);
   const [preferencesInitialTab, setPreferencesInitialTab] = useState<'ai-engine' | 'persona' | 'integrations' | 'storage' | 'security' | 'ghost-writer'>('ai-engine');
   const [isPromptLibraryModalOpen, setIsPromptLibraryModalOpen] = useState<boolean>(false);
@@ -488,63 +554,16 @@ export default function App() {
       title: 'AI 지식 비서',
       createdAt: '방금 전',
       fileName: 'tech_notes.md',
-      editorTab: 'edit',
-      editorContent: `# 기술 노트\n\n- REST API vs GraphQL\n- Redis 캐싱 전략\n- OAuth 2.0 인증`,
+      editorTab: 'wysiwyg',
+      editorContent: `# 기술 노트\n\nAI 지식 비서와 함께 작성하는 문서입니다.`,
       messages: [
         {
           id: 'welcome-1',
           sender: 'ai',
           timestamp: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-          model: 'Gemini 3.8 Flash',
-          text: `안녕하세요! **AI 지식 비서**입니다.
-
-질문하시거나 코드를 요청하시면 마크다운 형식으로 답변을 제공합니다. 상단의 **[에디터 삽입]** 버튼으로 에디터에 바로 추가할 수 있습니다.`
-        }
-      ]
-    },
-    {
-      id: 'session-rest-graphql',
-      title: 'REST API vs GraphQL 성능 비교',
-      createdAt: '10분 전',
-      fileName: 'rest_graphql_comparison.md',
-      editorTab: 'edit',
-      editorContent: `# REST API vs GraphQL 비교 분석 노트\n\n## 개요\n클라이언트 통신 방식별 특성과 캐싱 전략 비교 정리입니다.\n\n## 주요 아키텍처\n- REST: 엔드포인트 기반 캐싱\n- GraphQL: 단일 엔드포인트 Query & Mutation\n\n\`\`\`graphql\n# GraphQL Query Example\nquery GetUser {\n  user(id: "101") {\n    name\n    email\n  }\n}\n\`\`\``,
-      messages: [
-        {
-          id: 'rest-1',
-          sender: 'user',
-          timestamp: '20:15',
-          text: 'REST API와 GraphQL의 주요 성능 차이점과 캐싱 전략을 비교해줘.'
-        },
-        {
-          id: 'rest-2',
-          sender: 'ai',
-          timestamp: '20:15',
-          model: 'Gemini 3.8 Flash',
-          text: `# REST API vs GraphQL 비교 가이드\n\n## 개요\nREST API는 리소스 중심의 엔드포인트를 제공하는 반면, GraphQL은 클라이언트가 필요한 데이터 구조를 직접 요청할 수 있는 단일 엔드포인트 방식입니다.\n\n## 주요 차이점\n- **오버패칭(Over-fetching):** GraphQL 해결 (원하는 필드만 수신)\n- **언더패칭(Under-fetching):** REST API는 여러 번의 N+1 요청이 발생할 수 있으나 GraphQL은 single round-trip으로 수신\n- **캐싱(Caching):** REST API는 HTTP Standard Caching 우수\n\n\`\`\`graphql\n# GraphQL Query Example\nquery GetUser {\n  user(id: "101") {\n    name\n    email\n  }\n}\n\`\`\``
-        }
-      ]
-    },
-    {
-      id: 'session-redis',
-      title: 'Redis 캐싱 패턴 (Cache-Aside)',
-      createdAt: '1시간 전',
-      fileName: 'redis_caching_guide.md',
-      editorTab: 'edit',
-      editorContent: `# Redis 캐싱 전략 아키텍처\n\n## 개요\nIn-Memory DB 부하 분산 및 Cache-Aside, Write-Through 전략 가이드입니다.\n\n## 패턴 분석\n- Cache-Aside: Read-heavy 최적화\n- Write-Through: 데이터 정합성 보장\n\n\`\`\`typescript\n// Cache-Aside Pattern Example\nasync function getUser(userId: string) {\n  const cached = await redis.get(\`user:\${userId}\`);\n  if (cached) return JSON.parse(cached);\n\n  const user = await db.findUser(userId);\n  await redis.set(\`user:\${userId}\`, JSON.stringify(user), 'EX', 3600);\n  return user;\n}\n\`\`\``,
-      messages: [
-        {
-          id: 'redis-1',
-          sender: 'user',
-          timestamp: '19:20',
-          text: 'Redis 캐싱 전략 패턴을 가이드해줘.'
-        },
-        {
-          id: 'redis-2',
-          sender: 'ai',
-          timestamp: '19:20',
-          model: 'Gemini 3.8 Flash',
-          text: `# Redis 캐싱 전략 및 패턴\n\n## 개요\nRedis는 In-Memory Key-Value 데이터 구조 저장소로서, DB 부하를 줄이고 읽기 성능을 극대화하기 위해 다양한 캐싱 패턴을 사용합니다.\n\n## 핵심 전략\n- **Cache-Aside (Look-Aside):** 애플리케이션이 캐시를 먼저 확인 후 히스 시 반환, 미스 시 DB 조회 후 캐시 기록\n- **Write-Through:** 데이터 변경 시 캐시와 DB에 동시에 업데이트하여 일관성 유지\n\n\`\`\`typescript\n// Cache-Aside Pattern Example\nasync function getUser(userId: string) {\n  const cached = await redis.get(\`user:\${userId}\`);\n  if (cached) return JSON.parse(cached);\n\n  const user = await db.findUser(userId);\n  await redis.set(\`user:\${userId}\`, JSON.stringify(user), 'EX', 3600);\n  return user;\n}\n\`\`\``
+          model: 'AI 지식 비서',
+          text: `안녕하세요! **AI 지식 비서**입니다.\n\nAI Podium에 오신 것을 환영합니다! 별도의 API 키 등록이나 로컬 AI 연결 없이도 에디터와 기본 기능을 즉시 체험하실 수 있습니다. 원하시는 안내를 아래 버튼에서 선택해 보세요.`,
+          showOnboardingChips: true,
         }
       ]
     }
@@ -553,6 +572,11 @@ export default function App() {
   const [isChatHistoryOpen, setIsChatHistoryOpen] = useState<boolean>(true);
   const [isAiModelSelectionOpen, setIsAiModelSelectionOpen] = useState<boolean>(true);
   const [isChatHistoryPinned] = useState<boolean>(true);
+
+  // Check whether onboarding guide bot should be active (guest user without API key or Ollama connection)
+  const hasConfiguredApiKey = Boolean(cloudApiKey?.trim() || Object.values(apiKeys).some((k) => typeof k === 'string' && k.trim().length > 0));
+  const hasConnectedLocalAi = (provider === 'local-pc' || provider === 'local-server') && (isVerified || (discoveredLocalModels && discoveredLocalModels.length > 0));
+  const isOnboardingMode = !hasConfiguredApiKey && !hasConnectedLocalAi && !(webllmProgress.isReady && selectedModel === WEB_LLM_MODEL_ID);
 
   // Derived current session messages
   const activeSession = sessions.find((s) => s.id === activeSessionId) || sessions[0];
@@ -691,32 +715,6 @@ export default function App() {
   const [isRemoteModalOpen, setIsRemoteModalOpen] = useState<boolean>(false);
   const [isGithubModalOpen, setIsGithubModalOpen] = useState<boolean>(false);
 
-  // Guest Mode Feature Gating State
-  const [isGuestGateModalOpen, setIsGuestGateModalOpen] = useState<boolean>(false);
-  const [guestGateFeature, setGuestGateFeature] = useState<{
-    name: string;
-    description: string;
-    icon: 'github' | 'cloud' | 'gdrive' | 'sync' | 'default';
-  }>({
-    name: '클라우드 동기화',
-    description: '이 기능은 계정 연동 및 클라우드 동기화가 필요한 기능입니다.',
-    icon: 'default',
-  });
-
-  const handleGateFeature = useCallback((
-    name: string,
-    description: string,
-    icon: 'github' | 'cloud' | 'gdrive' | 'sync' | 'default',
-    allowedAction: () => void
-  ) => {
-    if (currentUser?.provider === 'guest') {
-      setGuestGateFeature({ name, description, icon });
-      setIsGuestGateModalOpen(true);
-      return;
-    }
-    allowedAction();
-  }, [currentUser]);
-
   // GitHub & Google Drive: Independent on-demand integration, runs directly via user PAT / OAuth
   const handleOpenGithubModal = useCallback(() => {
     setIsGithubModalOpen(true);
@@ -740,11 +738,9 @@ export default function App() {
   // SSOT Generator Modal State
   const [isSSOTGeneratorModalOpen, setIsSSOTGeneratorModalOpen] = useState(false);
   const [ssotGeneratorInitialFolder, setSsotGeneratorInitialFolder] = useState<string>('');
-  const [ssotGeneratorInitialTemplate, setSsotGeneratorInitialTemplate] = useState<string>('master_ssot');
 
-  const handleOpenSSOTGeneratorModal = (folder = '', template = 'master_ssot') => {
+  const handleOpenSSOTGeneratorModal = (folder = '') => {
     setSsotGeneratorInitialFolder(folder);
-    setSsotGeneratorInitialTemplate(template);
     setIsSSOTGeneratorModalOpen(true);
   };
 
@@ -838,7 +834,7 @@ export default function App() {
           ],
           fileName: targetFileName,
           editorContent: loadedFiles[targetFileName] || `# ${projectName}\n\n로컬 프로젝트 문서입니다.`,
-          editorTab: 'edit',
+          editorTab: 'wysiwyg',
         };
 
         setActiveSessionId(newSession.id);
@@ -1015,9 +1011,9 @@ export default function App() {
   // Editor State
   const [fileName, setFileName] = useState<string>('tech_notes.md');
   const [editorContent, setEditorContent] = useState<string>(
-    `# AI Podium 기술 스택 노트 (SSOT 원본)\n\n## 개요\n이 노트는 AI 대화창에서 [에디터로 보내기 ➔] 버튼을 눌러 수집된 Single Source of Truth(SSOT) 핵심 문서입니다.\n\n## 포함된 내용\n- REST API vs GraphQL 비교\n- Redis 캐싱 전략\n- OAuth 2.0 인증 메커니즘`
+    `# AI Podium 기술 스택 노트 (SSOT 원본)\n\n## 개요\n이 노트는 AI 대화창에서 [에디터로 보내기 ➔] 버튼을 눌러 수집된 Single Source of Truth(SSOT) 핵심 문서입니다.\n\n## 시작하기\nAI 지식 비서와 대화를 통해 지식을 축적하고 문서를 완성해 보세요.`
   );
-  const [editorTab, setEditorTab] = useState<'edit' | 'split' | 'preview'>('edit');
+  const [editorTab, setEditorTab] = useState<'wysiwyg' | 'edit' | 'split' | 'preview'>('wysiwyg');
   const [isTocOpen, setIsTocOpen] = useState<boolean>(false);
   const [isSsotAuditorOpen, setIsSsotAuditorOpen] = useState<boolean>(false);
   const [showMarkdownHelp, setShowMarkdownHelp] = useState<boolean>(false);
@@ -1026,6 +1022,28 @@ export default function App() {
   const helpButtonRef = useRef<HTMLButtonElement | null>(null);
   const [isAiCleaning, setIsAiCleaning] = useState<boolean>(false);
   const [isEditorToolbarDrawerOpen, setIsEditorToolbarDrawerOpen] = useState<boolean>(false);
+
+  // Editor Font Size State (12px ~ 22px, Default 15px)
+  const [editorFontSize, setEditorFontSize] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('editor_font_size');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed >= 12 && parsed <= 22) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return 15;
+  });
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('editor_font_size', editorFontSize.toString());
+    } catch {}
+    document.documentElement.style.setProperty('--editor-font-size', `${editorFontSize}px`);
+  }, [editorFontSize]);
 
   // Close editor toolbar drawer on outside click or Escape key
   useEffect(() => {
@@ -1094,7 +1112,7 @@ export default function App() {
 
   // File Explorer State
   const [files, setFiles] = useState<Record<string, string>>({
-    'tech_notes.md': `# AI Podium 기술 스택 노트 (SSOT 원본)\n\n## 개요\n이 노트는 AI 대화창에서 [에디터로 보내기 ➔] 버튼을 눌러 수집된 Single Source of Truth(SSOT) 핵심 문서입니다.\n\n## 포함된 내용\n- REST API vs GraphQL 비교\n- Redis 캐싱 전략\n- OAuth 2.0 인증 메커니즘`,
+    'tech_notes.md': `# AI Podium 기술 스택 노트 (SSOT 원본)\n\n## 개요\n이 노트는 AI 대화창에서 [에디터로 보내기 ➔] 버튼을 눌러 수집된 Single Source of Truth(SSOT) 핵심 문서입니다.\n\n## 시작하기\nAI 지식 비서와 대화를 통해 지식을 축적하고 문서를 완성해 보세요.`,
     'architecture_overview.md': `# 시스템 아키텍처 개요\n\n## 프론트엔드\n- Tailwind CSS 기반 3-Pane Split UI\n- 빠르고 직관적인 고속 에디터 & 챗\n\n## 백엔드 & 2차 가공\n- Express Server & AI 2차 가공 파이프라인 (Word, Excel, Code, Slides, Manual)`,
     'api_specifications.md': `# API 스펙 문서\n\n## POST /api/chat\n- Description: AI 대화 요청 처리\n- Headers: Authorization Bearer API_KEY`,
     'AI_Podium_word_doc.html': `<!DOCTYPE html>
@@ -1127,9 +1145,7 @@ export default function App() {
 </body>
 </html>`,
     'README.md': `# AI Podium 3-Pane AI Architecture\n\nAI 대화, SSOT 지식 수집, 그리고 2차 가공(Word, Sheets, Slides, Manual, Code)을 하나의 통합 워크스페이스에서 제공합니다.`,
-    'AI_Architecture_Whitepaper.pdf': SAMPLE_PDF_DATA_URL,
-    'rest_graphql_comparison.md': `# REST API vs GraphQL 비교 분석 노트\n\n## 개요\n클라이언트 통신 방식별 특성과 캐싱 전략 비교 정리입니다.\n\n## 주요 아키텍처\n- REST: 엔드포인트 기반 캐싱\n- GraphQL: 단일 엔드포인트 Query & Mutation\n\n\`\`\`graphql\n# GraphQL Query Example\nquery GetUser {\n  user(id: "101") {\n    name\n    email\n  }\n}\n\`\`\``,
-    'redis_caching_guide.md': `# Redis 캐싱 전략 아키텍처\n\n## 개요\nIn-Memory DB 부하 분산 및 Cache-Aside, Write-Through 전략 가이드입니다.\n\n## 패턴 분석\n- Cache-Aside: Read-heavy 최적화\n- Write-Through: 데이터 정합성 보장\n\n\`\`\`typescript\n// Cache-Aside Pattern Example\nasync function getUser(userId: string) {\n  const cached = await redis.get(\`user:\${userId}\`);\n  if (cached) return JSON.parse(cached);\n\n  const user = await db.findUser(userId);\n  await redis.set(\`user:\${userId}\`, JSON.stringify(user), 'EX', 3600);\n  return user;\n}\n\`\`\``
+    'AI_Architecture_Whitepaper.pdf': SAMPLE_PDF_DATA_URL
   });
   const [currentActiveFile, setCurrentActiveFile] = useState<string>('tech_notes.md');
 
@@ -1138,12 +1154,10 @@ export default function App() {
     'tech_notes.md': 'AI 지식 비서',
     'architecture_overview.md': 'AI 지식 비서',
     'api_specifications.md': 'AI 지식 비서',
-    'AI_Architecture_Whitepaper.pdf': '문서 라이브러리 (Documents)',
+    'AI_Architecture_Whitepaper.pdf': '문서 라이브러리',
     'AI_Podium_word_doc.html': 'AI 지식 비서',
     'project_analysis_sheet.html': 'AI 지식 비서',
-    'README.md': 'AI 지식 비서',
-    'rest_graphql_comparison.md': 'REST API vs GraphQL 성능 비교',
-    'redis_caching_guide.md': 'Redis 캐싱 패턴 (Cache-Aside)'
+    'README.md': 'AI 지식 비서'
   });
   const [draggedType, setDraggedType] = useState<'project' | 'file' | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -1322,8 +1336,6 @@ export default function App() {
     Object.values(fileFolders).forEach((f: string) => {
       if (f) folderSet.add(f);
     });
-    folderSet.add('docs');
-    folderSet.add('src');
 
     folderSet.forEach((folderName) => {
       const containedFiles = Object.keys(files).filter(
@@ -1333,21 +1345,22 @@ export default function App() {
         id: `folder-${folderName}`,
         type: 'folder',
         name: folderName,
-        detail: `워크스페이스 폴더 • ${containedFiles.length}개 파일`,
+        detail: `${containedFiles.length}개 파일`,
         path: folderName
       });
     });
 
     // 2. Workspace Files
     Object.keys(files).forEach((fname) => {
-      const parentFolder = fileFolders[fname] || 'docs';
+      const parentFolder = fileFolders[fname] || 'AI 지식 비서';
       const fileContent = files[fname] || '';
-      const lines = fileContent.split('\n').length;
+      const sizeKb = (fileContent.length / 1024).toFixed(1);
+      const sizeStr = fileContent.length >= 1024 ? `${sizeKb} KB` : `${fileContent.length} B`;
       items.push({
         id: `file-${fname}`,
         type: 'file',
         name: fname,
-        detail: `${parentFolder} • ${lines}줄 • ${(fileContent.length / 1024).toFixed(1)} KB`,
+        detail: sizeStr,
         folder: parentFolder,
         path: `${parentFolder}/${fname}`
       });
@@ -1882,6 +1895,7 @@ export default function App() {
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
+  const tiptapEditorRef = useRef<TiptapWysiwygEditorRef>(null);
   const lastActiveTextTargetRef = useRef<'editor' | 'chat'>('chat');
 
   // Resolved list of prompt templates for top menu instant injection
@@ -2036,53 +2050,106 @@ export default function App() {
           setTrashSessions(savedTrash);
         }
 
-        if (savedFolders && typeof savedFolders === 'object') {
-          const resolvedFolders: Record<string, string> = { ...savedFolders };
-          if (!resolvedFolders['rest_graphql_comparison.md'] || resolvedFolders['rest_graphql_comparison.md'] === 'docs') {
-            resolvedFolders['rest_graphql_comparison.md'] = 'REST API vs GraphQL 성능 비교';
+        // Sanitize: Purge legacy "REST API..." and "Redis..." sample projects, folders, and files
+        const isLegacySampleTitle = (title?: string) =>
+          Boolean(title && (title.includes('REST API') || title.includes('Redis')));
+        const isLegacySampleId = (id?: string) =>
+          id === 'session-rest-graphql' || id === 'session-redis';
+        const isLegacySampleFile = (fName?: string) =>
+          fName === 'rest_graphql_comparison.md' || fName === 'redis_caching_guide.md';
+
+        // 1. Files
+        const resolvedFiles: Record<string, string> = {
+          ...(savedFiles && typeof savedFiles === 'object' ? savedFiles : {})
+        };
+        delete resolvedFiles['rest_graphql_comparison.md'];
+        delete resolvedFiles['redis_caching_guide.md'];
+        if (!resolvedFiles['tech_notes.md']) {
+          resolvedFiles['tech_notes.md'] = `# AI Podium 기술 스택 노트 (SSOT 원본)\n\n## 개요\n이 노트는 AI 대화창에서 [에디터로 보내기 ➔] 버튼을 눌러 수집된 Single Source of Truth(SSOT) 핵심 문서입니다.\n\n## 시작하기\nAI 지식 비서와 대화를 통해 지식을 축적하고 문서를 완성해 보세요.`;
+        }
+        setFiles(resolvedFiles);
+
+        // 2. Folders
+        const resolvedFolders: Record<string, string> = {
+          ...(savedFolders && typeof savedFolders === 'object' ? savedFolders : {})
+        };
+        delete resolvedFolders['rest_graphql_comparison.md'];
+        delete resolvedFolders['redis_caching_guide.md'];
+        // Re-assign any file assigned to legacy REST or Redis folders to 'AI 지식 비서'
+        Object.keys(resolvedFolders).forEach((fKey) => {
+          const folderName = resolvedFolders[fKey];
+          if (folderName && (folderName.includes('REST API') || folderName.includes('Redis'))) {
+            resolvedFolders[fKey] = 'AI 지식 비서';
           }
-          if (!resolvedFolders['redis_caching_guide.md'] || resolvedFolders['redis_caching_guide.md'] === 'docs') {
-            resolvedFolders['redis_caching_guide.md'] = 'Redis 캐싱 패턴 (Cache-Aside)';
-          }
-          if (!resolvedFolders['tech_notes.md'] || resolvedFolders['tech_notes.md'] === 'docs') {
-            resolvedFolders['tech_notes.md'] = 'AI 지식 비서';
-          }
-          setFileFolders(resolvedFolders);
+        });
+        if (!resolvedFolders['tech_notes.md']) {
+          resolvedFolders['tech_notes.md'] = 'AI 지식 비서';
+        }
+        setFileFolders(resolvedFolders);
+
+        // 3. Open Tabs
+        if (savedOpenTabs && Array.isArray(savedOpenTabs)) {
+          const cleanedTabs = savedOpenTabs.filter((t) => !isLegacySampleFile(t) && resolvedFiles[t]);
+          setOpenTabs(cleanedTabs.length > 0 ? cleanedTabs : ['tech_notes.md']);
         }
 
-        if (savedFiles && typeof savedFiles === 'object') {
-          const resolvedFiles: Record<string, string> = { ...savedFiles };
-          if (!resolvedFiles['rest_graphql_comparison.md']) {
-            resolvedFiles['rest_graphql_comparison.md'] = `# REST API vs GraphQL 비교 분석 노트\n\n## 개요\n클라이언트 통신 방식별 특성과 캐싱 전략 비교 정리입니다.\n\n## 주요 아키텍처\n- REST: 엔드포인트 기반 캐싱\n- GraphQL: 단일 엔드포인트 Query & Mutation\n\n\`\`\`graphql\n# GraphQL Query Example\nquery GetUser {\n  user(id: "101") {\n    name\n    email\n  }\n}\n\`\`\``;
-          }
-          if (!resolvedFiles['redis_caching_guide.md']) {
-            resolvedFiles['redis_caching_guide.md'] = `# Redis 캐싱 전략 아키텍처\n\n## 개요\nIn-Memory DB 부하 분산 및 Cache-Aside, Write-Through 전략 가이드입니다.\n\n## 패턴 분석\n- Cache-Aside: Read-heavy 최적화\n- Write-Through: 데이터 정합성 보장\n\n\`\`\`typescript\n// Cache-Aside Pattern Example\nasync function getUser(userId: string) {\n  const cached = await redis.get(\`user:\${userId}\`);\n  if (cached) return JSON.parse(cached);\n\n  const user = await db.findUser(userId);\n  await redis.set(\`user:\${userId}\`, JSON.stringify(user), 'EX', 3600);\n  return user;\n}\n\`\`\``;
-          }
-          setFiles(resolvedFiles);
+        // 4. Projects / Sessions
+        const defaultSession: ChatSession = {
+          id: 'session-default',
+          title: 'AI 지식 비서',
+          createdAt: '방금 전',
+          fileName: 'tech_notes.md',
+          editorTab: 'wysiwyg',
+          editorContent: resolvedFiles['tech_notes.md'] || `# 기술 노트\n\nAI 지식 비서와 함께 작성하는 문서입니다.`,
+          messages: [
+            {
+              id: 'welcome-1',
+              sender: 'ai',
+              timestamp: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+              model: 'AI 지식 비서',
+              text: `안녕하세요! **AI 지식 비서**입니다.\n\nAI Podium에 오신 것을 환영합니다! 별도의 API 키 등록이나 로컬 AI 연결 없이도 에디터와 기본 기능을 즉시 체험하실 수 있습니다. 원하시는 안내를 아래 버튼에서 선택해 보세요.`,
+              showOnboardingChips: true,
+            }
+          ]
+        };
+
+        let cleanedSessions: ChatSession[] = [];
+        if (savedProjects && Array.isArray(savedProjects)) {
+          cleanedSessions = savedProjects.filter(
+            (s) => !isLegacySampleId(s.id) && !isLegacySampleTitle(s.title)
+          );
+        }
+        if (cleanedSessions.length === 0) {
+          cleanedSessions = [defaultSession];
+        }
+        setSessions(cleanedSessions);
+
+        const targetId = savedActiveSessionId && cleanedSessions.some((s) => s.id === savedActiveSessionId)
+          ? savedActiveSessionId
+          : cleanedSessions[0].id;
+        setActiveSessionId(targetId);
+
+        const activeSess = cleanedSessions.find((s) => s.id === targetId) || cleanedSessions[0];
+        if (activeSess) {
+          const initialContent = activeSess.editorContent !== undefined
+            ? activeSess.editorContent
+            : resolvedFiles[activeSess.fileName || 'tech_notes.md'] || `# ${activeSess.title}\n\n프로젝트 노트`;
+          const initialFileName = isLegacySampleFile(activeSess.fileName) ? 'tech_notes.md' : (activeSess.fileName || 'tech_notes.md');
+          const initialTab = activeSess.editorTab || 'wysiwyg';
+
+          setEditorContent(initialContent);
+          setFileName(initialFileName);
+          setCurrentActiveFile(initialFileName);
+          setEditorTab(initialTab);
         }
 
-        if (savedProjects && Array.isArray(savedProjects) && savedProjects.length > 0) {
-          setSessions(savedProjects);
-          const targetId = savedActiveSessionId && savedProjects.some((s) => s.id === savedActiveSessionId)
-            ? savedActiveSessionId
-            : savedProjects[0].id;
-          setActiveSessionId(targetId);
-
-          const activeSess = savedProjects.find((s) => s.id === targetId) || savedProjects[0];
-          if (activeSess) {
-            const initialContent = activeSess.editorContent !== undefined
-              ? activeSess.editorContent
-              : (savedFiles && savedFiles[activeSess.fileName || 'tech_notes.md']) || `# ${activeSess.title}\n\n프로젝트 노트`;
-            const initialFileName = activeSess.fileName || `${activeSess.title}.md`;
-            const initialTab = activeSess.editorTab || 'edit';
-
-            setEditorContent(initialContent);
-            setFileName(initialFileName);
-            setCurrentActiveFile(initialFileName);
-            setEditorTab(initialTab);
-          }
-          return;
-        }
+        try {
+          saveHybridStorage(STORAGE_KEYS.SESSIONS, cleanedSessions);
+          saveHybridStorage(STORAGE_KEYS.ACTIVE_SESSION_ID, targetId);
+          saveHybridStorage(STORAGE_KEYS.FILES, resolvedFiles);
+          saveHybridStorage(STORAGE_KEYS.FILE_FOLDERS, resolvedFolders);
+        } catch {}
+        return;
 
         // Fallback to active file if no saved sessions
         if (idbActiveFile) {
@@ -2333,26 +2400,64 @@ export default function App() {
       }
 
       if (loadedFiles && Object.keys(loadedFiles).length > 0) {
+        delete loadedFiles['rest_graphql_comparison.md'];
+        delete loadedFiles['redis_caching_guide.md'];
         setFiles(loadedFiles);
       }
       if (loadedFolders) {
+        delete loadedFolders['rest_graphql_comparison.md'];
+        delete loadedFolders['redis_caching_guide.md'];
+        Object.keys(loadedFolders).forEach((k) => {
+          if (loadedFolders[k] && (loadedFolders[k].includes('REST API') || loadedFolders[k].includes('Redis'))) {
+            loadedFolders[k] = 'AI 지식 비서';
+          }
+        });
         setFileFolders(loadedFolders);
       }
       if (loadedContent !== null) {
         setEditorContent(loadedContent);
       }
       if (loadedActiveFile) {
-        setCurrentActiveFile(loadedActiveFile);
-        setFileName(loadedActiveFile);
+        const safeActiveFile = (loadedActiveFile === 'rest_graphql_comparison.md' || loadedActiveFile === 'redis_caching_guide.md')
+          ? 'tech_notes.md'
+          : loadedActiveFile;
+        setCurrentActiveFile(safeActiveFile);
+        setFileName(safeActiveFile);
       }
       if (loadedSessions && Array.isArray(loadedSessions) && loadedSessions.length > 0) {
-        setSessions(loadedSessions);
+        const safeSessions = loadedSessions.filter(
+          (s) => s.id !== 'session-rest-graphql' && s.id !== 'session-redis' && !s.title.includes('REST API') && !s.title.includes('Redis')
+        );
+        setSessions(safeSessions.length > 0 ? safeSessions : [
+          {
+            id: 'session-default',
+            title: 'AI 지식 비서',
+            createdAt: '방금 전',
+            fileName: 'tech_notes.md',
+            editorTab: 'wysiwyg',
+            editorContent: `# 기술 노트\n\nAI 지식 비서와 함께 작성하는 문서입니다.`,
+            messages: [
+              {
+                id: 'welcome-1',
+                sender: 'ai',
+                timestamp: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+                model: 'AI 지식 비서',
+                text: `안녕하세요! **AI 지식 비서**입니다.\n\nAI Podium에 오신 것을 환영합니다! 별도의 API 키 등록이나 로컬 AI 연결 없이도 에디터와 기본 기능을 즉시 체험하실 수 있습니다. 원하시는 안내를 아래 버튼에서 선택해 보세요.`,
+                showOnboardingChips: true,
+              }
+            ]
+          }
+        ]);
       }
       if (loadedActiveSessId) {
-        setActiveSessionId(loadedActiveSessId);
+        const safeActiveSessId = (loadedActiveSessId === 'session-rest-graphql' || loadedActiveSessId === 'session-redis')
+          ? 'session-default'
+          : loadedActiveSessId;
+        setActiveSessionId(safeActiveSessId);
       }
       if (loadedOpenTabs && Array.isArray(loadedOpenTabs)) {
-        setOpenTabs(loadedOpenTabs);
+        const safeTabs = loadedOpenTabs.filter((t) => t !== 'rest_graphql_comparison.md' && t !== 'redis_caching_guide.md');
+        setOpenTabs(safeTabs.length > 0 ? safeTabs : ['tech_notes.md']);
       }
 
       // 7. Rehydrate and decrypt transient session API keys from sessionStorage
@@ -2579,9 +2684,35 @@ export default function App() {
     setDragDropPosition(null);
   };
 
-  // Auto scroll chat
+  // Smart Auto scroll chat: locks to bottom during generation, releases if user scrolls up
+  const isUserScrolledUpRef = useRef<boolean>(false);
+  const [isScrolledUp, setIsScrolledUp] = useState<boolean>(false);
+
+  const handleChatScroll = useCallback(() => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    if (distanceFromBottom > 40) {
+      isUserScrolledUpRef.current = true;
+      setIsScrolledUp(true);
+    } else {
+      isUserScrolledUpRef.current = false;
+      setIsScrolledUp(false);
+    }
+  }, []);
+
+  const scrollToChatBottom = useCallback((smooth = false) => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+    if (smooth) {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    } else {
+      container.scrollTop = container.scrollHeight;
+    }
+  }, []);
+
   useEffect(() => {
-    if (chatContainerRef.current) {
+    if (!isUserScrolledUpRef.current && chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages, isAiLoading, activeSessionId]);
@@ -3764,6 +3895,10 @@ export default function App() {
   // Smart Block & List Formatting (Heading, Bullet List, Numbered List, Task List, Quote, Code, etc.)
   const applyMarkdownBlockFormat = useCallback(
     (formatType: 'h1' | 'h2' | 'h3' | 'bullet' | 'number' | 'task' | 'quote' | 'rule' | 'link' | 'image' | 'bold' | 'italic' | 'code' | 'codeblock') => {
+      if (editorTab === 'wysiwyg' && tiptapEditorRef.current) {
+        tiptapEditorRef.current.executeCommand(formatType);
+        return;
+      }
       const textarea = editorRef.current;
       if (!textarea) return;
 
@@ -3971,12 +4106,19 @@ export default function App() {
         }
       }, 20);
     },
-    [editorContent, handleEditorChange]
+    [editorContent, handleEditorChange, editorTab]
   );
 
   // Smart Word-Processor Grade Table Creator Handler
   const handleInsertTable = useCallback(
     (rows: number, cols: number) => {
+      if (editorTab === 'wysiwyg' && tiptapEditorRef.current) {
+        tiptapEditorRef.current.insertTable(rows, cols);
+        setShowTablePicker(false);
+        showToast(`📊 ${rows}행 × ${cols}열 표가 삽입되었습니다.`);
+        return;
+      }
+
       const tableMd = generateEmptyTable(rows, cols);
       const textarea = editorRef.current;
       if (!textarea) {
@@ -4004,7 +4146,7 @@ export default function App() {
       handleEditorChange(nextVal);
       setShowTablePicker(false);
 
-      showToast(`📊 ${rows}행 × ${cols}열 마크다운 표가 삽입되었습니다.`);
+      showToast(`📊 ${rows}행 × ${cols}열 표가 삽입되었습니다.`);
 
       setTimeout(() => {
         if (editorRef.current) {
@@ -4014,8 +4156,33 @@ export default function App() {
         }
       }, 30);
     },
-    [editorContent, handleEditorChange]
+    [editorContent, handleEditorChange, editorTab]
   );
+
+  // Undo & Redo handlers for Unified Toolbar
+  const handleUndo = useCallback(() => {
+    if (editorTab === 'wysiwyg' && tiptapEditorRef.current) {
+      tiptapEditorRef.current.undo();
+      return;
+    }
+    const textarea = editorRef.current;
+    if (textarea) {
+      textarea.focus();
+      document.execCommand('undo');
+    }
+  }, [editorTab]);
+
+  const handleRedo = useCallback(() => {
+    if (editorTab === 'wysiwyg' && tiptapEditorRef.current) {
+      tiptapEditorRef.current.redo();
+      return;
+    }
+    const textarea = editorRef.current;
+    if (textarea) {
+      textarea.focus();
+      document.execCommand('redo');
+    }
+  }, [editorTab]);
 
   // Insert snippet from Markdown Help Popover
   const handleInsertSnippet = useCallback(
@@ -4473,7 +4640,7 @@ export default function App() {
         title: '프로젝트 개요 (Project Notes)',
         createdAt: '방금 전',
         fileName: 'project_notes.md',
-        editorTab: 'edit',
+        editorTab: 'wysiwyg',
         editorContent: '# 🚀 AI Podium Vibe Coding Workspace\n\n새로운 프로젝트를 시작하세요.\n- 좌측 패널: 프로젝트 세션 및 파일 탐색기\n- 중앙 패널: Single Source of Truth (SSOT) 마크다운 에디터\n- 우측 패널: AI 어시스턴트 & Vibe Multi-Engine\n',
         messages: [
           {
@@ -4527,36 +4694,41 @@ export default function App() {
           setIsVerified(true);
           const vendorLabel = activeVendor.toUpperCase();
           showToast(`✓ ${vendorLabel} (${data.model || activeVendor}) API 연결 및 키 검증 성공!`, 'success');
+
+          // Dynamically fetch and register provider active models
+          try {
+            const models = await fetchProviderActiveModels(activeVendor, activeKey);
+            if (models && models.length > 0) {
+              const simplified = models.map((m) => ({ id: m.id, name: m.name }));
+              setDynamicProviderModels((prev) => ({
+                ...prev,
+                [activeVendor]: simplified
+              }));
+            }
+          } catch (err) {
+            console.warn('동적 모델 목록 갱신 실패:', err);
+          }
         } else {
           setIsVerified(false);
           showToast(`⚠️ API 검증 실패: ${data.error || '인증 오류'}`, 'error');
         }
       } else {
         const cleanEndpoint = ((typeof keyOrEp === 'string' && keyOrEp.trim()) ? keyOrEp : (localEndpointAddress || 'http://localhost:11434')).trim().replace(/\/+$/, '');
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
-        const res = await fetch(`${cleanEndpoint}/api/tags`, {
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        if (res.ok) {
-          const data = await res.json();
-          const count = Array.isArray(data?.models) ? data.models.length : 0;
-          if (Array.isArray(data?.models) && data.models.length > 0) {
-            const formatted = data.models.map((m: { name: string }) => ({
-              id: m.name,
-              name: `${m.name} (Ollama)`
-            }));
-            setDiscoveredLocalModels(formatted);
-            try {
-              localStorage.setItem('aipodium_discovered_models', JSON.stringify(formatted));
-            } catch {}
-          }
+        const tags = await fetchOllamaTags(cleanEndpoint);
+        if (tags && tags.length > 0) {
+          const formatted = tags.map((t) => ({
+            id: t.id,
+            name: t.name
+          }));
+          setDiscoveredLocalModels(formatted);
+          try {
+            localStorage.setItem('aipodium_discovered_models', JSON.stringify(formatted));
+          } catch {}
           setIsVerified(true);
-          showToast(`✓ 로컬 Ollama 연결 성공! (${count}개 모델 감지 및 대화창 연동 완료)`, 'success');
+          showToast(`✓ 로컬 Ollama 연결 성공! (${tags.length}개 모델 감지 및 대화창 연동 완료)`, 'success');
         } else {
           setIsVerified(false);
-          showToast(`⚠️ 로컬 Ollama 응답 오류 (HTTP ${res.status})`, 'error');
+          showToast('⚠️ 로컬 Ollama에서 감지된 모델이 없거나 연결할 수 없습니다.', 'error');
         }
       }
     } catch (err: any) {
@@ -4602,7 +4774,7 @@ export default function App() {
     const newContent = files[newFileName] !== undefined
       ? files[newFileName]
       : (targetSession.editorContent || `# ${targetSession.title}\n\n프로젝트 노트입니다.`);
-    const newTab = targetSession.editorTab || 'edit';
+    const newTab = targetSession.editorTab || 'wysiwyg';
 
     setEditorContent(newContent);
     setFileName(newFileName);
@@ -4684,7 +4856,7 @@ export default function App() {
       createdAt: '방금 전',
       fileName: newDocTabName,
       editorContent: initialContent,
-      editorTab: 'edit',
+      editorTab: 'wysiwyg',
       messages: [
         {
           id: `welcome-${Date.now()}`,
@@ -4857,7 +5029,7 @@ export default function App() {
       setEditorContent(nextContent);
       setFileName(nextFileName);
       setCurrentActiveFile(nextFileName);
-      setEditorTab(nextSession.editorTab || 'edit');
+      setEditorTab(nextSession.editorTab || 'wysiwyg');
     }
 
     setDeleteConfirmSession(null);
@@ -4984,7 +5156,6 @@ export default function App() {
     setIsVibeCanvasActive(true);
 
     const timeStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
-    const matchedTemplate = DOC_TEMPLATES.find((t) => t.tag === config.templateFormat) || DOC_TEMPLATES[0];
 
     // Gather text from selected source files
     let sourceTextsCombined = '';
@@ -4997,15 +5168,25 @@ export default function App() {
     if (config.autoGenerateWithAi && sourceTextsCombined.trim()) {
       setIsGeneratingVibeCanvasAi(true);
       
-      const initialSkeleton = `# ${targetFname.replace(/\.md$/i, '')} · ${matchedTemplate.name}\n\n> **[SSOT 생성 중...]** AI가 선택된 ${config.selectedFiles.length}개의 워크스페이스 문서들을 종합 분석하여 '${matchedTemplate.name}' 양식으로 작성 중입니다...\n\n${matchedTemplate.structureSnippet.replace('{DATE}', timeStr).replace('{WEEK_RANGE}', timeStr)}`;
+      const initialSkeleton = `# ${targetFname.replace(/\.md$/i, '')}\n\n> **[SSOT 문서 생성 중...]** AI가 선택된 ${config.selectedFiles.length}개의 워크스페이스 문서들을 종합 분석하여 SSOT 문서를 작성 중입니다...\n\n*작성일: ${timeStr}*`;
       setVibeCanvasContent(initialSkeleton);
 
       const getFallbackDoc = () =>
-        `# 🌟 ${config.selectedFolder} SSOT 마스터 문서\n\n> **생성 양식:** ${matchedTemplate.name} | **작성일:** ${timeStr}\n\n${matchedTemplate.structureSnippet.replace('{DATE}', timeStr).replace('{WEEK_RANGE}', timeStr)}\n\n---\n\n## 📚 수집된 원본 소스 요약\n${sourceTextsCombined}`;
+        `# ${targetFname.replace(/\.md$/i, '')}\n\n> **작성일:** ${timeStr} | **대상 소스 폴더:** ${config.selectedFolder}\n\n## 1. 프로젝트 개요\n\n## 2. 주요 내용 종합\n\n---\n\n## 3. 참조 소스 파일 요약\n${sourceTextsCombined}`;
 
       try {
+        let templateSupplement = '';
+        if (config.templateDoc) {
+          const tContent = files[config.templateDoc];
+          if (tContent && tContent.trim()) {
+            templateSupplement = `\n\n[포맷 기준 템플릿 문서 - ${config.templateDoc}]:\n\`\`\`markdown\n${tContent}\n\`\`\`\n\n반드시 첨부된 [${config.templateDoc}]의 헤딩 구조, 목차 순서, 표 서식을 엄격히 복제하여 본문을 채우세요.`;
+          } else {
+            templateSupplement = `\n\n반드시 첨부된 [${config.templateDoc}]의 헤딩 구조, 목차 순서, 표 서식을 엄격히 복제하여 본문을 채우세요.`;
+          }
+        }
+
         const prompt = `당신은 프로젝트의 단일 진실 공급원(SSOT)을 구축하는 전문 수석 테크니컬 라이터 및 기획자입니다.
-다음 원본 문서 자료들을 바탕으로 사용자의 지시사항에 맞추어 '${matchedTemplate.name}' 형식의 일관되고 완결성 높은 SSOT 마스터 마크다운 문서를 작성하세요.
+다음 원본 문서 자료들을 바탕으로 사용자의 지시사항에 맞추어 일관되고 완결성 높은 SSOT 마크다운 문서를 작성하세요.
 
 [핵심 작성 원칙]:
 1. 대화형 미사여구(인사말, 맺음말, 안내 멘트)를 일절 배제하고 반드시 마크다운 헤더(#)로 즉시 시작하세요.
@@ -5013,26 +5194,24 @@ export default function App() {
 3. 표준 마크다운 문법(#, ##, -, **, 표 |---|)을 활용하여 전문적이고 가독성 높은 구조로 완성하세요.
 
 [작성 톤 & 스타일]: ${config.designTone}
-[사용자 지시사항]: ${config.instruction}
-
-[양식 구조 가이드]:
-${matchedTemplate.structureSnippet}
+[사용자 지시사항]: ${config.instruction || '선택된 소스 문서들의 핵심 내용을 종합하여 프로젝트의 명확한 기준이 되는 SSOT 문서로 작성해 줘.'}${templateSupplement}
 
 [분석할 원본 문서 자료들]:
 ${sourceTextsCombined}
 
 위 소스 자료를 빠짐없이 종합하여, 누락 없이 완결성 있는 고품질 마크다운 SSOT 문서를 작성해 주세요.`;
 
-        const architectModel = roleModels.architect || selectedModel || 'gemini-3.1-pro-preview';
+        const ssotModel = config.model || roleModels.ssot || roleModels.architect || selectedModel || 'gemini-3.8-flash';
+        const targetProvider = config.provider || (availableChatModels.find(m => m.id === ssotModel)?.group === 'local' ? (provider.startsWith('local') ? provider : 'local-pc') : 'cloud');
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: prompt,
-            model: architectModel,
-            provider: provider,
-            apiKey: provider === 'cloud' ? (getApiKeyForModel(architectModel) || cloudApiKey) : undefined,
-            endpoint: (provider === 'local-pc' || provider === 'local-server') ? localEndpointAddress : undefined,
+            model: ssotModel,
+            provider: targetProvider,
+            apiKey: targetProvider === 'cloud' ? (getApiKeyForModel(ssotModel) || cloudApiKey) : undefined,
+            endpoint: (targetProvider === 'local-pc' || targetProvider === 'local-server') ? localEndpointAddress : undefined,
             parameters: aiParameters,
             googleSearchGrounding: preferences.googleSearchGrounding ?? false,
             history: []
@@ -5044,27 +5223,27 @@ ${sourceTextsCombined}
           const generatedMarkdown = data.reply || data.text || '';
           if (generatedMarkdown.trim()) {
             setVibeCanvasContent(generatedMarkdown);
-            showToast(`✨ '${matchedTemplate.name}' SSOT 초안이 생성되었습니다! 검토 후 폴더에 저장하세요.`, 'success');
+            showToast(`✨ 기준 문서 초안이 생성되었습니다! 검토 후 폴더에 저장하세요.`, 'success');
           } else {
             setVibeCanvasContent(getFallbackDoc());
-            showToast(`💡 표준 템플릿 스캐폴딩이 적용되었습니다.`, 'info');
+            showToast(`💡 기본 기준 문서 스캐폴딩이 적용되었습니다.`, 'info');
           }
         } else {
           setVibeCanvasContent(getFallbackDoc());
-          showToast(`💡 API 키 미설정 또는 오류로 표준 템플릿 스캐폴딩이 즉시 적용되었습니다. (AI 생성은 설정 > API 키 등록 필요)`, 'info');
+          showToast(`💡 API 키 미설정 또는 오류로 기본 스캐폴딩이 즉시 적용되었습니다. (AI 생성은 설정 > API 키 등록 필요)`, 'info');
         }
       } catch (err) {
         console.error('Vibe Canvas generation error:', err);
         setVibeCanvasContent(getFallbackDoc());
-        showToast(`💡 표준 템플릿 스캐폴딩이 적용되었습니다.`, 'info');
+        showToast(`💡 기본 기준 문서 스캐폴딩이 적용되었습니다.`, 'info');
       } finally {
         setIsGeneratingVibeCanvasAi(false);
       }
     } else {
-      const scaffold = matchedTemplate.structureSnippet.replace('{DATE}', timeStr).replace('{WEEK_RANGE}', timeStr) +
-        (sourceTextsCombined ? `\n\n---\n\n## 📚 참조 소스 문서 데이터\n${sourceTextsCombined}` : '');
+      const scaffold = `# ${targetFname.replace(/\.md$/i, '')}\n\n> **작성일:** ${timeStr} | **대상 폴더:** ${config.selectedFolder}\n\n## 1. 프로젝트 개요\n\n## 2. 주요 내용 종합\n` +
+        (sourceTextsCombined ? `\n\n---\n\n## 3. 참조 소스 파일 데이터\n${sourceTextsCombined}` : '');
       setVibeCanvasContent(scaffold);
-      showToast(`📝 '${matchedTemplate.name}' 표준 템플릿이 0ms로 즉시 배치되었습니다. (AI 토큰 0소모)`, 'success');
+      showToast(`📝 기준 문서 스캐폴딩이 에디터에 배치되었습니다.`, 'success');
     }
   };
 
@@ -6080,6 +6259,184 @@ ${projectEvents
     return parts.length > 0 ? parts : text;
   };
 
+  // Onboarding Interactive Guide Bot Simulation (For guest users without API keys or Ollama)
+  const executeOnboardingSimulation = (
+    queryText: string,
+    chipKey?: 'gemini-key' | 'ollama-guide' | 'demo-knowledge',
+    meta?: {
+      originalText?: string;
+      translatedText?: string;
+      ghostWriterLevel?: string;
+    }
+  ) => {
+    const targetSessionId = activeSessionId;
+    const userTimestamp = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    const userMsg: ChatMessage = {
+      id: `msg-user-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      sender: 'user',
+      text: queryText,
+      timestamp: userTimestamp,
+      attachments: chatAttachments.length > 0 ? [...chatAttachments] : undefined,
+      originalText: meta?.originalText,
+      translatedText: meta?.translatedText,
+      ghostWriterLevel: meta?.ghostWriterLevel,
+    };
+
+    setSessions((prev) =>
+      prev.map((session) => {
+        if (session.id === targetSessionId) {
+          return {
+            ...session,
+            messages: [...session.messages, userMsg],
+          };
+        }
+        return session;
+      })
+    );
+
+    setChatInput('');
+    setChatAttachments([]);
+    setIsAiLoading(true);
+    isUserScrolledUpRef.current = false;
+    setIsScrolledUp(false);
+    requestAnimationFrame(() => {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+    });
+
+    // 0.5초 가상 로딩 (점 3개 깜빡임) 후 미리 정의된 안내 스크립트 스트리밍 출력
+    setTimeout(() => {
+      const responseData = getOnboardingResponse(chipKey || queryText);
+      const aiMsgId = `msg-ai-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const aiTimestamp = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+      const aiMsg: ChatMessage = {
+        id: aiMsgId,
+        sender: 'ai',
+        model: 'AI 지식 비서',
+        text: '',
+        timestamp: aiTimestamp,
+        isStreaming: true,
+        actionButtons: responseData.actionButtons,
+      };
+
+      setSessions((prev) =>
+        prev.map((session) => {
+          if (session.id === targetSessionId) {
+            return {
+              ...session,
+              messages: [...session.messages, aiMsg],
+            };
+          }
+          return session;
+        })
+      );
+
+      let queue = responseData.text;
+      let currentText = '';
+
+      const typingInterval = setInterval(() => {
+        if (queue.length > 0) {
+          const takeCount = queue.length > 200 ? 18 : queue.length > 80 ? 9 : queue.length > 20 ? 5 : 2;
+          const chunk = queue.slice(0, takeCount);
+          queue = queue.slice(takeCount);
+          currentText += chunk;
+
+          setSessions((prev) =>
+            prev.map((s) => {
+              if (s.id !== targetSessionId) return s;
+              return {
+                ...s,
+                messages: s.messages.map((m) => {
+                  if (m.id !== aiMsgId) return m;
+                  return {
+                    ...m,
+                    text: currentText,
+                    isStreaming: true,
+                  };
+                }),
+              };
+            })
+          );
+
+          if (!isUserScrolledUpRef.current && chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+          }
+        } else {
+          clearInterval(typingInterval);
+          setSessions((prev) =>
+            prev.map((s) => {
+              if (s.id !== targetSessionId) return s;
+              return {
+                ...s,
+                messages: s.messages.map((m) => {
+                  if (m.id !== aiMsgId) return m;
+                  return {
+                    ...m,
+                    text: responseData.text,
+                    isStreaming: false,
+                  };
+                }),
+              };
+            })
+          );
+
+          setIsAiLoading(false);
+          if (!isUserScrolledUpRef.current && chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+          }
+        }
+      }, 16);
+    }, 500);
+  };
+
+  const handleOnboardingChipClick = (chipType: 'gemini-key' | 'ollama-guide' | 'demo-knowledge') => {
+    let queryText = '';
+    if (chipType === 'gemini-key') queryText = 'Gemini API 키 등록 방법';
+    else if (chipType === 'ollama-guide') queryText = 'Ollama 로컬 AI 연결 가이드';
+    else if (chipType === 'demo-knowledge') queryText = '가상 지식 정리 체험';
+
+    executeOnboardingSimulation(queryText, chipType);
+  };
+
+  // Start explicit WebLLM download and initialization
+  const handleStartWebLlmDownload = async () => {
+    if (!isWebGPUSupported()) {
+      showToast('⚠️ 현재 브라우저가 WebGPU를 지원하지 않습니다.');
+      return;
+    }
+    setWebllmProgress((prev) => ({ ...prev, isLoading: true, progressPercent: 0, progressText: 'WebGPU 가속 엔진 준비 중...' }));
+    try {
+      await initWebLLMEngine((report) => {
+        const percent = Math.min(100, Math.max(0, Math.round(report.progress * 100)));
+        setWebllmProgress((prev) => ({
+          ...prev,
+          isLoading: true,
+          progressPercent: percent,
+          progressText: report.text || '가중치 다운로드 중...',
+        }));
+      });
+      setWebllmProgress({
+        isSupported: true,
+        isLoading: false,
+        isReady: true,
+        progressText: '로컬 AI 엔진 준비 완료',
+        progressPercent: 100,
+      });
+      setSelectedModel(WEB_LLM_MODEL_ID);
+      setProvider('local-pc');
+      showToast('✓ Qwen2.5-0.5B 브라우저 로컬 AI가 준비되었습니다.');
+    } catch (err: any) {
+      setWebllmProgress((prev) => ({
+        ...prev,
+        isLoading: false,
+        isReady: false,
+        progressText: '',
+      }));
+      showToast(`⚠️ WebLLM 로드 실패: ${err?.message || '알 수 없는 오류'}`);
+    }
+  };
+
   // Handle send message logic
   const handleSendMessage = (
     overrideText?: string,
@@ -6091,6 +6448,12 @@ ${projectEvents
   ) => {
     const textToSend = (overrideText !== undefined ? overrideText : chatInput).trim();
     if (!textToSend && chatAttachments.length === 0) return;
+
+    // Route to Onboarding Interactive Guide Bot for guest users without API keys or Ollama
+    if (isOnboardingMode) {
+      executeOnboardingSimulation(textToSend, undefined, meta);
+      return;
+    }
 
     const userTimestamp = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     const userMsg: ChatMessage = {
@@ -6106,24 +6469,10 @@ ${projectEvents
 
     const targetSessionId = activeSessionId;
 
-    setSessions((prev) =>
-      prev.map((session) => {
-        if (session.id === targetSessionId) {
-          return {
-            ...session,
-            messages: [...session.messages, userMsg],
-          };
-        }
-        return session;
-      })
-    );
-
     if (overrideText === undefined) {
       setChatInput('');
       setChatAttachments([]);
     }
-
-    setIsAiLoading(true);
 
     const customInstruction = preferences.aiPersona?.systemInstruction?.trim();
     const sysInstruction = customInstruction
@@ -6167,127 +6516,386 @@ ${projectEvents
       targetsToExecute = [{ modelKey: selectedModel || 'gemini-3.8-flash' }];
     }
 
-    Promise.all(
-      targetsToExecute.map(async ({ modelKey, labelSuffix }, idx) => {
-        const modelOpt = availableChatModels.find((m) => m.id === modelKey) || ghostWriterModelOptions.find((m) => m.id === modelKey);
-        const displayName = (modelOpt?.name || modelKey) + (labelSuffix || '');
-        let aiText = '';
-        let msgTokens: ChatMessage['tokens'] = undefined;
-        let msgGroundingSources: ChatMessage['groundingSources'] = undefined;
-
-        try {
-          if (provider === 'local-pc' || provider === 'local-server') {
-            // Local Ollama execution
-            const cleanEndpoint = (localEndpointAddress || 'http://localhost:11434').trim().replace(/\/+$/, '');
-            const fullSystem = sysInstruction
-              ? `${sysInstruction}\n\n[Editor Context]\n${editorContent || ''}`
-              : (editorContent ? `[Editor Context]\n${editorContent}` : undefined);
-
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-            const res = await fetch(`${cleanEndpoint}/api/chat`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              signal: controller.signal,
-              body: JSON.stringify({
-                model: modelKey,
-                messages: [
-                  ...(fullSystem ? [{ role: 'system', content: fullSystem }] : []),
-                  { role: 'user', content: textToSend }
-                ],
-                stream: false,
-                options: {
-                  temperature: aiParameters?.temperature,
-                  top_p: aiParameters?.topP,
-                  num_predict: aiParameters?.maxTokens
-                }
-              })
-            });
-            clearTimeout(timeoutId);
-
-            if (!res.ok) {
-              const errData = await res.json().catch(() => ({}));
-              throw new Error(errData.error || `HTTP ${res.status}`);
-            }
-            const data = await res.json();
-            aiText = data?.message?.content || data?.response || '응답 내용이 비어 있습니다.';
-          } else {
-            // Cloud Provider (Multi-vendor BYOK / Server API)
-            const targetApiKey = getApiKeyForModel(modelKey) || cloudApiKey;
-            const res = await fetch('/api/chat', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                message: textToSend,
-                editorContent: editorContent,
-                model: modelKey,
-                parameters: aiParameters,
-                apiKey: targetApiKey || undefined,
-                systemInstruction: sysInstruction,
-                googleSearchGrounding: preferences.googleSearchGrounding ?? false
-              })
-            });
-            const data = await res.json();
-
-            if (!res.ok) {
-              const vendor = getVendorForModel(modelKey);
-              aiText = `💡 **AI 엔진 안내**: ${data.error || '응답을 생성할 수 없습니다.'}\n\n*설정([Ctrl+,])의 [AI 엔진 설정]에서 **${vendor.toUpperCase()} API 키**를 등록하거나, 상단 모드를 [Local PC (Ollama)]로 전환하여 사용할 수 있습니다.*`;
-            } else {
-              aiText = data.text;
-              if (data.usage) {
-                msgTokens = data.usage;
-              }
-              if (Array.isArray(data.groundingSources) && data.groundingSources.length > 0) {
-                msgGroundingSources = data.groundingSources;
-              }
-            }
-          }
-        } catch (e: any) {
-          const isAbort = e?.name === 'AbortError';
-          const isCors = e?.message?.includes('Failed to fetch') || e?.name === 'TypeError';
-          if (provider !== 'cloud') {
-            if (isCors) {
-              aiText = `⚠️ **로컬 Ollama 연결 차단 (브라우저 CORS 제한)**\n\n브라우저 보안 정책으로 인해 로컬 Ollama(\`${localEndpointAddress || 'http://localhost:11434'}\`) 호출이 차단되었습니다.\n\n### 🛠️ 즉시 해결 방법 (CORS 허용 실행):\n**Windows (PowerShell):**\n\`\`\`powershell\n$env:OLLAMA_ORIGINS="*" ; ollama serve\n\`\`\`\n\n**macOS / Linux:**\n\`\`\`bash\nOLLAMA_ORIGINS="*" ollama serve\n\`\`\`\n\n💡 *Tip: 상단 톱니바퀴 [설정] -> [AI 엔진 설정]에서 **[CORS 자가진단]**을 실행하여 정상 연결 여부를 확인할 수 있습니다.*`;
-            } else if (isAbort) {
-              aiText = `⚠️ **로컬 Ollama 응답 시간 초과 (60초)**\n\n모델 추론 시간이 60초를 초과했습니다. 더 가벼운 양자화 모델을 사용하거나 로컬 리소스를 확인하세요.`;
-            } else {
-              aiText = `⚠️ **로컬 Ollama 호출 실패**: ${e.message}\n\n*터미널에서 'OLLAMA_ORIGINS="*" ollama serve' 실행 여부 및 로컬 모델 설치 상태를 확인하세요.*`;
-            }
-          } else {
-            aiText = `⚠️ Network Error: ${e.message}\n\n*백엔드 서버 또는 AI API 연결에 실패했습니다.*`;
-          }
-        }
-
-        return {
-          id: `msg-${Date.now()}-${idx}-${Math.random()}`,
+    // Prepare initial AI placeholders with streaming state
+    const initialAiItems = targetsToExecute.map(({ modelKey, labelSuffix }, idx) => {
+      const modelOpt = availableChatModels.find((m) => m.id === modelKey) || ghostWriterModelOptions.find((m) => m.id === modelKey);
+      const displayName = (modelOpt?.name || modelKey) + (labelSuffix || '');
+      const id = `msg-ai-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`;
+      return {
+        id,
+        modelKey,
+        labelSuffix,
+        displayName,
+        msg: {
+          id,
           sender: 'ai' as const,
           model: displayName,
-          text: aiText,
+          text: '',
           timestamp: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-          tokens: msgTokens,
-          groundingSources: msgGroundingSources
-        };
+          isStreaming: true,
+        }
+      };
+    });
+
+    // Mount user message and initial streaming AI placeholders
+    setSessions((prev) =>
+      prev.map((session) => {
+        if (session.id === targetSessionId) {
+          return {
+            ...session,
+            messages: [...session.messages, userMsg, ...initialAiItems.map((item) => item.msg)],
+          };
+        }
+        return session;
       })
-    ).then((newAiMsgs) => {
-      setSessions((prev) =>
-        prev.map((session) => {
-          if (session.id === targetSessionId) {
-            return {
-              ...session,
-              messages: [...session.messages, ...newAiMsgs],
-            };
+    );
+
+    setIsAiLoading(true);
+    isUserScrolledUpRef.current = false;
+    setIsScrolledUp(false);
+    requestAnimationFrame(() => {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+    });
+
+    let completedStreams = 0;
+    const totalStreams = initialAiItems.length;
+
+    // Execute streaming pipeline for each AI target
+    initialAiItems.forEach(async ({ id: msgId, modelKey }) => {
+      let queue = '';
+      let currentText = '';
+      let isDone = false;
+      let finalMeta: { tokens?: ChatMessage['tokens']; groundingSources?: ChatMessage['groundingSources'] } | undefined = undefined;
+
+      const typewriterInterval = setInterval(() => {
+        if (queue.length > 0) {
+          // Dynamic pacing for smooth Claude/Cursor typing experience
+          const takeCount = queue.length > 300 ? 16 : queue.length > 100 ? 8 : queue.length > 30 ? 4 : queue.length > 10 ? 2 : 1;
+          const chunk = queue.slice(0, takeCount);
+          queue = queue.slice(takeCount);
+          currentText += chunk;
+
+          setSessions((prev) =>
+            prev.map((s) => {
+              if (s.id !== targetSessionId) return s;
+              return {
+                ...s,
+                messages: s.messages.map((m) => {
+                  if (m.id !== msgId) return m;
+                  return {
+                    ...m,
+                    text: currentText,
+                    isStreaming: true,
+                  };
+                }),
+              };
+            })
+          );
+
+          if (!isUserScrolledUpRef.current && chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
           }
-          return session;
-        })
-      );
-      setIsAiLoading(false);
+        } else if (isDone) {
+          clearInterval(typewriterInterval);
+          setSessions((prev) =>
+            prev.map((s) => {
+              if (s.id !== targetSessionId) return s;
+              return {
+                ...s,
+                messages: s.messages.map((m) => {
+                  if (m.id !== msgId) return m;
+                  return {
+                    ...m,
+                    text: currentText,
+                    isStreaming: false,
+                    tokens: finalMeta?.tokens ?? m.tokens,
+                    groundingSources: finalMeta?.groundingSources ?? m.groundingSources,
+                  };
+                }),
+              };
+            })
+          );
+
+          if (!isUserScrolledUpRef.current && chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+          }
+
+          completedStreams += 1;
+          if (completedStreams >= totalStreams) {
+            setIsAiLoading(false);
+          }
+        }
+      }, 16);
+
+      const pushChunk = (chunk: string) => {
+        if (chunk) queue += chunk;
+      };
+
+      const finishStream = (meta?: { tokens?: ChatMessage['tokens']; groundingSources?: ChatMessage['groundingSources'] }) => {
+        if (meta) finalMeta = meta;
+        isDone = true;
+      };
+
+      try {
+        if (modelKey === WEB_LLM_MODEL_ID) {
+          // Browser-native WebGPU WebLLM streaming execution
+          const fullSystem = sysInstruction
+            ? `${sysInstruction}\n\n[Editor Context]\n${editorContent || ''}`
+            : (editorContent ? `[Editor Context]\n${editorContent}` : undefined);
+
+          const messagesForWebLlm = [
+            ...(fullSystem ? [{ role: 'system' as const, content: fullSystem }] : []),
+            { role: 'user' as const, content: textToSend }
+          ];
+
+          await streamWebLLMCompletion(
+            messagesForWebLlm,
+            (delta: string) => {
+              pushChunk(delta);
+            },
+            0.35
+          );
+          finishStream();
+        } else if (provider === 'local-pc' || provider === 'local-server') {
+          // Local Ollama streaming execution
+          const cleanEndpoint = (localEndpointAddress || 'http://localhost:11434').trim().replace(/\/+$/, '');
+          const fullSystem = sysInstruction
+            ? `${sysInstruction}\n\n[Editor Context]\n${editorContent || ''}`
+            : (editorContent ? `[Editor Context]\n${editorContent}` : undefined);
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+          const res = await fetch(`${cleanEndpoint}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              model: modelKey,
+              messages: [
+                ...(fullSystem ? [{ role: 'system', content: fullSystem }] : []),
+                { role: 'user', content: textToSend }
+              ],
+              stream: true,
+              options: {
+                temperature: aiParameters?.temperature,
+                top_p: aiParameters?.topP,
+                num_predict: aiParameters?.maxTokens
+              }
+            })
+          });
+          clearTimeout(timeoutId);
+
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || `HTTP ${res.status}`);
+          }
+
+          if (res.body) {
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
+
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) continue;
+                try {
+                  const parsed = JSON.parse(trimmed);
+                  const piece = parsed?.message?.content || parsed?.response;
+                  if (piece) pushChunk(piece);
+                } catch {}
+              }
+            }
+
+            if (buffer.trim()) {
+              try {
+                const parsed = JSON.parse(buffer.trim());
+                const piece = parsed?.message?.content || parsed?.response;
+                if (piece) pushChunk(piece);
+              } catch {}
+            }
+          }
+          finishStream();
+        } else {
+          // Cloud Provider (Server API with SSE streaming support)
+          const targetApiKey = getApiKeyForModel(modelKey) || cloudApiKey;
+          const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'text/event-stream, application/json'
+            },
+            body: JSON.stringify({
+              message: textToSend,
+              editorContent: editorContent,
+              model: modelKey,
+              parameters: aiParameters,
+              apiKey: targetApiKey || undefined,
+              systemInstruction: sysInstruction,
+              googleSearchGrounding: preferences.googleSearchGrounding ?? false,
+              stream: true
+            })
+          });
+
+          const isSSE = res.headers.get('content-type')?.includes('text/event-stream');
+
+          if (isSSE && res.body) {
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
+
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('data: ')) {
+                  try {
+                    const parsed = JSON.parse(trimmed.slice(6));
+                    if (parsed.chunk) {
+                      pushChunk(parsed.chunk);
+                    }
+                    if (parsed.done) {
+                      finishStream({
+                        tokens: parsed.usage,
+                        groundingSources: parsed.groundingSources
+                      });
+                    }
+                    if (parsed.error) {
+                      pushChunk(`\n\n⚠️ ${parsed.error}`);
+                      finishStream();
+                    }
+                  } catch {}
+                }
+              }
+            }
+
+            if (buffer.trim().startsWith('data: ')) {
+              try {
+                const parsed = JSON.parse(buffer.trim().slice(6));
+                if (parsed.chunk) pushChunk(parsed.chunk);
+                if (parsed.done) {
+                  finishStream({ tokens: parsed.usage, groundingSources: parsed.groundingSources });
+                }
+              } catch {}
+            }
+            finishStream();
+          } else {
+            // Non-SSE or fallback response
+            const data = await res.json();
+            if (!res.ok) {
+              const vendor = getVendorForModel(modelKey);
+              pushChunk(`💡 **AI 엔진 안내**: ${data.error || '응답을 생성할 수 없습니다.'}\n\n*설정([Ctrl+,])의 [AI 엔진 설정]에서 **${vendor.toUpperCase()} API 키**를 등록하거나, 상단 모드를 [Local PC (Ollama)]로 전환하여 사용할 수 있습니다.*`);
+              finishStream();
+            } else {
+              pushChunk(data.text || '');
+              finishStream({
+                tokens: data.usage,
+                groundingSources: data.groundingSources
+              });
+            }
+          }
+        }
+      } catch (e: any) {
+        const isAbort = e?.name === 'AbortError';
+        const isCors = e?.message?.includes('Failed to fetch') || e?.name === 'TypeError';
+        let errorText = '';
+        if (provider !== 'cloud') {
+          if (isCors) {
+            errorText = `⚠️ **로컬 Ollama 연결 차단 (브라우저 CORS 제한)**\n\n브라우저 보안 정책으로 인해 로컬 Ollama(\`${localEndpointAddress || 'http://localhost:11434'}\`) 호출이 차단되었습니다.\n\n### 🛠️ 즉시 해결 방법 (CORS 허용 실행):\n**Windows (PowerShell):**\n\`\`\`powershell\n$env:OLLAMA_ORIGINS="*" ; ollama serve\n\`\`\`\n\n**macOS / Linux:**\n\`\`\`bash\nOLLAMA_ORIGINS="*" ollama serve\n\`\`\`\n\n💡 *Tip: 상단 톱니바퀴 [설정] -> [AI 엔진 설정]에서 **[CORS 자가진단]**을 실행하여 정상 연결 여부를 확인할 수 있습니다.*`;
+          } else if (isAbort) {
+            errorText = `⚠️ **로컬 Ollama 응답 시간 초과 (60초)**\n\n모델 추론 시간이 60초를 초과했습니다. 더 가벼운 양자화 모델을 사용하거나 로컬 리소스를 확인하세요.`;
+          } else {
+            errorText = `⚠️ **로컬 Ollama 호출 실패**: ${e.message}\n\n*터미널에서 'OLLAMA_ORIGINS="*" ollama serve' 실행 여부 및 로컬 모델 설치 상태를 확인하세요.*`;
+          }
+        } else {
+          errorText = `⚠️ Network Error: ${e.message}\n\n*백엔드 서버 또는 AI API 연결에 실패했습니다.*`;
+        }
+        pushChunk(errorText);
+        finishStream();
+      }
     });
   };
+
+  // Editor Font Zoom Actions (Ctrl + +, Ctrl + -, Ctrl + 0)
+  const handleEditorZoomIn = useCallback(() => {
+    setEditorFontSize((prev) => {
+      const next = Math.min(22, prev + 1);
+      showToast(`에디터 폰트 크기: ${next}px`);
+      return next;
+    });
+  }, [showToast]);
+
+  const handleEditorZoomOut = useCallback(() => {
+    setEditorFontSize((prev) => {
+      const next = Math.max(12, prev - 1);
+      showToast(`에디터 폰트 크기: ${next}px`);
+      return next;
+    });
+  }, [showToast]);
+
+  const handleEditorZoomReset = useCallback(() => {
+    setEditorFontSize(15);
+    showToast('에디터 폰트 기본 크기 복원: 15px');
+  }, [showToast]);
+
+  // Ctrl + Mouse Wheel font size adjustment on editor container
+  useEffect(() => {
+    const container = editorContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+          handleEditorZoomIn();
+        } else if (e.deltaY > 0) {
+          handleEditorZoomOut();
+        }
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [handleEditorZoomIn, handleEditorZoomOut]);
 
   // Global Keyboard Shortcuts
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Editor Font Size Zoom Shortcuts (Ctrl + +, Ctrl + -, Ctrl + 0)
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === '+' || e.key === '=' || e.code === 'NumpadAdd') {
+          e.preventDefault();
+          handleEditorZoomIn();
+          return;
+        }
+        if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract') {
+          e.preventDefault();
+          handleEditorZoomOut();
+          return;
+        }
+        if (e.key === '0' || e.code === 'Numpad0') {
+          e.preventDefault();
+          handleEditorZoomReset();
+          return;
+        }
+      }
+
       // SSOT Generator Modal (Ctrl+K or Cmd+K)
       if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault();
@@ -6321,7 +6929,7 @@ ${projectEvents
 
         if (key === 'c') {
           e.preventDefault();
-          handleOpenSSOTGeneratorModal(activeSession?.title || 'Main Project', 'prd');
+          handleOpenSSOTGeneratorModal(activeSession?.title || 'Main Project');
         } else if (key === 's') {
           e.preventDefault();
           handleGenerateAiSpreadsheet();
@@ -6330,19 +6938,13 @@ ${projectEvents
           handleGenerateAiSlideBuilder();
         } else if (key === 'v') {
           e.preventDefault();
-          handleOpenSSOTGeneratorModal(activeSession?.title || 'Main Project', 'architecture');
+          handleOpenSSOTGeneratorModal(activeSession?.title || 'Main Project');
         } else if (key === 'p') {
           e.preventDefault();
           setIsPromptLibraryModalOpen(true);
         } else if (key === 'e') {
           e.preventDefault();
           setIsEventManagerOpen(true);
-        } else if (key === 'm') {
-          e.preventDefault();
-          handleOpenSSOTGeneratorModal(activeSession?.title || 'Main Project', 'prd');
-        } else if (key === 'y') {
-          e.preventDefault();
-          handleOpenSSOTGeneratorModal(activeSession?.title || 'Main Project', 'sprint');
         } else if (key === ',') {
           e.preventDefault();
           setIsPreferencesModalOpen(true);
@@ -6354,11 +6956,14 @@ ${projectEvents
   }, [
     handleFormatDocument,
     handleSaveDocument,
-        handleGenerateAiSpreadsheet,
+    handleGenerateAiSpreadsheet,
     handleGenerateAiSlideBuilder,
     setIsEventManagerOpen,
     setIsPreferencesModalOpen,
     handleOpenSSOTGeneratorModal,
+    handleEditorZoomIn,
+    handleEditorZoomOut,
+    handleEditorZoomReset,
     showToast
   ]);
 
@@ -6404,44 +7009,14 @@ ${projectEvents
     setPreferences(updated);
     setGhostWriterLevel(level);
     saveSafePreferences(updated);
-    showToast(`고스트 라이더가 "${level === 'off' ? 'OFF' : level + '%'}"로 설정되었습니다.`, 'success');
+    showToast(`고스트 라이터가 "${level === 'off' ? 'OFF' : level + '%'}"로 설정되었습니다.`, 'success');
     setActiveMenu(null);
     setActiveSubmenu(null);
   }, [preferences, showToast]);
 
-  const handleInsertSsotTemplate = useCallback((tmplId: string) => {
-    const matched = DOC_TEMPLATES.find((t) => t.id === tmplId) || DOC_TEMPLATES[0];
-    const timeStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
-    const snippet = matched.structureSnippet.replace('{DATE}', timeStr).replace('{WEEK_RANGE}', timeStr);
-
-    if (isVibeCanvasActive) {
-      setVibeCanvasContent((prev) => (prev.trim() ? `${prev}\n\n---\n\n${snippet}` : snippet));
-    } else {
-      setEditorContent((prev) => (prev.trim() ? `${prev}\n\n---\n\n${snippet}` : snippet));
-      if (fileName) {
-        setFiles((prev) => ({
-          ...prev,
-          [fileName]: editorContent.trim() ? `${editorContent}\n\n---\n\n${snippet}` : snippet
-        }));
-      }
-    }
-    showToast(`'${matched.name}' 표준 템플릿이 삽입되었습니다.`, 'success');
-    setActiveMenu(null);
-    setActiveSubmenu(null);
-  }, [isVibeCanvasActive, setVibeCanvasContent, setEditorContent, editorContent, fileName, setFiles, showToast]);
-
   const currentModelName = useMemo(() => {
     const targetId = preferences.defaultModel || selectedModel;
-    const modelMap: Record<string, string> = {
-      'gemini-3.8-flash': 'Gemini 3.8 Flash',
-      'gemini-3.1-pro': 'Gemini 3.1 Pro',
-      'gemini-3.1-flash-lite': 'Gemini 3.1 Flash-Lite',
-      'claude-3-5-sonnet-20241022': 'Claude 3.5 Sonnet',
-      'gpt-4o': 'GPT-4o',
-      'deepseek-r1': 'DeepSeek R1',
-      'qwen2.5-coder-32b': 'Qwen 2.5 Coder'
-    };
-    return modelMap[targetId] || targetId;
+    return getModelDisplayName(targetId);
   }, [preferences.defaultModel, selectedModel]);
 
   const currentGhostLabel = useMemo(() => {
@@ -6495,11 +7070,7 @@ ${projectEvents
     >
       {/* Top Navigation Bar / Header */}
       <header
-        style={{
-          background: 'var(--bg-panel)',
-          borderColor: 'var(--border-color)'
-        }}
-        className="h-8 backdrop-blur-md border-b px-2 flex items-center justify-between z-50 shrink-0 border-[#222226]"
+        className="h-11 bg-[#111114] border-b border-white/[0.08] px-3 flex items-center justify-between z-50 shrink-0"
       >
         <div className="flex items-center gap-2">
           {/* Logo / App Name */}
@@ -6531,72 +7102,71 @@ ${projectEvents
                     setActiveSubmenu(null);
                   }
                 }}
-                className={`px-2 py-1 rounded-md text-xs font-medium transition flex items-center gap-1 cursor-pointer ${
+                className={`text-xs px-2.5 py-1.5 rounded-md transition cursor-pointer ${
                   activeMenu === 'file'
-                    ? 'bg-[#6366f1] text-white font-semibold shadow-xs'
-                    : 'hover:bg-[#18181b] text-slate-200'
+                    ? 'text-zinc-100 bg-white/[0.08] font-medium'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08]'
                 }`}
               >
                 <span>파일</span>
-                <ChevronDown className="w-3 h-3 opacity-70" />
               </button>
 
               {activeMenu === 'file' && (
-                <div className="absolute left-0 top-full mt-1 w-52 bg-[#121214]/98 backdrop-blur-md border border-[#222226] rounded-md shadow-2xl p-1 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute left-0 top-full mt-1.5 w-52 bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
                   <button
                     type="button"
                     onClick={() => { handleCreateNewSession(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer group text-slate-200"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
                   >
                     <span>새 프로젝트</span>
-                    <span className="text-[0.625rem] text-slate-400 group-hover:text-white/90 font-mono">Alt+N</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Alt+N</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => { handleCreateNewFile(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer group text-slate-200"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
                   >
                     <span>새 마크다운 노트</span>
-                    <span className="text-[0.625rem] text-slate-400 group-hover:text-white/90 font-mono">Ctrl+N</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Ctrl+N</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => { openFileInputRef.current?.click(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer group text-slate-200"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
                   >
                     <span>로컬 파일 불러오기...</span>
-                    <span className="text-[0.625rem] text-slate-400 group-hover:text-white/90 font-mono">Ctrl+O</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Ctrl+O</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => { docFileInputRef.current?.click(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer group text-slate-200"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
                   >
                     <span>오피스 / PDF 문서 변환...</span>
-                    <span className="text-[0.625rem] text-slate-400 group-hover:text-white/90 font-mono">PDF/DOCX</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">PDF/DOCX</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => { handleSaveDocument(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer group text-slate-200"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
                   >
                     <span>저장</span>
-                    <span className="text-[0.625rem] text-slate-400 group-hover:text-white/90 font-mono">Ctrl+S</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Ctrl+S</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => { handleSaveAsFile(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer group text-slate-200"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
                   >
                     <span>다른 이름으로 저장...</span>
                   </button>
 
-                  <div className="my-1 border-t border-[#222226]" />
+                  <div className="my-1 border-t border-white/[0.06]" />
 
                   {/* 내보내기 (Export As) Sub-menu */}
                   <div
@@ -6612,64 +7182,64 @@ ${projectEvents
                         setActiveSubmenu(next ? 'export' : null);
                         setIsExportSubmenuOpen(next);
                       }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
+                      className={`w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
                         activeSubmenu === 'export' || isExportSubmenuOpen
-                          ? 'bg-[#6366f1] text-white font-medium'
-                          : 'hover:bg-[#6366f1] hover:text-white text-slate-200'
+                          ? 'bg-white/[0.08] text-white font-medium'
+                          : 'hover:bg-white/[0.08] hover:text-white'
                       }`}
                     >
                       <span>내보내기</span>
-                      <div className={`flex items-center gap-1 text-[0.625rem] ${activeSubmenu === 'export' || isExportSubmenuOpen ? 'text-white/90' : 'text-slate-400 group-hover:text-white/90'}`}>
+                      <div className={`flex items-center gap-1 text-[11px] ${activeSubmenu === 'export' || isExportSubmenuOpen ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`}>
                         <ChevronRight className="w-3.5 h-3.5 shrink-0" />
                       </div>
                     </button>
 
                     {(activeSubmenu === 'export' || isExportSubmenuOpen) && (
-                      <div className="absolute left-full top-0 pl-1 -ml-1 w-52 z-50 animate-in fade-in zoom-in-95 duration-100">
-                        <div className="bg-[#121214]/98 backdrop-blur-md border border-[#222226] rounded-md shadow-2xl p-1 text-xs text-slate-200">
+                      <div className="absolute left-full top-0 pl-1.5 -ml-1 w-52 z-50 animate-in fade-in zoom-in-95 duration-100">
+                        <div className="bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200">
                           <button
                             type="button"
                             onClick={() => { handleExportPdf(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer group text-slate-200"
+                            className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
                           >
                             <span>인쇄 및 PDF 출력</span>
-                            <span className="text-[0.625rem] text-slate-400 group-hover:text-white/90 font-mono">Ctrl+P</span>
+                            <span className="text-[11px] text-zinc-500 font-mono">Ctrl+P</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => { handleExportDocx(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer group text-slate-200"
+                            className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
                           >
                             <span>DOCX 문서 내보내기</span>
-                            <span className="text-[0.625rem] text-slate-400 group-hover:text-white/90 font-mono">DOCX</span>
+                            <span className="text-[11px] text-zinc-500 font-mono">DOCX</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => { handleExportPptx(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer group text-slate-200"
+                            className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
                           >
                             <span>PPTX 슬라이드 내보내기</span>
-                            <span className="text-[0.625rem] text-slate-400 group-hover:text-white/90 font-mono">PPTX</span>
+                            <span className="text-[11px] text-zinc-500 font-mono">PPTX</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => { handleExportCsv(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer group text-slate-200"
+                            className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
                           >
                             <span>CSV 데이터 내보내기</span>
-                            <span className="text-[0.625rem] text-slate-400 group-hover:text-white/90 font-mono">CSV</span>
+                            <span className="text-[11px] text-zinc-500 font-mono">CSV</span>
                           </button>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  <div className="my-1 border-t border-[#222226]" />
+                  <div className="my-1 border-t border-white/[0.06]" />
 
                   <button
                     type="button"
                     onClick={() => { setIsWorkspaceModalOpen(true); setActiveMenu(null); setIsExportSubmenuOpen(false); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>프로젝트 폴더 연결 / 관리...</span>
                     <span className="text-[0.5625rem] bg-[#09090b] text-emerald-300 px-1 rounded-sm border border-[#222226]/40 font-mono uppercase">{activeWorkspace.type}</span>
@@ -6682,7 +7252,7 @@ ${projectEvents
                       setActiveMenu(null);
                       setIsExportSubmenuOpen(false);
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span className="whitespace-nowrap">구글 드라이브...</span>
                     <span className="text-[0.5625rem] bg-[#09090b] text-indigo-300 px-1.5 py-0.5 rounded-sm border border-[#222226]/40 font-mono shrink-0 whitespace-nowrap">
@@ -6690,16 +7260,16 @@ ${projectEvents
                     </span>
                   </button>
 
-                  <div className="my-1 border-t border-[#222226]" />
+                  <div className="my-1 border-t border-white/[0.06]" />
 
                   <button
                     type="button"
                     onClick={() => { setIsTrashOpen(true); setActiveMenu(null); setIsExportSubmenuOpen(false); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-rose-950/70 hover:text-rose-200 text-rose-300 flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-rose-300 px-3 py-2 rounded-lg hover:bg-rose-950/60 hover:text-rose-200 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>휴지통 열기</span>
                     {trashSessions.length > 0 && (
-                      <span className="bg-rose-600 text-white text-[0.5625rem] px-1.5 py-0.5 rounded-sm font-bold font-mono">
+                      <span className="bg-rose-600 text-white text-[0.5625rem] px-1.5 py-0.5 rounded-sm font-medium font-mono">
                         {trashSessions.length}
                       </span>
                     )}
@@ -6722,65 +7292,64 @@ ${projectEvents
                     setActiveSubmenu(null);
                   }
                 }}
-                className={`px-2 py-1 rounded-md text-xs font-medium transition flex items-center gap-1 cursor-pointer ${
+                className={`text-xs px-2.5 py-1.5 rounded-md transition cursor-pointer ${
                   activeMenu === 'edit'
-                    ? 'bg-[#6366f1] text-white font-semibold shadow-xs'
-                    : 'hover:bg-[#18181b] text-slate-200'
+                    ? 'text-zinc-100 bg-white/[0.08] font-medium'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08]'
                 }`}
               >
                 <span>편집</span>
-                <ChevronDown className="w-3 h-3 opacity-70" />
               </button>
 
               {activeMenu === 'edit' && (
-                <div className="absolute left-0 top-full mt-1 w-52 bg-[#121214]/98 backdrop-blur-md border border-[#222226] rounded-md shadow-2xl p-1 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute left-0 top-full mt-1.5 w-52 bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
                   <button
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { document.execCommand('undo'); showToast('실행 취소'); setActiveMenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>실행 취소</span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">Ctrl+Z</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Ctrl+Z</span>
                   </button>
                   <button
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { document.execCommand('redo'); showToast('다시 실행'); setActiveMenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>다시 실행</span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">Ctrl+Y</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Ctrl+Y</span>
                   </button>
 
-                  <div className="my-1 border-t border-[#222226]" />
+                  <div className="my-1 border-t border-white/[0.06]" />
 
                   <button
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { handleCopyToClipboard(); setActiveMenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>전체 복사</span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">Ctrl+C</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Ctrl+C</span>
                   </button>
                   <button
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { document.execCommand('cut'); showToast('잘라내기 완료'); setActiveMenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>잘라내기</span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">Ctrl+X</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Ctrl+X</span>
                   </button>
                   <button
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { showToast('💡 에디터나 대화창에서 Ctrl+V 키로 붙여넣으세요.'); setActiveMenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>붙여넣기</span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">Ctrl+V</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Ctrl+V</span>
                   </button>
                   <button
                     type="button"
@@ -6789,10 +7358,10 @@ ${projectEvents
                       handleFormatDocument();
                       setActiveMenu(null);
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer text-slate-200"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>문서 서식 자동 정리</span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">Shift+Alt+F</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Shift+Alt+F</span>
                   </button>
                   {/* 프롬프트 주입 서브메뉴 */}
                   <div
@@ -6808,18 +7377,18 @@ ${projectEvents
                         e.stopPropagation();
                         setActiveSubmenu(activeSubmenu === 'inject-prompts' ? null : 'inject-prompts');
                       }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer text-slate-200 ${
-                        activeSubmenu === 'inject-prompts' ? 'bg-[#6366f1] text-white' : 'hover:bg-[#6366f1] hover:text-white'
+                      className={`w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer ${
+                        activeSubmenu === 'inject-prompts' ? 'bg-white/[0.08] text-white font-medium' : 'hover:bg-white/[0.08] hover:text-white'
                       }`}
                     >
                       <span>프롬프트 주입</span>
-                      <ChevronRight className="w-3 h-3 text-slate-400" />
+                      <ChevronRight className="w-3.5 h-3.5 text-zinc-500" />
                     </button>
 
                     {activeSubmenu === 'inject-prompts' && (
-                      <div className="absolute left-full top-0 pl-1 -ml-1 w-64 z-50 animate-in fade-in zoom-in-95 duration-100">
-                        <div className="bg-[#121214]/98 backdrop-blur-md border border-[#222226] rounded-md shadow-2xl p-1 text-xs text-slate-200">
-                          <div className="px-2 py-1 text-[0.5625rem] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between border-b border-[#222226]/60 mb-1">
+                      <div className="absolute left-full top-0 pl-1.5 -ml-1 w-64 z-50 animate-in fade-in zoom-in-95 duration-100">
+                        <div className="bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200">
+                          <div className="px-2.5 py-1 text-[0.5625rem] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between border-b border-white/[0.06] mb-1">
                             <span>프롬프트 목록</span>
                             <span className="text-[0.5625rem] text-indigo-400 font-medium">1클릭 주입</span>
                           </div>
@@ -6829,14 +7398,14 @@ ${projectEvents
                                 key={p.id}
                                 type="button"
                                 onClick={() => handleInstantInjectPrompt(p)}
-                                className="w-full text-left px-2 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-start gap-1.5 transition cursor-pointer group"
+                                className="w-full text-left text-xs text-zinc-200 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-start gap-1.5 transition cursor-pointer group"
                                 title={p.description || p.title}
                               >
-                                <span className="text-slate-400 group-hover:text-white text-[0.625rem] shrink-0 mt-0.5">▶</span>
+                                <span className="text-zinc-500 group-hover:text-white text-[0.625rem] shrink-0 mt-0.5">▶</span>
                                 <div className="flex-1 min-w-0">
                                   <div className="font-medium truncate">{p.title}</div>
                                   {p.description && (
-                                    <div className="text-[0.625rem] text-slate-400 group-hover:text-indigo-100 truncate">
+                                    <div className="text-[11px] text-zinc-500 group-hover:text-zinc-300 truncate">
                                       {p.description}
                                     </div>
                                   )}
@@ -6845,7 +7414,7 @@ ${projectEvents
                             ))}
                           </div>
 
-                          <div className="my-1 border-t border-[#222226]" />
+                          <div className="my-1 border-t border-white/[0.06]" />
 
                           <button
                             type="button"
@@ -6854,17 +7423,17 @@ ${projectEvents
                               setActiveMenu(null);
                               setActiveSubmenu(null);
                             }}
-                            className="w-full text-left px-2 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer text-slate-300 font-medium"
+                            className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer font-medium"
                           >
                             <span>프롬프트 관리...</span>
-                            <span className="text-[0.625rem] text-slate-400 font-mono">Alt+P</span>
+                            <span className="text-[11px] text-zinc-500 font-mono">Alt+P</span>
                           </button>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  <div className="my-1 border-t border-[#222226]" />
+                  <div className="my-1 border-t border-white/[0.06]" />
 
                   <button
                     type="button"
@@ -6875,10 +7444,10 @@ ${projectEvents
                       showToast('탐색기 파일 검색 창에 포커스되었습니다.');
                       setActiveMenu(null);
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>찾기 및 검색</span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">Ctrl+F</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Ctrl+F</span>
                   </button>
                   <button
                     type="button"
@@ -6891,7 +7460,7 @@ ${projectEvents
                       }
                       setActiveMenu(null);
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-rose-950/70 hover:text-rose-200 text-rose-300 flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-rose-300 px-3 py-2 rounded-lg hover:bg-rose-950/60 hover:text-rose-200 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>대화 내역 초기화</span>
                     <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
@@ -6900,7 +7469,7 @@ ${projectEvents
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { handleDeleteFile(currentActiveFile); setActiveMenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-rose-950/70 hover:text-rose-200 text-rose-300 flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-rose-300 px-3 py-2 rounded-lg hover:bg-rose-950/60 hover:text-rose-200 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>현재 파일 삭제</span>
                   </button>
@@ -6922,42 +7491,41 @@ ${projectEvents
                     setActiveSubmenu(null);
                   }
                 }}
-                className={`px-2 py-1 rounded-md text-xs font-medium transition flex items-center gap-1 cursor-pointer ${
+                className={`text-xs px-2.5 py-1.5 rounded-md transition cursor-pointer ${
                   activeMenu === 'view'
-                    ? 'bg-[#6366f1] text-white font-semibold shadow-xs'
-                    : 'hover:bg-[#18181b] text-slate-200'
+                    ? 'text-zinc-100 bg-white/[0.08] font-medium'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08]'
                 }`}
               >
                 <span>보기</span>
-                <ChevronDown className="w-3 h-3 opacity-70" />
               </button>
 
               {activeMenu === 'view' && (
-                <div className="absolute left-0 top-full mt-1 w-52 bg-[#121214]/98 backdrop-blur-md border border-[#222226] rounded-md shadow-2xl p-1 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="px-2.5 py-1 text-[0.625rem] font-bold text-slate-400 uppercase tracking-wider">사이드바 토글</div>
+                <div className="absolute left-0 top-full mt-1.5 w-52 bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="px-3 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">사이드바 토글</div>
                   <button
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { setIsSection1Collapsed(!isSection1Collapsed); setActiveMenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>좌측 AI 대화 패널</span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">{isSection1Collapsed ? '열기' : '숨김'}</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">{isSection1Collapsed ? '열기' : '숨김'}</span>
                   </button>
                   <button
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { setIsSection3Collapsed(!isSection3Collapsed); setActiveMenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>우측 탐색기 패널</span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">{isSection3Collapsed ? '열기' : '숨김'}</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">{isSection3Collapsed ? '열기' : '숨김'}</span>
                   </button>
                   <button
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { setIsSection1Collapsed(true); setIsSection3Collapsed(true); showToast('🎯 집중 모드 (모든 사이드바 숨김)'); setActiveMenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>집중 모드 (사이드바 숨김)</span>
                   </button>
@@ -6965,7 +7533,7 @@ ${projectEvents
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { applyDefaultPanelsForCurrentDevice(); showToast('패널 레이아웃이 복원되었습니다.'); setActiveMenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>전체 패널 복원</span>
                   </button>
@@ -6973,14 +7541,97 @@ ${projectEvents
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { setIsTocOpen(!isTocOpen); setActiveMenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>제목 목차 보기</span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">{isTocOpen ? '숨김' : '표시'}</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">{isTocOpen ? '숨김' : '표시'}</span>
                   </button>
 
-                  <div className="my-1 border-t border-[#222226]" />
-                  <div className="px-2.5 py-1 text-[0.625rem] font-bold text-slate-400 uppercase tracking-wider">인터페이스 스타일</div>
+                  <div className="my-1 border-t border-white/[0.06]" />
+                  <div className="px-3 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">에디터 모드 전환</div>
+                  <button
+                    type="button"
+                    onMouseEnter={() => setActiveSubmenu(null)}
+                    onClick={() => {
+                      setEditorTab('wysiwyg');
+                      setSessions((prev) =>
+                        prev.map((s) => (s.id === activeSessionId ? { ...s, editorTab: 'wysiwyg' } : s))
+                      );
+                      setActiveMenu(null);
+                    }}
+                    className={`w-full text-left text-xs px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer ${
+                      editorTab === 'wysiwyg'
+                        ? 'bg-white/[0.08] text-white font-medium'
+                        : 'text-zinc-200 hover:bg-white/[0.08] hover:text-white'
+                    }`}
+                  >
+                    <span>서식 모드</span>
+                    {editorTab === 'wysiwyg' && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
+                  </button>
+                  <button
+                    type="button"
+                    onMouseEnter={() => setActiveSubmenu(null)}
+                    onClick={() => {
+                      setEditorTab('edit');
+                      setSessions((prev) =>
+                        prev.map((s) => (s.id === activeSessionId ? { ...s, editorTab: 'edit' } : s))
+                      );
+                      setActiveMenu(null);
+                    }}
+                    className={`w-full text-left text-xs px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer ${
+                      editorTab === 'edit'
+                        ? 'bg-white/[0.08] text-white font-medium'
+                        : 'text-zinc-200 hover:bg-white/[0.08] hover:text-white'
+                    }`}
+                  >
+                    <span>마크다운 소스</span>
+                    {editorTab === 'edit' && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
+                  </button>
+
+                  <div className="my-1 border-t border-white/[0.06]" />
+                  <div className="px-3 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider flex items-center justify-between">
+                    <span>에디터 폰트 크기</span>
+                    <span className="font-mono text-indigo-400">{editorFontSize}px</span>
+                  </div>
+                  <button
+                    type="button"
+                    onMouseEnter={() => setActiveSubmenu(null)}
+                    onClick={() => {
+                      handleEditorZoomIn();
+                      setActiveMenu(null);
+                    }}
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                  >
+                    <span>확대</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Ctrl + +</span>
+                  </button>
+                  <button
+                    type="button"
+                    onMouseEnter={() => setActiveSubmenu(null)}
+                    onClick={() => {
+                      handleEditorZoomOut();
+                      setActiveMenu(null);
+                    }}
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                  >
+                    <span>축소</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Ctrl + -</span>
+                  </button>
+                  <button
+                    type="button"
+                    onMouseEnter={() => setActiveSubmenu(null)}
+                    onClick={() => {
+                      handleEditorZoomReset();
+                      setActiveMenu(null);
+                    }}
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                  >
+                    <span>기본 크기 복원</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Ctrl + 0</span>
+                  </button>
+
+                  <div className="my-1 border-t border-white/[0.06]" />
+                  <div className="px-3 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">인터페이스 스타일</div>
 
                   {/* 글꼴 크기 서브메뉴 */}
                   <div
@@ -6996,12 +7647,12 @@ ${projectEvents
                         e.stopPropagation();
                         setActiveSubmenu(activeSubmenu === 'font-size' ? null : 'font-size');
                       }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
-                        activeSubmenu === 'font-size' ? 'bg-[#6366f1] text-white font-medium' : 'hover:bg-[#6366f1] hover:text-white text-slate-200'
+                      className={`w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
+                        activeSubmenu === 'font-size' ? 'bg-white/[0.08] text-white font-medium' : 'hover:bg-white/[0.08] hover:text-white'
                       }`}
                     >
                       <span>글꼴 크기</span>
-                      <div className={`flex items-center gap-1 text-[0.6875rem] ${activeSubmenu === 'font-size' ? 'text-white/90' : 'text-slate-400 group-hover:text-white/90'}`}>
+                      <div className={`flex items-center gap-1 text-[11px] ${activeSubmenu === 'font-size' ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`}>
                         <span>
                           {preferences.fontSize === 'sm' ? '작게' : preferences.fontSize === 'lg' ? '크게' : preferences.fontSize === 'xl' ? '아주 크게' : '보통'}
                         </span>
@@ -7009,8 +7660,8 @@ ${projectEvents
                       </div>
                     </button>
                     {activeSubmenu === 'font-size' && (
-                      <div className="absolute left-full top-0 pl-1 -ml-1 w-36 z-50 animate-in fade-in zoom-in-95 duration-100">
-                        <div className="bg-[#121214]/98 backdrop-blur-md border border-[#222226] rounded-md shadow-2xl p-1 text-xs text-slate-200">
+                      <div className="absolute left-full top-0 pl-1.5 -ml-1 w-36 z-50 animate-in fade-in zoom-in-95 duration-100">
+                        <div className="bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200">
                           {[
                             { id: 'sm', label: '작게 (14px)' },
                             { id: 'md', label: '보통 (16px)' },
@@ -7021,14 +7672,14 @@ ${projectEvents
                               key={item.id}
                               type="button"
                               onClick={() => handleQuickFontSize(item.id as any)}
-                              className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
+                              className={`w-full text-left text-xs px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
                                 (preferences.fontSize || 'md') === item.id
-                                  ? 'bg-[#6366f1] text-white font-semibold'
-                                  : 'text-slate-200 hover:bg-[#6366f1] hover:text-white'
+                                  ? 'bg-white/[0.08] text-white font-medium'
+                                  : 'text-zinc-200 hover:bg-white/[0.08] hover:text-white'
                               }`}
                             >
                               <span>{item.label}</span>
-                              {(preferences.fontSize || 'md') === item.id && <Check className="w-3.5 h-3.5 shrink-0" />}
+                              {(preferences.fontSize || 'md') === item.id && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
                             </button>
                           ))}
                         </div>
@@ -7050,19 +7701,19 @@ ${projectEvents
                         e.stopPropagation();
                         setActiveSubmenu(activeSubmenu === 'compactness' ? null : 'compactness');
                       }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
-                        activeSubmenu === 'compactness' ? 'bg-[#6366f1] text-white font-medium' : 'hover:bg-[#6366f1] hover:text-white text-slate-200'
+                      className={`w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
+                        activeSubmenu === 'compactness' ? 'bg-white/[0.08] text-white font-medium' : 'hover:bg-white/[0.08] hover:text-white'
                       }`}
                     >
                       <span>레이아웃 밀도</span>
-                      <div className={`flex items-center gap-1 text-[0.6875rem] ${activeSubmenu === 'compactness' ? 'text-white/90' : 'text-slate-400 group-hover:text-white/90'}`}>
+                      <div className={`flex items-center gap-1 text-[11px] ${activeSubmenu === 'compactness' ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`}>
                         <span>{preferences.compactness === 'dense' ? '조밀하게' : '여유롭게'}</span>
                         <ChevronRight className="w-3.5 h-3.5 shrink-0" />
                       </div>
                     </button>
                     {activeSubmenu === 'compactness' && (
-                      <div className="absolute left-full top-0 pl-1 -ml-1 w-32 z-50 animate-in fade-in zoom-in-95 duration-100">
-                        <div className="bg-[#121214]/98 backdrop-blur-md border border-[#222226] rounded-md shadow-2xl p-1 text-xs text-slate-200">
+                      <div className="absolute left-full top-0 pl-1.5 -ml-1 w-32 z-50 animate-in fade-in zoom-in-95 duration-100">
+                        <div className="bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200">
                           {[
                             { id: 'dense', label: '조밀하게' },
                             { id: 'spacious', label: '여유롭게' },
@@ -7071,14 +7722,14 @@ ${projectEvents
                               key={item.id}
                               type="button"
                               onClick={() => handleQuickCompactness(item.id as any)}
-                              className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
+                              className={`w-full text-left text-xs px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
                                 (preferences.compactness || 'spacious') === item.id
-                                  ? 'bg-[#6366f1] text-white font-semibold'
-                                  : 'text-slate-200 hover:bg-[#6366f1] hover:text-white'
+                                  ? 'bg-white/[0.08] text-white font-medium'
+                                  : 'text-zinc-200 hover:bg-white/[0.08] hover:text-white'
                               }`}
                             >
                               <span>{item.label}</span>
-                              {(preferences.compactness || 'spacious') === item.id && <Check className="w-3.5 h-3.5 shrink-0" />}
+                              {(preferences.compactness || 'spacious') === item.id && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
                             </button>
                           ))}
                         </div>
@@ -7091,7 +7742,7 @@ ${projectEvents
               )}
             </div>
 
-            {/* 4. SSOT 메뉴 */}
+            {/* 4. 기준 문서 메뉴 */}
             <div className="relative">
               <button
                 type="button"
@@ -7105,19 +7756,18 @@ ${projectEvents
                     setActiveSubmenu(null);
                   }
                 }}
-                className={`px-2 py-1 rounded-md text-xs font-medium transition flex items-center gap-1 cursor-pointer ${
+                className={`text-xs px-2.5 py-1.5 rounded-md transition cursor-pointer ${
                   activeMenu === 'ssot'
-                    ? 'bg-[#6366f1] text-white font-semibold shadow-xs'
-                    : 'hover:bg-[#18181b] text-slate-200'
+                    ? 'text-zinc-100 bg-white/[0.08] font-medium'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08]'
                 }`}
               >
-                <span>SSOT</span>
-                <ChevronDown className="w-3 h-3 opacity-70" />
+                <span>기준 문서</span>
               </button>
 
               {activeMenu === 'ssot' && (
-                <div className="absolute left-0 top-full mt-1 w-60 bg-[#121214]/98 backdrop-blur-md border border-[#222226] rounded-md shadow-2xl p-1 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  {/* 단일 진실 공급원 생성기 */}
+                <div className="absolute left-0 top-full mt-1.5 w-60 bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  {/* 기준 문서 생성기 */}
                   <button
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
@@ -7126,59 +7776,13 @@ ${projectEvents
                       setActiveMenu(null);
                       setActiveSubmenu(null);
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer text-slate-200"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
-                    <span>단일 진실 공급원 생성기...</span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">Alt+C</span>
+                    <span>기준 문서 생성기...</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Alt+C</span>
                   </button>
 
-                  {/* 표준 템플릿 즉시 삽입 서브메뉴 */}
-                  <div
-                    className="relative"
-                    onMouseEnter={() => setActiveSubmenu('ssot-templates')}
-                    onMouseMove={() => { if (activeSubmenu !== 'ssot-templates') setActiveSubmenu('ssot-templates'); }}
-                    onMouseLeave={() => setActiveSubmenu(null)}
-                  >
-                    <button
-                      type="button"
-                      onMouseEnter={() => setActiveSubmenu('ssot-templates')}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveSubmenu(activeSubmenu === 'ssot-templates' ? null : 'ssot-templates');
-                      }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer text-slate-200 ${
-                        activeSubmenu === 'ssot-templates' ? 'bg-[#6366f1] text-white' : 'hover:bg-[#6366f1] hover:text-white'
-                      }`}
-                    >
-                      <span>표준 템플릿 즉시 삽입</span>
-                      <ChevronRight className="w-3 h-3 text-slate-400" />
-                    </button>
-
-                    {activeSubmenu === 'ssot-templates' && (
-                      <div className="absolute left-full top-0 pl-1 -ml-1 w-52 z-50 animate-in fade-in zoom-in-95 duration-100">
-                        <div className="bg-[#121214]/98 backdrop-blur-md border border-[#222226] rounded-md shadow-2xl p-1 text-xs text-slate-200">
-                          <div className="px-2 py-1 text-[0.5625rem] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between border-b border-[#222226]/60 mb-1">
-                            <span>표준 템플릿 양식</span>
-                            <span className="text-[0.5625rem] text-emerald-400 font-medium">0ms 삽입</span>
-                          </div>
-                          <div className="space-y-0.5">
-                            {DOC_TEMPLATES.map((tmpl) => (
-                              <button
-                                key={tmpl.id}
-                                type="button"
-                                onClick={() => handleInsertSsotTemplate(tmpl.id)}
-                                className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer text-slate-200"
-                              >
-                                <span className="truncate">{tmpl.name}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="my-1 border-t border-[#222226]" />
+                  <div className="my-1 border-t border-white/[0.06]" />
 
                   {/* 문서 정합성 감사 */}
                   <button
@@ -7189,10 +7793,10 @@ ${projectEvents
                       setActiveMenu(null);
                       setActiveSubmenu(null);
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer text-slate-200"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>문서 정합성 감사</span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">{ssotAuditSummary.score}%</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">{ssotAuditSummary.score}%</span>
                   </button>
 
                   {/* 다관점 비평위원회 */}
@@ -7204,13 +7808,13 @@ ${projectEvents
                       setActiveMenu(null);
                       setActiveSubmenu(null);
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer text-slate-200"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>다관점 비평위원회</span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">{councilSummary.overallScore}점</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">{councilSummary.overallScore}점</span>
                   </button>
 
-                  <div className="my-1 border-t border-[#222226]" />
+                  <div className="my-1 border-t border-white/[0.06]" />
 
                   {/* 캔버스 편집 모드 */}
                   <button
@@ -7227,12 +7831,16 @@ ${projectEvents
                       setActiveMenu(null);
                       setActiveSubmenu(null);
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer text-slate-200"
+                    className={`w-full text-left text-xs px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer ${
+                      isVibeCanvasActive
+                        ? 'bg-white/[0.08] text-white font-medium'
+                        : 'text-zinc-200 hover:bg-white/[0.08] hover:text-white'
+                    }`}
                   >
                     <div className="flex items-center gap-1.5">
                       <span>캔버스 편집 모드</span>
                       {isVibeCanvasActive && (
-                        <span className="text-[0.5625rem] bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-1 rounded-xs">활성</span>
+                        <span className="text-[11px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-1.5 py-0.5 rounded">활성</span>
                       )}
                     </div>
                     {isVibeCanvasActive && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
@@ -7241,7 +7849,183 @@ ${projectEvents
               )}
             </div>
 
-            {/* 5. 설정 메뉴 */}
+            {/* 5. PDF 도구 메뉴 */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveMenu(activeMenu === 'pdf' ? null : 'pdf');
+                  setActiveSubmenu(null);
+                }}
+                onMouseEnter={() => {
+                  if (activeMenu) {
+                    setActiveMenu('pdf');
+                    setActiveSubmenu(null);
+                  }
+                }}
+                className={`text-xs px-2.5 py-1.5 rounded-md transition cursor-pointer ${
+                  activeMenu === 'pdf'
+                    ? 'text-zinc-100 bg-white/[0.08] font-medium'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08]'
+                }`}
+              >
+                <span>PDF</span>
+              </button>
+
+              {activeMenu === 'pdf' && (
+                <div className="absolute left-0 top-full mt-1.5 w-56 bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  {/* Current Active File Header */}
+                  <div className="px-3 py-1.5 border-b border-white/[0.06] mb-1 flex items-center justify-between">
+                    <span className="font-medium text-[11px] truncate text-zinc-300">
+                      {currentActiveFile.toLowerCase().endsWith('.pdf') ? currentActiveFile : '활성 PDF 문서 없음'}
+                    </span>
+                    {currentActiveFile.toLowerCase().endsWith('.pdf') && (
+                      <span className="text-[10px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded border border-rose-500/30 uppercase font-mono">
+                        PDF
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Extraction & Parsing Group */}
+                  <button
+                    type="button"
+                    disabled={!currentActiveFile.toLowerCase().endsWith('.pdf')}
+                    onClick={() => {
+                      setActiveMenu(null);
+                      pdfViewerRef.current?.extractToMarkdown();
+                    }}
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none group"
+                  >
+                    <span>마크다운 추출 실행</span>
+                    <span className="text-[11px] text-zinc-500 group-hover:text-zinc-300">즉시 변환</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!currentActiveFile.toLowerCase().endsWith('.pdf')}
+                    onClick={() => {
+                      setActiveMenu(null);
+                      pdfViewerRef.current?.clearCacheAndReparse();
+                    }}
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none group"
+                  >
+                    <span>캐시 초기화 및 재파싱</span>
+                    <span className="text-[11px] text-zinc-500 group-hover:text-zinc-300">캐시 삭제</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!currentActiveFile.toLowerCase().endsWith('.pdf')}
+                    onClick={() => {
+                      setActiveMenu(null);
+                      pdfViewerRef.current?.openReducerModal();
+                    }}
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none group"
+                  >
+                    <span>PDF 최적화 및 경량화...</span>
+                  </button>
+
+                  <div className="my-1 border-t border-white/[0.06]" />
+
+                  {/* View Controls */}
+                  <button
+                    type="button"
+                    disabled={!currentActiveFile.toLowerCase().endsWith('.pdf')}
+                    onClick={() => {
+                      setActiveMenu(null);
+                      pdfViewerRef.current?.toggleSplitView();
+                    }}
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    <span>단일 뷰 및 분할 편집 전환</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!currentActiveFile.toLowerCase().endsWith('.pdf')}
+                    onClick={() => {
+                      setActiveMenu(null);
+                      pdfViewerRef.current?.fitWidth();
+                    }}
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    <span>너비 맞춤</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!currentActiveFile.toLowerCase().endsWith('.pdf')}
+                    onClick={() => {
+                      setActiveMenu(null);
+                      pdfViewerRef.current?.rotate();
+                    }}
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    <span>시계 방향 90도 회전</span>
+                  </button>
+
+                  <div className="my-1 border-t border-white/[0.06]" />
+
+                  {/* File Actions */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveMenu(null);
+                      if (currentActiveFile.toLowerCase().endsWith('.pdf') && pdfViewerRef.current) {
+                        pdfViewerRef.current.openFilePicker();
+                      } else {
+                        docFileInputRef.current?.click();
+                      }
+                    }}
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                  >
+                    <span>새 PDF 파일 열기...</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!currentActiveFile.toLowerCase().endsWith('.pdf')}
+                    onClick={() => {
+                      setActiveMenu(null);
+                      pdfViewerRef.current?.downloadPdf();
+                    }}
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    <span>현재 PDF 다운로드</span>
+                  </button>
+
+                  {!currentActiveFile.toLowerCase().endsWith('.pdf') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveMenu(null);
+                        handleOpenFile('sample_document.pdf');
+                      }}
+                      className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    >
+                      <span>샘플 PDF 열기</span>
+                    </button>
+                  )}
+
+                  <div className="my-1 border-t border-white/[0.06]" />
+
+                  {/* Engine Settings */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreferencesInitialTab('ai-engine');
+                      setIsPreferencesModalOpen(true);
+                      setActiveMenu(null);
+                    }}
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                  >
+                    <span>PDF 파서 및 AI 엔진 설정...</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 6. 설정 메뉴 */}
             <div className="relative">
               <button
                 type="button"
@@ -7255,18 +8039,17 @@ ${projectEvents
                     setActiveSubmenu(null);
                   }
                 }}
-                className={`px-2 py-1 rounded-md text-xs font-medium transition flex items-center gap-1 cursor-pointer ${
+                className={`text-xs px-2.5 py-1.5 rounded-md transition cursor-pointer ${
                   activeMenu === 'settings'
-                    ? 'bg-[#6366f1] text-white font-semibold shadow-xs'
-                    : 'hover:bg-[#18181b] text-slate-200'
+                    ? 'text-zinc-100 bg-white/[0.08] font-medium'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08]'
                 }`}
               >
                 <span>설정</span>
-                <ChevronDown className="w-3 h-3 opacity-70" />
               </button>
 
               {activeMenu === 'settings' && (
-                <div className="absolute left-0 top-full mt-1 w-56 bg-[#121214]/98 backdrop-blur-md border border-[#222226] rounded-md shadow-2xl p-1 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute left-0 top-full mt-1.5 w-56 bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
                   {/* 0. 역할별 AI 모델명 지정 */}
                   <button
                     type="button"
@@ -7276,15 +8059,15 @@ ${projectEvents
                       setActiveMenu(null);
                       setActiveSubmenu(null);
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer text-slate-200 hover:text-white mb-0.5"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer mb-0.5"
                   >
                     <span>역할별 AI 모델명 지정...</span>
-                    <span className="text-[0.5625rem] bg-indigo-500/20 text-indigo-300 px-1 py-0.5 rounded-sm border border-indigo-500/30">
+                    <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30">
                       4개 역할
                     </span>
                   </button>
 
-                  <div className="my-1 border-t border-[#222226]" />
+                  <div className="my-1 border-t border-white/[0.06]" />
 
                   {/* 1. 대화 AI 모델 서브메뉴 */}
                   <div
@@ -7300,42 +8083,34 @@ ${projectEvents
                         e.stopPropagation();
                         setActiveSubmenu(activeSubmenu === 'ai-model' ? null : 'ai-model');
                       }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
-                        activeSubmenu === 'ai-model' ? 'bg-[#6366f1] text-white font-medium' : 'hover:bg-[#6366f1] hover:text-white text-slate-200'
+                      className={`w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
+                        activeSubmenu === 'ai-model' ? 'bg-white/[0.08] text-white font-medium' : 'hover:bg-white/[0.08] hover:text-white'
                       }`}
                     >
                       <span>대화 AI 모델</span>
-                      <div className={`flex items-center gap-1 text-[0.625rem] ${activeSubmenu === 'ai-model' ? 'text-white/90' : 'text-slate-400 group-hover:text-white/90'}`}>
-                        <span className="truncate max-w-[70px]">{currentModelName}</span>
+                      <div className={`flex items-center gap-1 text-[11px] ${activeSubmenu === 'ai-model' ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`}>
+                        <span className="truncate max-w-[80px]">{currentModelName}</span>
                         <ChevronRight className="w-3.5 h-3.5 shrink-0" />
                       </div>
                     </button>
                     {activeSubmenu === 'ai-model' && (
-                      <div className="absolute left-full top-0 pl-1 -ml-1 w-52 z-50 animate-in fade-in zoom-in-95 duration-100">
-                        <div className="bg-[#121214]/98 backdrop-blur-md border border-[#222226] rounded-md shadow-2xl p-1 text-xs text-slate-200 max-h-72 overflow-y-auto">
-                          <div className="px-2 py-1 text-[0.5625rem] font-bold text-slate-400 uppercase tracking-wider">추천 AI 모델</div>
-                          {[
-                            { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash' },
-                            { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro' },
-                            { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash-Lite' },
-                            { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet' },
-                            { id: 'gpt-4o', name: 'GPT-4o' },
-                            { id: 'deepseek-r1', name: 'DeepSeek R1' },
-                            { id: 'qwen2.5-coder-32b', name: 'Qwen 2.5 Coder' }
-                          ].map((m) => (
+                      <div className="absolute left-full top-0 pl-1.5 -ml-1 w-52 z-50 animate-in fade-in zoom-in-95 duration-100">
+                        <div className="bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 max-h-72 overflow-y-auto">
+                          <div className="px-3 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">추천 AI 모델</div>
+                          {RECOMMENDED_QUICK_MODELS.map((m) => (
                             <button
                               key={m.id}
                               type="button"
                               onClick={() => handleQuickDefaultModel(m.id, m.name)}
-                              className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
+                              className={`w-full text-left text-xs px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
                                 (preferences.defaultModel || selectedModel) === m.id
-                                  ? 'bg-[#6366f1] text-white font-semibold'
-                                  : 'text-slate-200 hover:bg-[#6366f1] hover:text-white'
+                                  ? 'bg-white/[0.08] text-white font-medium'
+                                  : 'text-zinc-200 hover:bg-white/[0.08] hover:text-white'
                               }`}
                             >
                               <span className="truncate">{m.name}</span>
                               {(preferences.defaultModel || selectedModel) === m.id && (
-                                <Check className="w-3.5 h-3.5 shrink-0 ml-1" />
+                                <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1" />
                               )}
                             </button>
                           ))}
@@ -7344,7 +8119,7 @@ ${projectEvents
                     )}
                   </div>
 
-                  {/* 2. 고스트 라이더 서브메뉴 */}
+                  {/* 2. 고스트 라이터 서브메뉴 */}
                   <div
                     className="relative"
                     onMouseEnter={() => setActiveSubmenu('ghost-writer')}
@@ -7358,54 +8133,23 @@ ${projectEvents
                         e.stopPropagation();
                         setActiveSubmenu(activeSubmenu === 'ghost-writer' ? null : 'ghost-writer');
                       }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
-                        activeSubmenu === 'ghost-writer' ? 'bg-[#6366f1] text-white font-medium' : 'hover:bg-[#6366f1] hover:text-white text-slate-200'
+                      className={`w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
+                        activeSubmenu === 'ghost-writer' ? 'bg-white/[0.08] text-white font-medium' : 'hover:bg-white/[0.08] hover:text-white'
                       }`}
                     >
-                      <span>고스트 라이더</span>
-                      <div className={`flex items-center gap-1 text-[0.625rem] ${activeSubmenu === 'ghost-writer' ? 'text-white/90' : 'text-slate-400 group-hover:text-white/90'}`}>
+                      <span>고스트 라이터</span>
+                      <div className={`flex items-center gap-1 text-[11px] ${activeSubmenu === 'ghost-writer' ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`}>
                         <span>{currentGhostLabel}</span>
                         <ChevronRight className="w-3.5 h-3.5 shrink-0" />
                       </div>
                     </button>
                     {activeSubmenu === 'ghost-writer' && (
-                      <div className="absolute left-full top-0 pl-1 -ml-1 w-56 z-50 animate-in fade-in zoom-in-95 duration-100">
-                        <div className="bg-[#121214]/98 backdrop-blur-md border border-[#222226] rounded-md shadow-2xl p-2 text-xs text-slate-200">
-                          <div className="flex items-center justify-between px-1 pb-1.5 border-b border-[#222226]/60 mb-2">
-                            <span className="text-[0.6875rem] font-bold text-slate-300">자동 완성 강도</span>
-                            <span className="text-[0.6875rem] font-mono font-bold text-indigo-400">
-                              {(preferences.ghostWriterLevel || ghostWriterLevel) === 'off' ? 'OFF' : `${preferences.ghostWriterLevel || ghostWriterLevel}%`}
-                            </span>
-                          </div>
-
-                          {/* 마우스 포인터 실시간 연동 슬라이더 */}
-                          <div className="px-1.5 py-1.5 mb-2 bg-[#09090b]/60 rounded-md border border-[#222226]/40">
-                            <input
-                              type="range"
-                              min="0"
-                              max="4"
-                              step="1"
-                              value={['off', '30', '50', '70', '100'].indexOf((preferences.ghostWriterLevel || ghostWriterLevel) as GhostWriterLevel) >= 0 ? ['off', '30', '50', '70', '100'].indexOf((preferences.ghostWriterLevel || ghostWriterLevel) as GhostWriterLevel) : 0}
-                              onChange={(e) => {
-                                const idx = Number(e.target.value);
-                                const map: GhostWriterLevel[] = ['off', '30', '50', '70', '100'];
-                                handleQuickGhostWriter(map[idx]);
-                              }}
-                              className="w-full accent-[#6366f1] cursor-pointer h-1.5 bg-[#222226] rounded-md appearance-none"
-                            />
-                            <div className="flex justify-between text-[0.5625rem] text-slate-400 mt-1 font-mono">
-                              <span>OFF</span>
-                              <span>30%</span>
-                              <span>50%</span>
-                              <span>70%</span>
-                              <span>100%</span>
-                            </div>
-                          </div>
-
+                      <div className="absolute left-full top-0 pl-1.5 -ml-1 w-52 z-50 animate-in fade-in zoom-in-95 duration-100">
+                        <div className="bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200">
                           {/* 1클릭 프리셋 버튼 목록 */}
                           <div className="space-y-0.5">
                             {[
-                              { id: 'off', label: 'OFF', desc: '비활성화' },
+                              { id: 'off', label: '끄기', desc: '비활성화' },
                               { id: '30', label: '30%', desc: '보수적 제안' },
                               { id: '50', label: '50%', desc: '균형 모드' },
                               { id: '70', label: '70%', desc: '적극적 보조' },
@@ -7415,24 +8159,24 @@ ${projectEvents
                                 key={item.id}
                                 type="button"
                                 onClick={() => handleQuickGhostWriter(item.id as GhostWriterLevel)}
-                                className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
+                                className={`w-full text-left text-xs px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
                                   (preferences.ghostWriterLevel || ghostWriterLevel) === item.id
-                                    ? 'bg-[#6366f1] text-white font-semibold'
-                                    : 'text-slate-200 hover:bg-[#6366f1] hover:text-white'
+                                    ? 'bg-white/[0.08] text-white font-medium'
+                                    : 'text-zinc-200 hover:bg-white/[0.08] hover:text-white'
                                 }`}
                               >
                                 <div className="flex items-center gap-1.5">
                                   <span className="font-medium text-xs">{item.label}</span>
-                                  <span className={`text-[0.625rem] ${
+                                  <span className={`text-[11px] ${
                                     (preferences.ghostWriterLevel || ghostWriterLevel) === item.id
-                                      ? 'text-indigo-100'
-                                      : 'text-slate-400 group-hover:text-white/80'
+                                      ? 'text-indigo-200'
+                                      : 'text-zinc-500 group-hover:text-zinc-300'
                                   }`}>
-                                    ({item.desc})
+                                    {item.desc}
                                   </span>
                                 </div>
                                 {(preferences.ghostWriterLevel || ghostWriterLevel) === item.id && (
-                                  <Check className="w-3.5 h-3.5 shrink-0" />
+                                  <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                                 )}
                               </button>
                             ))}
@@ -7442,7 +8186,7 @@ ${projectEvents
                     )}
                   </div>
 
-                  <div className="my-1 border-t border-[#222226]" />
+                  <div className="my-1 border-t border-white/[0.06]" />
 
                   {/* 3. 저장소 및 백업 관리 */}
                   <button
@@ -7454,10 +8198,10 @@ ${projectEvents
                       setActiveMenu(null);
                       setActiveSubmenu(null);
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>저장소 및 백업 관리...</span>
-                    <span className="text-[0.5625rem] bg-[#09090b] text-emerald-300 px-1 rounded-sm border border-[#222226]/40 font-mono">IndexedDB</span>
+                    <span className="text-[10px] bg-black/40 text-emerald-400 px-1.5 py-0.5 rounded border border-white/[0.08] font-mono">로컬 저장소</span>
                   </button>
 
                   {/* 4. 워크스페이스 잠금 */}
@@ -7470,10 +8214,10 @@ ${projectEvents
                       lockNow();
                       showToast('🔒 워크스페이스가 잠겼습니다.', 'info');
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>워크스페이스 잠금</span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">Ctrl+L</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Ctrl+L</span>
                   </button>
 
                   {/* 5. 전체 환경설정 */}
@@ -7486,271 +8230,10 @@ ${projectEvents
                       setActiveMenu(null);
                       setActiveSubmenu(null);
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>전체 환경설정</span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">Alt+,</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* 6. 창 메뉴 */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveMenu(activeMenu === 'window' ? null : 'window');
-                  setActiveSubmenu(null);
-                }}
-                onMouseEnter={() => {
-                  if (activeMenu) {
-                    setActiveMenu('window');
-                    setActiveSubmenu(null);
-                  }
-                }}
-                className={`px-2 py-1 rounded-md text-xs font-medium transition flex items-center gap-1 cursor-pointer ${
-                  activeMenu === 'window'
-                    ? 'bg-[#6366f1] text-white font-semibold shadow-xs'
-                    : 'hover:bg-[#18181b] text-slate-200'
-                }`}
-              >
-                <span>패널</span>
-                <ChevronDown className="w-3 h-3 opacity-70" />
-              </button>
-
-              {activeMenu === 'window' && (
-                <div className="absolute left-0 top-full mt-1 w-52 bg-[#121214]/98 backdrop-blur-md border border-[#222226] rounded-md shadow-2xl p-1 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsSection1Collapsed(!isSection1Collapsed);
-                      setActiveMenu(null);
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
-                  >
-                    <span>{isSection1Collapsed ? '좌측 패널 펼치기' : '좌측 패널 접기'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsSection3Collapsed(!isSection3Collapsed);
-                      setActiveMenu(null);
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
-                  >
-                    <span>{isSection3Collapsed ? '우측 패널 펼치기' : '우측 패널 접기'}</span>
-                  </button>
-
-                  <div className="my-1 border-t border-[#222226]" />
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      applyDefaultPanelsForCurrentDevice();
-                      showToast('패널 레이아웃이 기본 비율로 복원되었습니다.');
-                      setActiveMenu(null);
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
-                  >
-                    <span>레이아웃 분할 초기화</span>
-                  </button>
-
-                  <div className="my-1 border-t border-[#222226]" />
-
-                  <div className="px-2.5 py-1 text-[0.625rem] font-bold text-slate-400 uppercase tracking-wider">에디터 보기 탭</div>
-                  <button
-                    type="button"
-                    onClick={() => { setEditorTab('edit'); setActiveMenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
-                  >
-                    <span>편집 모드</span>
-                    {editorTab === 'edit' && <span className="text-[0.625rem] text-[#6366f1] font-mono">선택됨</span>}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setEditorTab('preview'); setActiveMenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
-                  >
-                    <span>실시간 미리보기</span>
-                    {editorTab === 'preview' && <span className="text-[0.625rem] text-[#6366f1] font-mono">선택됨</span>}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* 6. PDF 도구 메뉴 */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveMenu(activeMenu === 'pdf' ? null : 'pdf');
-                  setActiveSubmenu(null);
-                }}
-                onMouseEnter={() => {
-                  if (activeMenu) {
-                    setActiveMenu('pdf');
-                    setActiveSubmenu(null);
-                  }
-                }}
-                className={`px-2 py-1 rounded-md text-xs font-medium transition flex items-center gap-1 cursor-pointer ${
-                  activeMenu === 'pdf'
-                    ? 'bg-[#6366f1] text-white font-semibold shadow-xs'
-                    : 'hover:bg-[#18181b] text-slate-200'
-                }`}
-              >
-                <span>PDF</span>
-                <ChevronDown className="w-3 h-3 opacity-70" />
-              </button>
-
-              {activeMenu === 'pdf' && (
-                <div className="absolute left-0 top-full mt-1 w-56 bg-[#121214]/98 backdrop-blur-md border border-[#222226] rounded-md shadow-2xl p-1 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  {/* Current Active File Header */}
-                  <div className="px-2.5 py-1.5 border-b border-[#222226] mb-1 flex items-center justify-between">
-                    <span className="font-medium text-[0.6875rem] truncate text-slate-300">
-                      {currentActiveFile.toLowerCase().endsWith('.pdf') ? currentActiveFile : '활성 PDF 문서 없음'}
-                    </span>
-                    {currentActiveFile.toLowerCase().endsWith('.pdf') && (
-                      <span className="text-[0.5625rem] bg-rose-500/20 text-rose-300 px-1 py-0.2 rounded border border-rose-500/30 uppercase font-mono">
-                        PDF
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Extraction & Parsing Group */}
-                  <button
-                    type="button"
-                    disabled={!currentActiveFile.toLowerCase().endsWith('.pdf')}
-                    onClick={() => {
-                      setActiveMenu(null);
-                      pdfViewerRef.current?.extractToMarkdown();
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none group"
-                  >
-                    <span>마크다운 추출 실행</span>
-                    <span className="text-[0.625rem] text-slate-400 group-hover:text-indigo-100">즉시 변환</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={!currentActiveFile.toLowerCase().endsWith('.pdf')}
-                    onClick={() => {
-                      setActiveMenu(null);
-                      pdfViewerRef.current?.clearCacheAndReparse();
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none group"
-                  >
-                    <span>캐시 초기화 및 재파싱</span>
-                    <span className="text-[0.625rem] text-slate-400 group-hover:text-indigo-100">캐시 삭제</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={!currentActiveFile.toLowerCase().endsWith('.pdf')}
-                    onClick={() => {
-                      setActiveMenu(null);
-                      pdfViewerRef.current?.openReducerModal();
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none group"
-                  >
-                    <span>PDF 최적화 및 경량화...</span>
-                  </button>
-
-                  <div className="my-1 border-t border-[#222226]" />
-
-                  {/* View Controls */}
-                  <button
-                    type="button"
-                    disabled={!currentActiveFile.toLowerCase().endsWith('.pdf')}
-                    onClick={() => {
-                      setActiveMenu(null);
-                      pdfViewerRef.current?.toggleSplitView();
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-                  >
-                    <span>단일 뷰 및 분할 편집 전환</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={!currentActiveFile.toLowerCase().endsWith('.pdf')}
-                    onClick={() => {
-                      setActiveMenu(null);
-                      pdfViewerRef.current?.fitWidth();
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-                  >
-                    <span>너비 맞춤</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={!currentActiveFile.toLowerCase().endsWith('.pdf')}
-                    onClick={() => {
-                      setActiveMenu(null);
-                      pdfViewerRef.current?.rotate();
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-                  >
-                    <span>시계 방향 90도 회전</span>
-                  </button>
-
-                  <div className="my-1 border-t border-[#222226]" />
-
-                  {/* File Actions */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveMenu(null);
-                      if (currentActiveFile.toLowerCase().endsWith('.pdf') && pdfViewerRef.current) {
-                        pdfViewerRef.current.openFilePicker();
-                      } else {
-                        docFileInputRef.current?.click();
-                      }
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
-                  >
-                    <span>새 PDF 파일 열기...</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={!currentActiveFile.toLowerCase().endsWith('.pdf')}
-                    onClick={() => {
-                      setActiveMenu(null);
-                      pdfViewerRef.current?.downloadPdf();
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-                  >
-                    <span>현재 PDF 다운로드</span>
-                  </button>
-
-                  {!currentActiveFile.toLowerCase().endsWith('.pdf') && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveMenu(null);
-                        handleOpenFile('sample_document.pdf');
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
-                    >
-                      <span>샘플 PDF 열기</span>
-                    </button>
-                  )}
-
-                  <div className="my-1 border-t border-[#222226]" />
-
-                  {/* Engine Settings */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPreferencesInitialTab('ai-engine');
-                      setIsPreferencesModalOpen(true);
-                      setActiveMenu(null);
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
-                  >
-                    <span>PDF 파서 및 AI 엔진 설정...</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">Alt+,</span>
                   </button>
                 </div>
               )}
@@ -7770,30 +8253,29 @@ ${projectEvents
                     setActiveSubmenu(null);
                   }
                 }}
-                className={`px-2 py-1 rounded-md text-xs font-medium transition flex items-center gap-1 cursor-pointer ${
+                className={`text-xs px-2.5 py-1.5 rounded-md transition cursor-pointer ${
                   activeMenu === 'help'
-                    ? 'bg-[#6366f1] text-white font-semibold shadow-xs'
-                    : 'hover:bg-[#18181b] text-slate-200'
+                    ? 'text-zinc-100 bg-white/[0.08] font-medium'
+                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08]'
                 }`}
               >
                 <span>도움말</span>
-                <ChevronDown className="w-3 h-3 opacity-70" />
               </button>
 
               {activeMenu === 'help' && (
-                <div className="absolute left-0 top-full mt-1 w-52 bg-[#121214]/98 backdrop-blur-md border border-[#222226] rounded-md shadow-2xl p-1 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute left-0 top-full mt-1.5 w-52 bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
                   <button
                     type="button"
                     onClick={() => { setIsShortcutsModalOpen(true); setActiveMenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>단축키 가이드</span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">F1</span>
+                    <span className="text-[11px] text-zinc-500 font-mono">F1</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => { setIsAboutModalOpen(true); setActiveMenu(null); }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[#6366f1] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
                   >
                     <span>AI Podium 정보</span>
                   </button>
@@ -7830,26 +8312,6 @@ ${projectEvents
 
         {/* Right Controls: Command Palette & Status */}
         <div className="flex items-center gap-2">
-          {/* Guest Mode Indicator Chip */}
-          {currentUser?.provider === 'guest' && (
-            <button
-              type="button"
-              onClick={() => {
-                setGuestGateFeature({
-                  name: '클라우드 계정 연동',
-                  description: '현재 로컬에서 작성 중인 문서를 안전하게 보존한 채 Google 또는 이메일 계정으로 연동하여 클라우드 백업 및 GitHub Sync를 활성화하세요.',
-                  icon: 'cloud'
-                });
-                setIsGuestGateModalOpen(true);
-              }}
-              className="h-6 px-2 rounded-xs border border-[#222226] bg-[#121214] hover:bg-[#18181b] text-indigo-300 text-[0.6875rem] font-medium flex items-center gap-1.5 transition cursor-pointer shrink-0"
-              title="로컬 게스트 모드 - 클릭하여 계정 연동 및 클라우드 활성화"
-            >
-              <span className="w-1.5 h-1.5 rounded-xs bg-[#6366f1] animate-pulse shrink-0" />
-              <span className="text-[0.6875rem] font-medium">로컬 게스트</span>
-            </button>
-          )}
-
           {/* GitHub Connection Status */}
           {workspaceRootType === 'github' && githubConfig && (
             <div 
@@ -7861,19 +8323,6 @@ ${projectEvents
               <span className="truncate max-w-[140px]">저장소 연동: <span className="font-mono text-[#6366f1]">{githubConfig.repo}</span></span>
             </div>
           )}
-
-          {/* Local AI Resource Indicator in Header */}
-          <LocalAiResourceMonitor
-            endpoint={localEndpointAddress}
-            isGenerating={isAiLoading}
-            activeModel={selectedModel}
-            provider={provider}
-            variant="header"
-            onOpenSettings={() => {
-              setPreferencesInitialTab('ai-engine');
-              setIsPreferencesModalOpen(true);
-            }}
-          />
 
           {/* User Profile Badge Avatar in Header */}
           {currentUser && (
@@ -7893,14 +8342,6 @@ ${projectEvents
                 setIsPreferencesModalOpen(true);
               }}
               onOpenGoogleAccount={handleOpenGoogleAccount}
-              onOpenUpgrade={() => {
-                setGuestGateFeature({
-                  name: '계정 로그인 & 업그레이드',
-                  description: '현재 작성 중인 문서를 보존한 채 Google 또는 이메일 계정으로 연동하여 클라우드 백업 및 GitHub 동기화를 활성화합니다.',
-                  icon: 'cloud'
-                });
-                setIsGuestGateModalOpen(true);
-              }}
             />
           )}
         </div>
@@ -7909,43 +8350,65 @@ ${projectEvents
 
       {/* COLLAPSED SECTIONS RESTORE CONTROL BAR */}
       {(isSection1Collapsed || isSection2Collapsed || isSection3Collapsed) && (
-        <div className="flex items-center gap-2 bg-[#09090b]/75 backdrop-blur-md border-b border-[#222226] px-3 py-1.5 text-xs shrink-0 z-30 shadow-xs">
-          <span className="text-[0.6875rem] font-semibold text-slate-300 flex items-center gap-1">
-            <ChevronsRight className="w-3.5 h-3.5 text-[#6366f1]" />
-            <span>접힌 섹션 펼치기:</span>
-          </span>
-          {isSection1Collapsed && (
-            <button
-              type="button"
-              onClick={() => setIsSection1Collapsed(false)}
-              className="p-1 px-1.5 rounded-md bg-[#121214]/80 hover:bg-[#6366f1] text-[#6366f1] hover:text-white border border-[#222226] transition flex items-center gap-1 shadow-xs active:scale-95 cursor-pointer"
-              title="좌측 패널 펼치기"
-            >
-              <Bot className="w-3.5 h-3.5 text-[#6366f1]" />
+        <div className="flex items-center justify-between bg-[#09090b]/90 backdrop-blur-md border-b border-[#222226] px-3 py-1.5 text-xs shrink-0 z-30 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-[0.6875rem] font-semibold text-slate-300 flex items-center gap-1">
               <ChevronsRight className="w-3.5 h-3.5 text-[#6366f1]" />
-            </button>
-          )}
-          {isSection2Collapsed && (
-            <button
-              type="button"
-              onClick={() => setIsSection2Collapsed(false)}
-              className="p-1 px-1.5 rounded-md bg-[#121214]/80 hover:bg-[#6366f1] text-[#6366f1] hover:text-white border border-[#222226] transition flex items-center gap-1 shadow-xs active:scale-95 cursor-pointer"
-              title="중앙 에디터 패널 펼치기"
-            >
-              <FileText className="w-3.5 h-3.5 text-[#6366f1]" />
-              <ChevronsRight className="w-3.5 h-3.5 text-[#6366f1]" />
-            </button>
-          )}
-          {isSection3Collapsed && (
-            <button
-              type="button"
-              onClick={() => setIsSection3Collapsed(false)}
-              className="p-1 px-1.5 rounded-md bg-[#121214]/80 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-600/30 transition flex items-center gap-1 shadow-xs active:scale-95 cursor-pointer"
-              title="우측 패널 펼치기"
-            >
-              <Folder className="w-3.5 h-3.5 text-amber-400" />
-              <ChevronsRight className="w-3.5 h-3.5 text-amber-400" />
-            </button>
+              <span>접힌 섹션 펼치기:</span>
+            </span>
+            {isSection1Collapsed && (
+              <button
+                type="button"
+                onClick={() => setIsSection1Collapsed(false)}
+                className="p-1 px-2 rounded-xs bg-[#121214] hover:bg-[#18181b] text-indigo-400 hover:text-white border border-[#222226] transition flex items-center gap-1.5 active:scale-95 cursor-pointer text-[0.6875rem]"
+                title="좌측 AI 대화 패널 펼치기"
+              >
+                <Bot className="w-3.5 h-3.5 text-indigo-400" />
+                <span>AI 대화</span>
+              </button>
+            )}
+            {isSection2Collapsed && (
+              <button
+                type="button"
+                onClick={() => setIsSection2Collapsed(false)}
+                className="p-1 px-2 rounded-xs bg-[#121214] hover:bg-[#18181b] text-indigo-400 hover:text-white border border-[#222226] transition flex items-center gap-1.5 active:scale-95 cursor-pointer text-[0.6875rem]"
+                title="중앙 에디터 패널 펼치기"
+              >
+                <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                <span>중앙 에디터</span>
+              </button>
+            )}
+            {isSection3Collapsed && (
+              <button
+                type="button"
+                onClick={() => setIsSection3Collapsed(false)}
+                className="p-1 px-2 rounded-xs bg-[#121214] hover:bg-[#18181b] text-amber-300 hover:text-white border border-[#222226] transition flex items-center gap-1.5 active:scale-95 cursor-pointer text-[0.6875rem]"
+                title="우측 파일 탐색기 패널 펼치기"
+              >
+                <Folder className="w-3.5 h-3.5 text-amber-400" />
+                <span>파일 탐색기</span>
+              </button>
+            )}
+          </div>
+
+          {isSection1Collapsed && isSection3Collapsed && (
+            <div className="flex items-center gap-2">
+              <span className="text-[0.625rem] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-xs border border-indigo-500/20 font-medium flex items-center gap-1">
+                <span>🎯 문서 집중 모드 활성화 중</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSection1Collapsed(false);
+                  setIsSection3Collapsed(false);
+                  showToast('기본 패널 레이아웃이 복원되었습니다.');
+                }}
+                className="p-1 px-2 rounded-xs bg-[#121214] hover:bg-[#18181b] text-slate-300 hover:text-white border border-[#222226] transition flex items-center gap-1 active:scale-95 cursor-pointer text-[0.6875rem]"
+                title="모든 패널 복원"
+              >
+                <span>전체 패널 복원</span>
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -7967,12 +8430,11 @@ ${projectEvents
               : `${pane1Width}%`,
             minWidth: isSection1Collapsed ? '0px' : '220px',
             opacity: isSection1Collapsed ? 0 : 1,
-            transform: isSection1Collapsed ? 'translateX(-100%)' : 'translateX(0)',
             pointerEvents: isSection1Collapsed ? 'none' : 'auto',
           }}
           className={`h-full min-h-0 flex flex-col bg-[#121214] border-r border-[#222226] shrink-0 overflow-hidden ${
-            isResizing ? 'transition-none select-none' : 'transition-all duration-300 ease-in-out'
-          } transform`}
+            isResizing ? 'transition-none select-none' : 'transition-[width,min-width,opacity] duration-300 ease-in-out'
+          }`}
         >
             
             {/* Header */}
@@ -7997,8 +8459,19 @@ ${projectEvents
                 <div className="flex items-center gap-1.5 pl-1 border-l border-[#222226] min-w-0">
                   <Bot className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
                   <span className="truncate max-w-[120px] sm:max-w-[180px] font-medium text-slate-200 text-xs" title={activeSession?.title}>
-                    {activeSession?.title || 'AI 프로젝트'}
+                    {selectedModel === WEB_LLM_MODEL_ID
+                      ? '브라우저 로컬 AI'
+                      : (isOnboardingMode ? 'AI 지식 비서 (온보딩)' : (activeSession?.title || 'AI 프로젝트'))}
                   </span>
+                  {selectedModel === WEB_LLM_MODEL_ID ? (
+                    <span className="text-[0.5625rem] px-1.5 py-0.2 rounded-xs bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-medium shrink-0">
+                      WebGPU Qwen2.5
+                    </span>
+                  ) : isOnboardingMode ? (
+                    <span className="text-[0.5625rem] px-1.5 py-0.2 rounded-xs bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-medium shrink-0">
+                      게스트 가이드
+                    </span>
+                  ) : null}
                 </div>
               </div>
 
@@ -8026,7 +8499,7 @@ ${projectEvents
 
             {/* Chat History & AI Model Selection Sidebar Panel */}
             <div
-              className={`bg-[#1a1b24] border-r border-[#222226] flex flex-col shrink-0 transition-all duration-300 ease-in-out transform z-10 ${
+              className={`bg-[#121214] border-r border-[#222226] flex flex-col shrink-0 transition-all duration-300 ease-in-out transform z-10 ${
                 isChatHistoryOpen
                   ? 'w-52 sm:w-60 opacity-100 translate-x-0'
                   : 'w-0 opacity-0 -translate-x-full overflow-hidden border-r-0 pointer-events-none'
@@ -8249,8 +8722,7 @@ ${projectEvents
                         </div>
 
                         <div className="flex items-center justify-between text-[0.5625rem] text-slate-400 font-mono mt-0.5">
-                          <span className="flex items-center gap-0.5">
-                            <Clock className="w-2.5 h-2.5 text-slate-500" />
+                          <span>
                             {session.createdAt}
                           </span>
                         </div>
@@ -8268,8 +8740,8 @@ ${projectEvents
                   className="flex items-center justify-between px-2.5 py-1.5 hover:bg-[#09090b]/60 transition-colors cursor-pointer w-full text-slate-300 hover:text-white"
                   title={isAiModelSelectionOpen ? "AI 모델 패널 접기" : "AI 모델 패널 펼치기"}
                 >
-                  <div className="flex items-center gap-1.5 text-[0.6875rem] font-semibold tracking-wider uppercase text-[#38bdf8]">
-                    <Cpu className="w-3.5 h-3.5 text-[#6366f1]" />
+                  <div className="flex items-center gap-1.5 text-[0.6875rem] font-semibold tracking-wider uppercase text-zinc-400">
+                    <Cpu className="w-[13px] h-[13px] text-zinc-500 shrink-0" />
                     <span>AI MODEL</span>
                   </div>
                   {isAiModelSelectionOpen ? (
@@ -8287,58 +8759,55 @@ ${projectEvents
                     <div className="space-y-1.5">
 
                       {/* Mode Selector Buttons: Single Mode, Routing Mode, Multi Mode */}
-                      <div className="flex items-center bg-[#09090b]/90 border border-[#222226] rounded-md p-0.5 text-[0.625rem] gap-0.5">
+                      <div className="flex items-center bg-[#09090b] border border-[#222226] rounded-md p-0.5 text-[0.6875rem] gap-0.5">
                         <button
                           type="button"
                           onClick={() => { setMode('single'); showToast('Single Mode (단일 모델 모드) 설정'); }}
-                          className={`flex-1 py-0.5 rounded transition flex items-center justify-center gap-1 font-medium cursor-pointer ${
-                            mode === 'single' ? 'bg-[#6366f1] text-white font-semibold shadow-xs' : 'text-slate-300 hover:text-white'
+                          className={`flex-1 py-1 rounded transition flex items-center justify-center font-medium cursor-pointer ${
+                            mode === 'single' ? 'bg-[#6366f1] text-white font-semibold shadow-xs' : 'text-zinc-400 hover:text-white'
                           }`}
                           title="Single Mode (단일 모델 모드)"
                         >
-                          <Sliders className="w-3 h-3" />
                           <span>Single</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => { setMode('routing'); showToast('Routing Mode (스마트 오토 라우팅) 활성화'); }}
-                          className={`flex-1 py-0.5 rounded transition flex items-center justify-center gap-1 font-medium cursor-pointer ${
-                            mode === 'routing' ? 'bg-[#6366f1] text-white font-semibold shadow-xs' : 'text-slate-300 hover:text-white'
+                          className={`flex-1 py-1 rounded transition flex items-center justify-center font-medium cursor-pointer ${
+                            mode === 'routing' ? 'bg-[#6366f1] text-white font-semibold shadow-xs' : 'text-zinc-400 hover:text-white'
                           }`}
                           title="Routing Mode (스마트 오토 라우팅 모드)"
                         >
-                          <Route className="w-3 h-3" />
                           <span>Routing</span>
                         </button>
                         <button
                           type="button"
                           onClick={() => { setMode('multi'); showToast('Multi Mode (다중 모델 병렬 모드) 활성화'); }}
-                          className={`flex-1 py-0.5 rounded transition flex items-center justify-center gap-1 font-medium cursor-pointer ${
-                            mode === 'multi' ? 'bg-[#6366f1] text-white font-semibold shadow-xs' : 'text-slate-300 hover:text-white'
+                          className={`flex-1 py-1 rounded transition flex items-center justify-center font-medium cursor-pointer ${
+                            mode === 'multi' ? 'bg-[#6366f1] text-white font-semibold shadow-xs' : 'text-zinc-400 hover:text-white'
                           }`}
                           title="Multi Mode (다중 모델 병렬 모드)"
                         >
-                          <Layers className="w-3 h-3" />
                           <span>Multi</span>
                         </button>
                       </div>
 
                       {/* Model Selection Dropdown (Single/Routing) or Checkbox List (Multi) */}
                       {mode === 'multi' ? (
-                        <div className="bg-[#09090b]/90 border border-[#222226] rounded-md p-1.5 space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
-                          <div className="text-[0.625rem] text-slate-300 font-mono px-1 flex justify-between items-center pb-1 border-b border-[#222226]">
+                        <div className="bg-[#09090b]/90 border border-[#222226] rounded-md p-1.5 space-y-0.5 max-h-40 overflow-y-auto custom-scrollbar">
+                          <div className="text-[0.625rem] text-zinc-400 font-mono px-1 flex justify-between items-center pb-1 border-b border-[#222226]">
                             <span>병렬 응답 모델 선택:</span>
-                            <span className="text-[#6366f1] font-semibold">{selectedMultiModels.length}개 선택</span>
+                            <span className="text-zinc-300 font-medium">{selectedMultiModels.length}개 선택</span>
                           </div>
                           {availableChatModels.map((m) => {
                             const isChecked = selectedMultiModels.includes(m.id);
                             return (
                               <label
                                 key={m.id}
-                                className={`flex items-center gap-2 px-1.5 py-1 rounded text-xs cursor-pointer transition select-none ${
+                                className={`flex items-center gap-2 py-1.5 px-2 rounded-md cursor-pointer transition select-none hover:bg-white/5 text-xs ${
                                   isChecked
-                                    ? 'bg-[#18181b] text-[#6366f1] border border-[#222226] font-medium shadow-xs'
-                                    : 'text-slate-300 hover:bg-[#18181b]/60 hover:text-white border border-transparent'
+                                    ? 'text-zinc-100 font-medium'
+                                    : 'text-zinc-400 hover:text-zinc-200'
                                 }`}
                               >
                                 <input
@@ -8358,15 +8827,6 @@ ${projectEvents
                                   className="w-3.5 h-3.5 accent-emerald-500 rounded cursor-pointer shrink-0"
                                 />
                                 <span className="flex-1 truncate">{m.name}</span>
-                                <span
-                                  className={`text-[0.5625rem] px-1 py-0.2 rounded font-mono shrink-0 border ${
-                                    m.group === 'local'
-                                      ? 'bg-sky-950/70 text-sky-300 border-sky-800/60'
-                                      : 'bg-[#09090b] text-indigo-300 border-[#222226]'
-                                  }`}
-                                >
-                                  {m.desc}
-                                </span>
                               </label>
                             );
                           })}
@@ -8386,52 +8846,63 @@ ${projectEvents
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1.5 bg-[#09090b] border border-[#222226] rounded-xs px-2 py-1">
-                          <select
-                            value={selectedModel}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setSelectedModel(val);
-                              setRoleModels((prev) => {
-                                const updated = { ...prev, chat: val };
-                                try {
-                                  localStorage.setItem('aipodium_ai_role_models', JSON.stringify(updated));
-                                } catch {}
-                                return updated;
-                              });
-                            }}
-                            className="bg-transparent text-xs text-slate-200 outline-none cursor-pointer w-full font-sans truncate"
-                          >
-                            <optgroup label="클라우드 모델" className="bg-[#09090b] text-indigo-400 font-semibold">
-                              {availableChatModels
-                                .filter((m) => m.group === 'cloud')
-                                .map((m) => (
-                                  <option key={m.id} value={m.id} className="bg-[#09090b] text-slate-200 font-normal">
-                                    {m.name} - {m.desc}
-                                  </option>
-                                ))}
-                            </optgroup>
-                            <optgroup
-                              label={provider === 'cloud' ? '로컬 모델' : '감지된 로컬 모델'}
-                              className="bg-[#09090b] text-sky-400 font-semibold"
+                        <div className="bg-[#09090b]/90 border border-[#222226] rounded-md p-1.5 space-y-0.5 max-h-40 overflow-y-auto custom-scrollbar">
+                          <div className="text-[0.625rem] text-zinc-400 font-mono px-1 flex justify-between items-center pb-1 border-b border-[#222226]">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="shrink-0">단일 응답 모델:</span>
+                              <span className="text-zinc-300 font-medium truncate">
+                                {availableChatModels.find((m) => m.id === selectedModel)?.name || selectedModel}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setIsAiRoleModalOpen(true)}
+                              title="역할별 AI 모델 지정"
+                              className="p-0.5 text-zinc-400 hover:text-indigo-300 hover:bg-[#18181b] rounded transition shrink-0 cursor-pointer ml-1"
                             >
-                              {availableChatModels
-                                .filter((m) => m.group === 'local')
-                                .map((m) => (
-                                  <option key={m.id} value={m.id} className="bg-[#09090b] text-slate-200 font-normal">
-                                    {m.name} - {m.desc}
-                                  </option>
-                                ))}
-                            </optgroup>
-                          </select>
-                          <button
-                            type="button"
-                            onClick={() => setIsAiRoleModalOpen(true)}
-                            title="역할별 AI 모델 지정 열기"
-                            className="p-1 text-slate-400 hover:text-indigo-300 hover:bg-[#18181b] rounded transition shrink-0 cursor-pointer"
-                          >
-                            <SlidersHorizontal className="w-3.5 h-3.5" />
-                          </button>
+                              <SlidersHorizontal className="w-3 h-3" />
+                            </button>
+                          </div>
+                          {availableChatModels.map((m) => {
+                            const isSelected = selectedModel === m.id;
+                            return (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedModel(m.id);
+                                  setRoleModels((prev) => {
+                                    const updated = { ...prev, chat: m.id };
+                                    try {
+                                      localStorage.setItem('aipodium_ai_role_models', JSON.stringify(updated));
+                                    } catch {}
+                                    return updated;
+                                  });
+                                }}
+                                className={`w-full flex items-center gap-2 py-1.5 px-2 rounded-md cursor-pointer transition select-none text-left hover:bg-white/5 text-xs ${
+                                  isSelected
+                                    ? 'text-zinc-100 font-medium'
+                                    : 'text-zinc-400 hover:text-zinc-200'
+                                }`}
+                              >
+                                <div
+                                  className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                                    isSelected
+                                      ? 'border-[#6366f1] bg-[#6366f1]/20'
+                                      : 'border-[#3a3a40] bg-[#09090b]'
+                                  }`}
+                                >
+                                  {isSelected && (
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[#6366f1]" />
+                                  )}
+                                </div>
+                                <span className="flex-1 truncate">{m.name}</span>
+                                {isSelected && (
+                                  <Check className="w-3 h-3 text-[#6366f1] shrink-0" />
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -8453,10 +8924,9 @@ ${projectEvents
             )}
 
             {/* Active Conversation Chat Area */}
-            <div className="flex-1 flex flex-col min-w-0 bg-transparent">
-              
+            <div className="flex-1 flex flex-col min-w-0 bg-transparent relative">
               {/* Chat Messages */}
-              <div id="chat-messages" ref={chatContainerRef} className="flex-1 overflow-y-auto p-3 select-text custom-scrollbar">
+              <div id="chat-messages" ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto p-3 select-text custom-scrollbar">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeSessionId}
@@ -8464,196 +8934,155 @@ ${projectEvents
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
                     transition={{ duration: 0.15, ease: 'easeOut' }}
-                    className="space-y-3 select-text"
+                    className="space-y-3 select-text max-w-3xl mx-auto w-full"
                   >
-                    {messages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`flex gap-2.5 items-start select-text ${msg.sender === 'user' ? 'justify-end' : ''}`}
-                      >
-                        {msg.sender === 'ai' && (
-                          <div className="w-6 h-6 rounded-xs bg-[#09090b] border border-[#222226] flex items-center justify-center text-[#6366f1] text-xs shrink-0 mt-0.5 select-none">
-                            <Bot className="w-3.5 h-3.5" />
-                          </div>
-                        )}
+                    {/* 채팅 본문 상단 인라인 배너: '안녕하세요! AI 지식 비서입니다' 환영 메시지 바로 위 */}
+                    {((isOnboardingMode && !isWebLlmBannerDismissed) || webllmProgress.isLoading || webllmProgress.isReady) && (
+                      <WebLlmBanner
+                        isSupported={webllmProgress.isSupported}
+                        isLoading={webllmProgress.isLoading}
+                        isReady={webllmProgress.isReady}
+                        progressText={webllmProgress.progressText}
+                        progressPercent={webllmProgress.progressPercent}
+                        onStartDownload={handleStartWebLlmDownload}
+                        onSelectModel={() => {
+                          setSelectedModel(WEB_LLM_MODEL_ID);
+                          setProvider('local-pc');
+                          showToast('✓ Qwen2.5-0.5B 브라우저 로컬 AI가 선택되었습니다.');
+                        }}
+                        onDismiss={() => {
+                          setIsWebLlmBannerDismissed(true);
+                          try {
+                            localStorage.setItem('aipodium_webllm_banner_dismissed', 'true');
+                          } catch {}
+                        }}
+                      />
+                    )}
 
+                    {messages.map((msg) =>
+                      msg.sender === 'ai' ? (
+                        <AiMessageBubble
+                          key={msg.id}
+                          msg={msg}
+                          selectedModel={selectedModel === WEB_LLM_MODEL_ID ? WEB_LLM_MODEL_DISPLAY_NAME : (isOnboardingMode ? 'AI 지식 비서' : selectedModel)}
+                          onCopy={(text) => {
+                            navigator.clipboard.writeText(text);
+                            showToast('✓ AI 답변 내용이 클립보드에 복사되었습니다.');
+                          }}
+                          onDiff={(text, model) => {
+                            setDiffModalData({
+                              isOpen: true,
+                              proposedContent: text,
+                              title: 'AI 응답과 현재 문서 시맨틱 Diff',
+                              sourceLabel: `${model || 'AI Assistant'} 제안본`,
+                            });
+                          }}
+                          onSendToEditor={(text) => handleSendToEditor(text)}
+                          onActionChipClick={(chipType) => handleOnboardingChipClick(chipType)}
+                          onOpenSettings={(tab) => {
+                            setPreferencesInitialTab(tab || 'ai-engine');
+                            setIsPreferencesModalOpen(true);
+                          }}
+                        />
+                      ) : (
                         <div
-                          className={`rounded-xs p-3 text-xs leading-relaxed space-y-2 select-text cursor-text ${
-                            msg.sender === 'user'
-                              ? 'bg-[#121214] border border-[#222226] text-slate-100 max-w-[85%]'
-                              : 'bg-[#0c0c0e] border border-[#222226] flex-1 text-slate-200'
-                          }`}
+                          key={msg.id}
+                          className="flex gap-2.5 items-start select-text justify-end"
                         >
-                          {msg.sender === 'ai' && (
-                            <div className="flex items-center justify-between border-b border-[#222226] pb-1.5 select-none">
-                              <span className="font-semibold text-[#6366f1] flex items-center gap-1.5 text-xs">
-                                <Sparkles className="w-3.5 h-3.5" />
-                                <span className="text-[0.6875rem] text-indigo-300 font-mono font-medium">
-                                  {msg.model || selectedModel}
-                                </span>
-                              </span>
-                              
-                              <div className="flex items-center gap-1">
-                                {/* Copy AI response to clipboard */}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(msg.text);
-                                    showToast('✓ AI 답변 내용이 클립보드에 복사되었습니다.');
-                                  }}
-                                  className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-slate-200 transition cursor-pointer"
-                                  title="클립보드에 복사"
-                                >
-                                  <Copy className="w-3 h-3" />
-                                </button>
-                                {/* [Diff 비교 및 스마트 반영] 버튼 */}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setDiffModalData({
-                                      isOpen: true,
-                                      proposedContent: msg.text,
-                                      title: 'AI 응답과 현재 문서 시맨틱 Diff',
-                                      sourceLabel: `${msg.model || 'AI Assistant'} 제안본`
-                                    });
-                                  }}
-                                  className="p-1 rounded-xs hover:bg-[#18181b] text-emerald-400 hover:text-emerald-300 transition cursor-pointer"
-                                  title="현재 문서와 Diff 비교 및 스마트 반영"
-                                >
-                                  <GitCompare className="w-3 h-3" />
-                                </button>
-                                {/* [에디터로 보내기 ➔] 버튼 */}
-                                <button
-                                  type="button"
-                                  onClick={() => handleSendToEditor(msg.text)}
-                                  className="p-1 rounded-xs hover:bg-[#18181b] text-[#6366f1] hover:text-[#818cf8] transition cursor-pointer"
-                                  title="에디터로 내용 전송"
-                                >
-                                  <ArrowRight className="w-3 h-3" />
-                                </button>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Attachment Rendering in Chat Bubble */}
-                          {msg.attachments && msg.attachments.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 pt-0.5 border-b border-[#222226] pb-1.5 select-none">
-                              {msg.attachments.map((att) => (
-                                <div key={att.id} className="rounded-md overflow-hidden border border-[#222226] bg-[#09090b] p-1 flex items-center gap-1.5 max-w-full">
-                                  {att.type === 'image' && att.url ? (
-                                    <img
-                                      src={att.url}
-                                      alt={att.name}
-                                      className="max-h-36 rounded border border-[#222226] object-cover"
-                                    />
-                                  ) : (
-                                    <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-slate-300 font-mono">
-                                      <FileText className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                                      <span className="truncate max-w-[150px] font-medium">{att.name}</span>
-                                      <span className="text-[0.625rem] text-slate-400">({att.size})</span>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {msg.sender === 'user' && msg.ghostWriterLevel && msg.ghostWriterLevel !== 'off' && (
-                            <div className="flex flex-col gap-1 pb-1.5 mb-1.5 border-b border-[#222226] select-none">
-                              <div className="flex items-center justify-between gap-2 text-[0.625rem]">
-                                <span className="inline-flex items-center gap-1 font-semibold text-emerald-200 bg-emerald-950/80 px-1.5 py-0.5 rounded text-[0.5625rem] border border-emerald-800/60 shadow-xs">
-                                  <Ghost className="w-3 h-3 text-emerald-300" />
-                                  Ghost Writer ({msg.ghostWriterLevel}%)
-                                </span>
-                                <span className="text-[0.625rem] text-[#38bdf8] font-mono flex items-center gap-1">
-                                  <Globe className="w-3 h-3 text-[#0ea5e9]" />
-                                  Prompt in English
-                                </span>
-                              </div>
-                              {msg.originalText && msg.originalText !== msg.text && (
-                                <div className="text-[0.6875rem] text-slate-300 flex items-start gap-1 font-sans pt-0.5">
-                                  <span className="font-medium text-slate-400 shrink-0">🇰🇷 한국어 원문:</span>
-                                  <span className="italic text-slate-200">{msg.originalText}</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Message Content: Render Markdown for AI, Formatted Chips for User */}
-                          {msg.sender === 'ai' ? (
-                            <>
-                              <div
-                                className="markdown-chat-content font-sans text-xs leading-relaxed select-text cursor-text"
-                                dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(msg.text) }}
-                              />
-
-                              {/* Google Search Grounding Web Citations */}
-                              {msg.groundingSources && msg.groundingSources.length > 0 && (
-                                <div className="mt-2.5 pt-2 border-t border-[#222226]/80 flex flex-col gap-1.5 select-none">
-                                  <div className="flex items-center gap-1.5 text-[0.6875rem] font-semibold text-[#38bdf8]">
-                                    <Globe className="w-3 h-3 text-[#38bdf8]" />
-                                    <span>Google 실시간 웹 검색 출처 ({msg.groundingSources.length})</span>
+                          <div className="rounded-xs p-3 text-xs leading-relaxed space-y-2 select-text cursor-text bg-[#121214] border border-[#222226] text-slate-100 max-w-[85%] shadow-xs">
+                            {/* Attachment Rendering in Chat Bubble */}
+                            {msg.attachments && msg.attachments.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 pt-0.5 border-b border-[#222226] pb-1.5 select-none">
+                                {msg.attachments.map((att) => (
+                                  <div key={att.id} className="rounded-md overflow-hidden border border-[#222226] bg-[#09090b] p-1 flex items-center gap-1.5 max-w-full">
+                                    {att.type === 'image' && att.url ? (
+                                      <img
+                                        src={att.url}
+                                        alt={att.name}
+                                        className="max-h-36 rounded border border-[#222226] object-cover"
+                                      />
+                                    ) : (
+                                      <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-slate-300 font-mono">
+                                        <FileText className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
+                                        <span className="truncate max-w-[150px] font-medium">{att.name}</span>
+                                        <span className="text-[0.625rem] text-slate-400">({att.size})</span>
+                                      </div>
+                                    )}
                                   </div>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {msg.groundingSources.map((source, sIdx) => (
-                                      <a
-                                        key={sIdx}
-                                        href={source.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 text-[0.625rem] px-2 py-0.5 rounded bg-[#1e293b]/70 hover:bg-[#1e293b] text-slate-300 hover:text-white border border-slate-700/60 transition-colors"
-                                        title={source.url}
-                                      >
-                                        <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
-                                        <span className="truncate max-w-[220px]">{source.title || source.url}</span>
-                                      </a>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
+                                ))}
+                              </div>
+                            )}
 
-                              {/* Token Accounting & Inference Cost */}
-                              {msg.tokens && (
-                                <div className="mt-2 text-[0.5625rem] text-slate-400 flex items-center gap-2 font-mono select-none">
-                                  <span className="inline-flex items-center gap-1 text-slate-400">
-                                    <Zap className="w-2.5 h-2.5 text-amber-400" />
-                                    {msg.tokens.total} 토큰 (입력 {msg.tokens.prompt} / 생성 {msg.tokens.completion})
+                            {msg.ghostWriterLevel && msg.ghostWriterLevel !== 'off' && (
+                              <div className="flex flex-col gap-1 pb-1.5 mb-1.5 border-b border-[#222226] select-none">
+                                <div className="flex items-center justify-between gap-2 text-[0.625rem]">
+                                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-200 bg-emerald-950/80 px-1.5 py-0.5 rounded text-[0.5625rem] border border-emerald-800/60 shadow-xs">
+                                    <Ghost className="w-3 h-3 text-emerald-300" />
+                                    Ghost Writer ({msg.ghostWriterLevel}%)
                                   </span>
-                                  {msg.tokens.costEstimate && (
-                                    <span className="text-emerald-400 font-semibold">• {msg.tokens.costEstimate}</span>
-                                  )}
+                                  <span className="text-[0.625rem] text-[#38bdf8] font-mono flex items-center gap-1">
+                                    <Globe className="w-3 h-3 text-[#0ea5e9]" />
+                                    Prompt in English
+                                  </span>
                                 </div>
-                              )}
-                            </>
-                          ) : (
+                                {msg.originalText && msg.originalText !== msg.text && (
+                                  <div className="text-[0.6875rem] text-slate-300 flex items-start gap-1 font-sans pt-0.5">
+                                    <span className="font-medium text-slate-400 shrink-0">🇰🇷 한국어 원문:</span>
+                                    <span className="italic text-slate-200">{msg.originalText}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                             <div className="whitespace-pre-wrap font-sans space-y-1 select-text cursor-text selection:bg-[#6366f1]/30">
                               {renderFormattedMessageText(msg.text)}
                             </div>
-                          )}
-                        </div>
+                          </div>
 
-                        {msg.sender === 'user' && (
                           <div className="w-6 h-6 rounded-md bg-[#121214] border border-[#222226] flex items-center justify-center text-slate-200 text-xs shrink-0 mt-0.5 select-none shadow-xs">
                             <User className="w-3.5 h-3.5" />
                           </div>
-                        )}
-                      </div>
-                    ))}
-
-                    {isAiLoading && (
-                      <div className="flex gap-2.5 items-start">
-                        <div className="w-6 h-6 rounded-md bg-[#09090b] border border-[#222226] flex items-center justify-center text-[#6366f1] text-xs shrink-0 mt-0.5 shadow-[0_0_8px_rgba(45,212,191,0.15)]">
-                          <Bot className="w-3.5 h-3.5 animate-bounce" />
                         </div>
-                        <div className="bg-[#09090b]/80 backdrop-blur-md border border-[#222226] rounded-xl p-2.5 text-xs text-slate-300 flex items-center gap-2 font-mono shadow-xs">
-                          <RotateCw className="w-3.5 h-3.5 animate-spin text-[#6366f1]" />
-                          <span>AI 모델이 응답을 생성하고 있습니다...</span>
+                      )
+                    )}
+
+                    {isAiLoading && !messages.some((m) => m.isStreaming) && (
+                      <div className="flex gap-2.5 items-start">
+                        <div className="w-6 h-6 rounded-xs bg-[#09090b] border border-[#222226] flex items-center justify-center text-[#6366f1] text-xs shrink-0 mt-0.5 shadow-xs">
+                          <Bot className="w-3.5 h-3.5 animate-pulse text-indigo-400" />
+                        </div>
+                        <div className="bg-[#0c0c0e] border border-[#222226] rounded-xs px-3 py-2 text-xs text-slate-300 flex items-center gap-2.5 font-sans shadow-xs">
+                          <div className="flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 bg-[#6366f1] rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                            <span className="w-1.5 h-1.5 bg-[#6366f1] rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                            <span className="w-1.5 h-1.5 bg-[#6366f1] rounded-full animate-bounce"></span>
+                          </div>
+                          <span className="text-slate-300 text-xs">
+                            {isOnboardingMode ? 'AI 지식 비서가 답변을 준비하고 있습니다...' : 'AI 모델이 응답을 준비하고 있습니다...'}
+                          </span>
                         </div>
                       </div>
                     )}
                   </motion.div>
                 </AnimatePresence>
               </div>
+
+              {/* Floating scroll to bottom pill */}
+              {isScrolledUp && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    isUserScrolledUpRef.current = false;
+                    setIsScrolledUp(false);
+                    scrollToChatBottom(true);
+                  }}
+                  className="absolute bottom-3 right-6 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#121214]/95 border border-[#222226] text-[0.6875rem] text-slate-300 hover:text-white shadow-lg hover:border-[#6366f1] transition-all cursor-pointer group select-none"
+                  title="최신 대화로 스크롤 이동"
+                >
+                  <ChevronDown className="w-3.5 h-3.5 text-[#6366f1] group-hover:translate-y-0.5 transition-transform" />
+                  <span>최신 대화로 이동</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -8681,7 +9110,7 @@ ${projectEvents
                 setShowMentionMenu(false);
                 handleSendMessage();
               }}
-              className="space-y-1.5"
+              className="space-y-1.5 max-w-3xl mx-auto w-full"
             >
               {/* Attached Files Preview Bar */}
               {chatAttachments.length > 0 && (
@@ -8729,63 +9158,21 @@ ${projectEvents
                   {showMentionMenu && (
                     <motion.div
                       ref={mentionDropdownRef}
-                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                      initial={{ opacity: 0, y: 6, scale: 0.99 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.99 }}
                       transition={{ duration: 0.12 }}
-                      className="absolute bottom-full left-0 right-0 mb-1.5 bg-[#09090b]/98 backdrop-blur-md border border-[#222226] rounded-xs shadow-xl z-50 overflow-hidden flex flex-col max-h-72"
+                      className="absolute bottom-full left-0 right-0 mb-2 bg-[#121214] border border-[#222226] rounded-lg shadow-2xl z-50 overflow-hidden flex flex-col max-h-72"
                     >
-                      {/* Header bar with filters and search query badge */}
-                      <div className="flex items-center justify-between px-2.5 py-1.5 bg-[#09090b] border-b border-[#222226] text-[0.6875rem]">
-                        <div className="flex items-center gap-1.5 font-medium text-slate-200">
-                          <div className="w-4 h-4 rounded-xs bg-[#6366f1]/30 flex items-center justify-center text-[#6366f1]">
-                            <AtSign className="w-3 h-3" />
-                          </div>
-                          <span>워크스페이스 폴더 / 파일 참조</span>
-                          {mentionQuery && (
-                            <span className="text-[0.625rem] text-emerald-300 font-mono bg-emerald-950 px-1.5 py-0.2 rounded-xs border border-emerald-700/60">
-                              "{mentionQuery}"
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Filter Mode Tabs */}
-                        <div className="flex items-center gap-0.5 bg-[#09090b] rounded-xs p-0.5 border border-[#222226] text-[0.625rem]">
-                          <button
-                            type="button"
-                            onClick={() => setMentionFilterType('all')}
-                            className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer ${mentionFilterType === 'all' ? 'bg-[#6366f1] text-white font-semibold' : 'text-slate-300 hover:text-white'}`}
-                          >
-                            전체 ({allMentionItems.length})
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setMentionFilterType('folders')}
-                            className={`px-1.5 py-0.5 rounded-xs flex items-center gap-1 transition cursor-pointer ${mentionFilterType === 'folders' ? 'bg-[#6366f1] text-white font-semibold' : 'text-slate-300 hover:text-white'}`}
-                          >
-                            <Folder className="w-2.5 h-2.5 text-amber-400" />
-                            폴더
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setMentionFilterType('files')}
-                            className={`px-1.5 py-0.5 rounded-xs flex items-center gap-1 transition cursor-pointer ${mentionFilterType === 'files' ? 'bg-[#6366f1] text-white font-semibold' : 'text-slate-300 hover:text-white'}`}
-                          >
-                            <FileText className="w-2.5 h-2.5 text-[#38bdf8]" />
-                            파일
-                          </button>
-                        </div>
-                      </div>
-
                       {/* Filtered Item List */}
                       <div
                         ref={mentionListRef}
-                        className="overflow-y-auto p-1 divide-y divide-[#222226]/40 text-xs select-none max-h-56 scroll-smooth"
+                        className="overflow-y-auto p-1.5 space-y-0.5 text-xs select-none max-h-60 scroll-smooth bg-[#121214]"
                       >
                         {filteredMentionItems.length === 0 ? (
-                          <div className="py-5 text-center text-slate-400 text-[0.6875rem] flex flex-col items-center gap-1.5">
-                            <Info className="w-4 h-4 text-slate-400" />
-                            <span>'{mentionQuery}'에 해당하는 워크스페이스 폴더 또는 파일이 없습니다.</span>
+                          <div className="py-6 text-center text-zinc-500 text-xs flex flex-col items-center gap-2">
+                            <Info className="w-4 h-4 text-zinc-500" />
+                            <span>'{mentionQuery}'에 해당하는 폴더 또는 파일이 없습니다.</span>
                           </div>
                         ) : (
                           filteredMentionItems.map((item, index) => {
@@ -8798,46 +9185,39 @@ ${projectEvents
                                 }}
                                 onClick={() => handleSelectMention(item)}
                                 onMouseEnter={() => setMentionSelectedIndex(index)}
-                                className={`flex items-center justify-between px-2.5 py-1.5 rounded-xs cursor-pointer transition-colors ${
+                                className={`group flex items-center justify-between px-3 py-1.5 h-8 rounded-md cursor-pointer transition-colors ${
                                   isSelected
-                                    ? 'bg-[#6366f1] text-white'
-                                    : 'text-slate-200 hover:bg-[#18181b]'
+                                    ? 'bg-white/10 text-zinc-100'
+                                    : 'text-zinc-300 hover:bg-white/5'
                                 }`}
                               >
-                                <div className="flex items-center gap-2 min-w-0 flex-1">
-                                  <div className={`w-5 h-5 rounded-xs flex items-center justify-center shrink-0 ${
-                                    item.type === 'folder'
-                                      ? 'bg-amber-500/20 text-amber-400'
-                                      : 'bg-[#6366f1]/20 text-[#6366f1]'
-                                  }`}>
-                                    {item.type === 'folder' ? (
-                                      <Folder className="w-3.5 h-3.5 text-amber-400" />
-                                    ) : (
-                                      <FileText className="w-3.5 h-3.5 text-[#38bdf8]" />
-                                    )}
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="font-semibold text-xs truncate">
-                                        {item.name}
-                                      </span>
-                                      <span className={`text-[0.5625rem] px-1 py-0.2 rounded-xs font-mono uppercase ${
-                                        item.type === 'folder'
-                                          ? 'bg-amber-950/80 text-amber-300 border border-amber-800/60'
-                                          : 'bg-[#09090b] text-[#38bdf8] border border-[#222226]'
-                                      }`}>
-                                        {item.type === 'folder' ? 'FOLDER' : 'FILE'}
-                                      </span>
-                                    </div>
-                                    <p className={`text-[0.625rem] truncate ${isSelected ? 'text-indigo-100' : 'text-slate-400'}`}>
-                                      {item.detail}
-                                    </p>
-                                  </div>
+                                {/* Left: Monochrome Icon + Name */}
+                                <div className="flex items-center gap-2 min-w-0 flex-1 mr-3">
+                                  {item.type === 'folder' ? (
+                                    <Folder className="w-4 h-4 text-zinc-400 shrink-0" />
+                                  ) : (
+                                    <FileText className="w-4 h-4 text-zinc-400 shrink-0" />
+                                  )}
+                                  <span className="text-xs truncate font-medium">
+                                    {item.name}
+                                  </span>
                                 </div>
 
-                                <span className={`text-[0.625rem] font-mono ml-2 shrink-0 ${isSelected ? 'text-indigo-100' : 'text-slate-400'}`}>
-                                  선택 ↵
-                                </span>
+                                {/* Right: Meta (File count / Size) + Select hint */}
+                                <div className="flex items-center gap-2.5 shrink-0">
+                                  <span className="text-xs text-zinc-500 font-mono">
+                                    {item.detail}
+                                  </span>
+                                  <span
+                                    className={`text-[0.6875rem] font-mono transition-opacity ${
+                                      isSelected
+                                        ? 'text-zinc-300 opacity-100'
+                                        : 'text-zinc-500 opacity-0 group-hover:opacity-100'
+                                    }`}
+                                  >
+                                    선택 ↵
+                                  </span>
+                                </div>
                               </div>
                             );
                           })
@@ -8845,13 +9225,24 @@ ${projectEvents
                       </div>
 
                       {/* Footer Shortcut Navigation Guide */}
-                      <div className="flex items-center justify-between px-2.5 py-1 bg-[#09090b] border-t border-[#222226] text-[0.625rem] text-slate-400">
-                        <div className="flex items-center gap-2">
-                          <span><kbd className="px-1 py-0.2 bg-[#09090b] rounded-xs text-[0.5625rem] border border-[#222226] text-slate-300">↑</kbd><kbd className="px-1 py-0.2 bg-[#09090b] rounded-xs text-[0.5625rem] border border-[#222226] text-slate-300 ml-0.5">↓</kbd> 이동</span>
-                          <span><kbd className="px-1 py-0.2 bg-[#09090b] rounded-xs text-[0.5625rem] border border-[#222226] text-slate-300">Enter</kbd> / <kbd className="px-1 py-0.2 bg-[#09090b] rounded-xs text-[0.5625rem] border border-[#222226] text-slate-300">Tab</kbd> 참조 삽입</span>
-                          <span><kbd className="px-1 py-0.2 bg-[#09090b] rounded-xs text-[0.5625rem] border border-[#222226] text-slate-300">Esc</kbd> 닫기</span>
+                      <div className="flex items-center justify-between px-3 py-1.5 bg-[#121214] border-t border-[#222226] text-[0.6875rem] text-zinc-400">
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center gap-1">
+                            <kbd className="px-1 py-0.2 bg-[#18181b] rounded-xs text-[0.625rem] border border-[#27272a] text-zinc-300">↑</kbd>
+                            <kbd className="px-1 py-0.2 bg-[#18181b] rounded-xs text-[0.625rem] border border-[#27272a] text-zinc-300">↓</kbd>
+                            <span className="text-zinc-500 ml-0.5">이동</span>
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <kbd className="px-1.5 py-0.2 bg-[#18181b] rounded-xs text-[0.625rem] border border-[#27272a] text-zinc-300">Enter</kbd>
+                            <span className="text-zinc-600">/</span>
+                            <kbd className="px-1.5 py-0.2 bg-[#18181b] rounded-xs text-[0.625rem] border border-[#27272a] text-zinc-300">Tab</kbd>
+                            <span className="text-zinc-500 ml-0.5">참조 삽입</span>
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <kbd className="px-1.5 py-0.2 bg-[#18181b] rounded-xs text-[0.625rem] border border-[#27272a] text-zinc-300">Esc</kbd>
+                            <span className="text-zinc-500 ml-0.5">닫기</span>
+                          </span>
                         </div>
-                        <span className="text-[#6366f1] font-medium font-mono">SSOT Reference</span>
                       </div>
                     </motion.div>
                   )}
@@ -9013,10 +9404,10 @@ ${projectEvents
                           setGhostUserInput(ghostTargetEnglish);
                           showToast('✨ 영작 자동 완성');
                         }}
-                        className="px-1.5 py-0.5 rounded-xs hover:bg-[#18181b] text-[#6366f1] hover:text-indigo-300 text-[0.625rem] font-mono flex items-center gap-1 transition cursor-pointer"
+                        className="px-1.5 py-0.5 rounded-xs hover:bg-[#18181b] text-indigo-400 hover:text-indigo-300 text-[0.625rem] font-mono flex items-center gap-1 transition cursor-pointer border border-[#222226]"
                         title="정답 문장 자동 완성"
                       >
-                        <Sparkles className="w-2.5 h-2.5 text-[#6366f1]" />
+                        <Sparkles className="w-2.5 h-2.5 text-indigo-400" />
                         <span>Tab 완성</span>
                       </button>
                     )}
@@ -9024,11 +9415,11 @@ ${projectEvents
 
                   <div className="flex items-center gap-2">
                     {/* Quick Height Preset Buttons - Clean Text Group */}
-                    <div className="flex items-center gap-0.5 text-[0.625rem] font-mono text-slate-400">
+                    <div className="flex items-center gap-0.5 text-[0.625rem] font-mono text-slate-400 bg-[#09090b] px-1 py-0.5 rounded-xs border border-[#222226]">
                       <button
                         type="button"
                         onClick={() => setChatInputHeight(44)}
-                        className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer ${chatInputHeight <= 50 ? 'bg-[#18181b] text-slate-100 font-bold' : 'hover:text-slate-200'}`}
+                        className={`px-1 rounded-xs transition cursor-pointer ${chatInputHeight <= 50 ? 'bg-white/10 text-white font-bold' : 'hover:text-slate-200'}`}
                         title="높이 소 (44px)"
                       >
                         S
@@ -9036,7 +9427,7 @@ ${projectEvents
                       <button
                         type="button"
                         onClick={() => setChatInputHeight(110)}
-                        className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer ${chatInputHeight > 50 && chatInputHeight <= 150 ? 'bg-[#18181b] text-slate-100 font-bold' : 'hover:text-slate-200'}`}
+                        className={`px-1 rounded-xs transition cursor-pointer ${chatInputHeight > 50 && chatInputHeight <= 150 ? 'bg-white/10 text-white font-bold' : 'hover:text-slate-200'}`}
                         title="높이 중 (110px)"
                       >
                         M
@@ -9044,7 +9435,7 @@ ${projectEvents
                       <button
                         type="button"
                         onClick={() => setChatInputHeight(220)}
-                        className={`px-1.5 py-0.5 rounded-xs transition cursor-pointer ${chatInputHeight > 150 ? 'bg-[#18181b] text-slate-100 font-bold' : 'hover:text-slate-200'}`}
+                        className={`px-1 rounded-xs transition cursor-pointer ${chatInputHeight > 150 ? 'bg-white/10 text-white font-bold' : 'hover:text-slate-200'}`}
                         title="높이 대 (220px)"
                       >
                         L
@@ -9078,7 +9469,7 @@ ${projectEvents
                           handleSendGhostMessage();
                         }
                       }}
-                      className="bg-[#6366f1] hover:bg-[#5457e5] active:bg-[#4338ca] text-white h-6 px-2.5 rounded-xs transition flex items-center justify-center cursor-pointer"
+                      className="bg-indigo-600/80 hover:bg-indigo-600 active:bg-indigo-700 text-white border border-indigo-500/40 h-6 px-2.5 rounded-xs transition flex items-center justify-center cursor-pointer shadow-xs"
                       title={ghostWriterLevel !== 'off' ? '영작된 영어 프롬프트로 AI 전송' : '메시지 전송'}
                     >
                       <Send className="w-3 h-3" />
@@ -9123,18 +9514,17 @@ ${projectEvents
               : isSection1Collapsed && isSection3Collapsed
               ? '100%'
               : isSection1Collapsed
-              ? `${pane2Width}%`
+              ? `${pane1Width + pane2Width}%`
               : isSection3Collapsed
               ? `${100 - pane1Width}%`
               : `${pane2Width}%`,
-            minWidth: isSection2Collapsed ? '0px' : '300px',
+            minWidth: isSection2Collapsed ? '0px' : isSection1Collapsed && isSection3Collapsed ? '100%' : '300px',
             opacity: isSection2Collapsed ? 0 : 1,
-            transform: isSection2Collapsed ? 'translateX(-100%)' : 'translateX(0)',
             pointerEvents: isSection2Collapsed ? 'none' : 'auto',
           }}
-          className={`h-full min-h-0 flex flex-col bg-[#09090b] backdrop-blur-md shrink-0 overflow-hidden ${
-            isResizing ? 'transition-none select-none' : 'transition-all duration-300 ease-in-out'
-          } transform min-w-0 z-10 border-r border-l border-[#222226]`}
+          className={`h-full min-h-0 flex-1 flex flex-col bg-[#09090b] backdrop-blur-md shrink-0 overflow-hidden ${
+            isResizing ? 'transition-none select-none' : 'transition-[width,min-width,opacity] duration-300 ease-in-out'
+          } min-w-0 z-10 border-r border-l border-[#222226]`}
           onDragOver={(e) => {
             if (e.dataTransfer.types.includes('Files')) {
               e.preventDefault();
@@ -9184,15 +9574,6 @@ ${projectEvents
                         }`}
                         title={tabFileName}
                       >
-                        {isHtml ? (
-                          <FileCode className="w-3.5 h-3.5 text-indigo-400/80 shrink-0" />
-                        ) : tabFileName.toLowerCase().endsWith('.pdf') ? (
-                          <span className="text-[0.5625rem] font-bold text-rose-400 bg-rose-500/15 border border-rose-500/30 px-1 py-0.2 rounded-xs font-sans shrink-0">
-                            PDF
-                          </span>
-                        ) : (
-                          <FileText className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                        )}
                         <span className="truncate flex-1 text-[0.6875rem]">{tabFileName}</span>
 
                         {/* Unsaved indicator */}
@@ -9245,6 +9626,42 @@ ${projectEvents
                       </button>
                     )}
 
+
+                    {/* Focus Mode (문서 집중 모드) Quick Toggle Button */}
+                    <button
+                      id="editor-focus-mode-toggle"
+                      type="button"
+                      onClick={() => {
+                        const isFocus = isSection1Collapsed && isSection3Collapsed;
+                        if (isFocus) {
+                          setIsSection1Collapsed(false);
+                          setIsSection3Collapsed(false);
+                          showToast('기본 패널 레이아웃이 복원되었습니다.');
+                        } else {
+                          setIsSection1Collapsed(true);
+                          setIsSection3Collapsed(true);
+                          showToast('🎯 문서 집중 모드: 사이드바를 모두 접었습니다.');
+                        }
+                      }}
+                      className={`p-1 rounded-xs border transition flex items-center justify-center cursor-pointer select-none ${
+                        isSection1Collapsed && isSection3Collapsed
+                          ? 'bg-[#18181b] text-indigo-400 border-[#6366f1]'
+                          : 'bg-[#09090b] text-slate-400 border-[#222226] hover:text-white hover:bg-[#18181b]'
+                      }`}
+                      title={
+                        isSection1Collapsed && isSection3Collapsed
+                          ? '문서 집중 모드 해제 (패널 복원)'
+                          : '문서 집중 모드 (사이드바 숨기기)'
+                      }
+                      aria-label="문서 집중 모드 토글"
+                    >
+                      {isSection1Collapsed && isSection3Collapsed ? (
+                        <Minimize2 className="w-3 h-3" />
+                      ) : (
+                        <Maximize2 className="w-3 h-3" />
+                      )}
+                    </button>
+
                     {/* Compact Top-Right Drawer Button (24px wide, 12px high - half size of standard 24px button) */}
                     <button
                       id="editor-toolbar-drawer-toggle"
@@ -9287,6 +9704,25 @@ ${projectEvents
                           <button
                             type="button"
                             onClick={() => {
+                              setEditorTab('wysiwyg');
+                              setSessions((prev) =>
+                                prev.map((s) => (s.id === activeSessionId ? { ...s, editorTab: 'wysiwyg' } : s))
+                              );
+                            }}
+                            className={`h-6 w-6 min-w-[24px] px-0 rounded-xs transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
+                              editorTab === 'wysiwyg'
+                                ? 'bg-[#18181b] text-indigo-400 font-medium'
+                                : 'text-slate-400 hover:text-white hover:bg-[#18181b]/60'
+                            }`}
+                            title="서식 모드 (워드프로세서 방식)"
+                            aria-label="서식 모드"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
                               setEditorTab('edit');
                               setSessions((prev) =>
                                 prev.map((s) => (s.id === activeSessionId ? { ...s, editorTab: 'edit' } : s))
@@ -9297,8 +9733,8 @@ ${projectEvents
                                 ? 'bg-[#18181b] text-white font-medium'
                                 : 'text-slate-400 hover:text-white hover:bg-[#18181b]/60'
                             }`}
-                            title="에디터 전용 모드"
-                            aria-label="에디터 전용 모드"
+                            title="마크다운 소스 모드 (원본)"
+                            aria-label="마크다운 소스 모드"
                           >
                             <Edit3 className="w-3.5 h-3.5 text-slate-200 shrink-0" />
                           </button>
@@ -9344,7 +9780,7 @@ ${projectEvents
                           {/* Divider */}
                           <div className="h-px w-4 bg-[#222226] shrink-0 my-0.5" />
 
-                          {/* Save Document Button (Ctrl+S) */}
+                          {/* Save Document Button */}
                           <button
                             type="button"
                             onClick={handleSaveDocument}
@@ -9353,13 +9789,38 @@ ${projectEvents
                                 ? 'bg-[#6366f1] text-white hover:bg-[#4f46e5] font-semibold'
                                 : 'text-slate-300 hover:bg-[#18181b] hover:text-white'
                             }`}
-                            title="문서 저장 (Ctrl+S)"
+                            title="문서 저장"
                             aria-label="문서 저장"
                           >
                             <Save className="w-3.5 h-3.5 shrink-0" />
                             {isCurrentFileDirty && (
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-300 shrink-0 absolute top-0.5 right-0.5 ring-1 ring-[#09090b]" title="저장되지 않은 변경사항 있음" />
                             )}
+                          </button>
+
+                          {/* Divider */}
+                          <div className="h-px w-4 bg-[#222226] shrink-0 my-0.5" />
+
+                          {/* Undo & Redo */}
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={handleUndo}
+                            className="h-6 w-6 min-w-[24px] px-0 rounded-xs text-slate-300 hover:text-white hover:bg-[#18181b] transition flex items-center justify-center cursor-pointer select-none shrink-0"
+                            title="실행 취소"
+                            aria-label="실행 취소"
+                          >
+                            <Undo2 className="w-3.5 h-3.5 shrink-0" />
+                          </button>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={handleRedo}
+                            className="h-6 w-6 min-w-[24px] px-0 rounded-xs text-slate-300 hover:text-white hover:bg-[#18181b] transition flex items-center justify-center cursor-pointer select-none shrink-0"
+                            title="다시 실행"
+                            aria-label="다시 실행"
+                          >
+                            <Redo2 className="w-3.5 h-3.5 shrink-0" />
                           </button>
 
                           {/* Divider */}
@@ -9678,7 +10139,11 @@ ${projectEvents
             )}
 
               {/* Main Editor Body */}
-              <div className="flex-1 relative overflow-hidden flex flex-row min-h-0 bg-[#0c0c0e]">
+              <div
+                ref={editorContainerRef}
+                style={{ '--editor-font-size': `${editorFontSize}px` } as React.CSSProperties}
+                className="flex-1 relative overflow-hidden flex flex-row min-h-0 bg-[#0c0c0e]"
+              >
                 <div className="h-full relative overflow-hidden flex flex-col min-w-0 w-full">
                   <div className="flex-1 relative overflow-hidden flex flex-col min-h-0">
                     {currentActiveFile.toLowerCase().endsWith('.pdf') ? (
@@ -9708,9 +10173,11 @@ ${projectEvents
                           if (hasUnreadAiChanges) setHasUnreadAiChanges(false);
                         }}
                         editorRef={editorRef}
+                        tiptapRef={tiptapEditorRef}
                         placeholder="# 마크다운 노트&#10;&#10;AI 답변의 [에디터로 내용 전송] 또는 직접 작성..."
                         editorTab={editorTab}
                         renderMarkdownToHtml={renderMarkdownToHtml}
+                        fontSize={editorFontSize}
                       />
                     )}
 
@@ -9803,19 +10270,16 @@ ${projectEvents
               ? '0px'
               : isSection1Collapsed && isSection2Collapsed
               ? '100%'
-              : isSection1Collapsed
-              ? `${100 - pane2Width}%`
               : isSection2Collapsed
               ? `${100 - pane1Width}%`
               : `${100 - pane1Width - pane2Width}%`,
             minWidth: isSection3Collapsed ? '0px' : '180px',
             opacity: isSection3Collapsed ? 0 : 1,
-            transform: isSection3Collapsed ? 'translateX(-100%)' : 'translateX(0)',
             pointerEvents: isSection3Collapsed ? 'none' : 'auto',
           }}
-          className={`h-full min-h-0 flex-1 flex flex-col bg-[#121214] shrink-0 overflow-hidden relative ${
-            isResizing ? 'transition-none select-none' : 'transition-all duration-300 ease-in-out'
-          } transform min-w-0 border-l border-[#222226]`}
+          className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 overflow-hidden relative ${
+            isResizing ? 'transition-none select-none' : 'transition-[width,min-width,opacity] duration-300 ease-in-out'
+          } min-w-0 border-l border-[#222226]`}
           onDragOver={(e) => {
             if (e.dataTransfer.types.includes('Files')) {
               e.preventDefault();
@@ -10025,10 +10489,10 @@ ${projectEvents
                     }}
                     className={`flex items-center justify-between px-2 h-7 cursor-pointer group transition-colors rounded-xs ${
                       focusedTreeItemId === `session:${session.id}`
-                        ? 'bg-[#1c1c20] text-white ring-1 ring-[#6366f1] font-medium shadow-xs'
+                        ? 'bg-[#1c1c20] text-white ring-1 ring-indigo-500/70 font-medium shadow-xs'
                         : isCurrentActiveSession
-                        ? 'text-indigo-300 font-medium bg-[#121214]/60 border-l-2 border-[#6366f1]/80 hover:bg-[#121214]/80'
-                        : 'text-slate-300 hover:bg-[#121214]/70 hover:text-slate-100'
+                        ? 'text-indigo-300 font-medium bg-white/5 border-l-2 border-indigo-500 hover:bg-white/[0.08]'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-slate-100'
                     }`}
                   >
                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
@@ -10131,8 +10595,8 @@ ${projectEvents
                   {isFolderOpen && (
                     <div className="relative pl-5 before:absolute before:left-3 before:top-0 before:bottom-1 before:w-[1px] before:bg-[#222226]">
                       {matchingFiles.length === 0 ? (
-                        <div className="text-[0.6875rem] text-slate-400 italic py-1 pl-3">
-                          (문서 없음)
+                        <div className="text-[0.6875rem] text-slate-500 py-1 pl-3 font-mono select-none">
+                          문서 없음
                         </div>
                       ) : (
                         (() => {
@@ -10217,7 +10681,7 @@ ${projectEvents
                 <div className="mt-2 pt-2 border-t border-[#222226]">
                   <div className="px-3 py-1 text-[0.625rem] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                     <Folder className="w-3.5 h-3.5 text-slate-400" />
-                    <span>OTHER FILES ({unassignedFiles.length})</span>
+                    <span>기타 파일 ({unassignedFiles.length})</span>
                   </div>
                   <div className="mt-0.5 px-1">
                     <RecursiveFolderTree
@@ -11151,6 +11615,13 @@ ${projectEvents
           }, 100);
         }}
         modelOptions={ghostWriterModelOptions}
+        dynamicModelsMap={dynamicProviderModels}
+        onUpdateDynamicModels={(vendor, models) => {
+          setDynamicProviderModels((prev) => ({
+            ...prev,
+            [vendor]: models
+          }));
+        }}
         provider={provider}
         onSelectProvider={handleProviderSelect}
         selectedModel={selectedModel}
@@ -11196,7 +11667,6 @@ ${projectEvents
         isOpen={isSSOTGeneratorModalOpen}
         onClose={() => setIsSSOTGeneratorModalOpen(false)}
         initialFolder={ssotGeneratorInitialFolder}
-        initialTemplate={ssotGeneratorInitialTemplate}
         availableFolders={Array.from(new Set([
           ...sessions.map(s => s.title),
           ...Object.values(fileFolders).filter(Boolean)
@@ -11218,6 +11688,10 @@ ${projectEvents
             return acc;
           }, {} as Record<string, string[]>)
         }
+        availableTemplates={Object.keys(files).filter(f => f.endsWith('.md') && !f.startsWith('.podium/'))}
+        availableModels={availableChatModels}
+        currentModel={roleModels.ssot || roleModels.architect || selectedModel || 'gemini-3.8-flash'}
+        currentProvider={provider}
         onGenerate={(config) => {
           setIsSSOTGeneratorModalOpen(false);
           handleStartVibeCanvas(config);
@@ -11285,20 +11759,6 @@ ${projectEvents
         defaultFolder={activeSession?.title || fileFolders[currentActiveFile] || 'docs'}
         existingFiles={Object.keys(files)}
         availableFolders={Array.from(new Set([activeSession?.title || 'docs', 'docs', ...sessions.map((s) => s.title)]))}
-      />
-
-      {/* Guest Mode Feature Gating Modal */}
-      <GuestFeatureGateModal
-        isOpen={isGuestGateModalOpen}
-        onClose={() => setIsGuestGateModalOpen(false)}
-        featureName={guestGateFeature.name}
-        featureDescription={guestGateFeature.description}
-        featureIcon={guestGateFeature.icon}
-        onUpgrade={() => {
-          setIsGuestGateModalOpen(false);
-          setCurrentUser(null);
-          showToast('로그인 또는 회원가입을 완료하면 로컬 작업 내용이 계정에 연동됩니다.', 'info');
-        }}
       />
 
       {/* Council of Critics Multi-Perspective Document Review Modal */}

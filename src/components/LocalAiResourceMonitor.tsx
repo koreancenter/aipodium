@@ -20,22 +20,6 @@ interface LoadedModelInfo {
   expiresAt?: string;
 }
 
-// 12-step btop gradient palette from White (#ffffff) to Deep Orange (#ea580c)
-const BTOP_COLOR_RAMP = [
-  '#ffffff', // 1: Pure White
-  '#fff3ea', // 2: Warm White
-  '#fee5d3', // 3: Soft Peach
-  '#fdd2b4', // 4: Light Apricot
-  '#fdb786', // 5: Peach Orange
-  '#fc9e5b', // 6: Warm Amber Orange
-  '#fb8835', // 7: Bright Orange
-  '#f97316', // 8: Vivid Orange
-  '#f0630e', // 9: Vibrant Deep Orange
-  '#ea580c', // 10: Deep Orange
-  '#d64a06', // 11: Intense Deep Orange
-  '#c2410c', // 12: Peak Rich Deep Orange
-];
-
 export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
   endpoint,
   isGenerating,
@@ -52,43 +36,24 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
   const cleanEndpoint = /^https?:\/\//i.test(rawEndpoint) ? rawEndpoint : `http://${rawEndpoint}`;
   const isLocalActive = provider === 'local-pc' || provider === 'local-server';
 
-  // Helper to render btop-style colon progress bar
-  const renderBtopColonBar = (percent: number, totalColons = 12) => {
+  // Helper to render micro segment LED bar: 10 segments (width: 2px, height: 7px, gap: 1.5px, rounded: 0.5px)
+  const renderSegmentBar = (percent: number) => {
     const clamped = Math.max(0, Math.min(100, percent));
-    const activeCount = Math.round((clamped / 100) * totalColons);
-    const effectiveActive = clamped > 0 && activeCount === 0 ? 1 : activeCount;
-    const isOverThreshold = percent > 85;
+    const activeCount = Math.min(10, Math.floor(clamped / 10));
+    const activeColor = clamped >= 60 ? 'bg-orange-400' : 'bg-indigo-500';
 
     return (
-      <span className="font-mono inline-flex items-center select-none font-bold tracking-[0.5px]">
-        {Array.from({ length: totalColons }).map((_, i) => {
-          const isFilled = i < effectiveActive;
-          let color = '#333748';
-          if (isFilled) {
-            const colonPercent = ((i + 1) / totalColons) * 100;
-            // Transition from deep orange to warning red when resource usage exceeds 85%
-            if (colonPercent > 85 || (isOverThreshold && i >= 10)) {
-              color = i === totalColons - 1 ? '#dc2626' : '#ef4444';
-            } else {
-              color = BTOP_COLOR_RAMP[i] || '#ea580c';
-            }
-          }
-          return (
-            <span
-              key={i}
-              style={{ color }}
-              className="transition-colors duration-200 leading-none"
-            >
-              :
-            </span>
-          );
-        })}
+      <span className="inline-flex items-center gap-[1.5px] select-none" aria-hidden="true">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <span
+            key={i}
+            className={`w-[2px] h-[7px] rounded-[0.5px] transition-colors duration-150 ${
+              i < activeCount ? activeColor : 'bg-white/10'
+            }`}
+          />
+        ))}
       </span>
     );
-  };
-
-  const getMetricTextColor = (percent: number) => {
-    return percent > 85 ? 'text-[#ef4444]' : 'text-[#ea580c]';
   };
 
   // Estimate baseline VRAM if ps is blocked by browser CORS or model known
@@ -241,16 +206,6 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
   const isCpuWarning = cpuPercent > 85;
   const hasWarning = isVramWarning || isCpuWarning;
 
-  const getBorderColorClass = () => {
-    if (hasWarning) {
-      return 'bg-[#1c1417] border-[#ef4444]/80 shadow-[0_0_8px_rgba(239,68,68,0.2)]';
-    }
-    if (isGenerating) {
-      return 'bg-[#0c0c0e] border-[#ea580c]/60';
-    }
-    return 'bg-[#0c0c0e] border-[#222226] hover:border-[#6366f1]/50';
-  };
-
   const getTooltipText = () => {
     if (!isLocalActive) {
       return '로컬 AI 리소스 모니터 (현재 클라우드 AI 모드)\n클릭하여 로컬 Ollama 또는 전용 추론 서버로 전환할 수 있습니다.';
@@ -275,26 +230,26 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
         <button
           type="button"
           onClick={onOpenSettings}
-          className={`local-ai-resource-monitor h-6 px-2 rounded-xs border text-[0.6875rem] font-mono transition flex items-center gap-2.5 shrink-0 select-none cursor-pointer ${getBorderColorClass()}`}
+          className="local-ai-resource-monitor inline-flex items-center gap-2.5 shrink-0 select-none cursor-pointer hover:opacity-80 transition-opacity focus:outline-none"
           title={getTooltipText()}
         >
-          <Cpu className={`w-3.5 h-3.5 transition-colors ${hasWarning ? 'text-red-400' : 'text-slate-400'}`} />
+          <Cpu className={`w-3.5 h-3.5 transition-colors ${hasWarning ? 'text-red-400' : 'text-zinc-400'}`} />
           {/* VRAM Indicator */}
           <div className="flex items-center gap-1.5 leading-none">
-            <span className="text-white font-semibold">VRAM</span>
-            {renderBtopColonBar(vramPercent, 12)}
-            <span className={`${getMetricTextColor(vramPercent)} font-bold min-w-[24px] text-right tabular-nums transition-colors duration-200`}>
+            <span className="text-[10px] font-medium text-zinc-400">VRAM</span>
+            {renderSegmentBar(vramPercent)}
+            <span className="text-[11px] font-mono font-medium text-zinc-300 min-w-[24px] text-right tabular-nums">
               {vramPercent}%
             </span>
           </div>
 
-          <span className="text-[#222226]">|</span>
+          <span className="text-zinc-600">|</span>
 
           {/* CPU Indicator */}
           <div className="flex items-center gap-1.5 leading-none">
-            <span className="text-white font-semibold">CPU</span>
-            {renderBtopColonBar(cpuPercent, 12)}
-            <span className={`${getMetricTextColor(cpuPercent)} font-bold min-w-[24px] text-right tabular-nums transition-colors duration-200`}>
+            <span className="text-[10px] font-medium text-zinc-400">CPU</span>
+            {renderSegmentBar(cpuPercent)}
+            <span className="text-[11px] font-mono font-medium text-zinc-300 min-w-[24px] text-right tabular-nums">
               {cpuPercent}%
             </span>
           </div>
@@ -303,32 +258,32 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
     );
   }
 
-  // Standard Bottom Statusbar Variant (Matches target CSS selector footer > div:nth-of-type(2) > div:nth-of-type(1) > button:nth-of-type(1))
+  // Standard Bottom Statusbar Variant (Flat inline indicator)
   return (
     <div className="local-ai-resource-monitor relative inline-flex items-center">
       <button
         type="button"
         onClick={onOpenSettings}
-        className={`local-ai-resource-monitor h-5 px-2 rounded-xs border text-[0.625rem] font-mono transition flex items-center gap-2.5 shrink-0 select-none cursor-pointer ${getBorderColorClass()}`}
+        className="local-ai-resource-monitor inline-flex items-center gap-2.5 shrink-0 select-none cursor-pointer hover:opacity-80 transition-opacity focus:outline-none"
         title={getTooltipText()}
       >
-        {/* VRAM Metric: VRAM :::::::::::: 0% */}
+        {/* VRAM Metric */}
         <div className="flex items-center gap-1.5 leading-none">
-          <span className="text-white font-semibold">VRAM</span>
-          {renderBtopColonBar(vramPercent, 12)}
-          <span className={`${getMetricTextColor(vramPercent)} font-bold min-w-[22px] text-right tabular-nums transition-colors duration-200`}>
+          <span className="text-[10px] font-medium text-zinc-400">VRAM</span>
+          {renderSegmentBar(vramPercent)}
+          <span className="text-[11px] font-mono font-medium text-zinc-300 min-w-[24px] text-right tabular-nums">
             {vramPercent}%
           </span>
         </div>
 
         {/* Divider */}
-        <span className="text-slate-600">|</span>
+        <span className="text-zinc-600">|</span>
 
-        {/* CPU Metric: CPU :::::::::::: 0% */}
+        {/* CPU Metric */}
         <div className="flex items-center gap-1.5 leading-none">
-          <span className="text-white font-semibold">CPU</span>
-          {renderBtopColonBar(cpuPercent, 12)}
-          <span className={`${getMetricTextColor(cpuPercent)} font-bold min-w-[22px] text-right tabular-nums transition-colors duration-200`}>
+          <span className="text-[10px] font-medium text-zinc-400">CPU</span>
+          {renderSegmentBar(cpuPercent)}
+          <span className="text-[11px] font-mono font-medium text-zinc-300 min-w-[24px] text-right tabular-nums">
             {cpuPercent}%
           </span>
         </div>

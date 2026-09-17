@@ -32,10 +32,10 @@ export const AcademicDisclaimerModal: React.FC<AcademicDisclaimerModalProps> = (
             </div>
             <div>
               <h2 id="disclaimer-title" className="text-sm sm:text-base font-semibold text-zinc-100 tracking-tight">
-                {isKr ? 'AI Podium 학술 베타 서비스 이용 및 법적 면책 고지' : 'Academic & Beta Disclaimer'}
+                {isKr ? 'AI Podium 서비스 이용 및 법적 면책 고지' : 'Service & Legal Disclaimer'}
               </h2>
               <p className="text-xs text-zinc-400 mt-0.5">
-                aipodium.net · {isKr ? '로컬 우선 학술 지식 플랫폼' : 'Local-First Academic Knowledge Platform'}
+                aipodium.net · {isKr ? '로컬 우선 통합 지식 플랫폼' : 'Local-First Unified Knowledge Platform'}
               </p>
             </div>
           </div>
@@ -58,12 +58,12 @@ export const AcademicDisclaimerModal: React.FC<AcademicDisclaimerModalProps> = (
             <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
             <div>
               <strong className="block text-amber-300 font-medium mb-0.5">
-                {isKr ? '학술 연구자 및 사용자 필독 안내' : 'Important Notice for Academic Researchers'}
+                {isKr ? '사용자 필독 안내' : 'Important Notice for Users'}
               </strong>
               <span className="text-zinc-300">
                 {isKr
-                  ? 'AI Podium은 사용자의 로컬 컴퓨터에서 구동되는 독립형 학술 도구입니다. 데이터의 보관, AI 모델의 결과 검증 및 사용 요금에 관한 아래의 핵심 정책을 반드시 확인하시기 바랍니다.'
-                  : 'AI Podium operates client-side as an independent academic tool. Please review the core policies regarding local data ownership, AI generation verification, and billing responsibility.'}
+                  ? 'AI Podium은 사용자의 로컬 컴퓨터에서 구동되는 독립형 지식 도구입니다. 데이터의 보관, AI 모델의 결과 검증 및 사용 요금에 관한 아래의 핵심 정책을 반드시 확인하시기 바랍니다.'
+                  : 'AI Podium operates client-side as an independent knowledge tool. Please review the core policies regarding local data ownership, AI generation verification, and billing responsibility.'}
               </span>
             </div>
           </div>

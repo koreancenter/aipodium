@@ -43,7 +43,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-semibold text-zinc-100 tracking-tight">
-                {isKr ? 'AI Podium 정책 및 학술 면책 고지' : 'AI Podium Policies & Academic Disclaimers'}
+                {isKr ? 'AI Podium 정책 및 면책 고지' : 'AI Podium Policies & Disclaimers'}
               </h2>
               <p className="text-xs text-zinc-400 mt-0.5">
                 {isKr ? '로컬 중심 아키텍처 및 개인정보 보호 기준' : 'Local-First Architecture and Privacy Standards'}
@@ -74,7 +74,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
             }`}
           >
             <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-            <span>{isKr ? '학술 면책 고지' : 'Disclaimer'}</span>
+            <span>{isKr ? '면책 고지' : 'Disclaimer'}</span>
           </button>
 
           <button

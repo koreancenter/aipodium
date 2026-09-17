@@ -27,10 +27,10 @@ test('applyThemeToDocument applies fixed Deep Charcoal background and Electric P
 
   applyThemeToDocument('dense', 'md');
   assert.equal(dataset.compactness, 'dense');
-  assert.equal(styleProps['--bg-main'], '#121318');
-  assert.equal(styleProps['--bg-surface'], '#1e202b');
-  assert.equal(styleProps['--bg-editor'], '#16171e');
-  assert.equal(styleProps['--border-color'], '#2e3142');
+  assert.equal(styleProps['--bg-main'], '#09090b');
+  assert.equal(styleProps['--bg-surface'], '#121214');
+  assert.equal(styleProps['--bg-editor'], '#0c0c0e');
+  assert.equal(styleProps['--border-color'], '#222226');
   assert.equal(styleProps['--text-main'], '#e2e8f0');
   assert.equal(styleProps['--text-muted'], '#94a3b8');
   assert.equal(styleProps['--accent-primary'], '#6366f1');

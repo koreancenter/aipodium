@@ -5,8 +5,7 @@ import {
   Upload,
   RefreshCw,
   ShieldCheck,
-  CheckCircle,
-  Layers
+  CheckCircle
 } from 'lucide-react';
 import {
   getStorageQuotaEstimate,
@@ -249,7 +248,6 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
       <div className="bg-[#0c0c0e] border border-[#222226] rounded-md p-3.5 space-y-2">
         <div className="flex items-center justify-between pb-1">
           <div className="flex items-center gap-2">
-            <Layers className="w-3.5 h-3.5 text-indigo-400" />
             <h4 className="text-xs font-semibold text-slate-100">데이터 백업 및 스냅샷 복원</h4>
             <HelpTooltip
               side="bottom"

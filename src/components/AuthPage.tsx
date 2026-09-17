@@ -17,7 +17,10 @@ import {
   LifeBuoy,
   X,
   AlertTriangle,
-  RotateCcw
+  RotateCcw,
+  Cpu,
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import { authService, AuthUser } from '../services/authService';
 import { PolicyModal, PolicyType } from './PolicyModal';
@@ -161,10 +164,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const user = authService.getCurrentUser() || authService.loginAsGuest('Research Scholar');
+      const user = authService.getCurrentUser() || authService.loginAsGuest('Workspace User');
       onAuthenticated(user);
     } catch (err: any) {
-      setErrorMsg(err?.message || (lang === 'KR' ? '연구 워크스페이스를 여는데 실패했습니다.' : 'Failed to open research workspace.'));
+      setErrorMsg(err?.message || (lang === 'KR' ? '워크스페이스를 여는데 실패했습니다.' : 'Failed to open workspace.'));
       setIsLoading(false);
     }
   };
@@ -227,7 +230,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
       setSuccessMsg(t.pinConfiguredSuccess);
 
       setTimeout(() => {
-        const user = authService.getCurrentUser() || authService.loginAsGuest('Research Scholar');
+        const user = authService.getCurrentUser() || authService.loginAsGuest('Workspace User');
         onAuthenticated(user, vaultKey);
       }, 400);
     } catch (err: any) {
@@ -291,7 +294,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
         setSuccessMsg(t.unlockedSuccess);
         setTimeout(() => {
-          const user = authService.getCurrentUser() || authService.loginAsGuest('Research Scholar');
+          const user = authService.getCurrentUser() || authService.loginAsGuest('Workspace User');
           onAuthenticated(user, vaultKey || undefined);
         }, 250);
       } else {
@@ -437,7 +440,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
         <header className="w-full flex items-center justify-between pb-6 border-b border-white/[0.08]">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-md bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
-              <GraduationCap className="w-5 h-5 text-indigo-400" />
+              <Sparkles className="w-5 h-5 text-indigo-400" />
             </div>
             <div className="flex items-center gap-2.5">
               <span className="text-base font-semibold tracking-tight text-zinc-100">
@@ -492,10 +495,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
           {/* Left Column (7 cols): Academic Value Proposition & Architectural Pillars */}
           <div className="lg:col-span-7 space-y-8">
             <div className="space-y-3">
-              <h1 className="text-2xl sm:text-3xl xl:text-4xl font-semibold tracking-tight leading-snug text-zinc-100">
+              <h1 className="text-2xl sm:text-3xl xl:text-4xl font-semibold tracking-tight leading-snug text-zinc-100 break-keep">
                 {t.heroTitle}
               </h1>
-              <p className="text-sm sm:text-base text-zinc-400 leading-relaxed max-w-xl">
+              <p className="text-sm sm:text-base text-zinc-400 leading-relaxed max-w-xl break-keep">
                 {t.heroDesc}
               </p>
             </div>
@@ -516,7 +519,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
               <div className="flex items-start gap-3.5 p-3.5 rounded-md border border-transparent hover:border-white/[0.06] hover:bg-white/[0.02] transition-colors">
                 <div className="w-8 h-8 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 mt-0.5">
-                  <FileText className="w-4 h-4" />
+                  <Cpu className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-zinc-200">{t.card2Title}</div>
@@ -528,7 +531,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
               <div className="flex items-start gap-3.5 p-3.5 rounded-md border border-transparent hover:border-white/[0.06] hover:bg-white/[0.02] transition-colors">
                 <div className="w-8 h-8 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 mt-0.5">
-                  <KeyRound className="w-4 h-4" />
+                  <Layers className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-zinc-200">{t.card3Title}</div>
@@ -541,8 +544,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
           </div>
 
           {/* Right Column (5 cols): Academic Onboarding & Security Gateway Card */}
-          <div className="lg:col-span-5 w-full flex justify-center lg:justify-end">
-            <div className="w-full max-w-[440px] bg-[#121214] border border-white/[0.08] rounded-xl p-6 sm:p-8 flex flex-col justify-between">
+          <div className="lg:col-span-5 w-full flex flex-col items-center lg:items-end">
+            <div className="w-full max-w-md bg-[#121214] border border-white/[0.08] rounded-xl p-6 sm:p-8">
               <div>
                 {/* Status Feedback Banners */}
                 {errorMsg && (
@@ -964,14 +967,43 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                 )}
               </div>
 
-              {/* In-Card Confidentiality Note */}
-              <div className="mt-6 pt-4 border-t border-white/[0.06] text-center">
-                <p className="text-[11px] text-zinc-400 leading-relaxed flex items-center justify-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-zinc-400 shrink-0 inline" />
-                  <span>{t.academicConfidentialityTitle}: {t.academicConfidentialityDesc}</span>
-                </p>
+            </div>
+
+            {/* Under-Card System Architecture & Trust Badges (Visual Balance 방안 2) */}
+            <div className="w-full max-w-md mt-3.5 grid grid-cols-3 gap-2 text-center select-none">
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-2.5 flex flex-col items-center justify-center transition-colors hover:border-white/10">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 mb-1" />
+                <span className="text-[0.6875rem] font-medium text-zinc-200">
+                  {lang === 'KR' ? '100% 로컬 격리' : '100% Local'}
+                </span>
+                <span className="text-[0.625rem] text-zinc-400 mt-0.5">
+                  {lang === 'KR' ? '브라우저 단독 보관' : 'In-Browser Only'}
+                </span>
+              </div>
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-2.5 flex flex-col items-center justify-center transition-colors hover:border-white/10">
+                <Cpu className="w-4 h-4 text-indigo-400 mb-1" />
+                <span className="text-[0.6875rem] font-medium text-zinc-200">
+                  {lang === 'KR' ? '멀티 AI 하모니' : 'Multi-AI Harmony'}
+                </span>
+                <span className="text-[0.625rem] text-zinc-400 mt-0.5">
+                  {lang === 'KR' ? '클라우드 & 로컬' : 'Cloud & Local'}
+                </span>
+              </div>
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-2.5 flex flex-col items-center justify-center transition-colors hover:border-white/10">
+                <Lock className="w-4 h-4 text-amber-400 mb-1" />
+                <span className="text-[0.6875rem] font-medium text-zinc-200">
+                  {lang === 'KR' ? '보안 금고 암호화' : 'Encrypted Vault'}
+                </span>
+                <span className="text-[0.625rem] text-zinc-400 mt-0.5">
+                  {lang === 'KR' ? 'PIN & 복구 키' : 'PIN & Master Key'}
+                </span>
               </div>
             </div>
+
+            {/* Under-Card 1-Line Subtle Meta Text */}
+            <p className="w-full max-w-md mt-2.5 px-1 text-center lg:text-right text-[0.6875rem] text-zinc-400">
+              {t.academicConfidentialityTitle}
+            </p>
           </div>
         </main>
 

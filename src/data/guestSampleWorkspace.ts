@@ -92,7 +92,7 @@ export const GUEST_SAMPLE_FILES: Record<string, string> = {
 };
 
 export const GUEST_SAMPLE_FOLDERS: Record<string, string> = {
-  'welcome.md': '시작 가이드',
-  'ai_guide.md': '시작 가이드',
+  'welcome.md': 'AI 지식 비서',
+  'ai_guide.md': 'AI 지식 비서',
   'AI_Architecture_Whitepaper.pdf': '문서 라이브러리',
 };

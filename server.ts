@@ -205,6 +205,44 @@ async function startServer() {
     }
   });
 
+  // API route to query active models for a registered provider
+  app.post("/api/models", async (req, res) => {
+    try {
+      const { vendor = 'gemini', apiKey: clientApiKey } = req.body;
+      const trimmedKey = typeof clientApiKey === 'string' ? clientApiKey.trim() : '';
+
+      const catalogMap: Record<string, Array<{ id: string; name: string; desc: string; tier: string }>> = {
+        gemini: [
+          { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', desc: '초고속 종합', tier: '⚡ Ultra Fast' },
+          { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', desc: '고성능·추론', tier: '💎 Premium Depth' },
+          { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash-Lite', desc: '초저지연', tier: '⚡ Lightning Fast' }
+        ],
+        openai: [
+          { id: 'gpt-4o', name: 'GPT-4o', desc: '플래그십', tier: '🌟 Flagship' },
+          { id: 'gpt-4o-mini', name: 'GPT-4o Mini', desc: '고속 경량', tier: '⚡ Fast' },
+          { id: 'o3-mini', name: 'o3-mini', desc: '심층 추론', tier: '🧠 Reasoning' }
+        ],
+        anthropic: [
+          { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', desc: '정밀 코딩', tier: '🎯 Precision' },
+          { id: 'claude-3.5-haiku', name: 'Claude 3.5 Haiku', desc: '초경량 고속', tier: '⚡ Fast' }
+        ],
+        deepseek: [
+          { id: 'deepseek-r1', name: 'DeepSeek R1', desc: '심층 추론', tier: '🧠 High Reasoning' },
+          { id: 'deepseek-v3', name: 'DeepSeek V3', desc: '가성비 코딩', tier: '⚖️ Balanced' }
+        ],
+        groq: [
+          { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B Groq', desc: '초고속 LPU', tier: '⚡ LPU Fast' },
+          { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B', desc: 'MoE 고속', tier: '⚡ High Throughput' }
+        ]
+      };
+
+      const models = catalogMap[vendor] || catalogMap.gemini;
+      return res.json({ models, vendor });
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Failed to fetch models' });
+    }
+  });
+
   // API route for Chat
   app.post("/api/chat", async (req, res) => {
     // 1. Enforce Rate Limiting
@@ -257,6 +295,9 @@ ${safeEditorContent || "(Document is empty)"}
 Please provide a helpful, concise response. If the user asks for suggestions or code based on the document, provide it. Keep your formatting in Markdown.`;
       }
 
+      // Check if streaming requested
+      const isStreamingRequested = req.body?.stream === true || req.headers.accept?.includes('text/event-stream');
+
       // If Gemini API Key is not configured
       if (!effectiveApiKey) {
         if (cleanMessage.includes('[양식 구조 가이드]') || cleanMessage.includes('SSOT 문서') || cleanMessage.includes('Vibe Canvas')) {
@@ -266,14 +307,32 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
         }
 
         const fallbackText = generateLocalAssistantResponse(cleanMessage, safeEditorContent, systemInstruction);
+        const usage = {
+          prompt: Math.ceil(cleanMessage.length / 4),
+          completion: Math.ceil(fallbackText.length / 4),
+          total: Math.ceil((cleanMessage.length + fallbackText.length) / 4),
+          costEstimate: '로컬 안내 모드 (0원)'
+        };
+
+        if (isStreamingRequested) {
+          res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+          res.setHeader('Cache-Control', 'no-cache, no-transform');
+          res.setHeader('Connection', 'keep-alive');
+          res.flushHeaders?.();
+
+          // Stream chunks of fallback text
+          const chunks = fallbackText.match(/.{1,16}/gs) || [fallbackText];
+          for (const chunk of chunks) {
+            res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+          }
+          res.write(`data: ${JSON.stringify({ done: true, usage, groundingSources: [] })}\n\n`);
+          res.end();
+          return;
+        }
+
         return res.json({
           text: fallbackText,
-          usage: {
-            prompt: Math.ceil(cleanMessage.length / 4),
-            completion: Math.ceil(fallbackText.length / 4),
-            total: Math.ceil((cleanMessage.length + fallbackText.length) / 4),
-            costEstimate: '로컬 안내 모드 (0원)'
-          },
+          usage,
           groundingSources: []
         });
       }
@@ -322,6 +381,56 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
         model: aiModel,
         config
       });
+
+      if (isStreamingRequested) {
+        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders?.();
+
+        const streamResponse = await chat.sendMessageStream({ message: cleanMessage });
+        let accumulatedText = '';
+        let lastCandidate: any = null;
+
+        for await (const chunk of streamResponse) {
+          const c = chunk as any;
+          const chunkText = c.text || '';
+          if (chunkText) {
+            accumulatedText += chunkText;
+            res.write(`data: ${JSON.stringify({ chunk: chunkText })}\n\n`);
+          }
+          if (c.candidates?.[0]) {
+            lastCandidate = c.candidates[0];
+          }
+        }
+
+        // Extract token usage and grounding sources
+        const promptTokens = Math.ceil(cleanMessage.length / 4);
+        const completionTokens = Math.ceil(accumulatedText.length / 4);
+        let groundingSources: { title: string; url: string }[] = [];
+        const groundingMetadata = lastCandidate?.groundingMetadata;
+        if (groundingMetadata?.groundingChunks && Array.isArray(groundingMetadata.groundingChunks)) {
+          groundingSources = groundingMetadata.groundingChunks
+            .map((item: any) => ({
+              title: item.web?.title || 'Google 웹 검색 출처',
+              url: item.web?.uri || ''
+            }))
+            .filter((src: any) => Boolean(src.url));
+        }
+
+        res.write(`data: ${JSON.stringify({
+          done: true,
+          usage: {
+            prompt: promptTokens,
+            completion: completionTokens,
+            total: promptTokens + completionTokens,
+            costEstimate: 'Gemini Free Tier (약 0원)'
+          },
+          groundingSources
+        })}\n\n`);
+        res.end();
+        return;
+      }
 
       const response = await chat.sendMessage({ message: cleanMessage });
 
@@ -373,6 +482,12 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
         safeErrorMessage = "Gemini API 키가 유효하지 않거나 접근 권한이 없습니다. 설정에서 키를 확인해 주세요.";
       } else if (statusCode === 400) {
         safeErrorMessage = "요청 매개변수가 올바르지 않습니다.";
+      }
+
+      if (res.headersSent) {
+        res.write(`data: ${JSON.stringify({ error: safeErrorMessage })}\n\n`);
+        res.end();
+        return;
       }
 
       res.status(statusCode >= 400 && statusCode < 600 ? statusCode : 500).json({

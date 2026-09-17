@@ -35,15 +35,18 @@ import {
 import { TableFloatingBubbleMenu } from './TableFloatingBubbleMenu';
 import { TextFloatingBubbleMenu, TextFormatAction } from './TextFloatingBubbleMenu';
 import { VisualTableModal } from './VisualTableModal';
+import { TiptapWysiwygEditor, TiptapWysiwygEditorRef } from './TiptapWysiwygEditor';
 
-interface OptimizedEditorProps {
+export interface OptimizedEditorProps {
   value: string;
   onChange: (newValue: string) => void;
   onFocus?: () => void;
   editorRef?: React.RefObject<HTMLTextAreaElement | null>;
+  tiptapRef?: React.Ref<TiptapWysiwygEditorRef>;
   placeholder?: string;
-  editorTab: 'edit' | 'split' | 'preview';
+  editorTab: 'wysiwyg' | 'edit' | 'split' | 'preview';
   renderMarkdownToHtml: (md: string) => string;
+  fontSize?: number;
 }
 
 interface SlashCommandItem {
@@ -217,9 +220,11 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
   onChange,
   onFocus,
   editorRef: externalRef,
+  tiptapRef,
   placeholder,
   editorTab,
-  renderMarkdownToHtml
+  renderMarkdownToHtml,
+  fontSize
 }) => {
   const [localValue, setLocalValue] = useState(value);
   const internalRef = useRef<HTMLTextAreaElement>(null);
@@ -1924,6 +1929,22 @@ ${targetText}
     trimmed.startsWith('<html') ||
     (trimmed.startsWith('<div') && trimmed.includes('class="sheet-card"'));
 
+  if (editorTab === 'wysiwyg') {
+    return (
+      <TiptapWysiwygEditor
+        ref={tiptapRef}
+        value={localValue}
+        onChange={(newMd) => {
+          setLocalValue(newMd);
+          onChange(newMd);
+        }}
+        onFocus={onFocus}
+        placeholder={placeholder}
+        fontSize={fontSize}
+      />
+    );
+  }
+
   if (editorTab === 'preview') {
     if (isHtmlDoc) {
       return (
@@ -1940,14 +1961,19 @@ ${targetText}
 
     return (
       <div
-        id="markdown-preview"
-        style={{
-          background: 'var(--bg-editor)',
-          color: 'var(--text-primary)'
-        }}
-        className="w-full h-full p-4 overflow-y-auto text-xs leading-normal font-sans select-text break-words [word-break:break-word] [overflow-wrap:anywhere] markdown-preview prose prose-invert max-w-none custom-scrollbar"
-        dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(localValue) }}
-      />
+        className="w-full h-full overflow-y-auto custom-scrollbar"
+        style={{ background: 'var(--bg-editor)' }}
+      >
+        <div
+          id="markdown-preview"
+          style={{
+            color: 'var(--text-primary)',
+            fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)'
+          }}
+          className="max-w-3xl mx-auto px-6 py-8 min-h-full leading-[1.65] font-sans select-text break-words [word-break:break-word] [overflow-wrap:anywhere] markdown-preview"
+          dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(localValue) }}
+        />
+      </div>
     );
   }
 
@@ -1985,9 +2011,10 @@ ${targetText}
             spellCheck={false}
             style={{
               background: 'var(--bg-editor)',
-              color: 'var(--text-main)'
+              color: 'var(--text-main)',
+              fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)'
             }}
-            className="w-full flex-1 font-mono text-xs px-3.5 pt-9 pb-12 resize-none border-none focus:outline-none leading-relaxed selection:bg-[#6366f1]/40 selection:text-white placeholder:opacity-40 whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] custom-scrollbar"
+            className="w-full flex-1 font-mono px-3.5 pt-9 pb-12 resize-none border-none focus:outline-none leading-relaxed selection:bg-[#6366f1]/40 selection:text-white placeholder:opacity-40 whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] custom-scrollbar"
           />
 
           {/* Floating Slash Command / Markdown Autocomplete Menu */}
@@ -2065,9 +2092,10 @@ ${targetText}
               ref={previewContainerRef}
               style={{
                 background: 'var(--bg-editor)',
-                color: 'var(--text-primary)'
+                color: 'var(--text-primary)',
+                fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)'
               }}
-              className="flex-1 w-full p-3.5 overflow-y-auto text-xs leading-normal font-sans select-text break-words [word-break:break-word] [overflow-wrap:anywhere] markdown-preview prose prose-invert max-w-none custom-scrollbar"
+              className="flex-1 w-full p-5 overflow-y-auto leading-[1.65] font-sans select-text break-words [word-break:break-word] [overflow-wrap:anywhere] markdown-preview custom-scrollbar"
               dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(localValue) }}
             />
           )}
@@ -2113,9 +2141,10 @@ ${targetText}
         spellCheck={false}
         style={{
           background: 'var(--bg-editor)',
-          color: 'var(--text-main)'
+          color: 'var(--text-main)',
+          fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)'
         }}
-        className="w-full flex-1 font-mono text-xs px-3.5 pt-9 pb-12 resize-none border-none focus:outline-none leading-relaxed selection:bg-[#6366f1]/40 selection:text-white placeholder:opacity-40 whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] custom-scrollbar"
+        className="w-full flex-1 font-mono px-3.5 pt-9 pb-12 resize-none border-none focus:outline-none leading-relaxed selection:bg-[#6366f1]/40 selection:text-white placeholder:opacity-40 whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] custom-scrollbar"
       />
 
       {/* Floating Slash Command / Markdown Autocomplete Menu */}

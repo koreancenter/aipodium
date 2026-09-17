@@ -34,10 +34,7 @@ import {
   Terminal,
   CheckCheck,
   AlertTriangle,
-  Search,
-  Zap,
-  FileText,
-  Coins
+  Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SecuritySettings, SecurityConfig, DEFAULT_SECURITY_CONFIG } from './SecuritySettings';
@@ -47,6 +44,29 @@ import type { RemoteConfig } from './RemoteWorkspaceModal';
 import type { GithubConfig } from './GithubIntegrationModal';
 import { fetchOllamaInstalledModels } from '../services/documentConverterService';
 import { HelpTooltip } from './HelpTooltip';
+import {
+  VENDOR_MODELS_MAP,
+  CLOUD_MODEL_OPTIONS,
+  DEFAULT_LOCAL_MODEL_OPTIONS,
+  fetchOllamaTags,
+  fetchProviderActiveModels,
+  ModelSpec,
+  MODEL_SPECS,
+  getModelSpec,
+  DEFAULT_FALLBACK_MODELS
+} from '../config/models.config';
+
+export type { ModelSpec };
+export {
+  MODEL_SPECS,
+  getModelSpec,
+  DEFAULT_FALLBACK_MODELS,
+  VENDOR_MODELS_MAP,
+  CLOUD_MODEL_OPTIONS,
+  DEFAULT_LOCAL_MODEL_OPTIONS,
+  fetchOllamaTags,
+  fetchProviderActiveModels
+};
 
 export interface PromptTemplate {
   id: string;
@@ -228,202 +248,6 @@ export const CLOUD_VENDORS: CloudVendorMeta[] = [
   }
 ];
 
-export const VENDOR_MODELS_MAP: Record<string, { id: string; name: string }[]> = {
-  gemini: [
-    { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash' },
-    { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro' },
-    { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash-Lite' }
-  ],
-  openai: [
-    { id: 'gpt-4o', name: 'GPT-4o' },
-    { id: 'gpt-4o-mini', name: 'GPT-4o Mini' }
-  ],
-  anthropic: [
-    { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' }
-  ],
-  deepseek: [
-    { id: 'deepseek-r1', name: 'DeepSeek R1' },
-    { id: 'deepseek-v3', name: 'DeepSeek V3' },
-    { id: 'qwen-2.5-coder', name: 'Qwen 2.5 Coder 32B' }
-  ],
-  groq: [
-    { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B' }
-  ]
-};
-
-const CLOUD_MODEL_OPTIONS = [
-  {
-    group: 'Google Gemini',
-    models: [
-      { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash - 추천' },
-      { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro' },
-      { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash-Lite' }
-    ]
-  },
-  {
-    group: 'DeepSeek 및 오픈소스',
-    models: [
-      { id: 'deepseek-r1', name: 'DeepSeek R1 - 심층 추론' },
-      { id: 'deepseek-v3', name: 'DeepSeek V3' },
-      { id: 'qwen-2.5-coder', name: 'Qwen 2.5 Coder 32B' }
-    ]
-  },
-  {
-    group: 'OpenAI 및 Anthropic',
-    models: [
-      { id: 'gpt-4o', name: 'GPT-4o' },
-      { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
-      { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' }
-    ]
-  }
-];
-
-export interface ModelSpec {
-  name: string;
-  contextWindow: string;
-  contextTokens: number;
-  inputCostPer1M: number;
-  outputCostPer1M: number;
-  badge: string;
-  badgeColor: string;
-  description: string;
-}
-
-export const MODEL_SPECS: Record<string, ModelSpec> = {
-  'gemini-3.8-flash': {
-    name: 'Gemini 3.8 Flash',
-    contextWindow: '100만 토큰',
-    contextTokens: 1000000,
-    inputCostPer1M: 0.15,
-    outputCostPer1M: 0.60,
-    badge: '무료 티어 제공',
-    badgeColor: 'badge-success',
-    description: 'AI Studio 분당 무료 요청 제공, 초대용량 1M 컨텍스트 지원'
-  },
-  'gemini-3.1-pro-preview': {
-    name: 'Gemini 3.1 Pro',
-    contextWindow: '200만 토큰',
-    contextTokens: 2000000,
-    inputCostPer1M: 1.25,
-    outputCostPer1M: 5.00,
-    badge: '복합 추론 특화',
-    badgeColor: 'badge-muted',
-    description: '초대형 2M 컨텍스트 지원 및 복잡한 코드와 학술 문서 논리 추론'
-  },
-  'gemini-3.1-flash-lite': {
-    name: 'Gemini 3.1 Flash-Lite',
-    contextWindow: '100만 토큰',
-    contextTokens: 1000000,
-    inputCostPer1M: 0.075,
-    outputCostPer1M: 0.30,
-    badge: '초고속 경량',
-    badgeColor: 'badge-muted',
-    description: '경량 초고속 응답 속도 및 최소 비용 단가'
-  },
-  'deepseek-r1': {
-    name: 'DeepSeek R1',
-    contextWindow: '6.4만 토큰',
-    contextTokens: 64000,
-    inputCostPer1M: 0.55,
-    outputCostPer1M: 2.19,
-    badge: '심층 추론 엔진',
-    badgeColor: 'badge-muted',
-    description: '심층 추론 알고리즘 탑재 및 높은 가성비'
-  },
-  'deepseek-v3': {
-    name: 'DeepSeek V3',
-    contextWindow: '6.4만 토큰',
-    contextTokens: 64000,
-    inputCostPer1M: 0.14,
-    outputCostPer1M: 0.28,
-    badge: '초저비용 범용',
-    badgeColor: 'badge-muted',
-    description: '초당 처리량 극대화 및 합리적인 토큰 단가'
-  },
-  'qwen-2.5-coder': {
-    name: 'Qwen 2.5 Coder 32B',
-    contextWindow: '12.8만 토큰',
-    contextTokens: 128000,
-    inputCostPer1M: 0.20,
-    outputCostPer1M: 0.60,
-    badge: '코딩 특화',
-    badgeColor: 'badge-muted',
-    description: '프로그래밍 코드 분석, 리팩토링, 디버깅 최적화'
-  },
-  'gpt-4o': {
-    name: 'GPT-4o',
-    contextWindow: '12.8만 토큰',
-    contextTokens: 128000,
-    inputCostPer1M: 2.50,
-    outputCostPer1M: 10.00,
-    badge: '플래그십 모델',
-    badgeColor: 'badge-muted',
-    description: '대표 올라운드 멀티모달 모델, 우수한 종합 성능'
-  },
-  'gpt-4o-mini': {
-    name: 'GPT-4o Mini',
-    contextWindow: '12.8만 토큰',
-    contextTokens: 128000,
-    inputCostPer1M: 0.15,
-    outputCostPer1M: 0.60,
-    badge: '가성비 고속',
-    badgeColor: 'badge-muted',
-    description: '경량 고속 텍스트 생성 및 경제적인 일상 질의'
-  },
-  'claude-3.5-sonnet': {
-    name: 'Claude 3.5 Sonnet',
-    contextWindow: '20만 토큰',
-    contextTokens: 200000,
-    inputCostPer1M: 3.00,
-    outputCostPer1M: 15.00,
-    badge: '고급 분석 및 작문',
-    badgeColor: 'badge-muted',
-    description: '탁월한 작문력과 복잡한 프런트엔드 아키텍처 코딩'
-  },
-  'llama-3.3-70b-versatile': {
-    name: 'Llama 3.3 70B',
-    contextWindow: '12.8만 토큰',
-    contextTokens: 128000,
-    inputCostPer1M: 0.59,
-    outputCostPer1M: 0.79,
-    badge: '초고속 스트리밍',
-    badgeColor: 'badge-muted',
-    description: 'Groq LPU 기반 실시간 수준의 초고속 토큰 스트리밍'
-  }
-};
-
-export const getModelSpec = (modelId: string): ModelSpec => {
-  if (MODEL_SPECS[modelId]) return MODEL_SPECS[modelId];
-  // Fallbacks by prefix
-  if (modelId.startsWith('gemini')) return MODEL_SPECS['gemini-3.8-flash'];
-  if (modelId.startsWith('deepseek-r1')) return MODEL_SPECS['deepseek-r1'];
-  if (modelId.startsWith('deepseek')) return MODEL_SPECS['deepseek-v3'];
-  if (modelId.startsWith('gpt-4o-mini')) return MODEL_SPECS['gpt-4o-mini'];
-  if (modelId.startsWith('gpt-')) return MODEL_SPECS['gpt-4o'];
-  if (modelId.startsWith('claude')) return MODEL_SPECS['claude-3.5-sonnet'];
-  if (modelId.startsWith('llama')) return MODEL_SPECS['llama-3.3-70b-versatile'];
-  return {
-    name: modelId,
-    contextWindow: '12.8만 토큰',
-    contextTokens: 128000,
-    inputCostPer1M: 0.50,
-    outputCostPer1M: 1.50,
-    badge: '표준 API',
-    badgeColor: 'bg-slate-500/20 text-slate-300 border-slate-500/40',
-    description: '범용 LLM 모델'
-  };
-};
-
-const DEFAULT_LOCAL_MODEL_OPTIONS = [
-  { id: 'llama-3.3-70b', name: 'Llama 3.3 70B' },
-  { id: 'deepseek-r1-8b-local', name: 'DeepSeek R1 8B (로컬)' },
-  { id: 'deepseek-r1', name: 'DeepSeek R1 70B (서버)' },
-  { id: 'qwen-2.5-coder', name: 'Qwen 2.5 Coder' },
-  { id: 'mistral-7b-local', name: 'Mistral 7B Instruct' },
-  { id: 'gemma2:9b', name: 'Gemma 2 9B' },
-  { id: 'custom', name: '직접 입력' }
-];
-
 export interface PreferencesModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -463,6 +287,8 @@ export interface PreferencesModalProps {
   githubConfig?: GithubConfig | null;
   onOpenGithub?: () => void;
   onOpenRoleAssignment?: () => void;
+  dynamicModelsMap?: Record<string, { id: string; name: string }[]>;
+  onUpdateDynamicModels?: (vendor: string, models: { id: string; name: string }[]) => void;
 }
 
 export const PreferencesModal: React.FC<PreferencesModalProps> = ({
@@ -498,7 +324,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   onOpenRemoteSSH,
   githubConfig = null,
   onOpenGithub,
-  onOpenRoleAssignment
+  onOpenRoleAssignment,
+  dynamicModelsMap,
+  onUpdateDynamicModels
 }) => {
   const [localPrefs, setLocalPrefs] = useState<UserPreferences>(preferences);
   const [activeTab, setActiveTab] = useState<'ai-engine' | 'persona' | 'integrations' | 'storage' | 'security' | 'ghost-writer'>(() => {
@@ -518,6 +346,15 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   const [customModelInput, setCustomModelInput] = useState<string>('');
   const [isAdvancedParamsOpen, setIsAdvancedParamsOpen] = useState<boolean>(false);
   const [localGoogleGrounding, setLocalGoogleGrounding] = useState<boolean>(preferences.googleSearchGrounding ?? false);
+  const [vendorActiveModels, setVendorActiveModels] = useState<Record<string, { id: string; name: string }[]>>(() => {
+    return dynamicModelsMap || {};
+  });
+
+  useEffect(() => {
+    if (dynamicModelsMap) {
+      setVendorActiveModels((prev) => ({ ...prev, ...dynamicModelsMap }));
+    }
+  }, [dynamicModelsMap]);
 
 
 
@@ -625,28 +462,18 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
     }
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
-
-      const res = await fetch(`${cleanEndpoint}/api/tags`, {
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data && Array.isArray(data.models) && data.models.length > 0) {
-          const formatted = data.models.map((m: { name: string }) => ({
-            id: m.name,
-            name: `${m.name} (Ollama)`
-          }));
-          setDiscoveredModels(formatted);
-          try {
-            localStorage.setItem('aipodium_discovered_models', JSON.stringify(formatted));
-          } catch {}
-          onUpdateDiscoveredModels?.(formatted);
-          return;
-        }
+      const tags = await fetchOllamaTags(cleanEndpoint);
+      if (tags && tags.length > 0) {
+        const formatted = tags.map((m) => ({
+          id: m.id,
+          name: m.name
+        }));
+        setDiscoveredModels(formatted);
+        try {
+          localStorage.setItem('aipodium_discovered_models', JSON.stringify(formatted));
+        } catch {}
+        onUpdateDiscoveredModels?.(formatted);
+        return;
       }
       setDiscoveredModels([]);
     } catch {
@@ -876,7 +703,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
     onClose();
   };
 
-  const handleTriggerVerify = () => {
+  const handleTriggerVerify = async () => {
     if (localProviderType === 'cloud') {
       const key = localApiKeyInput.trim();
       if (!key) {
@@ -885,12 +712,27 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
       }
       onUpdateApiKey(key);
       if (onSelectProvider) onSelectProvider('cloud');
+      
+      try {
+        const models = await fetchProviderActiveModels(selectedVendor, key);
+        if (models && models.length > 0) {
+          const simplified = models.map((m) => ({ id: m.id, name: m.name }));
+          setVendorActiveModels((prev) => ({
+            ...prev,
+            [selectedVendor]: simplified
+          }));
+          onUpdateDynamicModels?.(selectedVendor, simplified);
+        }
+      } catch (err) {
+        console.warn('동적 모델 목록 조회 실패:', err);
+      }
+
       onVerify(selectedVendor, key);
     } else {
       const ep = localEndpointInput.trim() || 'http://localhost:11434';
       onUpdateEndpoint(ep);
       if (onSelectProvider) onSelectProvider('local-pc');
-      fetchLocalModels(ep);
+      await fetchLocalModels(ep);
       runCorsDiagnostic(ep);
       onVerify('local', ep);
     }
@@ -1229,7 +1071,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                         onChange={(e) => setLocalSelectedModel(e.target.value)}
                                         className="w-full bg-[#09090b] border border-[#222226] hover:border-indigo-500/50 rounded-md px-3 py-1.5 text-xs text-slate-200 outline-none appearance-none cursor-pointer pr-8 font-normal"
                                       >
-                                        {(VENDOR_MODELS_MAP[selectedVendor] || []).map((m) => (
+                                        {((vendorActiveModels[selectedVendor] && vendorActiveModels[selectedVendor].length > 0)
+                                          ? vendorActiveModels[selectedVendor]
+                                          : (VENDOR_MODELS_MAP[selectedVendor] || DEFAULT_FALLBACK_MODELS.filter((m) => m.vendor === selectedVendor))
+                                        ).map((m) => (
                                           <option key={m.id} value={m.id} className="bg-[#09090b] text-slate-200 py-1 font-normal">
                                             {m.name}
                                           </option>
@@ -1268,7 +1113,6 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             {selectedVendor === 'gemini' && (
                               <div className="flex items-center justify-between gap-2 pt-1">
                                 <div className="flex items-center gap-1.5 min-w-0">
-                                  <Search className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                                   <span className="text-xs font-normal text-slate-300 truncate">실시간 구글 검색 연동</span>
                                   <HelpTooltip
                                     side="bottom"
@@ -1336,7 +1180,6 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       {/* Local AI Free Indicator */}
                       <div className="flex items-center justify-between bg-[#09090b] border border-[#222226] rounded-md px-2.5 py-1.5 text-[11px]">
                         <div className="flex items-center gap-2">
-                          <Coins className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                           <span className="text-slate-300 font-medium">로컬 하드웨어 추론:</span>
                           <span className="text-emerald-400 font-mono font-medium">토큰 비용 무료</span>
                           <span className="text-[#222226]">|</span>
@@ -1637,7 +1480,6 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   <div className="pt-1 space-y-2">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <FileText className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                         <span className="text-xs font-medium text-slate-200">
                           PDF 문서 파싱 엔진
                         </span>
@@ -2125,11 +1967,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         onChange={(e) => setLocalPrefs({ ...localPrefs, ghostWriterModel: e.target.value })}
                         className="w-64 bg-[#09090b] border border-[#222226] rounded px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-indigo-500 transition cursor-pointer"
                       >
-                        <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
-                        <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
-                        <option value="deepseek-r1">DeepSeek R1</option>
-                        <option value="qwen-2.5-coder">Qwen 2.5 Coder 32B</option>
-                        <option value="llama-3.3-70b">Llama 3.3 70B</option>
+                        {(modelOptions && modelOptions.length > 0 ? modelOptions : DEFAULT_FALLBACK_MODELS).map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>

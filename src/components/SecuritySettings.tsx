@@ -11,10 +11,7 @@ import {
   Lock,
   Unlock,
   KeyRound,
-  Check,
-  Clock,
-  Shield,
-  LogOut
+  Check
 } from 'lucide-react';
 import {
   encryptDataWithPasscode,
@@ -403,7 +400,6 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
         <div className="py-3 space-y-1.5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <Shield className="w-3.5 h-3.5 text-indigo-400" />
               <span className="text-xs font-medium text-slate-200">접속 시 항상 잠금 화면 표시</span>
               <span className="badge-muted text-[10px] px-1.5 py-0.5 rounded-sm">
                 권장 보안
@@ -447,7 +443,6 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
         <div className="py-3 space-y-1.5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <Clock className="w-3.5 h-3.5 text-indigo-400" />
               <span className="text-xs font-medium text-slate-200">자동 잠금 대기 시간</span>
               <HelpTooltip
                 title="자동 잠금 안내"
@@ -482,7 +477,6 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
         <div className="py-3 space-y-1.5 last:pb-0">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <LogOut className="w-3.5 h-3.5 text-amber-400" />
               <span className="text-xs font-medium text-slate-200">브라우저 종료 시 인증 세션 자동 삭제</span>
               <HelpTooltip
                 title="인증 세션 자동 파기"

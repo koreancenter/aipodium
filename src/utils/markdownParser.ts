@@ -378,7 +378,7 @@ export function renderMarkdownToHtml(md: string): string {
       const headersHtml = headers.map((h, colIdx) => {
         const align = tableAlignments[colIdx] || 'left';
         const alignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
-        return `<th class="px-3 py-1.5 bg-[#121214] text-[#818cf8] font-semibold text-[0.6875rem] border border-[#222226] ${alignClass}">${formatInline(h.trim())}</th>`;
+        return `<th class="px-3 py-1.5 bg-[#121214] text-slate-200 font-medium text-[0.6875rem] border border-[#222226] ${alignClass}">${formatInline(h.trim())}</th>`;
       }).join('');
 
       const rowsHtml = tableRows.map((r) => {
@@ -389,14 +389,14 @@ export function renderMarkdownToHtml(md: string): string {
           const alignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
           const isDitto = txt === '"' || txt === '〃' || txt === '^';
           const content = isDitto
-            ? `<span class="text-[#818cf8] font-bold opacity-80 cursor-help" title="상단 항목과 동일">${txt}</span>`
+            ? `<span class="text-indigo-400 font-bold opacity-80 cursor-help" title="상단 항목과 동일">${txt}</span>`
             : formatInline(txt);
-          return `<td class="px-3 py-1 border border-[#222226] text-slate-300 text-[0.6875rem] ${alignClass}">${content}</td>`;
+          return `<td class="px-3 py-1.5 border border-[#222226] text-slate-300 text-[0.6875rem] leading-relaxed ${alignClass}">${content}</td>`;
         }).join('');
-        return `<tr class="hover:bg-[#121214]/60 transition-colors">${colsHtml}</tr>`;
+        return `<tr class="hover:bg-white/[0.02] transition-colors">${colsHtml}</tr>`;
       }).join('');
 
-      result.push(`<div class="overflow-x-auto my-2.5 rounded-lg border border-[#222226] shadow-xs"><table class="w-full border-collapse border-hidden text-xs"><thead><tr>${headersHtml}</tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
+      result.push(`<div class="overflow-x-auto my-3 rounded-md border border-[#222226] shadow-xs"><table class="w-full border-collapse border-hidden text-xs"><thead><tr>${headersHtml}</tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
       inTable = false;
       tableRows = [];
       tableHeader = '';
@@ -416,17 +416,17 @@ export function renderMarkdownToHtml(md: string): string {
       }).join('<br/>');
       
       if (blockquoteType === 'note') {
-        result.push(`<div class="my-2.5 border-l-3 border-blue-500 bg-[#0c0c0e] text-blue-200 px-3.5 py-2 rounded-r-lg text-xs leading-normal shadow-xs border border-[#222226] border-l-blue-500"><div class="font-semibold text-blue-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">ℹ️ NOTE</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-3 border-l-2 border-blue-500 bg-[#0c0c0e] text-blue-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[#222226] border-l-blue-500"><div class="font-semibold text-blue-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">ℹ️ NOTE</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'tip') {
-        result.push(`<div class="my-2.5 border-l-3 border-emerald-500 bg-[#0c0c0e] text-emerald-200 px-3.5 py-2 rounded-r-lg text-xs leading-normal shadow-xs border border-[#222226] border-l-emerald-500"><div class="font-semibold text-emerald-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">💡 TIP</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-3 border-l-2 border-emerald-500 bg-[#0c0c0e] text-emerald-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[#222226] border-l-emerald-500"><div class="font-semibold text-emerald-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">💡 TIP</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'important') {
-        result.push(`<div class="my-2.5 border-l-3 border-[#6366f1] bg-[#0c0c0e] text-indigo-200 px-3.5 py-2 rounded-r-lg text-xs leading-normal shadow-xs border border-[#222226] border-l-[#6366f1]"><div class="font-semibold text-[#818cf8] text-[0.6875rem] mb-1 flex items-center gap-1.5">📌 IMPORTANT</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-3 border-l-2 border-indigo-500 bg-[#0c0c0e] text-indigo-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[#222226] border-l-indigo-500"><div class="font-semibold text-indigo-300 text-[0.6875rem] mb-1 flex items-center gap-1.5">📌 IMPORTANT</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'warning') {
-        result.push(`<div class="my-2.5 border-l-3 border-amber-500 bg-[#0c0c0e] text-amber-200 px-3.5 py-2 rounded-r-lg text-xs leading-normal shadow-xs border border-[#222226] border-l-amber-500"><div class="font-semibold text-amber-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">⚠️ WARNING</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-3 border-l-2 border-amber-500 bg-[#0c0c0e] text-amber-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[#222226] border-l-amber-500"><div class="font-semibold text-amber-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">⚠️ WARNING</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'caution') {
-        result.push(`<div class="my-2.5 border-l-3 border-rose-500 bg-[#0c0c0e] text-rose-200 px-3.5 py-2 rounded-r-lg text-xs leading-normal shadow-xs border border-[#222226] border-l-rose-500"><div class="font-semibold text-rose-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">🛑 CAUTION</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-3 border-l-2 border-rose-500 bg-[#0c0c0e] text-rose-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[#222226] border-l-rose-500"><div class="font-semibold text-rose-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">🛑 CAUTION</div><div>${processedHtml}</div></div>`);
       } else {
-        result.push(`<blockquote class="border-l-3 border-[#6366f1] bg-[#0c0c0e] text-slate-200 pl-3 py-1.5 my-2 text-xs rounded-r-lg leading-relaxed shadow-xs border border-[#222226] border-l-[#6366f1]">${processedHtml}</blockquote>`);
+        result.push(`<blockquote class="border-l-2 border-indigo-500/80 bg-[#121214] text-slate-200 pl-3.5 py-2 my-2.5 text-xs rounded-r-md leading-[1.65] shadow-xs border border-[#222226] border-l-indigo-500/80">${processedHtml}</blockquote>`);
       }
 
       inBlockquote = false;
@@ -457,56 +457,56 @@ export function renderMarkdownToHtml(md: string): string {
     }
 
     // Setext Heading 1 (Underlined with ===)
-    if (i + 1 < filteredLines.length && /^[=]{2,}$/.test(filteredLines[i + 1].trim()) && !trimmed.startsWith('#')) {
+    if (i + 1 < filteredLines.length && /^={2,}$/.test(filteredLines[i + 1].trim()) && !trimmed.startsWith('#')) {
       closeList();
       closeTable();
       closeBlockquote();
-      result.push(`<h1 class="text-base sm:text-lg font-bold text-white border-b border-[#222226] pb-1.5 mt-3.5 mb-2 leading-snug">${formatInline(trimmed)}</h1>`);
+      result.push(`<h1 class="text-base sm:text-lg font-bold text-slate-100 border-b border-[#222226] pb-2 mt-5 mb-2.5 leading-snug tracking-tight">${formatInline(trimmed)}</h1>`);
       i++; // Skip the underline row
       continue;
     }
 
     // Setext Heading 2 (Underlined with ---)
-    if (i + 1 < filteredLines.length && /^[-]{2,}$/.test(filteredLines[i + 1].trim()) && !trimmed.startsWith('#') && !trimmed.startsWith('|') && !trimmed.startsWith('-')) {
+    if (i + 1 < filteredLines.length && /^-{2,}$/.test(filteredLines[i + 1].trim()) && !trimmed.startsWith('#') && !trimmed.startsWith('|') && !trimmed.startsWith('-') && !trimmed.startsWith('*')) {
       closeList();
       closeTable();
       closeBlockquote();
-      result.push(`<h2 class="text-sm sm:text-base font-semibold text-[#818cf8] border-b border-[#222226] pb-1 mt-3 mb-1.5 leading-snug">${formatInline(trimmed)}</h2>`);
+      result.push(`<h2 class="text-sm sm:text-base font-semibold text-slate-200 border-b border-[#222226] pb-1.5 mt-4 mb-2 leading-snug tracking-tight">${formatInline(trimmed)}</h2>`);
       i++; // Skip the underline row
       continue;
     }
 
-    // ATX Headings: # to ###### (supports with or without spaces, e.g., '### 한글' or '###한글')
+    // ATX Headings: # to ###### (supports with or without spaces, e.g., '### 한글' or '###한글', and strips trailing hashes)
     const headingMatch = trimmed.match(/^(#{1,6})\s*(.*)$/);
     if (headingMatch && !trimmed.startsWith('#unordered') && !trimmed.startsWith('#ordered')) {
       const level = headingMatch[1].length;
-      const headingContent = headingMatch[2];
+      const headingContent = headingMatch[2].replace(/\s*#+\s*$/, '');
       closeList();
       closeTable();
       closeBlockquote();
 
       if (level === 1) {
-        result.push(`<h1 class="text-base sm:text-lg font-bold text-white border-b border-[#222226] pb-1.5 mt-3.5 mb-2 leading-snug">${formatInline(headingContent)}</h1>`);
+        result.push(`<h1 class="text-base sm:text-lg font-bold text-slate-100 border-b border-[#222226] pb-2 mt-5 mb-2.5 leading-snug tracking-tight">${formatInline(headingContent)}</h1>`);
       } else if (level === 2) {
-        result.push(`<h2 class="text-sm sm:text-base font-semibold text-[#818cf8] border-b border-[#222226] pb-1 mt-3 mb-1.5 leading-snug">${formatInline(headingContent)}</h2>`);
+        result.push(`<h2 class="text-sm sm:text-base font-semibold text-slate-200 border-b border-[#222226] pb-1.5 mt-4 mb-2 leading-snug tracking-tight">${formatInline(headingContent)}</h2>`);
       } else if (level === 3) {
-        result.push(`<h3 class="text-xs sm:text-sm font-semibold text-indigo-200 mt-2.5 mb-1 leading-snug">${formatInline(headingContent)}</h3>`);
+        result.push(`<h3 class="text-xs sm:text-sm font-semibold text-slate-200 mt-3.5 mb-1.5 leading-snug tracking-tight">${formatInline(headingContent)}</h3>`);
       } else if (level === 4) {
-        result.push(`<h4 class="text-xs font-semibold text-indigo-200 mt-2 mb-0.5 leading-snug">${formatInline(headingContent)}</h4>`);
+        result.push(`<h4 class="text-xs font-semibold text-slate-300 mt-3 mb-1 leading-snug">${formatInline(headingContent)}</h4>`);
       } else if (level === 5) {
-        result.push(`<h5 class="text-xs font-medium text-slate-200 mt-1.5 mb-0.5 leading-snug">${formatInline(headingContent)}</h5>`);
+        result.push(`<h5 class="text-xs font-medium text-slate-400 mt-2.5 mb-0.5 leading-snug">${formatInline(headingContent)}</h5>`);
       } else if (level === 6) {
-        result.push(`<h6 class="text-[0.6875rem] font-medium text-slate-300 mt-1.5 mb-0.5 uppercase tracking-wider leading-snug">${formatInline(headingContent)}</h6>`);
+        result.push(`<h6 class="text-[0.6875rem] font-medium text-slate-400 mt-2 mb-0.5 uppercase tracking-wider leading-snug">${formatInline(headingContent)}</h6>`);
       }
       continue;
     }
 
-    // Horizontal Rule: ---, ***, ___, - - -, * * *, _ _ _
-    if (/^(?:---|\*\*\*|___|- - -|\* \* \*|_ _ _)$/.test(trimmed)) {
+    // Horizontal Rule: 3 or more dashes, asterisks, underscores (e.g., ---, ----, ***, ___, - - -, * * *)
+    if (/^(?:-{3,}|\*{3,}|_{3,}|(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})$/.test(trimmed)) {
       closeList();
       closeTable();
       closeBlockquote();
-      result.push('<hr class="border-[#222226] my-3" />');
+      result.push('<hr class="border-[#222226] my-4" />');
       continue;
     }
 
@@ -668,7 +668,7 @@ export function renderMarkdownToHtml(md: string): string {
     closeList();
     closeTable();
     closeBlockquote();
-    result.push(`<p class="mb-1 leading-relaxed text-slate-300">${formatInline(trimmed)}</p>`);
+    result.push(`<p class="mb-2.5 leading-[1.65] text-slate-300">${formatInline(trimmed)}</p>`);
   }
 
   closeList();
@@ -708,5 +708,5 @@ export function renderMarkdownToHtml(md: string): string {
     ADD_ATTR: ['target', 'rel', 'referrerpolicy', 'crossorigin', 'open', 'disabled', 'checked'],
   });
 
-  return `<div class="markdown-body text-slate-200 text-xs leading-normal font-sans">${safeFinal}</div>`;
+  return `<div class="markdown-body text-slate-200 text-xs leading-[1.65] font-sans tracking-[-0.01em]">${safeFinal}</div>`;
 }
