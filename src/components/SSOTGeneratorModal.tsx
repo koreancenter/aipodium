@@ -1,10 +1,14 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   ChevronDown,
   Check,
-  Zap
+  Zap,
+  Paperclip,
+  AtSign,
+  Loader2
 } from 'lucide-react';
+import { convertDocumentToMarkdown } from '../services/documentConverterService';
 
 export interface VibeCanvasConfig {
   selectedFolder: string;
@@ -14,6 +18,7 @@ export interface VibeCanvasConfig {
   autoGenerateWithAi?: boolean;
   instruction?: string;
   templateDoc?: string;
+  templateMarkdownContent?: string;
   model?: string;
   provider?: string;
 }
@@ -71,18 +76,23 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
   initialFolder = '',
   availableFolders,
   filesByFolder,
-  availableTemplates,
   onGenerate,
   availableModels,
   currentModel,
   currentProvider
 }) => {
   const [selectedFolder, setSelectedFolder] = useState<string>('');
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [docBaseName, setDocBaseName] = useState<string>('프로젝트_마스터문서');
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [showFilePicker, setShowFilePicker] = useState<boolean>(false);
   const [customPrompt, setCustomPrompt] = useState<string>('');
+
+  // Attached Template State (Word, Excel, PPT, PDF, Markdown, Text)
+  const [templateFileName, setTemplateFileName] = useState<string>('');
+  const [templateMarkdownContent, setTemplateMarkdownContent] = useState<string>('');
+  const [isParsingTemplate, setIsParsingTemplate] = useState<boolean>(false);
+  const [parsingError, setParsingError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // AI Model Selection State
   const [selectedModelId, setSelectedModelId] = useState<string>('gemini-3.8-flash');
@@ -92,10 +102,6 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
   // Custom Dropdown Open States (matching Main Menu design)
   const [isFolderDropdownOpen, setIsFolderDropdownOpen] = useState<boolean>(false);
   const folderDropdownRef = useRef<HTMLDivElement | null>(null);
-
-  // Template Dropdown Open State
-  const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState<boolean>(false);
-  const templateDropdownRef = useRef<HTMLDivElement | null>(null);
 
   // Mention State
   const [showMentionPopup, setShowMentionPopup] = useState<boolean>(false);
@@ -108,28 +114,11 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
     ? availableModels
     : DEFAULT_FALLBACK_MODEL_OPTIONS;
 
-  // Workspace Markdown Template List
-  const allMarkdownTemplates = useMemo(() => {
-    if (availableTemplates && availableTemplates.length > 0) {
-      return Array.from(new Set(availableTemplates)).sort();
-    }
-    const set = new Set<string>();
-    Object.values(filesByFolder).forEach((list) => {
-      list.forEach((f) => {
-        if (f.endsWith('.md')) set.add(f);
-      });
-    });
-    return Array.from(set).sort();
-  }, [availableTemplates, filesByFolder]);
-
   // Close custom dropdowns on outside click
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (folderDropdownRef.current && !folderDropdownRef.current.contains(e.target as Node)) {
         setIsFolderDropdownOpen(false);
-      }
-      if (templateDropdownRef.current && !templateDropdownRef.current.contains(e.target as Node)) {
-        setIsTemplateDropdownOpen(false);
       }
       if (modelDropdownRef.current && !modelDropdownRef.current.contains(e.target as Node)) {
         setIsModelDropdownOpen(false);
@@ -141,17 +130,25 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
     };
   }, []);
 
-  // Initialize on open
+  // Initialize or reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       const folder = initialFolder || (availableFolders.length > 0 ? availableFolders[0] : 'Main Project');
       setSelectedFolder(folder);
-      setSelectedTemplate('');
       setDocBaseName(sanitizeFolderName(folder));
 
       const files = folder && filesByFolder[folder] ? filesByFolder[folder] : [];
       setSelectedFiles(files);
       setShowFilePicker(false);
+
+      // Reset template state
+      setTemplateFileName('');
+      setTemplateMarkdownContent('');
+      setIsParsingTemplate(false);
+      setParsingError(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
 
       // Default Prompt
       setCustomPrompt('선택된 소스 문서들의 핵심 내용을 종합하여 프로젝트의 명확한 기준이 되는 마스터 문서로 작성해 줘.');
@@ -161,11 +158,69 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
       setSelectedModelId(initialModel);
 
       setIsFolderDropdownOpen(false);
-      setIsTemplateDropdownOpen(false);
       setIsModelDropdownOpen(false);
       setShowMentionPopup(false);
     }
   }, [isOpen, initialFolder, availableFolders, filesByFolder, currentModel]);
+
+  // Handle template file upload and client-side conversion
+  const handleTemplateFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsParsingTemplate(true);
+    setParsingError(null);
+    setTemplateFileName(file.name);
+
+    try {
+      const result = await convertDocumentToMarkdown(file);
+      if (result && result.markdown && result.markdown.trim()) {
+        setTemplateMarkdownContent(result.markdown.trim());
+      } else {
+        throw new Error('문서 내용이 비어있거나 변환할 수 없습니다.');
+      }
+    } catch (err: any) {
+      console.error('Template conversion failed:', err);
+      setParsingError(err?.message || '문서 서식 분석에 실패했습니다.');
+      setTemplateFileName('');
+      setTemplateMarkdownContent('');
+    } finally {
+      setIsParsingTemplate(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Remove attached template
+  const handleRemoveTemplate = () => {
+    setTemplateFileName('');
+    setTemplateMarkdownContent('');
+    setParsingError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Trigger @ mention from button
+  const handleTriggerMention = () => {
+    if (!textareaRef.current) return;
+    const cursor = textareaRef.current.selectionStart || customPrompt.length;
+    const before = customPrompt.slice(0, cursor);
+    const after = customPrompt.slice(cursor);
+    const updated = `${before}@${after}`;
+    setCustomPrompt(updated);
+    setMentionQuery('');
+    setMentionMatchStart(cursor);
+    setShowMentionPopup(true);
+    setMentionActiveIndex(0);
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(cursor + 1, cursor + 1);
+      }
+    }, 10);
+  };
 
   // Handle folder change
   const handleFolderChange = (newFolder: string) => {
@@ -259,7 +314,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const finalFiles = selectedFiles.length > 0 ? selectedFiles : currentFolderFiles;
     const cleanBase = docBaseName.trim().replace(/\.md$/i, '') || '프로젝트_마스터문서';
@@ -270,19 +325,14 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
       ? (currentProvider && currentProvider.startsWith('local') ? currentProvider : 'local-pc')
       : 'cloud';
 
-    let finalInstruction = customPrompt.trim();
-    if (selectedTemplate && selectedTemplate.trim() !== '') {
-      finalInstruction += `\n\n반드시 첨부된 [${selectedTemplate}]의 헤딩 구조, 목차 순서, 표 서식을 엄격히 복제하여 본문을 채우세요.`;
-    }
-
     onGenerate({
       selectedFolder: selectedFolder || 'Main Project',
       selectedFiles: finalFiles,
       designTone: 'professional',
       docTitle: finalTitle,
       autoGenerateWithAi: true,
-      instruction: finalInstruction,
-      templateDoc: selectedTemplate && selectedTemplate.trim() !== '' ? selectedTemplate : undefined,
+      instruction: customPrompt.trim(),
+      templateMarkdownContent: templateMarkdownContent.trim() || undefined,
       model: selectedModelId,
       provider: resolvedProvider
     });
@@ -293,9 +343,6 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
   const folderOptions = Array.from(new Set([selectedFolder, ...availableFolders])).filter(Boolean);
 
   const selectedModelObj = modelOptions.find((m) => m.id === selectedModelId);
-  const displayModelLabel = selectedModelObj
-    ? `${selectedModelObj.name} (${selectedModelObj.group === 'local' ? '로컬' : '클라우드'})`
-    : selectedModelId;
 
   const cloudModels = modelOptions.filter((m) => m.group === 'cloud');
   const localModels = modelOptions.filter((m) => m.group === 'local');
@@ -327,7 +374,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           
-          {/* Target Folder and Format Template Grid (1:1 Ratio) */}
+          {/* Target Folder and Save Filename (1:1 Ratio Grid) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Target Folder */}
             <div className="space-y-1.5 relative" ref={folderDropdownRef}>
@@ -352,7 +399,6 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                 type="button"
                 onClick={() => {
                   setIsFolderDropdownOpen((prev) => !prev);
-                  setIsTemplateDropdownOpen(false);
                 }}
                 className="w-full h-8 bg-[#09090b] border border-[#222226] rounded-md px-2.5 text-xs text-slate-200 hover:bg-[#18181b] hover:border-[#333338] flex items-center justify-between transition cursor-pointer text-left focus:outline-none focus:border-[#6366f1]"
               >
@@ -390,105 +436,25 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
               )}
             </div>
 
-            {/* Format Baseline Template (Optional) */}
-            <div className="space-y-1.5 relative" ref={templateDropdownRef}>
+            {/* Save Filename */}
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between h-5">
                 <label className="text-xs text-slate-300 font-medium">
-                  포맷 기준 템플릿 (선택)
+                  저장 파일명
                 </label>
-                {selectedTemplate && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedTemplate('')}
-                    className="text-[0.6875rem] text-slate-400 hover:text-slate-200 transition cursor-pointer"
-                  >
-                    해제
-                  </button>
-                )}
               </div>
-
-              {/* Trigger Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsTemplateDropdownOpen((prev) => !prev);
-                  setIsFolderDropdownOpen(false);
-                }}
-                className="w-full h-8 bg-[#09090b] border border-[#222226] rounded-md px-2.5 text-xs text-slate-200 hover:bg-[#18181b] hover:border-[#333338] flex items-center justify-between transition cursor-pointer text-left focus:outline-none focus:border-[#6366f1]"
-              >
-                <span className="truncate font-sans leading-none">
-                  {selectedTemplate ? selectedTemplate : '템플릿 없음 (기본 요약 양식)'}
+              <div className="flex items-center w-full h-8 bg-[#09090b] border border-[#222226] rounded-md overflow-hidden focus-within:border-[#6366f1] transition">
+                <input
+                  type="text"
+                  value={docBaseName}
+                  onChange={(e) => setDocBaseName(e.target.value.replace(/\.md$/i, ''))}
+                  placeholder="프로젝트_마스터문서"
+                  className="flex-1 h-full bg-transparent px-2.5 text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-none min-w-0"
+                />
+                <span className="h-full bg-[#121214] border-l border-[#222226] px-2 flex items-center text-xs text-slate-400 font-mono select-none shrink-0">
+                  .md
                 </span>
-                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-150 ${isTemplateDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {/* Dropdown Menu (absolute top-full, isolated from layout flow) */}
-              {isTemplateDropdownOpen && (
-                <div className="absolute top-full left-0 w-full z-50 mt-1 shadow-2xl bg-[#1c1c21] border border-white/[0.12] rounded-xl overflow-hidden max-h-48 overflow-y-auto p-1 text-xs text-slate-200 divide-y divide-[#222226]/50">
-                  <div className="space-y-0.5 pb-0.5">
-                    {/* Default Option: No Template */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedTemplate('');
-                        setIsTemplateDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between transition cursor-pointer ${
-                        !selectedTemplate
-                          ? 'bg-white/[0.08] text-white font-medium'
-                          : 'text-slate-300 hover:bg-white/[0.08] hover:text-white'
-                      }`}
-                    >
-                      <span className="truncate">템플릿 없음 (기본 요약 양식)</span>
-                      {!selectedTemplate && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
-                    </button>
-
-                    {/* Workspace Markdown Documents */}
-                    {allMarkdownTemplates.map((tpl) => {
-                      const isSelected = selectedTemplate === tpl;
-                      return (
-                        <button
-                          key={tpl}
-                          type="button"
-                          onClick={() => {
-                            setSelectedTemplate(tpl);
-                            setIsTemplateDropdownOpen(false);
-                          }}
-                          className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between transition cursor-pointer ${
-                            isSelected
-                              ? 'bg-white/[0.08] text-white font-medium'
-                              : 'text-slate-300 hover:bg-white/[0.08] hover:text-white'
-                          }`}
-                        >
-                          <span className="truncate font-mono">{tpl}</span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Save Filename - Full Width Single Row */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between h-5">
-              <label className="text-xs text-slate-300 font-medium">
-                저장 파일명
-              </label>
-            </div>
-            <div className="flex items-center w-full h-8 bg-[#09090b] border border-[#222226] rounded-md overflow-hidden focus-within:border-[#6366f1] transition">
-              <input
-                type="text"
-                value={docBaseName}
-                onChange={(e) => setDocBaseName(e.target.value.replace(/\.md$/i, ''))}
-                placeholder="프로젝트_마스터문서"
-                className="flex-1 h-full bg-transparent px-2.5 text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-none min-w-0"
-              />
-              <span className="h-full bg-[#121214] border-l border-[#222226] px-2 flex items-center text-xs text-slate-400 font-mono select-none shrink-0">
-                .md
-              </span>
+              </div>
             </div>
           </div>
 
@@ -524,7 +490,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
             </div>
           )}
 
-          {/* Prompt & Instructions */}
+          {/* Prompt & Instructions with Integrated Attachment Bar */}
           <div className="space-y-1.5 relative">
             <div className="flex items-center justify-between">
               <label className="text-xs text-slate-300 font-medium">
@@ -535,16 +501,89 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
               </span>
             </div>
 
-            <div className="relative">
+            <div className="relative rounded-md border border-[#222226] bg-[#09090b] focus-within:border-[#6366f1] transition flex flex-col">
+              {/* Textarea */}
               <textarea
                 ref={textareaRef}
                 value={customPrompt}
                 onChange={handleTextareaChange}
                 onKeyDown={handleTextareaKeyDown}
-                rows={5}
+                rows={4}
                 placeholder="폴더 내 파일들을 바탕으로 어떤 마스터 문서를 만들지 지시사항을 입력하세요. (@를 누르면 소스 파일을 빠르게 호출할 수 있습니다.)"
-                className="w-full bg-[#09090b] border border-[#222226] rounded-md p-3 text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-[#6366f1] transition resize-none leading-relaxed min-h-[120px]"
+                className="w-full bg-transparent p-3 pb-1 text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-none resize-none leading-relaxed min-h-[96px]"
               />
+
+              {/* Integrated Bottom Action Bar */}
+              <div className="flex items-center justify-between px-2.5 pb-2 pt-1 border-t border-[#222226]/60">
+                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                  {/* Hidden File Input for Word, Excel, PPT, PDF, Markdown, Text */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.docx,.xlsx,.xls,.pptx,.ppt,.md,.markdown,.txt"
+                    onChange={handleTemplateFileUpload}
+                    className="hidden"
+                  />
+
+                  {/* Paperclip Button */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isParsingTemplate}
+                    className="p-1 hover:bg-[#18181b] text-slate-400 hover:text-slate-200 rounded transition flex items-center justify-center cursor-pointer disabled:opacity-50"
+                    title="서식 기준 파일 첨부 (Word, Excel, PPT, PDF 등)"
+                  >
+                    <Paperclip className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* @ Mention Trigger Button */}
+                  <button
+                    type="button"
+                    onClick={handleTriggerMention}
+                    className="p-1 hover:bg-[#18181b] text-slate-400 hover:text-slate-200 rounded transition flex items-center justify-center cursor-pointer"
+                    title="소스 파일 멘션"
+                  >
+                    <AtSign className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Parsing in progress */}
+                  {isParsingTemplate && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-indigo-300 bg-[#6366f1]/15 border border-[#6366f1]/30 px-2 py-0.5 rounded select-none animate-pulse">
+                      <Loader2 className="w-3 h-3 animate-spin text-indigo-400" />
+                      <span>서식 구조 분석 중...</span>
+                    </div>
+                  )}
+
+                  {/* Parsing complete chip: 📄 [파일명] (서식 템플릿 준비됨) */}
+                  {!isParsingTemplate && templateFileName && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-200 bg-[#18181b] border border-[#222226] px-2 py-0.5 rounded max-w-[360px] select-none">
+                      <span className="truncate">📄 {templateFileName} (서식 템플릿 준비됨)</span>
+                      <button
+                        type="button"
+                        onClick={handleRemoveTemplate}
+                        className="text-slate-400 hover:text-rose-400 p-0.5 rounded transition cursor-pointer shrink-0"
+                        title="서식 템플릿 제거"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Parsing error notice */}
+                  {!isParsingTemplate && parsingError && (
+                    <div className="flex items-center gap-1 text-[11px] text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded select-none">
+                      <span className="truncate">{parsingError}</span>
+                      <button
+                        type="button"
+                        onClick={() => setParsingError(null)}
+                        className="text-rose-400 hover:text-rose-200 p-0.5 rounded cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* Interactive @ Mention Dropdown */}
               {showMentionPopup && filteredMentions.length > 0 && (

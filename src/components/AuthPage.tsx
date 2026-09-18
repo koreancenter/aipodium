@@ -430,7 +430,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
   };
 
   return (
-    <div className="w-full min-h-screen h-full bg-[#09090b] text-zinc-200 font-['Plus_Jakarta_Sans',Inter,-apple-system,BlinkMacSystemFont,sans-serif] antialiased selection:bg-indigo-500 selection:text-white flex flex-col justify-between relative overflow-y-auto">
+    <div className="w-full min-h-screen h-full bg-[#09090b] text-zinc-200 font-['Plus_Jakarta_Sans',Inter,-apple-system,BlinkMacSystemFont,sans-serif] antialiased selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] flex flex-col justify-between relative overflow-y-auto">
       {/* Subtle ambient lighting adhering strictly to Clean Dark rules */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(99,102,241,0.06),transparent_70%)] pointer-events-none" />
 

@@ -49,7 +49,7 @@ function generateLocalAssistantResponse(message: string, editorContent: string, 
   if (/요약|정리|간략/i.test(message)) {
     if (hasDoc) {
       const headings = docLines.filter(l => l.startsWith('#')).slice(0, 8);
-      responseBody = `### 📋 '${docTitle}' 문서 핵심 구조 분석\n\n` +
+      responseBody = `**'${docTitle}' 문서 핵심 구조 분석**\n\n` +
         `현재 중앙 편집기에서 작업 중인 문서의 로컬 구조 분석 결과입니다:\n\n` +
         `1. **문서 규모**: 총 ${docLines.length}행 / 약 ${editorContent.length}글자\n` +
         `2. **주요 섹션 구성**:\n` +
@@ -61,7 +61,7 @@ function generateLocalAssistantResponse(message: string, editorContent: string, 
       responseBody = `현재 편집기에 작성된 문서가 없습니다. 중앙 에디터에 마크다운을 작성하거나 슬래시 커맨드(\`/\`)로 표준 서식 템플릿을 추가해 보세요.`;
     }
   } else if (/코드|함수|구현|스크립트|개발/i.test(message)) {
-    responseBody = `### 💻 개발 가이드 및 코드 지원\n\n` +
+    responseBody = `**개발 가이드 및 코드 지원**\n\n` +
       `중앙 에디터에서 \`/code\` 슬래시 명령어를 입력하면 즉시 구문 강조 코드 블록을 삽입할 수 있습니다.\n\n` +
       `\`\`\`typescript\n` +
       `// 안전하고 견고한 TypeScript 구현 패턴\n` +
@@ -76,7 +76,7 @@ function generateLocalAssistantResponse(message: string, editorContent: string, 
       `\`\`\`\n\n` +
       `- **참고**: 에러 발생 시 예외를 호출자에게 안전하게 반환하고, 상태를 예측 가능한 형태로 유지하는 것이 중요합니다.`;
   } else {
-    responseBody = `### 🤖 AI Podium 오프라인 가이드\n\n` +
+    responseBody = `**AI Podium 안내**\n\n` +
       `요청하신 내용(**"${message.slice(0, 60)}${message.length > 60 ? '...' : ''}"**)에 대한 안내입니다.\n\n` +
       (hasDoc 
         ? `현재 편집기의 **'${docTitle}'** 문서 컨텍스트(총 ${docLines.length}행)를 참조하고 있습니다.\n\n` +
@@ -89,7 +89,7 @@ function generateLocalAssistantResponse(message: string, editorContent: string, 
   }
 
   return responseBody +
-    `\n\n> 💡 *알림: 현재 로컬 기본 분석 모드입니다. Google Gemini 3.8 최신 초고속 클라우드 신경망을 활성화하시려면 [환경설정](Ctrl+,) > [AI 엔진 설정]에서 Gemini API 키를 입력하거나 .env에 GEMINI_API_KEY를 설정하세요.*`;
+    `\n\n> *알림: 현재 로컬 기본 분석 모드입니다. Google Gemini 최신 클라우드 신경망을 활성화하시려면 [환경설정](Ctrl+,) > [AI 엔진 설정]에서 Gemini API 키를 입력하거나 .env에 GEMINI_API_KEY를 설정하세요.*`;
 }
 
 async function startServer() {
@@ -279,10 +279,14 @@ async function startServer() {
         safeEditorContent = editorContent.slice(0, 250000);
       }
 
+      const formattingRules = `\n\n[CRITICAL OUTPUT RULES - EMOJI & TYPOGRAPHY RESTRICTIONS]:
+1. NO EMOJIS OR ICONS: Strictly DO NOT use any decorative emojis, pictographs, or symbol icons (such as 📌, 📋, 💡, 🚀, 🤖, ✅, 📝, 🎯, 📊, ⚡, 🔍, 🛠️, ⭐, 📄, etc.) anywhere in titles, lists, or body text. The user directly incorporates your answers into documents and should never have to manually delete icons. Use pure, plain text only.
+2. UNIFORM FONT SIZE & BOLD TITLES: Do NOT use large heading tags (H1, H2, H3, etc.) that increase font scale. Instead, represent all section titles, headers, and topic labels solely using bold text (**제목**) on its own line. Maintain uniform body font size throughout.`;
+
       if (typeof parameters?.systemInstruction === 'string' && parameters.systemInstruction.trim()) {
-        systemInstruction = parameters.systemInstruction.trim().slice(0, 10000);
+        systemInstruction = parameters.systemInstruction.trim().slice(0, 10000) + formattingRules;
       } else if (typeof req.body.systemInstruction === 'string' && req.body.systemInstruction.trim()) {
-        systemInstruction = req.body.systemInstruction.trim().slice(0, 10000);
+        systemInstruction = req.body.systemInstruction.trim().slice(0, 10000) + formattingRules;
       } else {
         systemInstruction = `You are a helpful AI assistant in the AI Podium workspace.
 The user is working on a Markdown document in the central editor.
@@ -292,7 +296,7 @@ Here is the CURRENT state of the user's document:
 ${safeEditorContent || "(Document is empty)"}
 --- DOCUMENT END ---
 
-Please provide a helpful, concise response. If the user asks for suggestions or code based on the document, provide it. Keep your formatting in Markdown.`;
+Please provide a helpful, concise response. If the user asks for suggestions or code based on the document, provide it. Keep your formatting in Markdown.${formattingRules}`;
       }
 
       // Check if streaming requested

@@ -70,6 +70,7 @@ import {
   WEB_LLM_MODEL_ID,
   WEB_LLM_MODEL_DISPLAY_NAME,
   isWebGPUSupported,
+  getWebGPUDevice,
   initWebLLMEngine,
   getLoadedWebLLMEngine,
   streamWebLLMCompletion
@@ -2135,7 +2136,8 @@ export default function App() {
             ? activeSess.editorContent
             : resolvedFiles[activeSess.fileName || 'tech_notes.md'] || `# ${activeSess.title}\n\n프로젝트 노트`;
           const initialFileName = isLegacySampleFile(activeSess.fileName) ? 'tech_notes.md' : (activeSess.fileName || 'tech_notes.md');
-          const initialTab = activeSess.editorTab || 'wysiwyg';
+          // 앱 초기 시작 시 항상 서식 모드(워드프로세서)로 시작
+          const initialTab: 'wysiwyg' | 'edit' | 'split' | 'preview' = 'wysiwyg';
 
           setEditorContent(initialContent);
           setFileName(initialFileName);
@@ -2720,31 +2722,81 @@ export default function App() {
   // REQUIREMENT 4: [에디터로 보내기 ➔] Logic
   const handleSendToEditor = (msgText: string) => {
     const timestamp = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-    const formattedAppend = `\n\n--- \n> 📌 [AI 응답 수집 - ${timestamp}]\n\n` + msgText.trim() + `\n`;
+    const headerTitle = `AI 응답 수집 - ${timestamp}`;
 
-    const updated = editorContent + formattedAppend;
-    setEditorContent(updated);
+    if (editorTab === 'wysiwyg' && tiptapEditorRef.current) {
+      // 1. 서식 모드 (워드프로세서 방식): 서식 그대로 리치 텍스트 노드로 주입
+      const syncedMd = tiptapEditorRef.current.insertFormattedMarkdown(msgText, headerTitle);
+      const updated = syncedMd || (editorContent ? `${editorContent}\n\n---\n> 📌 [${headerTitle}]\n\n${msgText.trim()}\n` : `> 📌 [${headerTitle}]\n\n${msgText.trim()}\n`);
 
-    // Save back to active file
-    setFiles((prev) => ({
-      ...prev,
-      [currentActiveFile]: updated
-    }));
+      setEditorContent(updated);
+      setFiles((prev) => ({
+        ...prev,
+        [currentActiveFile]: updated
+      }));
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === activeSessionId
+            ? {
+                ...s,
+                editorContent: updated,
+                fileName: currentActiveFile
+              }
+            : s
+        )
+      );
 
-    // Sync to active session
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === activeSessionId
-          ? {
-              ...s,
-              editorContent: updated,
-              fileName: currentActiveFile
-            }
-          : s
-      )
-    );
+      showToast('✓ AI 답변이 서식 모드(워드프로세서)에 서식 그대로 주입되었습니다.');
+    } else {
+      // 2. 마크다운 모드 (edit, split, preview): 마크다운 문법 원문으로 주입
+      const isDocEmpty = !editorContent.trim();
+      const formattedAppend = isDocEmpty
+        ? `> 📌 [${headerTitle}]\n\n` + msgText.trim() + `\n`
+        : `\n\n---\n> 📌 [${headerTitle}]\n\n` + msgText.trim() + `\n`;
 
-    showToast('✓ AI 답변 내용이 중앙 마크다운 에디터에 삽입되었습니다!');
+      const textarea = editorRef.current;
+      let updated: string;
+
+      if (textarea && typeof textarea.selectionStart === 'number' && document.activeElement === textarea) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        updated = editorContent.slice(0, start) + formattedAppend + editorContent.slice(end);
+        setEditorContent(updated);
+        setTimeout(() => {
+          if (editorRef.current) {
+            const newCursor = start + formattedAppend.length;
+            editorRef.current.setSelectionRange(newCursor, newCursor);
+            editorRef.current.focus();
+          }
+        }, 30);
+      } else {
+        updated = editorContent ? editorContent + formattedAppend : formattedAppend.trimStart();
+        setEditorContent(updated);
+        setTimeout(() => {
+          if (editorRef.current) {
+            editorRef.current.scrollTop = editorRef.current.scrollHeight;
+          }
+        }, 30);
+      }
+
+      setFiles((prev) => ({
+        ...prev,
+        [currentActiveFile]: updated
+      }));
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === activeSessionId
+            ? {
+                ...s,
+                editorContent: updated,
+                fileName: currentActiveFile
+              }
+            : s
+        )
+      );
+
+      showToast('✓ AI 답변이 마크다운 모드에 마크다운 문법으로 주입되었습니다.');
+    }
 
     const fullTimeStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     setRecentAiChanges({
@@ -2754,10 +2806,6 @@ export default function App() {
       preview: msgText.trim().slice(0, 65) + '...'
     });
     setHasUnreadAiChanges(true);
-
-    if (editorRef.current) {
-      editorRef.current.scrollTop = editorRef.current.scrollHeight;
-    }
   };
 
   // REQUIREMENT 3: Save to File Logic
@@ -3693,7 +3741,7 @@ export default function App() {
             setCurrentActiveFile(fallback);
             setFileName(fallback);
             setEditorContent('');
-            setEditorTab('edit');
+            setEditorTab('wysiwyg');
             return [fallback];
           }
         }
@@ -3729,7 +3777,7 @@ export default function App() {
     setCurrentActiveFile(newName);
     setFileName(newName);
     setEditorContent(initialNoteContent);
-    setEditorTab('edit');
+    setEditorTab('wysiwyg');
     showToast(`📝 새 임시 탭 '${newName}'이(가) 열렸습니다 (저장 시 파일 생성).`);
   };
 
@@ -5176,12 +5224,12 @@ export default function App() {
 
       try {
         let templateSupplement = '';
-        if (config.templateDoc) {
+        if (config.templateMarkdownContent && config.templateMarkdownContent.trim()) {
+          templateSupplement = `\n\n다음 [기준 템플릿]의 목차 위계, 표 서식, 제목 스타일을 엄격히 본떠서 결과물을 작성하세요:\n\n${config.templateMarkdownContent.trim()}`;
+        } else if (config.templateDoc) {
           const tContent = files[config.templateDoc];
           if (tContent && tContent.trim()) {
-            templateSupplement = `\n\n[포맷 기준 템플릿 문서 - ${config.templateDoc}]:\n\`\`\`markdown\n${tContent}\n\`\`\`\n\n반드시 첨부된 [${config.templateDoc}]의 헤딩 구조, 목차 순서, 표 서식을 엄격히 복제하여 본문을 채우세요.`;
-          } else {
-            templateSupplement = `\n\n반드시 첨부된 [${config.templateDoc}]의 헤딩 구조, 목차 순서, 표 서식을 엄격히 복제하여 본문을 채우세요.`;
+            templateSupplement = `\n\n다음 [기준 템플릿]의 목차 위계, 표 서식, 제목 스타일을 엄격히 본떠서 결과물을 작성하세요:\n\n${tContent.trim()}`;
           }
         }
 
@@ -6335,58 +6383,88 @@ ${projectEvents
       let queue = responseData.text;
       let currentText = '';
 
-      const typingInterval = setInterval(() => {
-        if (queue.length > 0) {
-          const takeCount = queue.length > 200 ? 18 : queue.length > 80 ? 9 : queue.length > 20 ? 5 : 2;
-          const chunk = queue.slice(0, takeCount);
-          queue = queue.slice(takeCount);
-          currentText += chunk;
+      let rafId: number | null = null;
+      let lastFrameTime = performance.now();
+      let accumulator = 0;
 
-          setSessions((prev) =>
-            prev.map((s) => {
-              if (s.id !== targetSessionId) return s;
-              return {
-                ...s,
-                messages: s.messages.map((m) => {
-                  if (m.id !== aiMsgId) return m;
-                  return {
-                    ...m,
-                    text: currentText,
-                    isStreaming: true,
-                  };
-                }),
-              };
-            })
-          );
+      const step = (now: number) => {
+        const dt = Math.min(now - lastFrameTime, 100);
+        lastFrameTime = now;
+        accumulator += dt;
 
-          if (!isUserScrolledUpRef.current && chatContainerRef.current) {
-            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-          }
-        } else {
-          clearInterval(typingInterval);
-          setSessions((prev) =>
-            prev.map((s) => {
-              if (s.id !== targetSessionId) return s;
-              return {
-                ...s,
-                messages: s.messages.map((m) => {
-                  if (m.id !== aiMsgId) return m;
-                  return {
-                    ...m,
-                    text: responseData.text,
-                    isStreaming: false,
-                  };
-                }),
-              };
-            })
-          );
+        if (accumulator >= 20) {
+          accumulator = 0;
 
-          setIsAiLoading(false);
-          if (!isUserScrolledUpRef.current && chatContainerRef.current) {
-            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+          if (queue.length > 0) {
+            const qLen = queue.length;
+            let takeCount = 1;
+            if (qLen > 300) {
+              takeCount = Math.min(16, Math.ceil(qLen * 0.1));
+            } else if (qLen > 120) {
+              takeCount = Math.min(8, Math.ceil(qLen * 0.08));
+            } else if (qLen > 40) {
+              takeCount = Math.min(4, Math.ceil(qLen * 0.06));
+            } else if (qLen > 15) {
+              takeCount = 2;
+            } else {
+              takeCount = 1;
+            }
+
+            const chunk = queue.slice(0, takeCount);
+            queue = queue.slice(takeCount);
+            currentText += chunk;
+
+            setSessions((prev) =>
+              prev.map((s) => {
+                if (s.id !== targetSessionId) return s;
+                return {
+                  ...s,
+                  messages: s.messages.map((m) => {
+                    if (m.id !== aiMsgId) return m;
+                    return {
+                      ...m,
+                      text: currentText,
+                      isStreaming: true,
+                    };
+                  }),
+                };
+              })
+            );
+
+            if (!isUserScrolledUpRef.current && chatContainerRef.current) {
+              chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+            }
+          } else {
+            if (rafId) cancelAnimationFrame(rafId);
+            setSessions((prev) =>
+              prev.map((s) => {
+                if (s.id !== targetSessionId) return s;
+                return {
+                  ...s,
+                  messages: s.messages.map((m) => {
+                    if (m.id !== aiMsgId) return m;
+                    return {
+                      ...m,
+                      text: responseData.text,
+                      isStreaming: false,
+                    };
+                  }),
+                };
+              })
+            );
+
+            if (!isUserScrolledUpRef.current && chatContainerRef.current) {
+              chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+            }
+            setIsAiLoading(false);
+            return;
           }
         }
-      }, 16);
+
+        rafId = requestAnimationFrame(step);
+      };
+
+      rafId = requestAnimationFrame(step);
     }, 500);
   };
 
@@ -6402,10 +6480,19 @@ ${projectEvents
   // Start explicit WebLLM download and initialization
   const handleStartWebLlmDownload = async () => {
     if (!isWebGPUSupported()) {
-      showToast('⚠️ 현재 브라우저가 WebGPU를 지원하지 않습니다.');
+      showToast('⚠️ 현재 브라우저가 WebGPU를 지원하지 않습니다. Chrome/Edge 최신 버전을 권장합니다.');
       return;
     }
-    setWebllmProgress((prev) => ({ ...prev, isLoading: true, progressPercent: 0, progressText: 'WebGPU 가속 엔진 준비 중...' }));
+
+    setWebllmProgress((prev) => ({ ...prev, isLoading: true, progressPercent: 0, progressText: 'WebGPU 가속 어댑터 확인 중...' }));
+
+    const hasAdapter = await getWebGPUDevice();
+    if (!hasAdapter) {
+      setWebllmProgress((prev) => ({ ...prev, isLoading: false, isReady: false, progressText: '' }));
+      showToast('⚠️ WebGPU 그래픽 가속기를 초기화할 수 없습니다. 상단 [새 탭에서 열기]를 통해 실행하거나 브라우저 하드웨어 가속을 켜주세요.');
+      return;
+    }
+
     try {
       await initWebLLMEngine((report) => {
         const percent = Math.min(100, Math.max(0, Math.round(report.progress * 100)));
@@ -6433,7 +6520,12 @@ ${projectEvents
         isReady: false,
         progressText: '',
       }));
-      showToast(`⚠️ WebLLM 로드 실패: ${err?.message || '알 수 없는 오류'}`);
+      const rawMsg = err?.message || (typeof err === 'string' ? err : '');
+      let userFriendlyMsg = rawMsg;
+      if (!userFriendlyMsg || userFriendlyMsg.includes('알 수 없는') || userFriendlyMsg.includes('Error')) {
+        userFriendlyMsg = '네트워크 연결 상태 및 브라우저 그래픽 가속 설정을 확인해 주세요. (새 탭 권장)';
+      }
+      showToast(`⚠️ WebLLM 로드 실패: ${userFriendlyMsg}`);
     }
   };
 
@@ -6475,9 +6567,10 @@ ${projectEvents
     }
 
     const customInstruction = preferences.aiPersona?.systemInstruction?.trim();
+    const formattingDirectives = `\n\n[출력 서식 엄격 준수 규칙]:\n1. 이모지 및 아이콘 사용 절대 금지: 제목, 목록, 본문 어디에도 이모지(📌, 📋, 💡, 🚀, 🤖, ✅, 📝, 🎯, 📊, ⚡ 등)나 장식용 아이콘을 일절 넣지 마세요. 사용자가 문서로 바로 가져가므로 순수 텍스트로만 작성해야 합니다.\n2. 단일 폰트 크기 및 볼드체 제목: 글자 크기를 키우는 H1, H2, H3 등의 큰 헤딩 서식을 쓰지 마시고, 제목은 볼드체(**제목**)로만 작성하세요.`;
     const sysInstruction = customInstruction
-      ? `Persona Name: ${preferences.aiPersona.name}\nRole: ${preferences.aiPersona.role}\n\n${customInstruction}`
-      : undefined;
+      ? `Persona Name: ${preferences.aiPersona.name}\nRole: ${preferences.aiPersona.role}\n\n${customInstruction}${formattingDirectives}`
+      : `You are a helpful AI assistant in AI Podium workspace.${formattingDirectives}`;
 
     let targetsToExecute: { modelKey: string; labelSuffix?: string }[] = [];
 
@@ -6568,66 +6661,96 @@ ${projectEvents
       let currentText = '';
       let isDone = false;
       let finalMeta: { tokens?: ChatMessage['tokens']; groundingSources?: ChatMessage['groundingSources'] } | undefined = undefined;
+      let rafId: number | null = null;
+      let lastFrameTime = performance.now();
+      let accumulator = 0;
 
-      const typewriterInterval = setInterval(() => {
-        if (queue.length > 0) {
-          // Dynamic pacing for smooth Claude/Cursor typing experience
-          const takeCount = queue.length > 300 ? 16 : queue.length > 100 ? 8 : queue.length > 30 ? 4 : queue.length > 10 ? 2 : 1;
-          const chunk = queue.slice(0, takeCount);
-          queue = queue.slice(takeCount);
-          currentText += chunk;
+      const step = (now: number) => {
+        const dt = Math.min(now - lastFrameTime, 100);
+        lastFrameTime = now;
+        accumulator += dt;
 
-          setSessions((prev) =>
-            prev.map((s) => {
-              if (s.id !== targetSessionId) return s;
-              return {
-                ...s,
-                messages: s.messages.map((m) => {
-                  if (m.id !== msgId) return m;
-                  return {
-                    ...m,
-                    text: currentText,
-                    isStreaming: true,
-                  };
-                }),
-              };
-            })
-          );
+        // Smooth 45~50fps dispatch interval synchronized with display refresh rate
+        if (accumulator >= 20) {
+          accumulator = 0;
 
-          if (!isUserScrolledUpRef.current && chatContainerRef.current) {
-            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-          }
-        } else if (isDone) {
-          clearInterval(typewriterInterval);
-          setSessions((prev) =>
-            prev.map((s) => {
-              if (s.id !== targetSessionId) return s;
-              return {
-                ...s,
-                messages: s.messages.map((m) => {
-                  if (m.id !== msgId) return m;
-                  return {
-                    ...m,
-                    text: currentText,
-                    isStreaming: false,
-                    tokens: finalMeta?.tokens ?? m.tokens,
-                    groundingSources: finalMeta?.groundingSources ?? m.groundingSources,
-                  };
-                }),
-              };
-            })
-          );
+          if (queue.length > 0) {
+            // Adaptive Elastic Pacing: fluid, organic token flow with no stuttering
+            const qLen = queue.length;
+            let takeCount = 1;
+            if (qLen > 300) {
+              takeCount = Math.min(16, Math.ceil(qLen * 0.1));
+            } else if (qLen > 120) {
+              takeCount = Math.min(8, Math.ceil(qLen * 0.08));
+            } else if (qLen > 40) {
+              takeCount = Math.min(4, Math.ceil(qLen * 0.06));
+            } else if (qLen > 15) {
+              takeCount = 2;
+            } else {
+              takeCount = 1;
+            }
 
-          if (!isUserScrolledUpRef.current && chatContainerRef.current) {
-            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-          }
+            const chunk = queue.slice(0, takeCount);
+            queue = queue.slice(takeCount);
+            currentText += chunk;
 
-          completedStreams += 1;
-          if (completedStreams >= totalStreams) {
-            setIsAiLoading(false);
+            setSessions((prev) =>
+              prev.map((s) => {
+                if (s.id !== targetSessionId) return s;
+                return {
+                  ...s,
+                  messages: s.messages.map((m) => {
+                    if (m.id !== msgId) return m;
+                    return {
+                      ...m,
+                      text: currentText,
+                      isStreaming: true,
+                    };
+                  }),
+                };
+              })
+            );
+
+            if (!isUserScrolledUpRef.current && chatContainerRef.current) {
+              chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+            }
+          } else if (isDone) {
+            if (rafId) cancelAnimationFrame(rafId);
+            setSessions((prev) =>
+              prev.map((s) => {
+                if (s.id !== targetSessionId) return s;
+                return {
+                  ...s,
+                  messages: s.messages.map((m) => {
+                    if (m.id !== msgId) return m;
+                    return {
+                      ...m,
+                      text: currentText,
+                      isStreaming: false,
+                      tokens: finalMeta?.tokens ?? m.tokens,
+                      groundingSources: finalMeta?.groundingSources ?? m.groundingSources,
+                    };
+                  }),
+                };
+              })
+            );
+
+            if (!isUserScrolledUpRef.current && chatContainerRef.current) {
+              chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+            }
+
+            completedStreams += 1;
+            if (completedStreams >= totalStreams) {
+              setIsAiLoading(false);
+            }
+            return;
           }
         }
-      }, 16);
+
+        rafId = requestAnimationFrame(step);
+      };
+
+      rafId = requestAnimationFrame(step);
 
       const pushChunk = (chunk: string) => {
         if (chunk) queue += chunk;
@@ -8461,7 +8584,7 @@ ${projectEvents
                   <span className="truncate max-w-[120px] sm:max-w-[180px] font-medium text-slate-200 text-xs" title={activeSession?.title}>
                     {selectedModel === WEB_LLM_MODEL_ID
                       ? '브라우저 로컬 AI'
-                      : (isOnboardingMode ? 'AI 지식 비서 (온보딩)' : (activeSession?.title || 'AI 프로젝트'))}
+                      : (isOnboardingMode ? 'AI 지식 비서 · 온보딩' : (activeSession?.title || 'AI 프로젝트'))}
                   </span>
                   {selectedModel === WEB_LLM_MODEL_ID ? (
                     <span className="text-[0.5625rem] px-1.5 py-0.2 rounded-xs bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-medium shrink-0">
@@ -8989,17 +9112,17 @@ ${projectEvents
                           key={msg.id}
                           className="flex gap-2.5 items-start select-text justify-end"
                         >
-                          <div className="rounded-xs p-3 text-xs leading-relaxed space-y-2 select-text cursor-text bg-[#121214] border border-[#222226] text-slate-100 max-w-[85%] shadow-xs">
+                          <div className="rounded-md p-3 text-xs leading-relaxed space-y-2 select-text cursor-text bg-[#18181f] border border-white/[0.08] text-slate-100 max-w-[85%]">
                             {/* Attachment Rendering in Chat Bubble */}
                             {msg.attachments && msg.attachments.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5 pt-0.5 border-b border-[#222226] pb-1.5 select-none">
+                              <div className="flex flex-wrap gap-1.5 pt-0.5 border-b border-white/[0.06] pb-1.5 select-none">
                                 {msg.attachments.map((att) => (
-                                  <div key={att.id} className="rounded-md overflow-hidden border border-[#222226] bg-[#09090b] p-1 flex items-center gap-1.5 max-w-full">
+                                  <div key={att.id} className="rounded overflow-hidden border border-white/[0.06] bg-black/40 p-1 flex items-center gap-1.5 max-w-full">
                                     {att.type === 'image' && att.url ? (
                                       <img
                                         src={att.url}
                                         alt={att.name}
-                                        className="max-h-36 rounded border border-[#222226] object-cover"
+                                        className="max-h-36 rounded border border-white/[0.06] object-cover"
                                       />
                                     ) : (
                                       <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-slate-300 font-mono">
@@ -9014,15 +9137,15 @@ ${projectEvents
                             )}
 
                             {msg.ghostWriterLevel && msg.ghostWriterLevel !== 'off' && (
-                              <div className="flex flex-col gap-1 pb-1.5 mb-1.5 border-b border-[#222226] select-none">
+                              <div className="flex flex-col gap-1 pb-1.5 mb-1.5 border-b border-white/[0.06] select-none">
                                 <div className="flex items-center justify-between gap-2 text-[0.625rem]">
-                                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-200 bg-emerald-950/80 px-1.5 py-0.5 rounded text-[0.5625rem] border border-emerald-800/60 shadow-xs">
+                                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-200 bg-emerald-950/80 px-1.5 py-0.5 rounded text-[0.5625rem] border border-emerald-800/60">
                                     <Ghost className="w-3 h-3 text-emerald-300" />
-                                    Ghost Writer ({msg.ghostWriterLevel}%)
+                                    Ghost Writer {msg.ghostWriterLevel}%
                                   </span>
                                   <span className="text-[0.625rem] text-[#38bdf8] font-mono flex items-center gap-1">
                                     <Globe className="w-3 h-3 text-[#0ea5e9]" />
-                                    Prompt in English
+                                    영문 프롬프트
                                   </span>
                                 </div>
                                 {msg.originalText && msg.originalText !== msg.text && (
@@ -9034,7 +9157,7 @@ ${projectEvents
                               </div>
                             )}
 
-                            <div className="whitespace-pre-wrap font-sans space-y-1 select-text cursor-text selection:bg-[#6366f1]/30">
+                            <div className="whitespace-pre-wrap font-sans space-y-1 select-text cursor-text selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)]">
                               {renderFormattedMessageText(msg.text)}
                             </div>
                           </div>
@@ -9047,17 +9170,17 @@ ${projectEvents
                     )}
 
                     {isAiLoading && !messages.some((m) => m.isStreaming) && (
-                      <div className="flex gap-2.5 items-start">
-                        <div className="w-6 h-6 rounded-xs bg-[#09090b] border border-[#222226] flex items-center justify-center text-[#6366f1] text-xs shrink-0 mt-0.5 shadow-xs">
-                          <Bot className="w-3.5 h-3.5 animate-pulse text-indigo-400" />
+                      <div className="flex gap-2.5 items-center py-1 bg-transparent border-0 select-none">
+                        <div className="w-5 h-5 flex items-center justify-center text-indigo-400 text-xs shrink-0 select-none bg-transparent border-0">
+                          <Bot className="w-4 h-4 animate-pulse text-indigo-400" />
                         </div>
-                        <div className="bg-[#0c0c0e] border border-[#222226] rounded-xs px-3 py-2 text-xs text-slate-300 flex items-center gap-2.5 font-sans shadow-xs">
+                        <div className="bg-transparent border-0 px-1 py-1 text-xs text-slate-400 flex items-center gap-2 font-sans shadow-none">
                           <div className="flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 bg-[#6366f1] rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                            <span className="w-1.5 h-1.5 bg-[#6366f1] rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                            <span className="w-1.5 h-1.5 bg-[#6366f1] rounded-full animate-bounce"></span>
+                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></span>
                           </div>
-                          <span className="text-slate-300 text-xs">
+                          <span className="text-slate-400 text-xs">
                             {isOnboardingMode ? 'AI 지식 비서가 답변을 준비하고 있습니다...' : 'AI 모델이 응답을 준비하고 있습니다...'}
                           </span>
                         </div>
@@ -9144,7 +9267,7 @@ ${projectEvents
 
               {/* Textarea + Action Bar Container - Clean Seamless Unified Input Card */}
               <div
-                className="relative flex flex-col bg-[#0c0c0e] border border-[#222226] focus-within:border-[#6366f1] rounded-xs transition"
+                className="relative flex flex-col bg-[#101014] border border-white/[0.08] focus-within:border-[#6366f1]/70 rounded-md transition"
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -9162,7 +9285,7 @@ ${projectEvents
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 4, scale: 0.99 }}
                       transition={{ duration: 0.12 }}
-                      className="absolute bottom-full left-0 right-0 mb-2 bg-[#121214] border border-[#222226] rounded-lg shadow-2xl z-50 overflow-hidden flex flex-col max-h-72"
+                      className="absolute bottom-full left-0 right-0 mb-2 bg-[#121214] border border-white/[0.08] rounded-md shadow-2xl z-50 overflow-hidden flex flex-col max-h-72"
                     >
                       {/* Filtered Item List */}
                       <div
@@ -9348,7 +9471,7 @@ ${projectEvents
                               onChange={handleGhostUserInputChange}
                               onKeyDown={handleGhostInputKeyDown}
                               placeholder=""
-                              className="absolute inset-0 w-full h-full p-2 text-xs font-mono leading-relaxed bg-transparent text-emerald-100 placeholder:text-transparent outline-none resize-none z-10 selection:bg-[#6366f1] selection:text-white"
+                              className="absolute inset-0 w-full h-full p-2 text-xs font-mono leading-relaxed bg-transparent text-emerald-100 placeholder:text-transparent outline-none resize-none z-10 selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)]"
                               spellCheck={false}
                               autoFocus
                             />
@@ -9369,7 +9492,7 @@ ${projectEvents
                     onChange={handleChatInputChange}
                     onPaste={handlePaste}
                     onKeyDown={handleChatInputKeyDown}
-                    placeholder="질문 또는 요청 입력, '@'로 워크스페이스 파일 및 폴더 참조... (Ctrl+Enter 전송)"
+                    placeholder="질문 또는 요청 입력, '@'로 워크스페이스 폴더 및 문서 참조..."
                     className="w-full bg-transparent p-2.5 text-xs text-slate-100 placeholder:text-slate-400 resize-none min-h-[44px] max-h-[350px] outline-none font-sans leading-relaxed"
                   />
                 )}
@@ -9380,7 +9503,7 @@ ${projectEvents
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="p-1 hover:bg-[#18181b] text-slate-400 hover:text-slate-200 rounded-xs transition flex items-center justify-center cursor-pointer"
+                      className="p-1 hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 rounded transition flex items-center justify-center cursor-pointer"
                       title="이미지 또는 파일 첨부하기"
                     >
                       <Paperclip className="w-3.5 h-3.5" />
@@ -9390,7 +9513,7 @@ ${projectEvents
                     <button
                       type="button"
                       onClick={handleTriggerMention}
-                      className="p-1 hover:bg-[#18181b] text-slate-400 hover:text-slate-200 rounded-xs transition flex items-center justify-center cursor-pointer"
+                      className="p-1 hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 rounded transition flex items-center justify-center cursor-pointer"
                       title="워크스페이스 폴더 및 파일 참조"
                     >
                       <AtSign className="w-3.5 h-3.5" />
@@ -9404,7 +9527,7 @@ ${projectEvents
                           setGhostUserInput(ghostTargetEnglish);
                           showToast('✨ 영작 자동 완성');
                         }}
-                        className="px-1.5 py-0.5 rounded-xs hover:bg-[#18181b] text-indigo-400 hover:text-indigo-300 text-[0.625rem] font-mono flex items-center gap-1 transition cursor-pointer border border-[#222226]"
+                        className="px-1.5 py-0.5 rounded hover:bg-white/[0.06] text-indigo-400 hover:text-indigo-300 text-[0.625rem] font-mono flex items-center gap-1 transition cursor-pointer border border-white/[0.08]"
                         title="정답 문장 자동 완성"
                       >
                         <Sparkles className="w-2.5 h-2.5 text-indigo-400" />
@@ -9415,28 +9538,28 @@ ${projectEvents
 
                   <div className="flex items-center gap-2">
                     {/* Quick Height Preset Buttons - Clean Text Group */}
-                    <div className="flex items-center gap-0.5 text-[0.625rem] font-mono text-slate-400 bg-[#09090b] px-1 py-0.5 rounded-xs border border-[#222226]">
+                    <div className="flex items-center gap-0.5 text-[0.625rem] font-mono text-slate-400 bg-white/[0.03] px-1 py-0.5 rounded border border-white/[0.06]">
                       <button
                         type="button"
                         onClick={() => setChatInputHeight(44)}
-                        className={`px-1 rounded-xs transition cursor-pointer ${chatInputHeight <= 50 ? 'bg-white/10 text-white font-bold' : 'hover:text-slate-200'}`}
-                        title="높이 소 (44px)"
+                        className={`px-1.5 py-0.5 rounded transition cursor-pointer ${chatInputHeight <= 50 ? 'bg-white/10 text-white font-bold' : 'hover:text-slate-200'}`}
+                        title="높이 소: 44픽셀"
                       >
                         S
                       </button>
                       <button
                         type="button"
                         onClick={() => setChatInputHeight(110)}
-                        className={`px-1 rounded-xs transition cursor-pointer ${chatInputHeight > 50 && chatInputHeight <= 150 ? 'bg-white/10 text-white font-bold' : 'hover:text-slate-200'}`}
-                        title="높이 중 (110px)"
+                        className={`px-1.5 py-0.5 rounded transition cursor-pointer ${chatInputHeight > 50 && chatInputHeight <= 150 ? 'bg-white/10 text-white font-bold' : 'hover:text-slate-200'}`}
+                        title="높이 중: 110픽셀"
                       >
                         M
                       </button>
                       <button
                         type="button"
                         onClick={() => setChatInputHeight(220)}
-                        className={`px-1 rounded-xs transition cursor-pointer ${chatInputHeight > 150 ? 'bg-white/10 text-white font-bold' : 'hover:text-slate-200'}`}
-                        title="높이 대 (220px)"
+                        className={`px-1.5 py-0.5 rounded transition cursor-pointer ${chatInputHeight > 150 ? 'bg-white/10 text-white font-bold' : 'hover:text-slate-200'}`}
+                        title="높이 대: 220픽셀"
                       >
                         L
                       </button>
@@ -9454,7 +9577,7 @@ ${projectEvents
                             });
                           }
                         }}
-                        className="hover:bg-[#18181b] text-slate-400 hover:text-slate-200 h-6 w-6 flex items-center justify-center rounded-xs transition cursor-pointer"
+                        className="hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 h-6 w-6 flex items-center justify-center rounded transition cursor-pointer"
                         title="한국어 원문으로 직접 전송"
                       >
                         <Languages className="w-3.5 h-3.5" />
@@ -9469,7 +9592,7 @@ ${projectEvents
                           handleSendGhostMessage();
                         }
                       }}
-                      className="bg-indigo-600/80 hover:bg-indigo-600 active:bg-indigo-700 text-white border border-indigo-500/40 h-6 px-2.5 rounded-xs transition flex items-center justify-center cursor-pointer shadow-xs"
+                      className="bg-indigo-600/80 hover:bg-indigo-600 active:bg-indigo-700 text-white border border-indigo-500/40 h-6 px-2.5 rounded transition flex items-center justify-center cursor-pointer"
                       title={ghostWriterLevel !== 'off' ? '영작된 영어 프롬프트로 AI 전송' : '메시지 전송'}
                     >
                       <Send className="w-3 h-3" />
@@ -9487,7 +9610,7 @@ ${projectEvents
           <div
             onMouseDown={(e) => handleMouseDownDivider(1, e)}
             onTouchStart={(e) => handleTouchStartDivider(1, e)}
-            className="w-1.5 hover:w-2 bg-[#09090b]/80 hover:bg-[#6366f1]/40 active:bg-[#6366f1] cursor-col-resize shrink-0 transition-all z-20 flex items-center justify-center group select-none shadow-xs border-x border-[#222226]"
+            className="w-1.5 hover:w-2 bg-[#09090b]/80 hover:bg-[#6366f1]/40 active:bg-[#6366f1] cursor-col-resize shrink-0 transition-all z-20 flex items-center justify-center group select-none border-r border-white/[0.06]"
             title="좌우로 드래그하여 패널 크기 조절 (대화창 / 에디터)"
           >
             <div className="w-0.5 h-8 bg-slate-500 group-hover:bg-[#6366f1] rounded-full transition" />
@@ -9499,7 +9622,7 @@ ${projectEvents
           <div
             onMouseDown={(e) => handleMouseDownDivider(3, e)}
             onTouchStart={(e) => handleTouchStartDivider(3, e)}
-            className="w-1.5 hover:w-2 bg-[#09090b]/80 hover:bg-[#6366f1]/40 active:bg-[#6366f1] cursor-col-resize shrink-0 transition-all z-20 flex items-center justify-center group select-none shadow-xs border-x border-[#222226]"
+            className="w-1.5 hover:w-2 bg-[#09090b]/80 hover:bg-[#6366f1]/40 active:bg-[#6366f1] cursor-col-resize shrink-0 transition-all z-20 flex items-center justify-center group select-none border-r border-white/[0.06]"
             title="좌우로 드래그하여 패널 크기 조절 (대화창 / 파일 탐색기)"
           >
             <div className="w-0.5 h-8 bg-slate-500 group-hover:bg-[#6366f1] rounded-full transition" />
@@ -9524,7 +9647,7 @@ ${projectEvents
           }}
           className={`h-full min-h-0 flex-1 flex flex-col bg-[#09090b] backdrop-blur-md shrink-0 overflow-hidden ${
             isResizing ? 'transition-none select-none' : 'transition-[width,min-width,opacity] duration-300 ease-in-out'
-          } min-w-0 z-10 border-r border-l border-[#222226]`}
+          } min-w-0 z-10`}
           onDragOver={(e) => {
             if (e.dataTransfer.types.includes('Files')) {
               e.preventDefault();
@@ -9553,7 +9676,7 @@ ${projectEvents
           ) : (
             <>
               {/* Multi-Tab Document Bar */}
-              <div className="bg-[#0f0f12] border-b border-[#222226] flex items-center justify-between px-1.5 pt-1 select-none min-h-[34px] z-20 w-full min-w-0 relative">
+              <div className="bg-[#0c0c0e] border-b border-white/[0.06] flex items-center justify-between px-1.5 pt-1 select-none min-h-[34px] z-20 w-full min-w-0 relative">
                 <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-2">
                   {openTabs.map((tabFileName) => {
                     const isActive = tabFileName === currentActiveFile;
@@ -9567,10 +9690,10 @@ ${projectEvents
                             handleOpenFile(tabFileName);
                           }
                         }}
-                        className={`group relative flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono transition cursor-pointer shrink-0 max-w-[200px] border-r border-[#222226] border-l border-[#222226] ${
+                        className={`group relative flex items-center gap-1.5 px-3 py-1 text-xs font-mono transition cursor-pointer shrink-0 max-w-[200px] border-r border-white/[0.06] ${
                           isActive
-                            ? 'bg-[#0c0c0e] border-b-2 border-b-[#6366f1] text-slate-100 font-medium'
-                            : 'bg-[#09090b] border-b-2 border-b-transparent text-slate-400 hover:text-slate-200 hover:bg-[#1a1b24]'
+                            ? 'bg-[#121216] border-b-2 border-b-[#6366f1] text-slate-100 font-medium'
+                            : 'bg-transparent border-b-2 border-b-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.03]'
                         }`}
                         title={tabFileName}
                       >
@@ -9587,7 +9710,7 @@ ${projectEvents
                         <button
                           type="button"
                           onClick={(e) => handleCloseTab(tabFileName, e)}
-                          className={`p-0.5 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-white shrink-0 transition cursor-pointer ${
+                          className={`p-0.5 rounded-xs hover:bg-white/[0.08] text-slate-400 hover:text-white shrink-0 transition cursor-pointer ${
                             isTabDirty ? 'hidden group-hover:flex' : 'opacity-0 group-hover:opacity-100'
                           }`}
                           title="탭 닫기"
@@ -9602,7 +9725,7 @@ ${projectEvents
                   <button
                     type="button"
                     onClick={handleAddNewNoteTab}
-                    className="p-1 px-1.5 rounded-xs hover:bg-[#18181b]/80 text-slate-400 hover:text-white text-xs transition flex items-center justify-center shrink-0 ml-0.5 cursor-pointer border border-transparent hover:border-[#222226]"
+                    className="p-1 px-1.5 rounded-xs hover:bg-white/[0.06] text-slate-400 hover:text-white text-xs transition flex items-center justify-center shrink-0 ml-0.5 cursor-pointer border border-transparent hover:border-white/[0.08]"
                     title="새로운 메모 탭 추가"
                   >
                     <Plus className="w-3.5 h-3.5 text-slate-400" />

@@ -1,6 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Bot, Copy, GitCompare, ArrowRight, Globe, ExternalLink, Zap, Key, Terminal, FileText, Settings, Sparkles } from 'lucide-react';
-import { renderMarkdownToHtml } from '../utils/markdownParser';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Bot,
+  Copy,
+  GitCompare,
+  ArrowRight,
+  Sparkles,
+  Key,
+  Terminal,
+  FileText,
+  Settings,
+  Globe,
+  ExternalLink,
+  Zap,
+} from 'lucide-react';
+import { renderMarkdownToHtml, cleanAiContentText } from '../utils/markdownParser';
 import type { ChatMessage } from '../types';
 
 interface AiMessageBubbleProps {
@@ -26,18 +39,21 @@ function prepareStreamingMarkdown(text: string, isStreaming?: boolean): string {
 }
 
 /**
- * Renders markdown HTML and injects a real-time blinking terminal cursor at the end of the text while streaming.
- * Automatically removes the cursor once generation is complete.
+ * Renders markdown HTML with single font size (bold-only headings) and no decorative icons.
+ * Injects a real-time smooth breathing caret at the end of the text while streaming.
  */
 function renderAiMessageHtml(text: string, isStreaming?: boolean): string {
-  const cursorHtml = `<span class="w-1.5 h-4 bg-indigo-500 inline-block animate-pulse ml-0.5 align-middle" aria-hidden="true"></span>`;
+  const cursorHtml = `<span class="stream-caret-pulse" aria-hidden="true"></span>`;
   
   if (!text && isStreaming) {
     return cursorHtml;
   }
   
-  const safeText = prepareStreamingMarkdown(text, isStreaming);
-  let html = renderMarkdownToHtml(safeText);
+  // Strip decorative emojis and icons so they never appear in chat or editor
+  const cleanText = cleanAiContentText(text);
+  const safeText = prepareStreamingMarkdown(cleanText, isStreaming);
+  // Render with isChat: true to enforce single font size with bold headings
+  let html = renderMarkdownToHtml(safeText, { isChat: true });
   
   if (isStreaming) {
     // Find the last closing tag to place cursor inline at the end of the last word/line
@@ -52,7 +68,7 @@ function renderAiMessageHtml(text: string, isStreaming?: boolean): string {
   return html;
 }
 
-export const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
+export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
   msg,
   selectedModel,
   onCopy,
@@ -61,7 +77,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
   onActionChipClick,
   onOpenSettings,
 }) => {
-  // Micro Fade-In transition: initial opacity-0 translate-y-1.5 -> rendered opacity-100 translate-y-0
+  // Micro Fade-In transition: initial opacity-0 translate-y-1 -> rendered opacity-100 translate-y-0
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -71,25 +87,35 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
     return () => cancelAnimationFrame(raf);
   }, []);
 
+  const cleanedText = useMemo(() => cleanAiContentText(msg.text), [msg.text]);
+
+  // Memoized rendered markdown HTML for maximum streaming performance
+  const renderedHtml = useMemo(() => {
+    return renderAiMessageHtml(msg.text, msg.isStreaming);
+  }, [msg.text, msg.isStreaming]);
+
   return (
     <div
       className={`flex gap-2.5 items-start select-text transition-all duration-200 ease-out ${
-        isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1.5'
+        isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
       }`}
     >
-      <div className="w-6 h-6 rounded-xs bg-[#09090b] border border-[#222226] flex items-center justify-center text-[#6366f1] text-xs shrink-0 mt-0.5 select-none">
-        <Bot className={`w-3.5 h-3.5 ${msg.isStreaming ? 'animate-pulse text-indigo-400' : ''}`} />
+      {/* Minimalist flat bot icon indicator without bulky box or border */}
+      <div className="w-5 h-5 flex items-center justify-center text-indigo-400 text-xs shrink-0 mt-0.5 select-none bg-transparent border-0">
+        <Bot className={`w-4 h-4 ${msg.isStreaming ? 'animate-pulse text-indigo-400' : 'text-indigo-400/90'}`} />
       </div>
 
-      <div className="rounded-xs p-3 text-xs leading-relaxed space-y-2 select-text cursor-text bg-[#0c0c0e] border border-[#222226] flex-1 text-slate-200 shadow-xs">
-        {/* Model header & action toolbar */}
-        <div className="flex items-center justify-between border-b border-[#222226] pb-1.5 select-none">
+      {/* AI Response Container: completely removed box, border, and background color per user request */}
+      <div className="flex-1 text-xs leading-relaxed space-y-1.5 select-text cursor-text bg-transparent border-0 shadow-none text-slate-200 py-0.5">
+        {/* Model header & action toolbar - flat, borderless design */}
+        <div className="flex items-center justify-between pb-1 select-none">
           <span className="font-semibold text-[#6366f1] flex items-center text-xs">
             <span className="text-[0.6875rem] text-indigo-300 font-mono font-medium flex items-center gap-1.5">
               {msg.model || selectedModel}
               {msg.isStreaming && (
-                <span className="text-[0.625rem] text-indigo-400/80 font-sans font-normal animate-pulse">
-                  생성 중...
+                <span className="text-[0.625rem] text-indigo-400/90 font-sans font-normal flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping"></span>
+                  답변 작성 중
                 </span>
               )}
             </span>
@@ -99,17 +125,17 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
             {/* Copy button */}
             <button
               type="button"
-              onClick={() => onCopy(msg.text)}
+              onClick={() => onCopy(cleanedText)}
               disabled={msg.isStreaming && !msg.text}
               className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-slate-200 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              title="클립보드에 복사"
+              title="클립보드에 복사 (아이콘 제외 순수 텍스트)"
             >
               <Copy className="w-3 h-3" />
             </button>
             {/* Diff compare button */}
             <button
               type="button"
-              onClick={() => onDiff(msg.text, msg.model)}
+              onClick={() => onDiff(cleanedText, msg.model)}
               disabled={msg.isStreaming}
               className="p-1 rounded-xs hover:bg-[#18181b] text-emerald-400 hover:text-emerald-300 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               title="현재 문서와 차이 비교 및 스마트 반영"
@@ -119,25 +145,27 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
             {/* Send to editor button */}
             <button
               type="button"
-              onClick={() => onSendToEditor(msg.text)}
+              onClick={() => onSendToEditor(cleanedText)}
               disabled={msg.isStreaming}
               className="p-1 rounded-xs hover:bg-[#18181b] text-[#6366f1] hover:text-[#818cf8] transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              title="에디터로 내용 전송"
+              title="에디터로 내용 전송 (아이콘 제외 순수 텍스트)"
             >
               <ArrowRight className="w-3 h-3" />
             </button>
           </div>
         </div>
 
-        {/* Message Markdown Content with Real-time Typing Cursor */}
+        {/* Message Markdown Content: Uniform Single Font Size with Bold-Only Headings & Smooth Stream Transition */}
         <div
-          className="markdown-chat-content font-sans text-xs leading-relaxed select-text cursor-text"
-          dangerouslySetInnerHTML={{ __html: renderAiMessageHtml(msg.text, msg.isStreaming) }}
+          className={`markdown-chat-content font-sans text-xs leading-relaxed select-text cursor-text ${
+            msg.isStreaming ? 'stream-text-active' : ''
+          }`}
+          dangerouslySetInnerHTML={{ __html: renderedHtml }}
         />
 
-        {/* Initial Action Chips (온보딩 인터랙티브 칩 3가지) */}
+        {/* Initial Action Chips (온보딩 인터랙티브 칩) */}
         {msg.showOnboardingChips && onActionChipClick && (
-          <div className="mt-3 pt-2.5 border-t border-[#222226] flex flex-col gap-2 select-none">
+          <div className="mt-2.5 pt-2 border-t border-white/[0.06] flex flex-col gap-2 select-none">
             <div className="text-[0.6875rem] font-semibold text-indigo-300 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
               <span>빠른 온보딩 인터랙션 가이드</span>
@@ -146,7 +174,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
               <button
                 type="button"
                 onClick={() => onActionChipClick('gemini-key')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xs bg-[#121214] hover:bg-[#18181b] border border-[#222226] hover:border-[#6366f1]/80 text-slate-200 hover:text-white text-xs font-medium transition cursor-pointer shadow-xs active:scale-[0.98]"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-[#121214] hover:bg-[#18181b] border border-[#222226] hover:border-[#6366f1]/80 text-slate-200 hover:text-white text-xs font-medium transition cursor-pointer shadow-xs active:scale-[0.98]"
               >
                 <Key className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span>Gemini API 키 등록 방법</span>
@@ -154,7 +182,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
               <button
                 type="button"
                 onClick={() => onActionChipClick('ollama-guide')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xs bg-[#121214] hover:bg-[#18181b] border border-[#222226] hover:border-[#6366f1]/80 text-slate-200 hover:text-white text-xs font-medium transition cursor-pointer shadow-xs active:scale-[0.98]"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-[#121214] hover:bg-[#18181b] border border-[#222226] hover:border-[#6366f1]/80 text-slate-200 hover:text-white text-xs font-medium transition cursor-pointer shadow-xs active:scale-[0.98]"
               >
                 <Terminal className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 <span>Ollama 로컬 AI 연결 가이드</span>
@@ -162,7 +190,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
               <button
                 type="button"
                 onClick={() => onActionChipClick('demo-knowledge')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xs bg-[#121214] hover:bg-[#18181b] border border-[#222226] hover:border-[#6366f1]/80 text-slate-200 hover:text-white text-xs font-medium transition cursor-pointer shadow-xs active:scale-[0.98]"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-[#121214] hover:bg-[#18181b] border border-[#222226] hover:border-[#6366f1]/80 text-slate-200 hover:text-white text-xs font-medium transition cursor-pointer shadow-xs active:scale-[0.98]"
               >
                 <FileText className="w-3.5 h-3.5 text-[#38bdf8] shrink-0" />
                 <span>가상 지식 정리 체험</span>
@@ -242,4 +270,15 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.msg.id === nextProps.msg.id &&
+    prevProps.msg.text === nextProps.msg.text &&
+    prevProps.msg.isStreaming === nextProps.msg.isStreaming &&
+    prevProps.selectedModel === nextProps.selectedModel &&
+    prevProps.msg.showOnboardingChips === nextProps.msg.showOnboardingChips &&
+    prevProps.msg.groundingSources === nextProps.msg.groundingSources &&
+    prevProps.msg.tokens === nextProps.msg.tokens &&
+    prevProps.msg.actionButtons === nextProps.msg.actionButtons
+  );
+});

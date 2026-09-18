@@ -1,9 +1,28 @@
 @import "tailwindcss";
 
-/* Selection Highlight Styling */
+/* ==========================================================================
+   Universal Soft Text Selection Highlight - VS Code / Obsidian Dense Dark Theme
+   Avoids harsh glare, beautifully integrates with dark surfaces
+   ========================================================================== */
 ::selection {
-  background-color: var(--accent-primary, #6366f1);
-  color: #ffffff;
+  background-color: var(--selection-bg, rgba(99, 102, 241, 0.28)) !important;
+  color: var(--selection-text, #f8fafc) !important;
+}
+
+::-moz-selection {
+  background-color: var(--selection-bg, rgba(99, 102, 241, 0.28)) !important;
+  color: var(--selection-text, #f8fafc) !important;
+}
+
+input::selection,
+textarea::selection,
+pre::selection,
+code::selection,
+[contenteditable]::selection,
+.prose ::selection,
+.tiptap ::selection {
+  background-color: var(--selection-bg, rgba(99, 102, 241, 0.28)) !important;
+  color: var(--selection-text, #f8fafc) !important;
 }
 
 /* ==========================================================================
@@ -47,6 +66,10 @@
 
   /* Editor Typography Scale */
   --editor-font-size: 15px;
+
+  /* Universal Soft Selection Tokens */
+  --selection-bg: rgba(99, 102, 241, 0.28);
+  --selection-text: #f8fafc;
 }
 
 /* Base Body Styles - VS Code Monospace IDE Standard */
@@ -364,69 +387,88 @@ body,
 .markdown-preview li,
 .markdown-body li {
   font-size: var(--editor-font-size, 15px);
+  line-height: 1.65;
 }
 
 .markdown-preview h1,
 .markdown-body h1 {
-  font-size: 1.35rem;
+  font-size: 1.45rem;
   font-weight: 700;
-  line-height: 1.35;
+  line-height: 1.4;
   color: #f8fafc;
-  margin-top: 1.65rem;
+  margin-top: 1.75rem;
   margin-bottom: 0.85rem;
-  padding-bottom: 0.4rem;
-  border-bottom: 1px solid var(--border-color, #222226);
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   letter-spacing: -0.02em;
 }
 
 .markdown-preview h2,
 .markdown-body h2 {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.45;
   color: #f1f5f9;
-  margin-top: 1.35rem;
+  margin-top: 1.45rem;
   margin-bottom: 0.65rem;
   padding-bottom: 0.35rem;
-  border-bottom: 1px solid var(--border-color, #222226);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   letter-spacing: -0.015em;
 }
 
 .markdown-preview h3,
 .markdown-body h3 {
-  font-size: 1.0rem;
+  font-size: 1.08rem;
   font-weight: 600;
-  line-height: 1.45;
+  line-height: 1.5;
   color: #e2e8f0;
-  margin-top: 1.1rem;
+  margin-top: 1.2rem;
   margin-bottom: 0.5rem;
   letter-spacing: -0.01em;
 }
 
 .markdown-preview h4,
 .markdown-body h4 {
-  font-size: 0.875rem;
+  font-size: 0.925rem;
   font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.55;
   color: #cbd5e1;
-  margin-top: 0.95rem;
+  margin-top: 1rem;
   margin-bottom: 0.4rem;
 }
 
 .markdown-preview p,
 .markdown-body p {
   margin-top: 0;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.85rem;
   line-height: 1.65;
   color: #cbd5e1;
+}
+
+/* Bold / Strong visualization enhancements for clear visual hierarchy */
+.markdown-preview strong,
+.markdown-body strong {
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.markdown-preview strong em,
+.markdown-body strong em,
+.markdown-preview em strong,
+.markdown-body em strong {
+  font-weight: 700;
+  font-style: italic;
+  color: #ffffff;
 }
 
 .markdown-preview ul,
 .markdown-preview ol,
 .markdown-body ul,
 .markdown-body ol {
-  margin-top: 0.35rem;
-  margin-bottom: 0.75rem;
+  margin-top: 0.4rem;
+  margin-bottom: 0.85rem;
   line-height: 1.65;
 }
 
@@ -434,14 +476,15 @@ body,
 .markdown-body li {
   line-height: 1.65;
   color: #cbd5e1;
+  margin-bottom: 0.25rem;
 }
 
 .markdown-preview blockquote,
 .markdown-body blockquote {
-  margin: 0.85rem 0;
-  padding: 0.6rem 0.9rem;
+  margin: 1rem 0;
+  padding: 0.65rem 1rem;
   border-left: 2px solid var(--accent-primary, #6366f1);
-  background-color: var(--bg-surface, #121214);
+  background-color: rgba(255, 255, 255, 0.02);
   color: #cbd5e1;
   border-radius: 0 4px 4px 0;
   line-height: 1.65;
@@ -452,20 +495,56 @@ body,
   font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
 }
 
+/* Polished High-Readability Markdown Table */
 .markdown-preview table,
 .markdown-body table {
   width: 100%;
-  border-collapse: collapse;
-  margin: 0.85rem 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 1.1rem 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.01);
+}
+
+.markdown-preview th,
+.markdown-body th {
+  font-weight: 600;
+  text-align: left;
+  background-color: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  padding: 0.65rem 0.95rem;
   font-size: 0.75rem;
-  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+
+.markdown-preview td,
+.markdown-body td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+  padding: 0.65rem 0.95rem;
+  color: #cbd5e1;
+  vertical-align: top;
+}
+
+.markdown-preview tr:last-child td,
+.markdown-body tr:last-child td {
+  border-bottom: none;
+}
+
+.markdown-preview tr:hover td,
+.markdown-body tr:hover td {
+  background-color: rgba(255, 255, 255, 0.02);
 }
 
 .markdown-preview hr,
 .markdown-body hr {
   border: none;
-  border-top: 1px solid var(--border-color, #222226);
-  margin: 1.5rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin: 1.65rem 0;
 }
 
 /* ==========================================================================
@@ -548,7 +627,16 @@ body,
 }
 
 .tiptap-prosemirror-body.ProseMirror strong {
-  font-weight: 600;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.tiptap-prosemirror-body.ProseMirror strong em,
+.tiptap-prosemirror-body.ProseMirror em strong {
+  font-weight: 700;
+  font-style: italic;
   color: #ffffff;
 }
 
@@ -668,34 +756,53 @@ body,
 .tiptap-prosemirror-body.ProseMirror table,
 .tiptap-table {
   width: 100%;
-  border-collapse: collapse;
-  margin: 1rem 0;
-  font-size: 0.75rem;
-  line-height: 1.5;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 1.1rem 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
   table-layout: fixed;
-  border: 1px solid var(--border-color, #222226);
-  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.01);
 }
 
 .tiptap-prosemirror-body.ProseMirror th,
 .tiptap-prosemirror-body.ProseMirror td {
-  border: 1px solid var(--border-color, #222226);
-  padding: 0.5rem 0.75rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 0.65rem 0.85rem;
   vertical-align: top;
   box-sizing: border-box;
   position: relative;
   min-width: 60px;
 }
 
+.tiptap-prosemirror-body.ProseMirror th:last-child,
+.tiptap-prosemirror-body.ProseMirror td:last-child {
+  border-right: none;
+}
+
+.tiptap-prosemirror-body.ProseMirror tr:last-child td {
+  border-bottom: none;
+}
+
 .tiptap-prosemirror-body.ProseMirror th {
   font-weight: 600;
   text-align: left;
-  background-color: var(--bg-surface, #121214);
-  color: #f1f5f9;
+  background-color: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  font-size: 0.75rem;
 }
 
 .tiptap-prosemirror-body.ProseMirror td {
   color: #cbd5e1;
+}
+
+.tiptap-prosemirror-body.ProseMirror tr:hover td {
+  background-color: rgba(255, 255, 255, 0.02);
 }
 
 .tiptap-prosemirror-body.ProseMirror .selectedCell:after {
@@ -721,6 +828,119 @@ body,
 .tiptap-prosemirror-body.ProseMirror p,
 .tiptap-prosemirror-body.ProseMirror li {
   font-size: var(--editor-font-size, 15px);
+}
+
+/* ==========================================================================
+   AI Chat Message Single-Size Typography & Flat Borderless Content
+   - Only ONE font size across all text (13px)
+   - Headings (H1~H6) rendered exclusively in bold, with NO size magnification
+   - No boxes, no borders, no backgrounds on headings or message containers
+   ========================================================================== */
+.markdown-chat-content {
+  font-size: 13px !important;
+  line-height: 1.65 !important;
+  color: #e2e8f0 !important;
+  contain: layout paint;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  transform: translateZ(0);
+}
+
+/* Streaming smooth text transition & hardware acceleration */
+.stream-text-active {
+  animation: streamTextFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes streamTextFadeIn {
+  0% {
+    opacity: 0.88;
+    filter: blur(0.25px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+/* Real-time typing caret: smooth breathing indigo pulse */
+.stream-caret-pulse {
+  display: inline-block;
+  width: 2px;
+  height: 13px;
+  background-color: #6366f1;
+  border-radius: 1px;
+  margin-left: 2px;
+  vertical-align: -1.5px;
+  box-shadow: 0 0 6px rgba(99, 102, 241, 0.65);
+  animation: streamCaretBreathe 0.85s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: opacity, transform;
+}
+
+@keyframes streamCaretBreathe {
+  0%, 100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scaleY(0.85);
+  }
+}
+
+.markdown-chat-content h1,
+.markdown-chat-content h2,
+.markdown-chat-content h3,
+.markdown-chat-content h4,
+.markdown-chat-content h5,
+.markdown-chat-content h6 {
+  font-size: 13px !important; /* Uniform single font size for all headings */
+  font-weight: 700 !important; /* Headings distinguished solely by bold weight */
+  line-height: 1.65 !important;
+  color: #f8fafc !important;
+  border: none !important; /* Remove bottom borders / underlines */
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  margin-top: 0.65rem !important;
+  margin-bottom: 0.2rem !important;
+  letter-spacing: normal !important;
+}
+
+.markdown-chat-content h1:first-child,
+.markdown-chat-content h2:first-child,
+.markdown-chat-content h3:first-child,
+.markdown-chat-content p:first-child {
+  margin-top: 0 !important;
+}
+
+.markdown-chat-content p,
+.markdown-chat-content li,
+.markdown-chat-content span,
+.markdown-chat-content td,
+.markdown-chat-content th {
+  font-size: 13px !important;
+  line-height: 1.65 !important;
+}
+
+.markdown-chat-content ul,
+.markdown-chat-content ol {
+  margin: 0.4rem 0 !important;
+  padding-left: 1.2rem !important;
+}
+
+.markdown-chat-content li {
+  margin-bottom: 0.2rem !important;
+}
+
+.markdown-chat-content blockquote {
+  background: transparent !important;
+  border-left: 2px solid rgba(99, 102, 241, 0.7) !important;
+  border-right: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  padding: 0.25rem 0.6rem !important;
+  margin: 0.5rem 0 !important;
+  color: #cbd5e1 !important;
+  font-size: 13px !important;
 }
 
 

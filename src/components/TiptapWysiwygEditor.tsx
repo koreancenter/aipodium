@@ -15,10 +15,12 @@ import {
   Columns,
   Rows
 } from 'lucide-react';
+import { renderMarkdownToHtml } from '../utils/markdownParser';
 
 export interface TiptapWysiwygEditorRef {
   executeCommand: (formatType: string) => void;
   insertTable: (rows?: number, cols?: number) => void;
+  insertFormattedMarkdown: (markdownText: string, metadataTitle?: string) => string;
   undo: () => void;
   redo: () => void;
   canUndo: () => boolean;
@@ -182,6 +184,41 @@ export const TiptapWysiwygEditor = memo(
             if (!editor) return;
             editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
           },
+          insertFormattedMarkdown: (markdownText: string, metadataTitle?: string): string => {
+            if (!editor) return '';
+            const trimmed = markdownText.trim();
+            if (!trimmed) return '';
+
+            // 마크다운 본문을 리치 텍스트 HTML로 변환
+            const htmlBody = renderMarkdownToHtml(trimmed);
+            const isDocEmpty = editor.isEmpty;
+            const headerHtml = metadataTitle
+              ? `${isDocEmpty ? '' : '<hr />'}<blockquote><p>📌 <strong>${metadataTitle}</strong></p></blockquote>`
+              : '';
+            const fullHtml = headerHtml + htmlBody;
+
+            // 포커스가 없으면 문서 끝으로 이동하여 자연스럽게 주입
+            if (!editor.isFocused) {
+              editor.commands.focus('end');
+            }
+
+            // 워드프로세서 서식 그대로 삽입
+            editor.commands.insertContent(fullHtml);
+
+            // 최신 마크다운 동기화
+            let currentMd = '';
+            try {
+              currentMd = (editor.storage as any).markdown?.getMarkdown() ?? '';
+              isInternalUpdateRef.current = true;
+              onChange(currentMd);
+              setTimeout(() => {
+                isInternalUpdateRef.current = false;
+              }, 60);
+            } catch (err) {
+              console.error('Failed to get markdown from Tiptap after insert:', err);
+            }
+            return currentMd;
+          },
           undo: () => {
             if (!editor) return;
             editor.chain().focus().undo().run();
@@ -255,10 +292,10 @@ export const TiptapWysiwygEditor = memo(
           {isTableActive && (
             <div
               style={{
-                background: 'var(--bg-surface)',
-                borderColor: 'var(--border-color)'
+                background: '#121216',
+                borderColor: 'rgba(255, 255, 255, 0.08)'
               }}
-              className="sticky top-2 z-20 mx-auto px-3 py-1 rounded-xs border shadow-lg flex items-center gap-1.5 select-none shrink-0 text-xs animate-in fade-in"
+              className="sticky top-2 z-20 mx-auto px-3 py-1 rounded-md border shadow-xl flex items-center gap-1.5 select-none shrink-0 text-xs animate-in fade-in"
             >
               <span className="text-[0.6875rem] text-indigo-400 font-medium mr-1 flex items-center gap-1">
                 <TableIcon className="w-3.5 h-3.5" /> 표 편집
@@ -266,7 +303,7 @@ export const TiptapWysiwygEditor = memo(
               <button
                 type="button"
                 onClick={() => editor.chain().focus().addRowAfter().run()}
-                className="text-slate-300 hover:text-white px-1.5 py-0.5 text-xs hover:bg-[#18181b] rounded-xs cursor-pointer flex items-center gap-1"
+                className="text-slate-300 hover:text-white px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer flex items-center gap-1"
                 title="아래에 행 추가"
               >
                 <Rows className="w-3.5 h-3.5 text-emerald-400" />
@@ -275,7 +312,7 @@ export const TiptapWysiwygEditor = memo(
               <button
                 type="button"
                 onClick={() => editor.chain().focus().addColumnAfter().run()}
-                className="text-slate-300 hover:text-white px-1.5 py-0.5 text-xs hover:bg-[#18181b] rounded-xs cursor-pointer flex items-center gap-1"
+                className="text-slate-300 hover:text-white px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer flex items-center gap-1"
                 title="우측에 열 추가"
               >
                 <Columns className="w-3.5 h-3.5 text-sky-400" />
@@ -284,7 +321,7 @@ export const TiptapWysiwygEditor = memo(
               <button
                 type="button"
                 onClick={() => editor.chain().focus().deleteRow().run()}
-                className="text-slate-400 hover:text-rose-400 px-1.5 py-0.5 text-xs hover:bg-[#18181b] rounded-xs cursor-pointer"
+                className="text-slate-400 hover:text-rose-400 px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer"
                 title="현재 행 삭제"
               >
                 행 삭제
@@ -292,16 +329,16 @@ export const TiptapWysiwygEditor = memo(
               <button
                 type="button"
                 onClick={() => editor.chain().focus().deleteColumn().run()}
-                className="text-slate-400 hover:text-rose-400 px-1.5 py-0.5 text-xs hover:bg-[#18181b] rounded-xs cursor-pointer"
+                className="text-slate-400 hover:text-rose-400 px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer"
                 title="현재 열 삭제"
               >
                 열 삭제
               </button>
-              <div className="h-3 w-px bg-[#222226] mx-0.5 shrink-0" />
+              <div className="h-3 w-px bg-white/[0.08] mx-0.5 shrink-0" />
               <button
                 type="button"
                 onClick={() => editor.chain().focus().deleteTable().run()}
-                className="text-rose-400 hover:text-rose-300 px-1.5 py-0.5 text-xs hover:bg-[#18181b] rounded-xs cursor-pointer flex items-center gap-1"
+                className="text-rose-400 hover:text-rose-300 px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer flex items-center gap-1"
                 title="표 전체 삭제"
               >
                 <Trash2 className="w-3.5 h-3.5" />

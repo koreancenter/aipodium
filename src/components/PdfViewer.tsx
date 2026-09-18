@@ -1638,7 +1638,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                     value={markdownContent}
                     onChange={(e) => onMarkdownChange(e.target.value)}
                     placeholder="# PDF 마크다운 내용&#10;&#10;상단의 [마크다운 추출] 버튼을 누르면 원본 PDF의 표, 목록, 텍스트가 자동으로 완벽하게 구조화되어 여기에 채워집니다. 직접 마크다운을 타이핑하거나 수정할 수도 있습니다."
-                    className="flex-1 w-full h-full p-4 bg-transparent text-slate-200 font-mono text-xs leading-relaxed resize-none outline-none custom-scrollbar selection:bg-[#6366f1]/30 selection:text-white border-none"
+                    className="flex-1 w-full h-full p-4 bg-transparent text-slate-200 font-mono text-xs leading-relaxed resize-none outline-none custom-scrollbar selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] border-none"
                     spellCheck={false}
                   />
 

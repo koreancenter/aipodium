@@ -101,7 +101,25 @@ if (typeof DOMPurify.addHook === 'function') {
   });
 }
 
-export function renderMarkdownToHtml(md: string): string {
+/**
+ * Removes decorative emojis and non-standard symbol icons from text
+ * so users don't have to manually delete them when pasting into their editor.
+ */
+export function cleanAiContentText(rawText: string): string {
+  if (!rawText) return '';
+  return rawText
+    // Remove standard Unicode emoji symbols (emoticons, symbols, pictographs, transport, flags, dingbats)
+    .replace(
+      /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1FA70}-\u{1FAFF}\u{2300}-\u{23FF}\u{2B50}\u{2B55}\u{FE0F}]/gu,
+      ''
+    )
+    // Clean up excessive whitespace left behind at list markers or headings
+    .replace(/^([ \t]*[#*\-+\d.]+[ \t]*)[ \t]+/gm, '$1')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean }): string {
   if (!md || !md.trim()) {
     return '<div class="text-slate-500 italic py-6 text-center text-xs">No preview content available.</div>';
   }
@@ -378,10 +396,10 @@ export function renderMarkdownToHtml(md: string): string {
       const headersHtml = headers.map((h, colIdx) => {
         const align = tableAlignments[colIdx] || 'left';
         const alignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
-        return `<th class="px-3 py-1.5 bg-[#121214] text-slate-200 font-medium text-[0.6875rem] border border-[#222226] ${alignClass}">${formatInline(h.trim())}</th>`;
+        return `<th class="px-3.5 py-2 bg-white/[0.04] text-slate-100 font-semibold text-xs border-b border-white/[0.1] ${alignClass}">${formatInline(h.trim())}</th>`;
       }).join('');
 
-      const rowsHtml = tableRows.map((r) => {
+      const rowsHtml = tableRows.map((r, rowIdx) => {
         const cols = r.split('|').filter(Boolean);
         const colsHtml = cols.map((c, colIdx) => {
           const txt = c.trim();
@@ -391,12 +409,12 @@ export function renderMarkdownToHtml(md: string): string {
           const content = isDitto
             ? `<span class="text-indigo-400 font-bold opacity-80 cursor-help" title="상단 항목과 동일">${txt}</span>`
             : formatInline(txt);
-          return `<td class="px-3 py-1.5 border border-[#222226] text-slate-300 text-[0.6875rem] leading-relaxed ${alignClass}">${content}</td>`;
+          return `<td class="px-3.5 py-2 border-b border-white/[0.05] text-slate-200 text-xs leading-[1.65] ${alignClass}">${content}</td>`;
         }).join('');
-        return `<tr class="hover:bg-white/[0.02] transition-colors">${colsHtml}</tr>`;
+        return `<tr class="hover:bg-white/[0.025] transition-colors last:border-b-0">${colsHtml}</tr>`;
       }).join('');
 
-      result.push(`<div class="overflow-x-auto my-3 rounded-md border border-[#222226] shadow-xs"><table class="w-full border-collapse border-hidden text-xs"><thead><tr>${headersHtml}</tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
+      result.push(`<div class="overflow-x-auto my-3.5 rounded-md border border-white/[0.08] bg-white/[0.01]"><table class="w-full border-collapse text-xs"><thead><tr>${headersHtml}</tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
       inTable = false;
       tableRows = [];
       tableHeader = '';
@@ -415,7 +433,10 @@ export function renderMarkdownToHtml(md: string): string {
         return formatInline(line);
       }).join('<br/>');
       
-      if (blockquoteType === 'note') {
+      if (options?.isChat) {
+        // Chat mode: no emoji badges, flat borderless quote styling
+        result.push(`<blockquote class="border-l-2 border-indigo-500/70 pl-2.5 py-1 my-2 text-slate-300 text-xs">${processedHtml}</blockquote>`);
+      } else if (blockquoteType === 'note') {
         result.push(`<div class="my-3 border-l-2 border-blue-500 bg-[#0c0c0e] text-blue-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[#222226] border-l-blue-500"><div class="font-semibold text-blue-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">ℹ️ NOTE</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'tip') {
         result.push(`<div class="my-3 border-l-2 border-emerald-500 bg-[#0c0c0e] text-emerald-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[#222226] border-l-emerald-500"><div class="font-semibold text-emerald-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">💡 TIP</div><div>${processedHtml}</div></div>`);
@@ -461,7 +482,11 @@ export function renderMarkdownToHtml(md: string): string {
       closeList();
       closeTable();
       closeBlockquote();
-      result.push(`<h1 class="text-base sm:text-lg font-bold text-slate-100 border-b border-[#222226] pb-2 mt-5 mb-2.5 leading-snug tracking-tight">${formatInline(trimmed)}</h1>`);
+      if (options?.isChat) {
+        result.push(`<h1 class="text-xs font-bold text-slate-100 mt-2.5 mb-1 leading-relaxed border-none pb-0">${formatInline(trimmed)}</h1>`);
+      } else {
+        result.push(`<h1 class="text-base sm:text-lg font-bold text-slate-100 border-b border-[#222226] pb-2 mt-5 mb-2.5 leading-snug tracking-tight">${formatInline(trimmed)}</h1>`);
+      }
       i++; // Skip the underline row
       continue;
     }
@@ -471,7 +496,11 @@ export function renderMarkdownToHtml(md: string): string {
       closeList();
       closeTable();
       closeBlockquote();
-      result.push(`<h2 class="text-sm sm:text-base font-semibold text-slate-200 border-b border-[#222226] pb-1.5 mt-4 mb-2 leading-snug tracking-tight">${formatInline(trimmed)}</h2>`);
+      if (options?.isChat) {
+        result.push(`<h2 class="text-xs font-bold text-slate-100 mt-2 mb-1 leading-relaxed border-none pb-0">${formatInline(trimmed)}</h2>`);
+      } else {
+        result.push(`<h2 class="text-sm sm:text-base font-semibold text-slate-200 border-b border-[#222226] pb-1.5 mt-4 mb-2 leading-snug tracking-tight">${formatInline(trimmed)}</h2>`);
+      }
       i++; // Skip the underline row
       continue;
     }
@@ -485,7 +514,10 @@ export function renderMarkdownToHtml(md: string): string {
       closeTable();
       closeBlockquote();
 
-      if (level === 1) {
+      if (options?.isChat) {
+        // AI 응답 창: H1, H2, H3 등 크기를 키우지 않고 오직 단일 폰트 크기(text-xs)의 볼드체로만 렌더링
+        result.push(`<h${level} class="text-xs font-bold text-slate-100 mt-2.5 mb-1 leading-relaxed border-none pb-0">${formatInline(headingContent)}</h${level}>`);
+      } else if (level === 1) {
         result.push(`<h1 class="text-base sm:text-lg font-bold text-slate-100 border-b border-[#222226] pb-2 mt-5 mb-2.5 leading-snug tracking-tight">${formatInline(headingContent)}</h1>`);
       } else if (level === 2) {
         result.push(`<h2 class="text-sm sm:text-base font-semibold text-slate-200 border-b border-[#222226] pb-1.5 mt-4 mb-2 leading-snug tracking-tight">${formatInline(headingContent)}</h2>`);

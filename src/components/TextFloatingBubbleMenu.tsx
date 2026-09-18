@@ -177,7 +177,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           e.preventDefault();
         }
       }}
-      className="absolute z-40 flex flex-col bg-[#121214] border border-[#222226] rounded-xs p-1 text-xs text-slate-200 select-none transition-[top,left] duration-150 ease-out shadow-lg animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100%-16px)]"
+      className="absolute z-50 flex flex-col bg-[#121214] border border-[#222226] rounded-xs p-1 text-xs text-slate-200 select-none shadow-xl animate-in fade-in duration-100 max-w-[calc(100%-16px)]"
     >
       {/* 1. Primary Formatting Toolbar Row */}
       <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">

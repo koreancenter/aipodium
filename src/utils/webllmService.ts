@@ -1,4 +1,9 @@
-import { CreateWebWorkerMLCEngine, type WebWorkerMLCEngine, type InitProgressReport } from '@mlc-ai/web-llm';
+import {
+  CreateWebWorkerMLCEngine,
+  prebuiltAppConfig,
+  type WebWorkerMLCEngine,
+  type InitProgressReport
+} from '@mlc-ai/web-llm';
 
 export const WEB_LLM_MODEL_ID = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
 export const WEB_LLM_MODEL_DISPLAY_NAME = 'Qwen2.5-0.5B (브라우저 로컬 WebGPU)';
@@ -39,36 +44,26 @@ export async function initWebLLMEngine(
   );
   currentWorker = worker;
 
-  engineInstance = await CreateWebWorkerMLCEngine(
-    worker,
-    WEB_LLM_MODEL_ID,
-    {
-      initProgressCallback: (report: InitProgressReport) => {
-        if (onProgress) {
-          onProgress(report);
-        }
-      },
-      logLevel: 'WARN',
-      appConfig: {
-        model_list: [
-          {
-            model: 'https://huggingface.co/mlc-ai/Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
-            model_id: WEB_LLM_MODEL_ID,
-            model_lib:
-              'https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/main/web-llm-models/v0_2_48/Qwen2.5-0.5B-Instruct-q4f16_1-ctx4k_cs1k-webgpu.wasm',
-            overrides: {
-              context_window_size: 2048,
-              conv_config: {
-                system_message: WEB_LLM_KOREAN_GUARDRAIL_SYSTEM_PROMPT,
-              },
-            },
-          },
-        ],
-      },
-    }
-  );
+  try {
+    engineInstance = await CreateWebWorkerMLCEngine(
+      worker,
+      WEB_LLM_MODEL_ID,
+      {
+        initProgressCallback: (report: InitProgressReport) => {
+          if (onProgress) {
+            onProgress(report);
+          }
+        },
+        logLevel: 'WARN',
+        appConfig: prebuiltAppConfig,
+      }
+    );
 
-  return engineInstance;
+    return engineInstance;
+  } catch (error) {
+    terminateWebLLMEngine();
+    throw error;
+  }
 }
 
 export function getLoadedWebLLMEngine(): WebWorkerMLCEngine | null {

@@ -36,6 +36,7 @@ import { TableFloatingBubbleMenu } from './TableFloatingBubbleMenu';
 import { TextFloatingBubbleMenu, TextFormatAction } from './TextFloatingBubbleMenu';
 import { VisualTableModal } from './VisualTableModal';
 import { TiptapWysiwygEditor, TiptapWysiwygEditorRef } from './TiptapWysiwygEditor';
+import { getTextareaSelectionCoordinates } from '../utils/caretCoordinates';
 
 export interface OptimizedEditorProps {
   value: string;
@@ -300,33 +301,22 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
       setIsTextBubbleVisible(false);
 
       if (textarea) {
-        const textBefore = text.slice(0, selStart);
-        const linesBefore = textBefore.split('\n');
-        const lineIndex = linesBefore.length - 1;
-        const colChars = linesBefore[lineIndex]?.length || 0;
+        // Measure exact start of the table using mirror coordinates
+        const tableCoords = getTextareaSelectionCoordinates(textarea, info.startOffset, info.startOffset);
+        const cursorCoords = getTextareaSelectionCoordinates(textarea, selStart, selStart);
 
-        const lineHeight = 19.5;
-        const paddingTop = 36;
-        const paddingLeft = 14;
-        const approxCharWidth = 7.2;
-
-        // Table start line index in document
-        const tableStartLine = text.slice(0, info.startOffset).split('\n').length - 1;
-        const tableVisibleTop = paddingTop + tableStartLine * lineHeight - textarea.scrollTop;
-        const cursorVisibleLeft = paddingLeft + colChars * approxCharWidth - textarea.scrollLeft;
-
-        // Position bubble menu comfortably above the active table header, without obscuring rows
-        let bubbleTop = tableVisibleTop - 34;
+        // Position bubble menu comfortably above the active table header
+        let bubbleTop = tableCoords.top - 40;
         if (bubbleTop < 4) {
-          bubbleTop = 4;
+          bubbleTop = tableCoords.bottom + 6;
         }
-        const clampedTop = Math.max(4, Math.min(textarea.clientHeight - 38, bubbleTop));
+        const clampedTop = Math.max(4, Math.min(textarea.clientHeight - 42, bubbleTop));
 
-        // Horizontal positioning: align near cursor, clamped to avoid overflow into right panel/divider
+        // Horizontal positioning: align near cursor, clamped to avoid overflow
         const tableBubbleWidth = 425;
         const rightSafeMargin = 24;
         const maxLeft = Math.max(12, textarea.clientWidth - tableBubbleWidth - rightSafeMargin);
-        const clampedLeft = Math.max(12, Math.min(maxLeft, cursorVisibleLeft - 40));
+        const clampedLeft = Math.max(12, Math.min(maxLeft, cursorCoords.left - 40));
 
         setTableBubblePos({ top: clampedTop, left: clampedLeft });
       }
@@ -358,39 +348,28 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
     }
 
     if (textarea) {
-      const textBefore = text.slice(0, selStart);
-      const linesBefore = textBefore.split('\n');
-      const lineIndex = linesBefore.length - 1;
-      const colChars = linesBefore[lineIndex]?.length || 0;
+      // Calculate pixel-perfect coordinates taking font, line-height, and wrapped lines into account
+      const coords = getTextareaSelectionCoordinates(textarea, selStart, end);
 
-      const selLengthOnLine = Math.min(end - selStart, 40);
-      const midCol = colChars + Math.floor(selLengthOnLine / 2);
-
-      const lineHeight = 19.5;
-      const paddingTop = 36;
-      const paddingLeft = 14;
-      const approxCharWidth = 7.2;
-
-      const lineVisibleTop = paddingTop + lineIndex * lineHeight - textarea.scrollTop;
-      const cursorVisibleLeft = paddingLeft + midCol * approxCharWidth - textarea.scrollLeft;
-
-      let bubbleTop = lineVisibleTop - 36;
-      if (bubbleTop < 4) {
-        bubbleTop = lineVisibleTop + lineHeight + 6;
+      // Desired position: directly above the selection
+      let bubbleTop = coords.top - 44;
+      // If selection is at the very top of textarea viewport, flip below selection
+      if (bubbleTop < 6) {
+        bubbleTop = coords.bottom + 8;
       }
-      const clampedTop = Math.max(4, Math.min(textarea.clientHeight - 42, bubbleTop));
+      const clampedTop = Math.max(4, Math.min(textarea.clientHeight - 44, bubbleTop));
 
       const toolbarEstimatedWidth = 470;
       const rightSafeMargin = 16;
       const maxLeft = Math.max(8, textarea.clientWidth - toolbarEstimatedWidth - rightSafeMargin);
-      const centerLeft = cursorVisibleLeft - Math.floor(toolbarEstimatedWidth / 2);
+      const centerLeft = coords.left - Math.floor(toolbarEstimatedWidth / 2);
       const clampedLeft = Math.max(8, Math.min(maxLeft, centerLeft));
 
-      const isLineInView = lineVisibleTop >= -40 && lineVisibleTop <= textarea.clientHeight + 40;
+      const isSelectionInView = coords.bottom >= 0 && coords.top <= textarea.clientHeight + 40;
 
       setTextBubblePos({ top: clampedTop, left: clampedLeft });
-      // Show bubble menu if line is in view and not dismissed
-      setIsTextBubbleVisible(isLineInView && !dismissed);
+      // Show bubble menu if selection is currently visible in viewport and not dismissed
+      setIsTextBubbleVisible(isSelectionInView && !dismissed);
     }
   }, [refToUse, isTextBubbleDismissed]);
 
@@ -1253,12 +1232,12 @@ ${targetText}
         setShowSlashMenu(true);
         setSlashIndex(0);
 
-        // Approximate popover position near cursor
+        // Precise popover position near cursor
         if (refToUse.current) {
-          const lines = textBefore.split('\n');
-          const lineIndex = lines.length;
-          const approxTop = Math.min(refToUse.current.clientHeight - 240, Math.max(10, (lineIndex - 1) * 20 + 20));
-          setSlashPosition({ top: approxTop, left: 16 });
+          const coords = getTextareaSelectionCoordinates(refToUse.current, lastSlashIdx, lastSlashIdx);
+          const slashTop = Math.min(refToUse.current.clientHeight - 240, Math.max(10, coords.bottom + 6));
+          const slashLeft = Math.min(refToUse.current.clientWidth - 280, Math.max(16, coords.left));
+          setSlashPosition({ top: slashTop, left: slashLeft });
         }
         return;
       }
@@ -1985,7 +1964,7 @@ ${targetText}
       >
         {/* Left 50%: Editor Textarea */}
         <div
-          style={{ borderColor: 'var(--border-color)' }}
+          style={{ borderColor: 'rgba(255, 255, 255, 0.06)' }}
           className="w-1/2 h-full flex flex-col relative border-r min-w-0"
         >
           <textarea
@@ -2004,6 +1983,9 @@ ${targetText}
               updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
             }}
             onKeyUp={(e) => updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd)}
+            onMouseUp={(e) => {
+              updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
+            }}
             onSelect={(e) => {
               updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
             }}
@@ -2012,9 +1994,10 @@ ${targetText}
             style={{
               background: 'var(--bg-editor)',
               color: 'var(--text-main)',
-              fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)'
+              fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)',
+              lineHeight: 1.65
             }}
-            className="w-full flex-1 font-mono px-3.5 pt-9 pb-12 resize-none border-none focus:outline-none leading-relaxed selection:bg-[#6366f1]/40 selection:text-white placeholder:opacity-40 whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] custom-scrollbar"
+            className="w-full flex-1 font-mono px-3.5 pt-9 pb-12 resize-none border-none focus:outline-none leading-[1.65] selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] placeholder:opacity-40 whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] custom-scrollbar"
           />
 
           {/* Floating Slash Command / Markdown Autocomplete Menu */}
@@ -2063,7 +2046,7 @@ ${targetText}
           <div
             style={{
               background: 'var(--bg-panel)',
-              borderColor: 'var(--border-color)'
+              borderColor: 'rgba(255, 255, 255, 0.06)'
             }}
             className="px-3 py-1 backdrop-blur-md border-b text-[0.625rem] font-semibold flex items-center justify-between shrink-0 select-none"
           >
@@ -2134,6 +2117,9 @@ ${targetText}
           updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
         }}
         onKeyUp={(e) => updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd)}
+        onMouseUp={(e) => {
+          updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
+        }}
         onSelect={(e) => {
           updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
         }}
@@ -2142,9 +2128,10 @@ ${targetText}
         style={{
           background: 'var(--bg-editor)',
           color: 'var(--text-main)',
-          fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)'
+          fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)',
+          lineHeight: 1.65
         }}
-        className="w-full flex-1 font-mono px-3.5 pt-9 pb-12 resize-none border-none focus:outline-none leading-relaxed selection:bg-[#6366f1]/40 selection:text-white placeholder:opacity-40 whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] custom-scrollbar"
+        className="w-full flex-1 font-mono px-3.5 pt-9 pb-12 resize-none border-none focus:outline-none leading-[1.65] selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] placeholder:opacity-40 whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] custom-scrollbar"
       />
 
       {/* Floating Slash Command / Markdown Autocomplete Menu */}
