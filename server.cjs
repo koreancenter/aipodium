@@ -60,7 +60,7 @@ function generateLocalAssistantResponse(message, editorContent, _systemInstructi
   if (/요약|정리|간략/i.test(message)) {
     if (hasDoc) {
       const headings = docLines.filter((l) => l.startsWith("#")).slice(0, 8);
-      responseBody = `### \u{1F4CB} '${docTitle}' \uBB38\uC11C \uD575\uC2EC \uAD6C\uC870 \uBD84\uC11D
+      responseBody = `**'${docTitle}' \uBB38\uC11C \uD575\uC2EC \uAD6C\uC870 \uBD84\uC11D**
 
 \uD604\uC7AC \uC911\uC559 \uD3B8\uC9D1\uAE30\uC5D0\uC11C \uC791\uC5C5 \uC911\uC778 \uBB38\uC11C\uC758 \uB85C\uCEEC \uAD6C\uC870 \uBD84\uC11D \uACB0\uACFC\uC785\uB2C8\uB2E4:
 
@@ -73,7 +73,7 @@ function generateLocalAssistantResponse(message, editorContent, _systemInstructi
       responseBody = `\uD604\uC7AC \uD3B8\uC9D1\uAE30\uC5D0 \uC791\uC131\uB41C \uBB38\uC11C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4. \uC911\uC559 \uC5D0\uB514\uD130\uC5D0 \uB9C8\uD06C\uB2E4\uC6B4\uC744 \uC791\uC131\uD558\uAC70\uB098 \uC2AC\uB798\uC2DC \uCEE4\uB9E8\uB4DC(\`/\`)\uB85C \uD45C\uC900 \uC11C\uC2DD \uD15C\uD50C\uB9BF\uC744 \uCD94\uAC00\uD574 \uBCF4\uC138\uC694.`;
     }
   } else if (/코드|함수|구현|스크립트|개발/i.test(message)) {
-    responseBody = `### \u{1F4BB} \uAC1C\uBC1C \uAC00\uC774\uB4DC \uBC0F \uCF54\uB4DC \uC9C0\uC6D0
+    responseBody = `**\uAC1C\uBC1C \uAC00\uC774\uB4DC \uBC0F \uCF54\uB4DC \uC9C0\uC6D0**
 
 \uC911\uC559 \uC5D0\uB514\uD130\uC5D0\uC11C \`/code\` \uC2AC\uB798\uC2DC \uBA85\uB839\uC5B4\uB97C \uC785\uB825\uD558\uBA74 \uC989\uC2DC \uAD6C\uBB38 \uAC15\uC870 \uCF54\uB4DC \uBE14\uB85D\uC744 \uC0BD\uC785\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.
 
@@ -91,7 +91,7 @@ export async function handleWorkspaceTask(taskInput: string): Promise<{ success:
 
 - **\uCC38\uACE0**: \uC5D0\uB7EC \uBC1C\uC0DD \uC2DC \uC608\uC678\uB97C \uD638\uCD9C\uC790\uC5D0\uAC8C \uC548\uC804\uD558\uAC8C \uBC18\uD658\uD558\uACE0, \uC0C1\uD0DC\uB97C \uC608\uCE21 \uAC00\uB2A5\uD55C \uD615\uD0DC\uB85C \uC720\uC9C0\uD558\uB294 \uAC83\uC774 \uC911\uC694\uD569\uB2C8\uB2E4.`;
   } else {
-    responseBody = `### \u{1F916} AI Podium \uC624\uD504\uB77C\uC778 \uAC00\uC774\uB4DC
+    responseBody = `**AI Podium \uC548\uB0B4**
 
 \uC694\uCCAD\uD558\uC2E0 \uB0B4\uC6A9(**"${message.slice(0, 60)}${message.length > 60 ? "..." : ""}"**)\uC5D0 \uB300\uD55C \uC548\uB0B4\uC785\uB2C8\uB2E4.
 
@@ -106,7 +106,7 @@ export async function handleWorkspaceTask(taskInput: string): Promise<{ success:
   }
   return responseBody + `
 
-> \u{1F4A1} *\uC54C\uB9BC: \uD604\uC7AC \uB85C\uCEEC \uAE30\uBCF8 \uBD84\uC11D \uBAA8\uB4DC\uC785\uB2C8\uB2E4. Google Gemini 3.8 \uCD5C\uC2E0 \uCD08\uACE0\uC18D \uD074\uB77C\uC6B0\uB4DC \uC2E0\uACBD\uB9DD\uC744 \uD65C\uC131\uD654\uD558\uC2DC\uB824\uBA74 [\uD658\uACBD\uC124\uC815](Ctrl+,) > [AI \uC5D4\uC9C4 \uC124\uC815]\uC5D0\uC11C Gemini API \uD0A4\uB97C \uC785\uB825\uD558\uAC70\uB098 .env\uC5D0 GEMINI_API_KEY\uB97C \uC124\uC815\uD558\uC138\uC694.*`;
+> *\uC54C\uB9BC: \uD604\uC7AC \uB85C\uCEEC \uAE30\uBCF8 \uBD84\uC11D \uBAA8\uB4DC\uC785\uB2C8\uB2E4. Google Gemini \uCD5C\uC2E0 \uD074\uB77C\uC6B0\uB4DC \uC2E0\uACBD\uB9DD\uC744 \uD65C\uC131\uD654\uD558\uC2DC\uB824\uBA74 [\uD658\uACBD\uC124\uC815](Ctrl+,) > [AI \uC5D4\uC9C4 \uC124\uC815]\uC5D0\uC11C Gemini API \uD0A4\uB97C \uC785\uB825\uD558\uAC70\uB098 .env\uC5D0 GEMINI_API_KEY\uB97C \uC124\uC815\uD558\uC138\uC694.*`;
 }
 async function startServer() {
   const app = (0, import_express.default)();
@@ -260,10 +260,15 @@ async function startServer() {
       if (typeof editorContent === "string") {
         safeEditorContent = editorContent.slice(0, 25e4);
       }
+      const formattingRules = `
+
+[CRITICAL OUTPUT RULES - EMOJI & TYPOGRAPHY RESTRICTIONS]:
+1. NO EMOJIS OR ICONS: Strictly DO NOT use any decorative emojis, pictographs, or symbol icons (such as \u{1F4CC}, \u{1F4CB}, \u{1F4A1}, \u{1F680}, \u{1F916}, \u2705, \u{1F4DD}, \u{1F3AF}, \u{1F4CA}, \u26A1, \u{1F50D}, \u{1F6E0}\uFE0F, \u2B50, \u{1F4C4}, etc.) anywhere in titles, lists, or body text. The user directly incorporates your answers into documents and should never have to manually delete icons. Use pure, plain text only.
+2. UNIFORM FONT SIZE & BOLD TITLES: Do NOT use large heading tags (H1, H2, H3, etc.) that increase font scale. Instead, represent all section titles, headers, and topic labels solely using bold text (**\uC81C\uBAA9**) on its own line. Maintain uniform body font size throughout.`;
       if (typeof parameters?.systemInstruction === "string" && parameters.systemInstruction.trim()) {
-        systemInstruction = parameters.systemInstruction.trim().slice(0, 1e4);
+        systemInstruction = parameters.systemInstruction.trim().slice(0, 1e4) + formattingRules;
       } else if (typeof req.body.systemInstruction === "string" && req.body.systemInstruction.trim()) {
-        systemInstruction = req.body.systemInstruction.trim().slice(0, 1e4);
+        systemInstruction = req.body.systemInstruction.trim().slice(0, 1e4) + formattingRules;
       } else {
         systemInstruction = `You are a helpful AI assistant in the AI Podium workspace.
 The user is working on a Markdown document in the central editor.
@@ -273,7 +278,7 @@ Here is the CURRENT state of the user's document:
 ${safeEditorContent || "(Document is empty)"}
 --- DOCUMENT END ---
 
-Please provide a helpful, concise response. If the user asks for suggestions or code based on the document, provide it. Keep your formatting in Markdown.`;
+Please provide a helpful, concise response. If the user asks for suggestions or code based on the document, provide it. Keep your formatting in Markdown.${formattingRules}`;
       }
       const isStreamingRequested = req.body?.stream === true || req.headers.accept?.includes("text/event-stream");
       if (!effectiveApiKey) {
