@@ -282,7 +282,7 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
       }
       const isStreamingRequested = req.body?.stream === true || req.headers.accept?.includes("text/event-stream");
       if (!effectiveApiKey) {
-        if (cleanMessage.includes("[\uC591\uC2DD \uAD6C\uC870 \uAC00\uC774\uB4DC]") || cleanMessage.includes("SSOT \uBB38\uC11C") || cleanMessage.includes("Vibe Canvas")) {
+        if (cleanMessage.includes("[\uC591\uC2DD \uAD6C\uC870 \uAC00\uC774\uB4DC]") || cleanMessage.includes("SSOT \uBB38\uC11C")) {
           return res.status(400).json({
             error: "Gemini API \uD0A4\uAC00 \uC124\uC815\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4. \uC2E4\uC2DC\uAC04 AI \uC885\uD569 \uC0DD\uC131\uC744 \uC704\uD574 \uC0C1\uB2E8 [\uC124\uC815]\uC5D0\uC11C API \uD0A4\uB97C \uB4F1\uB85D\uD558\uAC70\uB098, \uBAA8\uB2EC\uC5D0\uC11C [\uD45C\uC900 \uD15C\uD50C\uB9BF \uC989\uC2DC \uC0BD\uC785 (0ms)]\uC744 \uC0AC\uC6A9\uD574 \uC989\uC2DC \uBB38\uC11C\uB97C \uC0DD\uC131\uD558\uC138\uC694."
           });
