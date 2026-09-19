@@ -19,8 +19,7 @@ import {
   AlertTriangle,
   RotateCcw,
   Cpu,
-  Layers,
-  Sparkles
+  Layers
 } from 'lucide-react';
 import { authService, AuthUser } from '../services/authService';
 import { PolicyModal, PolicyType } from './PolicyModal';
@@ -41,6 +40,7 @@ import {
   unlockVaultWithRecoveryKey,
   rekeyVaultWithNewPin,
   purgeVaultKey,
+  purgeGuestWorkspaceData,
   generateVaultKey,
   encryptDataWithPasscode,
   copySensitiveWithAutoClear,
@@ -159,12 +159,22 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
     return () => clearInterval(interval);
   }, [lockoutState.isLockedOut]);
 
+  // When AuthPage is loaded without a configured PIN (Scenario A: Guest / First-time user),
+  // purge any lingering unencrypted guest workspace data to prevent data leakage between sessions.
+  useEffect(() => {
+    if (!hasPinConfigured) {
+      purgeGuestWorkspaceData().catch((err) => {
+        console.warn('Guest workspace cleanup notice:', err);
+      });
+    }
+  }, [hasPinConfigured]);
+
   // 1. Direct Workspace Entry (Scenario A - No PIN set)
   const handleOpenWorkspaceDirectly = () => {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const user = authService.getCurrentUser() || authService.loginAsGuest('Workspace User');
+      const user = authService.loginAsGuest('Workspace User');
       onAuthenticated(user);
     } catch (err: any) {
       setErrorMsg(err?.message || (lang === 'KR' ? '워크스페이스를 여는데 실패했습니다.' : 'Failed to open workspace.'));
@@ -438,21 +448,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
       <div className="relative z-10 w-full max-w-6xl xl:max-w-7xl mx-auto min-h-screen flex flex-col justify-between px-6 sm:px-10 lg:px-12 py-6 lg:py-8">
         {/* Top Header: Brand Identity & Language Toggle */}
         <header className="w-full flex items-center justify-between pb-6 border-b border-white/[0.08]">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-md bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
-              <Sparkles className="w-5 h-5 text-indigo-400" />
-            </div>
-            <div className="flex items-center gap-2.5">
-              <span className="text-base font-semibold tracking-tight text-zinc-100">
-                {t.brandName}
-              </span>
-              <span className="px-1.5 py-0.5 rounded-sm text-[11px] font-normal bg-white/5 text-zinc-400 border border-white/10">
-                {t.betaTag}
-              </span>
-              <span className="hidden sm:inline-block text-xs text-zinc-500 pl-2.5 border-l border-white/10">
-                {t.subtitle}
-              </span>
-            </div>
+          <div className="flex items-center gap-2.5">
+            <span className="text-base font-semibold tracking-tight text-zinc-100">
+              {t.brandName}
+            </span>
+            <span className="px-1.5 py-0.5 rounded-sm text-[11px] font-normal bg-white/5 text-zinc-400 border border-white/10">
+              {t.betaTag}
+            </span>
+            <span className="hidden sm:inline-block text-xs text-zinc-500 pl-2.5 border-l border-white/10">
+              {t.subtitle}
+            </span>
           </div>
 
           {/* Clean Segmented Language Selector */}

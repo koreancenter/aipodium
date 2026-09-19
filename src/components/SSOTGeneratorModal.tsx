@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { convertDocumentToMarkdown } from '../services/documentConverterService';
 
-export interface VibeCanvasConfig {
+export interface SSOTGeneratorConfig {
   selectedFolder: string;
   selectedFiles: string[];
   designTone: 'professional' | 'minimal' | 'technical' | string;
@@ -22,6 +22,8 @@ export interface VibeCanvasConfig {
   model?: string;
   provider?: string;
 }
+
+export type VibeCanvasConfig = SSOTGeneratorConfig;
 
 export interface ModelOption {
   id: string;
@@ -37,7 +39,7 @@ export interface SSOTGeneratorModalProps {
   availableFolders: string[];
   filesByFolder: Record<string, string[]>;
   availableTemplates?: string[];
-  onGenerate: (config: VibeCanvasConfig) => void;
+  onGenerate: (config: SSOTGeneratorConfig) => void;
   availableModels?: ModelOption[];
   currentModel?: string;
   currentProvider?: string;

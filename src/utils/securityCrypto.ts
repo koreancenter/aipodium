@@ -494,6 +494,8 @@ export function purgeVaultKey(): void {
   const storage = getStorage();
   storage.removeItem(LOCAL_VAULT_KEY_PIN_ENC);
   storage.removeItem(LOCAL_VAULT_KEY_REC_ENC);
+  storage.removeItem(LOCAL_PIN_HASH_KEY);
+  storage.removeItem(LOCAL_RECOVERY_KEY_HASH);
 }
 
 /**
@@ -502,6 +504,70 @@ export function purgeVaultKey(): void {
 export function hasVaultKeyConfigured(): boolean {
   const storage = getStorage();
   return Boolean(storage.getItem(LOCAL_VAULT_KEY_PIN_ENC));
+}
+
+/**
+ * Checks if a Master PIN or Vault Key is configured on the local device.
+ */
+export function hasMasterPinConfigured(): boolean {
+  const storage = getStorage();
+  return Boolean(storage.getItem(LOCAL_PIN_HASH_KEY) || storage.getItem(LOCAL_VAULT_KEY_PIN_ENC));
+}
+
+/**
+ * Completely purges guest / temporary test workspace data from local storage, session storage, and IndexedDB.
+ * Ensures zero data lingering when unauthenticated or guest users lock, log out, or return to AuthPage.
+ */
+export async function purgeGuestWorkspaceData(): Promise<void> {
+  const storage = getStorage();
+
+  // 1. All workspace storage keys used for local persistence
+  const guestKeysToRemove = [
+    'notebooklm_files',
+    'notebooklm_file_folders',
+    'notebooklm_editor_content',
+    'notebooklm_active_file',
+    'notebooklm_sessions',
+    'notebooklm_active_session_id',
+    'notebooklm_open_tabs',
+    'notebooklm_trash_sessions',
+    'notebooklm_chat_messages',
+    'notebooklm_chat_threads',
+    'notebooklm_custom_templates',
+    'aipodium_guest_init_v1',
+    'aipodium_api_keys',
+    'aipodium_cloud_api_key',
+    'aipodium_auth_user',
+    'aipodium_github_config',
+    'aipodium_current_active_file'
+  ];
+
+  for (const k of guestKeysToRemove) {
+    storage.removeItem(k);
+    try {
+      if (typeof sessionStorage !== 'undefined' && sessionStorage) {
+        sessionStorage.removeItem(k);
+      }
+    } catch {}
+    try {
+      if (typeof localStorage !== 'undefined' && localStorage) {
+        localStorage.removeItem(k);
+      }
+    } catch {}
+  }
+
+  // 2. Clear IndexedDB document database if supported
+  try {
+    if (typeof indexedDB !== 'undefined' && indexedDB) {
+      const { clearDb } = await import('../services/indexedDbService');
+      await clearDb();
+    }
+  } catch (err) {
+    console.warn('[purgeGuestWorkspaceData] IndexedDB clear warning:', err);
+  }
+
+  // 3. Clear sensitive clipboard memory
+  clearSensitiveClipboard();
 }
 
 /**

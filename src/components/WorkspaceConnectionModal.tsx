@@ -71,7 +71,7 @@ const STORAGE_KEY_RECENTS = 'aipodium_recent_workspaces';
 const isMockItem = (item: any): boolean => {
   if (!item || !item.name) return true;
   if (typeof item.id === 'string' && item.id.startsWith('rec-')) return true;
-  const mockNames = ['aipodium', 'vibecanvas', 'goguma-lm', 'kwavemission'];
+  const mockNames = ['aipodium', 'goguma-lm', 'kwavemission'];
   if (mockNames.includes(item.name) && (!item.files || Object.keys(item.files).length === 0)) {
     return true;
   }

@@ -304,7 +304,7 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
 
       // If Gemini API Key is not configured
       if (!effectiveApiKey) {
-        if (cleanMessage.includes('[양식 구조 가이드]') || cleanMessage.includes('SSOT 문서') || cleanMessage.includes('Vibe Canvas')) {
+        if (cleanMessage.includes('[양식 구조 가이드]') || cleanMessage.includes('SSOT 문서')) {
           return res.status(400).json({
             error: 'Gemini API 키가 설정되지 않았습니다. 실시간 AI 종합 생성을 위해 상단 [설정]에서 API 키를 등록하거나, 모달에서 [표준 템플릿 즉시 삽입 (0ms)]을 사용해 즉시 문서를 생성하세요.'
           });

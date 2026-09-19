@@ -195,5 +195,81 @@ test('Markdown and HTML renderer protects links with rel="noopener noreferrer" a
   assert.equal(rendered.includes('https://malicious-phishing.example.com'), true);
 });
 
+test('purgeGuestWorkspaceData completely purges unencrypted guest files, editor contents, sessions, and keys', async () => {
+  const { purgeGuestWorkspaceData } = await import('../src/utils/securityCrypto.ts');
+
+  // Simulate guest user storing files and sessions in localStorage
+  if (typeof localStorage !== 'undefined' && localStorage) {
+    localStorage.setItem('notebooklm_files', JSON.stringify({ 'test.md': 'Guest test content' }));
+    localStorage.setItem('notebooklm_editor_content', 'Guest editor content');
+    localStorage.setItem('notebooklm_sessions', JSON.stringify([{ id: 'sess_1', title: 'Guest Session' }]));
+    localStorage.setItem('aipodium_guest_init_v1', 'true');
+    localStorage.setItem('aipodium_api_keys', JSON.stringify({ gemini: 'test-key' }));
+
+    assert.ok(localStorage.getItem('notebooklm_files'));
+    assert.ok(localStorage.getItem('notebooklm_editor_content'));
+
+    // Execute purge
+    await purgeGuestWorkspaceData();
+
+    // Verify all guest artifacts are wiped to null
+    assert.equal(localStorage.getItem('notebooklm_files'), null);
+    assert.equal(localStorage.getItem('notebooklm_editor_content'), null);
+    assert.equal(localStorage.getItem('notebooklm_sessions'), null);
+    assert.equal(localStorage.getItem('aipodium_guest_init_v1'), null);
+    assert.equal(localStorage.getItem('aipodium_api_keys'), null);
+  }
+});
+
+test('hasMasterPinConfigured correctly distinguishes guest from PIN user and preserves registered PIN data', async () => {
+  const {
+    hasMasterPinConfigured,
+    initMasterVault,
+    unlockVaultWithPin,
+    encryptObjectWithVaultKey,
+    decryptObjectWithVaultKey,
+    purgeVaultKey,
+    LOCAL_PIN_HASH_KEY
+  } = await import('../src/utils/securityCrypto.ts');
+
+  // 1. Initial guest state: no PIN registered
+  purgeVaultKey();
+  if (typeof localStorage !== 'undefined' && localStorage) {
+    localStorage.removeItem(LOCAL_PIN_HASH_KEY);
+  }
+  assert.equal(hasMasterPinConfigured(), false);
+
+  // 2. User registers PIN
+  const testPin = '889911';
+  const testRecoveryKey = 'ABCD-EFGH-IJKL-MNOP';
+  const vaultKey = await initMasterVault(testPin, testRecoveryKey);
+  if (typeof localStorage !== 'undefined' && localStorage) {
+    localStorage.setItem(LOCAL_PIN_HASH_KEY, 'hashed_pin_value');
+  }
+
+  // Now hasMasterPinConfigured must return true
+  assert.equal(hasMasterPinConfigured(), true);
+
+  // 3. Registered user data encryption test (Data-at-Rest Encryption)
+  const registeredUserFiles = {
+    'private_project.md': '# Confidential Corporate Document\nBudget: $500,000'
+  };
+  const encPayload = await encryptObjectWithVaultKey(registeredUserFiles, vaultKey);
+
+  // Simulating lock: lock workspace and retrieve vault key with PIN
+  const unlockedKey = await unlockVaultWithPin(testPin);
+  assert.equal(unlockedKey, vaultKey);
+
+  // Decrypt and ensure data integrity is 100% preserved
+  const restoredFiles = await decryptObjectWithVaultKey<typeof registeredUserFiles>(encPayload, unlockedKey!);
+  assert.deepEqual(restoredFiles, registeredUserFiles);
+
+  // Cleanup
+  if (typeof localStorage !== 'undefined' && localStorage) {
+    localStorage.removeItem(LOCAL_PIN_HASH_KEY);
+    purgeVaultKey();
+  }
+});
+
 
 

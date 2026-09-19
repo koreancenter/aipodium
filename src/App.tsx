@@ -10,8 +10,7 @@ import { PreferencesModal, UserPreferences, DEFAULT_PREFERENCES, AiInferencePara
 import { PromptLibraryModal, DEFAULT_SYSTEM_PROMPTS } from './components/PromptLibraryModal';
 import { GoogleAccountModal } from './components/GoogleAccountModal';
 import { GithubIntegrationModal, GithubConfig } from './components/GithubIntegrationModal';
-import { SSOTGeneratorModal, VibeCanvasConfig } from './components/SSOTGeneratorModal';
-import { VibeCanvasWorkspace } from './components/VibeCanvasWorkspace';
+import { SSOTGeneratorModal, SSOTGeneratorConfig } from './components/SSOTGeneratorModal';
 import { WorkspaceConnectionModal } from './components/WorkspaceConnectionModal';
 import { SaveUntitledModal } from './components/SaveUntitledModal';
 import { DocumentConverterModal } from './components/DocumentConverterModal';
@@ -96,7 +95,9 @@ import {
   encryptObjectWithVaultKey,
   decryptObjectWithVaultKey,
   isEncryptedPayload,
-  clearSensitiveClipboard
+  clearSensitiveClipboard,
+  hasMasterPinConfigured,
+  purgeGuestWorkspaceData
 } from './utils/securityCrypto';
 import {
   Brain,
@@ -745,14 +746,6 @@ export default function App() {
     setIsSSOTGeneratorModalOpen(true);
   };
 
-  // Vibe Canvas (SSOT Word Processor) State
-    const [isVibeCanvasActive, setIsVibeCanvasActive] = useState<boolean>(false);
-  const [vibeCanvasConfig, setVibeCanvasConfig] = useState<VibeCanvasConfig | null>(null);
-  const [vibeCanvasContent, setVibeCanvasContent] = useState<string>('');
-  const [vibeCanvasFileName, setVibeCanvasFileName] = useState<string>('project_SSOT.md');
-  const [vibeCanvasTargetFolder, setVibeCanvasTargetFolder] = useState<string>('docs');
-  const [isGeneratingVibeCanvasAi, setIsGeneratingVibeCanvasAi] = useState<boolean>(false);
-  
   const [githubConfig, setGithubConfig] = useState<GithubConfig | null>(() => {
     try {
       const sessionSaved = sessionStorage.getItem('aipodium_github_config');
@@ -2194,8 +2187,11 @@ export default function App() {
   // In-Memory Data Wiping on Lock: Encrypts data at rest, purges documents, secrets, and vault keys from React memory
   const handleWipeInMemoryDataOnLock = useCallback(async () => {
     const vaultKey = activeVaultKeyRef.current;
+    const hasPin = hasMasterPinConfigured();
+    const isGuest = !hasPin || authService.getCurrentUser()?.provider === 'guest';
+
     try {
-      if (vaultKey) {
+      if (vaultKey && hasPin) {
         // High-Security Data-at-Rest Encryption (DRE) with AES-256-GCM before flushing to disk
         const [
           encSessions,
@@ -2233,8 +2229,14 @@ export default function App() {
         const encApiKeys = await encryptObjectWithVaultKey(currentKeys, vaultKey);
         sessionStorage.setItem('aipodium_api_keys', encApiKeys);
         sessionStorage.removeItem('aipodium_cloud_api_key');
+      } else if (isGuest) {
+        // GUEST / UNREGISTERED USER AUTO-PURGE:
+        // When a user without PIN locks or exceeds idle timeout, purge all local files, sessions, and databases completely.
+        await purgeGuestWorkspaceData();
+        authService.logout();
+        setCurrentUser(null);
       } else {
-        // Unencrypted fallback for guest mode without PIN
+        // Unencrypted fallback for registered non-guest accounts without active vaultKey
         await Promise.all([
           saveHybridStorage(STORAGE_KEYS.SESSIONS, sessionsRef.current),
           saveHybridStorage(STORAGE_KEYS.ACTIVE_SESSION_ID, activeSessionIdRef.current),
@@ -2252,6 +2254,12 @@ export default function App() {
     // Wipe sensitive state variables and the vault key from React memory, and purge sensitive clipboard
     setEditorContent('');
     setFiles({});
+    setFileFolders({});
+    setOpenTabs([]);
+    setSessions([]);
+    setActiveSessionId(null);
+    setCurrentActiveFile('');
+    setFileName('untitled.md');
     setApiKeys({ gemini: '', openai: '', anthropic: '', deepseek: '', groq: '' });
     activeVaultKeyRef.current = null;
     clearSensitiveClipboard();
@@ -5191,18 +5199,10 @@ export default function App() {
 
 
   
-  // Vibe Canvas: Start SSOT Editing Session
-  const handleStartVibeCanvas = async (config: VibeCanvasConfig) => {
-    setVibeCanvasConfig(config);
+  // SSOT Document Generation: Creates or scaffolds the SSOT markdown file directly in the workspace
+  const handleGenerateSSOTDocument = async (config: SSOTGeneratorConfig) => {
     const targetFname = config.docTitle.endsWith('.md') ? config.docTitle : `${config.docTitle}.md`;
-    setVibeCanvasFileName(targetFname);
-    setVibeCanvasTargetFolder(config.selectedFolder);
-
-    // Smoothly slide / collapse the left AI panel to the left
-    setIsSection1Collapsed(true);
-    // Switch center pane into Vibe Canvas Mode
-    setIsVibeCanvasActive(true);
-
+    const targetFolder = config.selectedFolder;
     const timeStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
 
     // Gather text from selected source files
@@ -5214,13 +5214,10 @@ export default function App() {
     }
 
     if (config.autoGenerateWithAi && sourceTextsCombined.trim()) {
-      setIsGeneratingVibeCanvasAi(true);
-      
-      const initialSkeleton = `# ${targetFname.replace(/\.md$/i, '')}\n\n> **[SSOT 문서 생성 중...]** AI가 선택된 ${config.selectedFiles.length}개의 워크스페이스 문서들을 종합 분석하여 SSOT 문서를 작성 중입니다...\n\n*작성일: ${timeStr}*`;
-      setVibeCanvasContent(initialSkeleton);
+      showToast(`✨ AI가 '${targetFname}' 기준 문서를 작성 중입니다...`, 'info');
 
       const getFallbackDoc = () =>
-        `# ${targetFname.replace(/\.md$/i, '')}\n\n> **작성일:** ${timeStr} | **대상 소스 폴더:** ${config.selectedFolder}\n\n## 1. 프로젝트 개요\n\n## 2. 주요 내용 종합\n\n---\n\n## 3. 참조 소스 파일 요약\n${sourceTextsCombined}`;
+        `# ${targetFname.replace(/\.md$/i, '')}\n\n> **작성일:** ${timeStr} | **대상 소스 폴더:** ${targetFolder}\n\n## 1. 프로젝트 개요\n\n## 2. 주요 내용 종합\n\n---\n\n## 3. 참조 소스 파일 요약\n${sourceTextsCombined}`;
 
       try {
         let templateSupplement = '';
@@ -5266,85 +5263,66 @@ ${sourceTextsCombined}
           })
         });
 
+        let finalContent = getFallbackDoc();
         if (res.ok) {
           const data = await res.json();
           const generatedMarkdown = data.reply || data.text || '';
           if (generatedMarkdown.trim()) {
-            setVibeCanvasContent(generatedMarkdown);
-            showToast(`✨ 기준 문서 초안이 생성되었습니다! 검토 후 폴더에 저장하세요.`, 'success');
-          } else {
-            setVibeCanvasContent(getFallbackDoc());
-            showToast(`💡 기본 기준 문서 스캐폴딩이 적용되었습니다.`, 'info');
+            finalContent = generatedMarkdown;
           }
-        } else {
-          setVibeCanvasContent(getFallbackDoc());
-          showToast(`💡 API 키 미설정 또는 오류로 기본 스캐폴딩이 즉시 적용되었습니다. (AI 생성은 설정 > API 키 등록 필요)`, 'info');
         }
+
+        // Save directly to files & open in editor
+        setFiles((prev) => ({ ...prev, [targetFname]: finalContent }));
+        setFileFolders((prev) => ({ ...prev, [targetFname]: targetFolder }));
+        setOpenTabs((prev) => (prev.includes(targetFname) ? prev : [...prev, targetFname]));
+        setCurrentActiveFile(targetFname);
+        setFileName(targetFname);
+        setEditorContent(finalContent);
+
+        setSessions((prev) =>
+          prev.map((s) => {
+            if (s.id === activeSessionId || s.title === targetFolder) {
+              return { ...s, fileName: targetFname, editorContent: finalContent };
+            }
+            return s;
+          })
+        );
+
+        showToast(`✨ 기준 문서('${targetFname}')가 '${targetFolder}' 폴더에 생성되어 에디터에 열렸습니다!`, 'success');
       } catch (err) {
-        console.error('Vibe Canvas generation error:', err);
-        setVibeCanvasContent(getFallbackDoc());
-        showToast(`💡 기본 기준 문서 스캐폴딩이 적용되었습니다.`, 'info');
-      } finally {
-        setIsGeneratingVibeCanvasAi(false);
+        console.error('SSOT generation error:', err);
+        const fallbackContent = getFallbackDoc();
+        setFiles((prev) => ({ ...prev, [targetFname]: fallbackContent }));
+        setFileFolders((prev) => ({ ...prev, [targetFname]: targetFolder }));
+        setOpenTabs((prev) => (prev.includes(targetFname) ? prev : [...prev, targetFname]));
+        setCurrentActiveFile(targetFname);
+        setFileName(targetFname);
+        setEditorContent(fallbackContent);
+        showToast(`💡 기본 기준 문서 스캐폴딩이 생성되어 에디터에 열렸습니다.`, 'info');
       }
     } else {
-      const scaffold = `# ${targetFname.replace(/\.md$/i, '')}\n\n> **작성일:** ${timeStr} | **대상 폴더:** ${config.selectedFolder}\n\n## 1. 프로젝트 개요\n\n## 2. 주요 내용 종합\n` +
+      const scaffold = `# ${targetFname.replace(/\.md$/i, '')}\n\n> **작성일:** ${timeStr} | **대상 폴더:** ${targetFolder}\n\n## 1. 프로젝트 개요\n\n## 2. 주요 내용 종합\n` +
         (sourceTextsCombined ? `\n\n---\n\n## 3. 참조 소스 파일 데이터\n${sourceTextsCombined}` : '');
-      setVibeCanvasContent(scaffold);
-      showToast(`📝 기준 문서 스캐폴딩이 에디터에 배치되었습니다.`, 'success');
+
+      setFiles((prev) => ({ ...prev, [targetFname]: scaffold }));
+      setFileFolders((prev) => ({ ...prev, [targetFname]: targetFolder }));
+      setOpenTabs((prev) => (prev.includes(targetFname) ? prev : [...prev, targetFname]));
+      setCurrentActiveFile(targetFname);
+      setFileName(targetFname);
+      setEditorContent(scaffold);
+
+      setSessions((prev) =>
+        prev.map((s) => {
+          if (s.id === activeSessionId || s.title === targetFolder) {
+            return { ...s, fileName: targetFname, editorContent: scaffold };
+          }
+          return s;
+        })
+      );
+
+      showToast(`📝 기준 문서 스캐폴딩이 '${targetFolder}' 폴더에 생성되어 에디터에 열렸습니다.`, 'success');
     }
-  };
-
-  // Vibe Canvas: Save SSOT to Project Folder
-  const handleSaveVibeCanvasToProjectFolder = (savedContent: string, fname: string, targetFolder: string) => {
-    const finalFname = fname.trim() ? (fname.endsWith('.md') ? fname : `${fname}.md`) : 'project_SSOT.md';
-    
-    // Save to files registry
-    setFiles((prev) => ({
-      ...prev,
-      [finalFname]: savedContent
-    }));
-
-    // Assign folder
-    setFileFolders((prev) => ({
-      ...prev,
-      [finalFname]: targetFolder
-    }));
-
-    // Update active file & editor content
-    setCurrentActiveFile(finalFname);
-    setFileName(finalFname);
-    setEditorContent(savedContent);
-
-    // Update active project session
-    setSessions((prev) =>
-      prev.map((s) => {
-        if (s.id === activeSessionId || s.title === targetFolder) {
-          return {
-            ...s,
-            fileName: finalFname,
-            editorContent: savedContent
-          };
-        }
-        return s;
-      })
-    );
-
-    const timeStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-    setRecentAiChanges({
-      file: finalFname,
-      source: 'Vibe Canvas (SSOT Master)',
-      timestamp: timeStr,
-      preview: `'${finalFname}' SSOT 마스터 문서가 '${targetFolder}' 폴더에 확정 저장되었습니다.`
-    });
-    setHasUnreadAiChanges(true);
-  };
-
-  // Vibe Canvas: Exit and restore standard editor
-  const handleExitVibeCanvas = () => {
-    setIsVibeCanvasActive(false);
-    setIsSection1Collapsed(false);
-    showToast('일반 3패널 에디터 모드로 복귀했습니다.');
   };
 
 
@@ -7197,10 +7175,7 @@ ${projectEvents
       >
         <div className="flex items-center gap-2">
           {/* Logo / App Name */}
-          <div className="flex items-center gap-1.5 font-bold tracking-tight text-white cursor-pointer" onClick={() => showToast('AI Podium & Vibe Canvas (SSOT 마크다운 플랫폼)')}>
-            <div className="w-4 h-4 rounded-xs bg-gradient-to-br from-[#6366f1] to-[#0ea5e9] flex items-center justify-center text-white shrink-0">
-              <Brain className="w-3 h-3" />
-            </div>
+          <div className="flex items-center font-bold tracking-tight text-white cursor-pointer" onClick={() => showToast('AI Podium (SSOT 마크다운 플랫폼)')}>
             <span className="text-xs font-bold text-slate-100 font-mono tracking-normal">
               AI Podium
             </span>
@@ -7936,38 +7911,6 @@ ${projectEvents
                     <span>다관점 비평위원회</span>
                     <span className="text-[11px] text-zinc-500 font-mono">{councilSummary.overallScore}점</span>
                   </button>
-
-                  <div className="my-1 border-t border-white/[0.06]" />
-
-                  {/* 캔버스 편집 모드 */}
-                  <button
-                    type="button"
-                    onMouseEnter={() => setActiveSubmenu(null)}
-                    onClick={() => {
-                      if (isVibeCanvasActive) {
-                        handleExitVibeCanvas();
-                      } else if (vibeCanvasConfig) {
-                        setIsVibeCanvasActive(true);
-                      } else {
-                        handleOpenSSOTGeneratorModal(activeSession?.title || 'Main Project');
-                      }
-                      setActiveMenu(null);
-                      setActiveSubmenu(null);
-                    }}
-                    className={`w-full text-left text-xs px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer ${
-                      isVibeCanvasActive
-                        ? 'bg-white/[0.08] text-white font-medium'
-                        : 'text-zinc-200 hover:bg-white/[0.08] hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span>캔버스 편집 모드</span>
-                      {isVibeCanvasActive && (
-                        <span className="text-[11px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-1.5 py-0.5 rounded">활성</span>
-                      )}
-                    </div>
-                    {isVibeCanvasActive && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
-                  </button>
                 </div>
               )}
             </div>
@@ -8452,9 +8395,25 @@ ${projectEvents
             <UserProfileBadge
               user={currentUser}
               variant="header"
-              onSignOut={() => {
+              onSignOut={async () => {
+                const isGuest = currentUser?.provider === 'guest' || !hasMasterPinConfigured();
+                if (isGuest) {
+                  await purgeGuestWorkspaceData();
+                  setEditorContent('');
+                  setFiles({});
+                  setFileFolders({});
+                  setOpenTabs([]);
+                  setSessions([]);
+                  setActiveSessionId(null);
+                }
                 authService.logout();
-                showToast('로그아웃되었습니다.');
+                setCurrentUser(null);
+                setIsLocked(true);
+                showToast(
+                  isGuest
+                    ? '게스트 세션이 종료되고 임시 데이터가 모두 삭제되었습니다.'
+                    : '로그아웃되었습니다.'
+                );
               }}
               onLockWorkspace={() => {
                 lockNow();
@@ -9629,7 +9588,7 @@ ${projectEvents
           </div>
         )}
 
-        {/* ==================== CENTER PANE: Markdown Editor / Vibe Canvas SSOT ==================== */}
+        {/* ==================== CENTER PANE: Markdown Editor ==================== */}
         <section
           style={{
             width: isSection2Collapsed
@@ -9661,21 +9620,7 @@ ${projectEvents
             }
           }}
         >
-          {isVibeCanvasActive && vibeCanvasConfig ? (
-            <VibeCanvasWorkspace
-              config={vibeCanvasConfig}
-              initialContent={vibeCanvasContent}
-              fileName={vibeCanvasFileName}
-              targetFolder={vibeCanvasTargetFolder}
-              renderMarkdownToHtml={renderMarkdownToHtml}
-              onSaveToProjectFolder={handleSaveVibeCanvasToProjectFolder}
-              onExit={handleExitVibeCanvas}
-              onToast={showToast}
-              isGeneratingAi={isGeneratingVibeCanvasAi}
-            />
-          ) : (
-            <>
-              {/* Multi-Tab Document Bar */}
+          {/* Multi-Tab Document Bar */}
               <div className="bg-[#0c0c0e] border-b border-white/[0.06] flex items-center justify-between px-1.5 pt-1 select-none min-h-[34px] z-20 w-full min-w-0 relative">
                 <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-2">
                   {openTabs.map((tabFileName) => {
@@ -10369,9 +10314,6 @@ ${projectEvents
                   </div>
                 </div>
               </div>
-        </>
-      )}
-
         </section>
 
         {/* Resizer Divider 2 */}
@@ -11782,10 +11724,7 @@ ${projectEvents
         }}
       />
 
-      {/* Vibe Canvas Configuration Modal (SSOT Master Configurator) */}
-      
-
-
+      {/* SSOT Document Generator Modal */}
       <SSOTGeneratorModal
         isOpen={isSSOTGeneratorModalOpen}
         onClose={() => setIsSSOTGeneratorModalOpen(false)}
@@ -11817,7 +11756,7 @@ ${projectEvents
         currentProvider={provider}
         onGenerate={(config) => {
           setIsSSOTGeneratorModalOpen(false);
-          handleStartVibeCanvas(config);
+          handleGenerateSSOTDocument(config);
         }}
       />
 
