@@ -101,6 +101,7 @@ import {
   purgeGuestWorkspaceData,
   purgeGuestSession
 } from './utils/securityCrypto';
+import { clearAiDecryptedKeyMemory } from './services/aiEngineCore';
 import {
   Brain,
   Cpu,
@@ -340,22 +341,44 @@ export default function App() {
     }
   });
 
-  // Keep secrets out of persistent browser storage. Prefer temporary session storage only.
+  // Startup effect: auto-migrate any legacy plaintext keys and load encrypted credentials
+  useEffect(() => {
+    (async () => {
+      try {
+        await authService.migrateLegacyPlaintextKeys();
+        const encGemini = await authService.getEncryptedApiKey();
+        const encAll = await authService.getEncryptedApiKeys();
+        if (encGemini || Object.keys(encAll).length > 0) {
+          setApiKeys((prev) => ({
+            ...prev,
+            ...encAll,
+            gemini: encGemini || prev.gemini || ''
+          }));
+        }
+      } catch (err) {
+        console.warn('[App] Encrypted credentials startup load warning:', err);
+      }
+    })();
+  }, []);
+
+  // Secure API key persistence: always encrypt keys with AES-GCM (256-bit) and PBKDF2; zero plaintext storage
   useEffect(() => {
     try {
-      if (!preferences.security?.isEncryptionEnabled) {
-        sessionStorage.setItem('aipodium_api_keys', JSON.stringify(apiKeys));
-        if (apiKeys.gemini) {
-          sessionStorage.setItem('aipodium_cloud_api_key', apiKeys.gemini);
-        } else {
-          sessionStorage.removeItem('aipodium_cloud_api_key');
-        }
-      } else {
-        sessionStorage.removeItem('aipodium_api_keys');
-        sessionStorage.removeItem('aipodium_cloud_api_key');
+      if (apiKeys.gemini) {
+        authService.saveEncryptedApiKey(apiKeys.gemini);
       }
+      const hasAnyKeys = Object.values(apiKeys).some((k) => Boolean(k));
+      if (hasAnyKeys) {
+        authService.saveEncryptedApiKeys(apiKeys);
+      }
+      // Guarantee zero unencrypted remnants in storage
+      sessionStorage.removeItem('aipodium_api_keys');
+      sessionStorage.removeItem('aipodium_cloud_api_key');
+      localStorage.removeItem('gemini_api_key');
+      localStorage.removeItem('aipodium_cloud_api_key');
+      localStorage.removeItem('aipodium_api_keys');
     } catch {}
-  }, [apiKeys, preferences.security?.isEncryptionEnabled]);
+  }, [apiKeys]);
 
   useEffect(() => {
     try {
@@ -4822,6 +4845,13 @@ export default function App() {
   // Switch to another project and link its editor content
   const handleSelectSession = (sessionId: string) => {
     if (sessionId === activeSessionId) return;
+
+    // Ephemeral in-memory zeroing of decrypted API keys upon project switch
+    clearAiDecryptedKeyMemory();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('aipodium:project_switch'));
+    }
+
     checkUnsavedChanges(() => {
 
     // Save only the tab/filename state to session, do NOT auto-save editorContent to preserve manual save architecture.

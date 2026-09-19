@@ -600,6 +600,9 @@ export async function purgeGuestSession(
     'aipodium_custom_prompts',
 
     // API keys & local endpoints (guest zero-retention)
+    'gemini_api_key',
+    'aipodium_enc_gemini_key_v1',
+    'aipodium_enc_api_keys_v1',
     'aipodium_api_keys',
     'aipodium_cloud_api_key',
     'aipodium_local_endpoint',
@@ -643,10 +646,15 @@ export async function purgeGuestSession(
     sessionStorage.removeItem('aipodium_local_endpoint');
   }
 
-  // 5. Clear sensitive clipboard memory
+  // 5. Clear sensitive clipboard memory and in-memory decrypted keys
   try {
     const { clearSensitiveClipboard } = await import('../utils/securityCrypto');
     clearSensitiveClipboard();
+  } catch {}
+
+  try {
+    const { clearAiDecryptedKeyMemory } = await import('./aiEngineCore');
+    clearAiDecryptedKeyMemory();
   } catch {}
 
   // 6. Reset the storage state to the initial default sample workspace

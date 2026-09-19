@@ -38,6 +38,8 @@ import { VisualTableModal } from './VisualTableModal';
 import { TiptapWysiwygEditor, TiptapWysiwygEditorRef } from './TiptapWysiwygEditor';
 import { getTextareaSelectionCoordinates } from '../utils/caretCoordinates';
 import { sanitizeHtml } from '../utils/securitySanitizer';
+import { VirtualizedMarkdownPreview } from './VirtualizedMarkdownPreview';
+import { getEphemeralDecryptedApiKey } from '../services/aiEngineCore';
 
 export interface OptimizedEditorProps {
   value: string;
@@ -608,15 +610,7 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
 
       let apiKey = '';
       try {
-        const sessionKey = sessionStorage.getItem('aipodium_cloud_api_key');
-        if (sessionKey) apiKey = sessionKey;
-        else {
-          const raw = localStorage.getItem('aipodium_api_keys');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed.gemini) apiKey = parsed.gemini;
-          }
-        }
+        apiKey = await getEphemeralDecryptedApiKey('gemini');
       } catch (e) {
         // ignore
       }
@@ -1018,15 +1012,7 @@ ${tableMarkdown}
     try {
       let apiKey = '';
       try {
-        const sessionKey = sessionStorage.getItem('aipodium_cloud_api_key');
-        if (sessionKey) apiKey = sessionKey;
-        else {
-          const raw = localStorage.getItem('aipodium_api_keys');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed.gemini) apiKey = parsed.gemini;
-          }
-        }
+        apiKey = await getEphemeralDecryptedApiKey('gemini');
       } catch (e) {
         // ignore
       }
@@ -1940,20 +1926,13 @@ ${targetText}
     }
 
     return (
-      <div
-        className="w-full h-full overflow-y-auto custom-scrollbar"
-        style={{ background: 'var(--bg-editor)' }}
-      >
-        <div
-          id="markdown-preview"
-          style={{
-            color: 'var(--text-primary)',
-            fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)'
-          }}
-          className="max-w-3xl mx-auto px-6 py-8 min-h-full leading-[1.65] font-sans select-text break-words [word-break:break-word] [overflow-wrap:anywhere] markdown-preview"
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdownToHtml(localValue)) }}
-        />
-      </div>
+      <VirtualizedMarkdownPreview
+        id="markdown-preview"
+        content={localValue}
+        renderMarkdownToHtml={renderMarkdownToHtml}
+        fontSize={fontSize}
+        isSplitMode={false}
+      />
     );
   }
 
@@ -2071,16 +2050,14 @@ ${targetText}
               sandbox="allow-scripts allow-modals"
             />
           ) : (
-            <div
+            <VirtualizedMarkdownPreview
               id="markdown-preview-split"
               ref={previewContainerRef}
-              style={{
-                background: 'var(--bg-editor)',
-                color: 'var(--text-primary)',
-                fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)'
-              }}
-              className="flex-1 w-full p-5 overflow-y-auto leading-[1.65] font-sans select-text break-words [word-break:break-word] [overflow-wrap:anywhere] markdown-preview custom-scrollbar"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdownToHtml(localValue)) }}
+              content={localValue}
+              renderMarkdownToHtml={renderMarkdownToHtml}
+              fontSize={fontSize}
+              isSplitMode={true}
+              className="flex-1 w-full"
             />
           )}
         </div>

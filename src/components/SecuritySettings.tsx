@@ -17,8 +17,11 @@ import {
   encryptDataWithPasscode,
   decryptDataWithPasscode,
   hashPasscode,
-  verifyPasscodeHash
+  verifyPasscodeHash,
+  encryptApiKey,
+  decryptApiKey
 } from '../utils/securityCrypto';
+import { authService } from '../services/authService';
 import { HelpTooltip } from './HelpTooltip';
 
 export interface SecurityConfig {
@@ -93,13 +96,21 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
       // Decrypt credentials if available
       if (securityConfig.encryptedApiKey) {
         try {
-          const decryptedKey = await decryptDataWithPasscode(
+          const decryptedKey = await decryptApiKey(
             securityConfig.encryptedApiKey,
             unlockInput.trim()
           );
           onUpdateApiKey(decryptedKey);
-        } catch (e) {
-          console.warn('API Key decryption warning:', e);
+        } catch {
+          try {
+            const decryptedKey = await decryptDataWithPasscode(
+              securityConfig.encryptedApiKey,
+              unlockInput.trim()
+            );
+            onUpdateApiKey(decryptedKey);
+          } catch (e) {
+            console.warn('API Key decryption warning:', e);
+          }
         }
       }
 
@@ -175,7 +186,9 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
       let encEp = securityConfig.encryptedEndpoint;
 
       if (currentApiKey) {
-        encKey = await encryptDataWithPasscode(currentApiKey, passcode);
+        const payload = await encryptApiKey(currentApiKey, passcode);
+        encKey = JSON.stringify(payload);
+        await authService.saveEncryptedApiKey(currentApiKey, passcode);
       }
       if (currentEndpoint) {
         encEp = await encryptDataWithPasscode(currentEndpoint, passcode);

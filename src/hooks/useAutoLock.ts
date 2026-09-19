@@ -7,6 +7,7 @@ import {
   hasMasterPinConfigured
 } from '../utils/securityCrypto';
 import { purgeGuestSession } from '../services/workspaceStorageService';
+import { clearAiDecryptedKeyMemory } from '../services/aiEngineCore';
 
 export interface UseAutoLockOptions {
   /**
@@ -104,6 +105,7 @@ export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn
       if (!wasLocked && locked) {
         // Transitioning into locked state: purge sensitive in-memory state and clear clipboard
         clearSensitiveClipboard();
+        clearAiDecryptedKeyMemory();
 
         const isGuestUser =
           isGuestRef.current !== undefined
