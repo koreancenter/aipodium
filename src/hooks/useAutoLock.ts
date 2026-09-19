@@ -4,9 +4,9 @@ import {
   recordFailedAttempt,
   resetFailedAttempts,
   clearSensitiveClipboard,
-  hasMasterPinConfigured
+  hasMasterPinConfigured,
+  purgeGuestWorkspaceData
 } from '../utils/securityCrypto';
-import { purgeGuestSession } from '../services/workspaceStorageService';
 import { clearAiDecryptedKeyMemory } from '../services/aiEngineCore';
 
 export interface UseAutoLockOptions {
@@ -35,6 +35,10 @@ export interface UseAutoLockOptions {
    */
   isGuest?: boolean;
   /**
+   * Callback fired specifically when the inactivity timeout triggers.
+   */
+  onTimeout?: () => Promise<void> | void;
+  /**
    * Callback fired when lock state changes.
    */
   onLockChange?: (locked: boolean) => void;
@@ -62,12 +66,12 @@ export interface UseAutoLockReturn {
 /**
  * Custom React hook that:
  * 1. Automatically sets isLocked = true after user inactivity (default: 5 minutes)
- *    by monitoring user activity across mouse, touch, scroll, and keyboard events.
+ *    by monitoring intentional user actions (mousedown, keydown, touchstart) with a 5s throttle.
  * 2. Enforces background tab security via `visibilitychange`: checks elapsed background time
- *    to prevent throttled browser timers from delaying lock when returning to the tab.
+ *    (Date.now() - lastActiveRef.current) to trigger immediate lock when returning if threshold exceeded.
  * 3. Adds global keyboard shortcut `Ctrl + L` / `Cmd + L` to immediately lock workspace.
  * 4. Clears sensitive clipboard data and triggers `onLock` callback to purge memory.
- * 5. If user is in guest mode, completely purges all workspace data via purgeGuestSession().
+ * 5. If user is in guest mode, completely purges all workspace data via purgeGuestWorkspaceData().
  */
 export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn {
   const {
@@ -76,6 +80,7 @@ export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn
     lockOnTabSwitch = false,
     initialLocked = false,
     isGuest,
+    onTimeout,
     onLockChange,
     onLock,
     onUnlock
@@ -85,10 +90,12 @@ export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn
   const timerRef = useRef<number | null>(null);
   const isLockedRef = useRef<boolean>(initialLocked);
   isLockedRef.current = isLocked;
-  const lastActiveTimestampRef = useRef<number>(Date.now());
+  const lastActiveRef = useRef<number>(Date.now());
   const isGuestRef = useRef<boolean | undefined>(isGuest);
   isGuestRef.current = isGuest;
 
+  const onTimeoutRef = useRef(onTimeout);
+  onTimeoutRef.current = onTimeout;
   const onLockRef = useRef(onLock);
   onLockRef.current = onLock;
   const onUnlockRef = useRef(onUnlock);
@@ -114,7 +121,7 @@ export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn
 
         if (isGuestUser) {
           try {
-            await purgeGuestSession();
+            await purgeGuestWorkspaceData();
           } catch (err) {
             console.warn('[useAutoLock] Guest session purge error:', err);
           }
@@ -129,7 +136,7 @@ export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn
         }
       } else if (wasLocked && !locked) {
         // Transitioning into unlocked state: rehydrate sensitive data
-        lastActiveTimestampRef.current = Date.now();
+        lastActiveRef.current = Date.now();
         onUnlockRef.current?.();
       }
 
@@ -147,7 +154,7 @@ export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn
   }, [setIsLocked]);
 
   const resetTimer = useCallback(() => {
-    lastActiveTimestampRef.current = Date.now();
+    lastActiveRef.current = Date.now();
 
     if (timerRef.current) {
       window.clearTimeout(timerRef.current);
@@ -161,11 +168,20 @@ export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn
 
     const timeoutMs = timeoutMinutes * 60 * 1000;
     timerRef.current = window.setTimeout(async () => {
+      if (onTimeoutRef.current) {
+        try {
+          await Promise.resolve(onTimeoutRef.current());
+        } catch (err) {
+          console.warn('[useAutoLock] onTimeout callback error:', err);
+        }
+      }
       await setIsLocked(true);
     }, timeoutMs);
   }, [enabled, timeoutMinutes, setIsLocked]);
 
   // Activity listeners to reset the inactivity timer and update active timestamp
+  // Restricted to intentional user actions: mousedown, keydown, touchstart
+  // Hyperactive listeners like mousemove and scroll are removed to prevent continuous timer churn
   useEffect(() => {
     if (!enabled || timeoutMinutes <= 0) {
       if (timerRef.current) {
@@ -175,12 +191,19 @@ export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn
       return;
     }
 
-    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'click', 'scroll', 'touchstart'];
+    const activityEvents = ['mousedown', 'keydown', 'touchstart'];
 
     const handleUserActivity = () => {
-      if (!isLockedRef.current) {
-        resetTimer();
+      if (isLockedRef.current) {
+        return;
       }
+      const now = Date.now();
+      // Throttle check: Do not reset timer instances if consecutive activity events occur within a 5-second interval
+      if (now - lastActiveRef.current < 5000) {
+        return;
+      }
+      lastActiveRef.current = now;
+      resetTimer();
     };
 
     activityEvents.forEach((eventName) => {
@@ -209,16 +232,31 @@ export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn
 
     const timeoutMs = timeoutMinutes * 60 * 1000;
 
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === 'hidden') {
         if (lockOnTabSwitch && !isLockedRef.current) {
-          lockNow();
+          if (onTimeoutRef.current) {
+            try {
+              await Promise.resolve(onTimeoutRef.current());
+            } catch (err) {
+              console.warn('[useAutoLock] onTimeout callback error:', err);
+            }
+          }
+          await lockNow();
         }
       } else if (document.visibilityState === 'visible') {
-        // Returned to tab: verify if elapsed background time exceeded timeout threshold
-        const elapsed = Date.now() - lastActiveTimestampRef.current;
+        // Returned to tab: calculate Date.now() - lastActiveRef.current
+        const elapsed = Date.now() - lastActiveRef.current;
         if (!isLockedRef.current && elapsed >= timeoutMs) {
-          lockNow();
+          // If it exceeds 5 minutes (300,000ms), trigger the lock immediately
+          if (onTimeoutRef.current) {
+            try {
+              await Promise.resolve(onTimeoutRef.current());
+            } catch (err) {
+              console.warn('[useAutoLock] onTimeout callback error:', err);
+            }
+          }
+          await lockNow();
         } else if (!isLockedRef.current) {
           resetTimer();
         }

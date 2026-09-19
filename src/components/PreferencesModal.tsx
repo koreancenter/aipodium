@@ -634,12 +634,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   const currentPreset = getActivePreset();
 
   // Combine discovered models with default local models
-  const localModelOptions = [
-    ...discoveredModels,
-    ...DEFAULT_LOCAL_MODEL_OPTIONS.filter(
-      (m) => !discoveredModels.some((dm) => dm.id === m.id)
-    )
-  ];
+  // If actual models were discovered from Ollama, populate with user's actual installed models instead of static mock tags
+  const localModelOptions = discoveredModels.length > 0
+    ? [
+        ...discoveredModels,
+        { id: 'custom', name: '직접 입력' }
+      ]
+    : DEFAULT_LOCAL_MODEL_OPTIONS;
 
   const handleSave = () => {
     // 1. Save general preferences with updated defaultModel & apiKeys & grounding

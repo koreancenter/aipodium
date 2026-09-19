@@ -225,6 +225,23 @@ export default function App() {
     enabled: (preferences.security?.autoLockMinutes ?? 5) > 0,
     initialLocked: preferences.security?.lockOnStartup !== false,
     isGuest,
+    onTimeout: async () => {
+      if (isGuest) {
+        try {
+          await purgeGuestWorkspaceData();
+        } catch (err) {
+          console.warn('[App] Guest workspace purge error on timeout:', err);
+        }
+        authService.logout();
+        setCurrentUser(null);
+        setIsLocked(true);
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
+      } else {
+        await setIsLocked(true);
+      }
+    },
     onLock: async () => {
       if (handleWipeInMemoryDataOnLockRef.current) {
         await handleWipeInMemoryDataOnLockRef.current();
@@ -406,7 +423,7 @@ export default function App() {
   });
 
   const [selectedModel, setSelectedModel] = useState<string>(() => {
-    return roleModels.chat || preferences.defaultModel || 'gemini-3.8-flash';
+    return roleModels.chat || preferences.defaultModel || DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-3.8-flash';
   });
   const [aiParameters, setAiParameters] = useState<AiInferenceParameters>(() => {
     try {
@@ -420,7 +437,7 @@ export default function App() {
     return DEFAULT_AI_PARAMETERS;
   });
   const [ghostWriterModel, setGhostWriterModel] = useState<string>(() => {
-    return roleModels.ghostWriter || 'gemini-3.8-flash';
+    return roleModels.ghostWriter || DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-3.8-flash';
   });
   const ghostWriterModelOptions = useMemo(() => {
     return DEFAULT_FALLBACK_MODELS.map((m) => ({
@@ -467,8 +484,8 @@ export default function App() {
   }, [preferences]);
 
   const [selectedMultiModels, setSelectedMultiModels] = useState<string[]>([
-    'gemini-3.8-flash',
-    'gemini-3.1-pro-preview'
+    DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-3.8-flash',
+    DEFAULT_FALLBACK_MODELS[1]?.id || 'gemini-3.1-pro-preview'
   ]);
   const [mode, setMode] = useState<'single' | 'routing' | 'multi'>('single');
 
@@ -486,6 +503,30 @@ export default function App() {
       localStorage.setItem('aipodium_discovered_models', JSON.stringify(discoveredLocalModels));
     } catch {}
   }, [discoveredLocalModels]);
+
+  // Dynamic fetching for Local Ollama models when local provider is selected
+  useEffect(() => {
+    if (provider === 'local-pc' || provider === 'local-server') {
+      const endpoint = (localEndpointAddress || 'http://localhost:11434').trim().replace(/\/+$/, '');
+      fetchOllamaTags(endpoint)
+        .then((tags) => {
+          if (tags && tags.length > 0) {
+            const formatted = tags.map((t) => ({
+              id: t.id,
+              name: t.name
+            }));
+            setDiscoveredLocalModels(formatted);
+            try {
+              localStorage.setItem('aipodium_discovered_models', JSON.stringify(formatted));
+            } catch {}
+            setIsVerified(true);
+          }
+        })
+        .catch((err) => {
+          console.warn('[Ollama] Dynamic tags fetch failed:', err);
+        });
+    }
+  }, [provider, localEndpointAddress]);
 
   // WebLLM browser-native AI state
   const [webllmProgress, setWebllmProgress] = useState<{ isSupported: boolean; isLoading: boolean; isReady: boolean; progressText: string; progressPercent: number }>({
@@ -548,18 +589,18 @@ export default function App() {
           group: 'local'
         });
       });
+    } else {
+      DEFAULT_FALLBACK_MODELS.filter((m) => m.group === 'local').forEach((dl) => {
+        if (!localModels.some((lm) => lm.id === dl.id)) {
+          localModels.push({
+            id: dl.id,
+            name: dl.name,
+            desc: dl.desc || '',
+            group: 'local'
+          });
+        }
+      });
     }
-
-    DEFAULT_FALLBACK_MODELS.filter((m) => m.group === 'local').forEach((dl) => {
-      if (!localModels.some((lm) => lm.id === dl.id)) {
-        localModels.push({
-          id: dl.id,
-          name: dl.name,
-          desc: dl.desc || '',
-          group: 'local'
-        });
-      }
-    });
 
     if (webllmProgress.isReady) {
       localModels.unshift({
@@ -5293,7 +5334,7 @@ ${sourceTextsCombined}
 
 위 소스 자료를 빠짐없이 종합하여, 누락 없이 완결성 있는 고품질 마크다운 SSOT 문서를 작성해 주세요.`;
 
-        const ssotModel = config.model || roleModels.ssot || roleModels.architect || selectedModel || 'gemini-3.8-flash';
+        const ssotModel = config.model || selectedModel || roleModels.ssot || roleModels.architect || DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-3.8-flash';
         const targetProvider = config.provider || (availableChatModels.find(m => m.id === ssotModel)?.group === 'local' ? (provider.startsWith('local') ? provider : 'local-pc') : 'cloud');
         const res = await fetch('/api/chat', {
           method: 'POST',
@@ -6628,10 +6669,11 @@ ${projectEvents
       } else if (isLite) {
         targetsToExecute = [{ modelKey: 'gemini-3.1-flash-lite', labelSuffix: ' [Auto-Routed: Gemini 3.1 Flash-Lite (초저지연 경량)]' }];
       } else {
-        targetsToExecute = [{ modelKey: 'gemini-3.8-flash', labelSuffix: ' [Auto-Routed: Gemini 3.8 Flash (고속 범용)]' }];
+        const defaultCloudId = DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-3.8-flash';
+        targetsToExecute = [{ modelKey: defaultCloudId, labelSuffix: ` [Auto-Routed: ${getModelDisplayName(defaultCloudId)} (고속 범용)]` }];
       }
     } else {
-      targetsToExecute = [{ modelKey: selectedModel || 'gemini-3.8-flash' }];
+      targetsToExecute = [{ modelKey: selectedModel || DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-3.8-flash' }];
     }
 
     // Prepare initial AI placeholders with streaming state
@@ -7166,6 +7208,19 @@ ${projectEvents
     const targetId = preferences.defaultModel || selectedModel;
     return getModelDisplayName(targetId);
   }, [preferences.defaultModel, selectedModel]);
+
+  const sidebarModels = useMemo(() => {
+    if (provider === 'local-pc' || provider === 'local-server') {
+      const localList = availableChatModels.filter((m) => m.group === 'local');
+      return localList.length > 0
+        ? localList
+        : DEFAULT_FALLBACK_MODELS.filter((m) => m.group === 'local');
+    }
+    const cloudList = availableChatModels.filter((m) => m.group === 'cloud');
+    return cloudList.length > 0
+      ? cloudList
+      : DEFAULT_FALLBACK_MODELS.filter((m) => m.group === 'cloud');
+  }, [provider, availableChatModels]);
 
   const currentGhostLabel = useMemo(() => {
     const g = preferences.ghostWriterLevel || ghostWriterLevel;
@@ -8207,10 +8262,12 @@ ${projectEvents
                       </div>
                     </button>
                     {activeSubmenu === 'ai-model' && (
-                      <div className="absolute left-full top-0 pl-1.5 -ml-1 w-52 z-50 animate-in fade-in zoom-in-95 duration-100">
+                      <div className="absolute left-full top-0 pl-1.5 -ml-1 w-56 z-50 animate-in fade-in zoom-in-95 duration-100">
                         <div className="bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 max-h-72 overflow-y-auto">
-                          <div className="px-3 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">추천 AI 모델</div>
-                          {RECOMMENDED_QUICK_MODELS.map((m) => (
+                          <div className="px-3 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+                            {provider.startsWith('local') ? '로컬 AI 모델' : 'AI 모델 선택'}
+                          </div>
+                          {sidebarModels.map((m) => (
                             <button
                               key={m.id}
                               type="button"
@@ -11799,7 +11856,10 @@ ${projectEvents
         }
         availableTemplates={Object.keys(files).filter(f => f.endsWith('.md') && !f.startsWith('.podium/'))}
         availableModels={availableChatModels}
-        currentModel={roleModels.ssot || roleModels.architect || selectedModel || 'gemini-3.8-flash'}
+        currentModel={selectedModel}
+        onModelChange={(modelId) => {
+          handleQuickDefaultModel(modelId, getModelDisplayName(modelId));
+        }}
         currentProvider={provider}
         onGenerate={(config) => {
           setIsSSOTGeneratorModalOpen(false);

@@ -9,6 +9,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { convertDocumentToMarkdown } from '../services/documentConverterService';
+import { DEFAULT_FALLBACK_MODELS } from '../config/models.config';
 
 export interface SSOTGeneratorConfig {
   selectedFolder: string;
@@ -43,6 +44,7 @@ export interface SSOTGeneratorModalProps {
   availableModels?: ModelOption[];
   currentModel?: string;
   currentProvider?: string;
+  onModelChange?: (modelId: string) => void;
 }
 
 interface MentionItem {
@@ -52,14 +54,14 @@ interface MentionItem {
   desc: string;
 }
 
-const DEFAULT_FALLBACK_MODEL_OPTIONS: ModelOption[] = [
-  { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', desc: '초고속 종합 및 요약', group: 'cloud' },
-  { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', desc: '고성능 심층 분석', group: 'cloud' },
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: '대규모 컨텍스트 분석', group: 'cloud' },
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: '균형 잡힌 경량 모델', group: 'cloud' },
-  { id: 'qwen2.5:7b', name: 'Qwen 2.5 (7B)', desc: '로컬 고성능 모델', group: 'local' },
-  { id: 'llama3.2:latest', name: 'Llama 3.2 (3B)', desc: '로컬 경량 모델', group: 'local' }
-];
+const DEFAULT_FALLBACK_MODEL_OPTIONS: ModelOption[] = DEFAULT_FALLBACK_MODELS.map((m) => ({
+  id: m.id,
+  name: m.name,
+  desc: m.desc || '',
+  group: m.group
+}));
+
+const DEFAULT_MODEL_ID = DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-3.8-flash';
 
 // Clean sanitized helper for filenames without consecutive underscores
 const sanitizeFolderName = (name: string): string => {
@@ -81,7 +83,8 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
   onGenerate,
   availableModels,
   currentModel,
-  currentProvider
+  currentProvider,
+  onModelChange
 }) => {
   const [selectedFolder, setSelectedFolder] = useState<string>('');
   const [docBaseName, setDocBaseName] = useState<string>('프로젝트_마스터문서');
@@ -97,7 +100,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // AI Model Selection State
-  const [selectedModelId, setSelectedModelId] = useState<string>('gemini-3.8-flash');
+  const [selectedModelId, setSelectedModelId] = useState<string>(() => currentModel || DEFAULT_MODEL_ID);
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState<boolean>(false);
   const modelDropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -156,7 +159,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
       setCustomPrompt('선택된 소스 문서들의 핵심 내용을 종합하여 프로젝트의 명확한 기준이 되는 마스터 문서로 작성해 줘.');
 
       // Bind initial model: currentModel or active role model or fallback
-      const initialModel = currentModel || (modelOptions[0]?.id) || 'gemini-3.8-flash';
+      const initialModel = currentModel || (modelOptions[0]?.id) || DEFAULT_MODEL_ID;
       setSelectedModelId(initialModel);
 
       setIsFolderDropdownOpen(false);
@@ -668,6 +671,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                               type="button"
                               onClick={() => {
                                 setSelectedModelId(m.id);
+                                onModelChange?.(m.id);
                                 setIsModelDropdownOpen(false);
                               }}
                               className={`w-full text-left text-xs px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer ${
@@ -699,6 +703,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                               type="button"
                               onClick={() => {
                                 setSelectedModelId(m.id);
+                                onModelChange?.(m.id);
                                 setIsModelDropdownOpen(false);
                               }}
                               className={`w-full text-left text-xs px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer ${

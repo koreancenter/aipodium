@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authService, AuthUser } from '../services/authService';
-import { hasMasterPinConfigured } from '../utils/securityCrypto';
+import { hasMasterPinConfigured, purgeGuestWorkspaceData } from '../utils/securityCrypto';
 import { purgeGuestSession } from '../services/workspaceStorageService';
 
 export interface AuthContextType {
@@ -10,6 +10,7 @@ export interface AuthContextType {
   loginAsGuest: (guestName?: string) => AuthUser;
   logout: () => Promise<void> | void;
   purgeGuestSession: (options?: { resetToSampleWorkspace?: boolean }) => Promise<void>;
+  purgeGuestWorkspaceData: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -18,7 +19,8 @@ export const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   loginAsGuest: () => authService.loginAsGuest(),
   logout: () => authService.logout(),
-  purgeGuestSession: (options) => purgeGuestSession(options)
+  purgeGuestSession: (options) => purgeGuestSession(options),
+  purgeGuestWorkspaceData: () => purgeGuestWorkspaceData()
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -40,7 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleLogout = useCallback(async () => {
     if (isGuest) {
       try {
-        await purgeGuestSession();
+        await purgeGuestWorkspaceData();
       } catch (err) {
         console.warn('[AuthContext] Guest purge warning on logout:', err);
       }
@@ -54,7 +56,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: !!currentUser,
     loginAsGuest: (name?: string) => authService.loginAsGuest(name),
     logout: handleLogout,
-    purgeGuestSession: (options) => purgeGuestSession(options)
+    purgeGuestSession: (options) => purgeGuestSession(options),
+    purgeGuestWorkspaceData: () => purgeGuestWorkspaceData()
   };
 
   return (
