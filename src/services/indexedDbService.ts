@@ -422,3 +422,7 @@ export async function migrateFromLocalStorageIfAvailable(): Promise<{ migratedCo
 
   return { migratedCount };
 }
+
+// Re-export guest purge pipeline from workspaceStorageService for unified access
+export { purgeGuestSession, type PurgeGuestSessionOptions } from './workspaceStorageService';
+

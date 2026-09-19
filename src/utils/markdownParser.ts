@@ -1,5 +1,7 @@
 import katex from 'katex';
-import DOMPurify from 'isomorphic-dompurify';
+import { sanitizeHtml, sanitizeUrl, DOMPurify } from './securitySanitizer.ts';
+
+export { sanitizeHtml, sanitizeUrl, DOMPurify };
 
 /**
  * Universal, high-performance Markdown & HTML rendering engine.
@@ -32,46 +34,9 @@ function escapeAttr(str: string): string {
     .replace(/>/g, '&gt;');
 }
 
-function sanitizeUrl(rawUrl: string): string {
-  const url = (rawUrl || '').trim();
-  if (!url) return '';
-
-  // Remove control characters and whitespace within URLs
-  const cleanUrl = url.replace(/[\u0000-\u001F\u007F-\u009F\s]/g, '');
-
-  let decoded = cleanUrl;
-  try {
-    decoded = decodeURIComponent(cleanUrl);
-  } catch {
-    // Ignore URI decode errors
-  }
-
-  // Decode common HTML entity obfuscations
-  decoded = decoded
-    .replace(/&#x([0-9a-fA-F]+);?/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
-    .replace(/&#([0-9]+);?/gi, (_, d) => String.fromCharCode(parseInt(d, 10)))
-    .toLowerCase();
-
-  // Block dangerous schemes
-  if (
-    decoded.startsWith('javascript:') ||
-    decoded.startsWith('vbscript:') ||
-    (decoded.startsWith('data:') && !decoded.startsWith('data:image/'))
-  ) {
-    return '';
-  }
-
-  return cleanUrl;
-}
-
 function sanitizeHtmlFragment(html: string): string {
   if (!html) return '';
-  return DOMPurify.sanitize(html, {
-    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'base', 'meta', 'link', 'form'],
-    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'ontoggle', 'onfocus', 'onblur', 'onchange', 'srcdoc'],
-    ADD_TAGS: ['math', 'semantics', 'annotation', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'mover', 'munder', 'munderover', 'mspace', 'msqrt', 'mtable', 'mtr', 'mtd', 'mpadded', 'mphantom', 'menclose', 'mark', 'kbd', 'del', 'ins', 'details', 'summary'],
-    ADD_ATTR: ['target', 'rel', 'referrerpolicy', 'crossorigin', 'open', 'disabled', 'checked'],
-  });
+  return sanitizeHtml(html);
 }
 
 // Render Math Formula using KaTeX
@@ -86,19 +51,6 @@ function renderMath(formula: string, displayMode: boolean): string {
     const escaped = formula.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return `<code class="font-mono text-xs text-amber-300 bg-slate-900 px-1 py-0.5 rounded border border-amber-500/30">${escaped}</code>`;
   }
-}
-
-// Configure DOMPurify hook to protect against reverse tabnabbing and enforce noopener
-if (typeof DOMPurify.addHook === 'function') {
-  DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
-    if (node.tagName === 'A') {
-      const href = node.getAttribute('href') || '';
-      if (!href.startsWith('#')) {
-        node.setAttribute('target', '_blank');
-        node.setAttribute('rel', 'noopener noreferrer');
-      }
-    }
-  });
 }
 
 /**
@@ -733,12 +685,6 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
     finalHtml = finalHtml.replace(placeholder, protectedBlocks[i]);
   }
 
-  const safeFinal = DOMPurify.sanitize(finalHtml, {
-    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'base', 'meta', 'link', 'form'],
-    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'ontoggle', 'onfocus', 'onblur', 'onchange', 'srcdoc'],
-    ADD_TAGS: ['math', 'semantics', 'annotation', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'mover', 'munder', 'munderover', 'mspace', 'msqrt', 'mtable', 'mtr', 'mtd', 'mpadded', 'mphantom', 'menclose', 'mark', 'kbd', 'del', 'ins', 'details', 'summary'],
-    ADD_ATTR: ['target', 'rel', 'referrerpolicy', 'crossorigin', 'open', 'disabled', 'checked'],
-  });
-
-  return `<div class="markdown-body text-slate-200 text-xs leading-[1.65] font-sans tracking-[-0.01em]">${safeFinal}</div>`;
+  const fullHtml = `<div class="markdown-body text-slate-200 text-xs leading-[1.65] font-sans tracking-[-0.01em]">${finalHtml}</div>`;
+  return sanitizeHtml(fullHtml);
 }

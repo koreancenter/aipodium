@@ -3,8 +3,10 @@ import {
   getLockoutStatus,
   recordFailedAttempt,
   resetFailedAttempts,
-  clearSensitiveClipboard
+  clearSensitiveClipboard,
+  hasMasterPinConfigured
 } from '../utils/securityCrypto';
+import { purgeGuestSession } from '../services/workspaceStorageService';
 
 export interface UseAutoLockOptions {
   /**
@@ -27,13 +29,18 @@ export interface UseAutoLockOptions {
    */
   initialLocked?: boolean;
   /**
+   * Whether the current active user is in guest mode.
+   * If true, auto-lock triggers full data purge.
+   */
+  isGuest?: boolean;
+  /**
    * Callback fired when lock state changes.
    */
   onLockChange?: (locked: boolean) => void;
   /**
    * Dedicated callback fired when transitioning to locked state (e.g. for wiping in-memory state).
    */
-  onLock?: () => void;
+  onLock?: () => Promise<void> | void;
   /**
    * Dedicated callback fired when transitioning to unlocked state (e.g. for reloading state).
    */
@@ -42,8 +49,8 @@ export interface UseAutoLockOptions {
 
 export interface UseAutoLockReturn {
   isLocked: boolean;
-  setIsLocked: (locked: boolean) => void;
-  lockNow: () => void;
+  setIsLocked: (locked: boolean) => void | Promise<void>;
+  lockNow: () => void | Promise<void>;
   unlock: () => void;
   resetTimer: () => void;
   getLockout: () => { isLockedOut: boolean; remainingSeconds: number; attempts: number };
@@ -59,6 +66,7 @@ export interface UseAutoLockReturn {
  *    to prevent throttled browser timers from delaying lock when returning to the tab.
  * 3. Adds global keyboard shortcut `Ctrl + L` / `Cmd + L` to immediately lock workspace.
  * 4. Clears sensitive clipboard data and triggers `onLock` callback to purge memory.
+ * 5. If user is in guest mode, completely purges all workspace data via purgeGuestSession().
  */
 export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn {
   const {
@@ -66,6 +74,7 @@ export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn
     enabled = true,
     lockOnTabSwitch = false,
     initialLocked = false,
+    isGuest,
     onLockChange,
     onLock,
     onUnlock
@@ -76,6 +85,8 @@ export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn
   const isLockedRef = useRef<boolean>(initialLocked);
   isLockedRef.current = isLocked;
   const lastActiveTimestampRef = useRef<number>(Date.now());
+  const isGuestRef = useRef<boolean | undefined>(isGuest);
+  isGuestRef.current = isGuest;
 
   const onLockRef = useRef(onLock);
   onLockRef.current = onLock;
@@ -85,7 +96,7 @@ export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn
   onLockChangeRef.current = onLockChange;
 
   const setIsLocked = useCallback(
-    (locked: boolean) => {
+    async (locked: boolean) => {
       const wasLocked = isLockedRef.current;
       setIsLockedState(locked);
       isLockedRef.current = locked;
@@ -93,7 +104,27 @@ export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn
       if (!wasLocked && locked) {
         // Transitioning into locked state: purge sensitive in-memory state and clear clipboard
         clearSensitiveClipboard();
-        onLockRef.current?.();
+
+        const isGuestUser =
+          isGuestRef.current !== undefined
+            ? isGuestRef.current
+            : !hasMasterPinConfigured();
+
+        if (isGuestUser) {
+          try {
+            await purgeGuestSession();
+          } catch (err) {
+            console.warn('[useAutoLock] Guest session purge error:', err);
+          }
+        }
+
+        if (onLockRef.current) {
+          try {
+            await Promise.resolve(onLockRef.current());
+          } catch (err) {
+            console.warn('[useAutoLock] onLock callback error:', err);
+          }
+        }
       } else if (wasLocked && !locked) {
         // Transitioning into unlocked state: rehydrate sensitive data
         lastActiveTimestampRef.current = Date.now();
@@ -105,8 +136,8 @@ export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn
     []
   );
 
-  const lockNow = useCallback(() => {
-    setIsLocked(true);
+  const lockNow = useCallback(async () => {
+    await setIsLocked(true);
   }, [setIsLocked]);
 
   const unlock = useCallback(() => {
@@ -127,8 +158,8 @@ export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn
     }
 
     const timeoutMs = timeoutMinutes * 60 * 1000;
-    timerRef.current = window.setTimeout(() => {
-      setIsLocked(true);
+    timerRef.current = window.setTimeout(async () => {
+      await setIsLocked(true);
     }, timeoutMs);
   }, [enabled, timeoutMinutes, setIsLocked]);
 

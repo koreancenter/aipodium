@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { sanitizeHtml } from '../utils/securitySanitizer';
 import {
   FileText,
   FileSpreadsheet,
@@ -223,7 +224,10 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
     new Set([defaultFolder, 'root', 'docs', ...availableFolders])
   ).filter(Boolean);
 
-  const renderedHtml = renderMarkdownToHtml ? renderMarkdownToHtml(editedMarkdown) : '';
+  const renderedHtml = useMemo(() => {
+    const raw = renderMarkdownToHtml ? renderMarkdownToHtml(editedMarkdown) : '';
+    return sanitizeHtml(raw);
+  }, [editedMarkdown, renderMarkdownToHtml]);
 
   return (
     <div
@@ -561,7 +565,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
             {activeTab === 'preview' ? (
               <div
                 className="markdown-body prose prose-invert max-w-none text-slate-200 text-xs leading-relaxed space-y-3"
-                dangerouslySetInnerHTML={{ __html: renderedHtml }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderedHtml) }}
               />
             ) : (
               <textarea

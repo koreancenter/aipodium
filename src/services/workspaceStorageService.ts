@@ -494,3 +494,195 @@ export async function testRemoteStorageConnection(
     };
   }
 }
+
+// ---------------------------------------------------------
+// 4. Guest Session Data Purge Pipeline
+// ---------------------------------------------------------
+
+export interface PurgeGuestSessionOptions {
+  resetToSampleWorkspace?: boolean;
+}
+
+/**
+ * Truncates and clears all object stores in the vault IndexedDB.
+ */
+export async function clearVaultIndexedDB(): Promise<void> {
+  try {
+    const db = await openVaultDB();
+    const tx = db.transaction([STORE_FILES, STORE_METADATA], 'readwrite');
+    tx.objectStore(STORE_FILES).clear();
+    tx.objectStore(STORE_METADATA).clear();
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.warn('[workspaceStorageService] clearVaultIndexedDB notice:', err);
+  }
+}
+
+/**
+ * Complete Data Purge Pipeline for Guest Sessions upon Termination:
+ * 1. Truncates and clears all tables in IndexedDB (primary app db and vault db).
+ * 2. Clears in-memory directory handles.
+ * 3. Batch-removes all guest-related keys from localStorage and sessionStorage.
+ * 4. Clears sensitive clipboard memory.
+ * 5. Resets storage state to the initial default sample workspace.
+ */
+export async function purgeGuestSession(
+  options: PurgeGuestSessionOptions = { resetToSampleWorkspace: true }
+): Promise<void> {
+  const shouldResetToSample = options.resetToSampleWorkspace !== false;
+
+  // 1. Truncate all tables in Vault DB if indexedDB is supported
+  try {
+    if (typeof indexedDB !== 'undefined' && indexedDB) {
+      await clearVaultIndexedDB();
+    }
+  } catch (err) {
+    console.warn('[workspaceStorageService] clearVaultIndexedDB error:', err);
+  }
+
+  // 2. Truncate all tables in Primary App DB if indexedDB is supported
+  try {
+    if (typeof indexedDB !== 'undefined' && indexedDB) {
+      const { clearDb } = await import('./indexedDbService');
+      await clearDb();
+    }
+  } catch (err) {
+    console.warn('[workspaceStorageService] clearDb error:', err);
+  }
+
+  // 3. Clear in-memory directory handles
+  setMemoryDirectoryHandle(null);
+
+  // 4. Batch-remove all guest-related keys from localStorage & sessionStorage
+  const guestKeysToRemove = [
+    // Active project, sessions & workspaces
+    'aipodium_active_workspace',
+    'aipodium_workspace_root_type',
+    'aipodium_remote_workspace_config',
+    'aipodium_github_config',
+    'aipodium_github_meta',
+    'aipodium_recent_workspaces',
+    'aipodium_active_session_id',
+    'aipodium_projects_sessions',
+    'aipodium_trash_sessions',
+    'notebooklm_sessions',
+    'notebooklm_active_session_id',
+    'notebooklm_trash_sessions',
+
+    // Document tree, files & tabs
+    'aipodium_files',
+    'aipodium_file_folders',
+    'aipodium_open_tabs',
+    'aipodium_active_file',
+    'aipodium_current_active_file',
+    'notebooklm_files',
+    'notebooklm_file_folders',
+    'notebooklm_open_tabs',
+    'notebooklm_active_file',
+
+    // Draft buffers & editor content
+    'aipodium_editor_content',
+    'notebooklm_editor_content',
+    'editor_font_size',
+
+    // Chat histories & messages
+    'notebooklm_chat_messages',
+    'notebooklm_chat_threads',
+    'notebooklm_custom_templates',
+
+    // Cached assets & project events
+    'aipodium_pdf_markdowns',
+    'aipodium_pdf_auto_reduce',
+    'aipodium_project_events',
+    'aipodium_custom_prompts',
+
+    // API keys & local endpoints (guest zero-retention)
+    'aipodium_api_keys',
+    'aipodium_cloud_api_key',
+    'aipodium_local_endpoint',
+
+    // Guest session flags & auth user
+    'aipodium_guest_init_v1',
+    'aipodium_auth_user',
+    'podium_auth_session_v1',
+  ];
+
+  if (typeof localStorage !== 'undefined' && localStorage) {
+    for (const key of guestKeysToRemove) {
+      localStorage.removeItem(key);
+    }
+    // Dynamically remove any keys matching vault_*, draft_*, aipodium_draft_*, buffer_*, temp_*
+    const dynamicKeysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (
+        k &&
+        (k.startsWith('vault_') ||
+          k.startsWith('draft_') ||
+          k.startsWith('aipodium_draft_') ||
+          k.startsWith('buffer_') ||
+          k.startsWith('temp_'))
+      ) {
+        dynamicKeysToRemove.push(k);
+      }
+    }
+    for (const k of dynamicKeysToRemove) {
+      localStorage.removeItem(k);
+    }
+  }
+
+  if (typeof sessionStorage !== 'undefined' && sessionStorage) {
+    for (const key of guestKeysToRemove) {
+      sessionStorage.removeItem(key);
+    }
+    sessionStorage.removeItem('aipodium_api_keys');
+    sessionStorage.removeItem('aipodium_cloud_api_key');
+    sessionStorage.removeItem('aipodium_local_endpoint');
+  }
+
+  // 5. Clear sensitive clipboard memory
+  try {
+    const { clearSensitiveClipboard } = await import('../utils/securityCrypto');
+    clearSensitiveClipboard();
+  } catch {}
+
+  // 6. Reset the storage state to the initial default sample workspace
+  if (shouldResetToSample) {
+    try {
+      const { GUEST_SAMPLE_FILES, GUEST_SAMPLE_FOLDERS } = await import('../data/guestSampleWorkspace');
+
+      // Seed IndexedDB app_state_store if supported
+      if (typeof indexedDB !== 'undefined' && indexedDB) {
+        try {
+          const { setDbItem, STORAGE_KEYS } = await import('./indexedDbService');
+          await setDbItem(STORAGE_KEYS.FILES, GUEST_SAMPLE_FILES);
+          await setDbItem(STORAGE_KEYS.FILE_FOLDERS, GUEST_SAMPLE_FOLDERS);
+          await setDbItem(STORAGE_KEYS.EDITOR_CONTENT, GUEST_SAMPLE_FILES['welcome.md']);
+          await setDbItem(STORAGE_KEYS.ACTIVE_FILE, 'welcome.md');
+          await setDbItem(STORAGE_KEYS.OPEN_TABS, ['welcome.md', 'ai_guide.md']);
+          await setDbItem(STORAGE_KEYS.SESSIONS, []);
+          await setDbItem(STORAGE_KEYS.ACTIVE_SESSION_ID, null);
+          await setDbItem(STORAGE_KEYS.TRASH_SESSIONS, []);
+        } catch (dbErr) {
+          console.warn('[workspaceStorageService] IndexedDB sample seed warning:', dbErr);
+        }
+      }
+
+      // Seed localStorage with initial sample workspace for fast synchronous reads
+      if (typeof localStorage !== 'undefined' && localStorage) {
+        localStorage.setItem('notebooklm_files', JSON.stringify(GUEST_SAMPLE_FILES));
+        localStorage.setItem('notebooklm_file_folders', JSON.stringify(GUEST_SAMPLE_FOLDERS));
+        localStorage.setItem('notebooklm_editor_content', GUEST_SAMPLE_FILES['welcome.md']);
+        localStorage.setItem('notebooklm_active_file', 'welcome.md');
+        localStorage.setItem('notebooklm_open_tabs', JSON.stringify(['welcome.md', 'ai_guide.md']));
+        localStorage.setItem('notebooklm_sessions', JSON.stringify([]));
+        localStorage.setItem('aipodium_guest_init_v1', 'true');
+      }
+    } catch (err) {
+      console.warn('[workspaceStorageService] Reset sample workspace error:', err);
+    }
+  }
+}

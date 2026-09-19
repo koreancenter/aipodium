@@ -3,6 +3,7 @@ import mammoth from 'mammoth';
 import TurndownService from 'turndown';
 import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
+import { sanitizeHtml } from '../utils/securitySanitizer';
 
 // Configure PDF.js worker client-side safely
 if (typeof window !== 'undefined') {
@@ -557,7 +558,7 @@ export async function convertDocxToMarkdown(
     mammothResult.messages.forEach((msg) => warnings.push(msg.message));
   }
 
-  const html = mammothResult.value;
+  const html = sanitizeHtml(mammothResult.value);
 
   const turndownService = new TurndownService({
     headingStyle: 'atx',

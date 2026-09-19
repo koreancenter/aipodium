@@ -37,6 +37,7 @@ import { TextFloatingBubbleMenu, TextFormatAction } from './TextFloatingBubbleMe
 import { VisualTableModal } from './VisualTableModal';
 import { TiptapWysiwygEditor, TiptapWysiwygEditorRef } from './TiptapWysiwygEditor';
 import { getTextareaSelectionCoordinates } from '../utils/caretCoordinates';
+import { sanitizeHtml } from '../utils/securitySanitizer';
 
 export interface OptimizedEditorProps {
   value: string;
@@ -1950,7 +1951,7 @@ ${targetText}
             fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)'
           }}
           className="max-w-3xl mx-auto px-6 py-8 min-h-full leading-[1.65] font-sans select-text break-words [word-break:break-word] [overflow-wrap:anywhere] markdown-preview"
-          dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(localValue) }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdownToHtml(localValue)) }}
         />
       </div>
     );
@@ -2079,7 +2080,7 @@ ${targetText}
                 fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)'
               }}
               className="flex-1 w-full p-5 overflow-y-auto leading-[1.65] font-sans select-text break-words [word-break:break-word] [overflow-wrap:anywhere] markdown-preview custom-scrollbar"
-              dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(localValue) }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdownToHtml(localValue)) }}
             />
           )}
         </div>

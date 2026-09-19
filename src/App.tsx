@@ -89,6 +89,7 @@ import { Toast } from './components/Toast';
 import { usePaneResizer } from './hooks/usePaneResizer';
 import { useProjectEvents } from './hooks/useProjectEvents';
 import { useAutoLock } from './hooks/useAutoLock';
+import { useAuth } from './context/AuthContext';
 import {
   encryptWithVaultKey,
   decryptWithVaultKey,
@@ -97,7 +98,8 @@ import {
   isEncryptedPayload,
   clearSensitiveClipboard,
   hasMasterPinConfigured,
-  purgeGuestWorkspaceData
+  purgeGuestWorkspaceData,
+  purgeGuestSession
 } from './utils/securityCrypto';
 import {
   Brain,
@@ -209,7 +211,11 @@ export default function App() {
   });
 
   // Authentication & Local Lock State
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => authService.getCurrentUser());
+  const auth = useAuth();
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => auth.currentUser || authService.getCurrentUser());
+  const isGuest = auth.isGuest || !hasMasterPinConfigured() || currentUser?.provider === 'guest' || currentUser?.isGuest === true;
+
+  const handleWipeInMemoryDataOnLockRef = useRef<(() => Promise<void>) | null>(null);
 
   // Auto-Lock Hook (Startup Lock + Inactivity timer + Ctrl/Cmd + L shortcut)
   // Default to locking on page startup (preferences.security?.lockOnStartup !== false) for zero-trust security
@@ -217,6 +223,12 @@ export default function App() {
     timeoutMinutes: preferences.security?.autoLockMinutes ?? 5,
     enabled: (preferences.security?.autoLockMinutes ?? 5) > 0,
     initialLocked: preferences.security?.lockOnStartup !== false,
+    isGuest,
+    onLock: async () => {
+      if (handleWipeInMemoryDataOnLockRef.current) {
+        await handleWipeInMemoryDataOnLockRef.current();
+      }
+    },
     onLockChange: (locked) => {
       if (locked) {
         // If locked, we don't necessarily clear currentUser, but we gate the UI
@@ -236,12 +248,15 @@ export default function App() {
     if (!preferences.security?.clearSessionOnClose) return;
 
     const handleUnload = () => {
+      if (auth.isGuest || authService.isGuest()) {
+        purgeGuestSession().catch(() => {});
+      }
       authService.logout();
     };
 
     window.addEventListener('beforeunload', handleUnload);
     return () => window.removeEventListener('beforeunload', handleUnload);
-  }, [preferences.security?.clearSessionOnClose]);
+  }, [preferences.security?.clearSessionOnClose, auth.isGuest]);
 
   // Top Header State
   const [provider, setProvider] = useState<'cloud' | 'local-pc' | 'local-server'>('cloud');
@@ -2188,7 +2203,7 @@ export default function App() {
   const handleWipeInMemoryDataOnLock = useCallback(async () => {
     const vaultKey = activeVaultKeyRef.current;
     const hasPin = hasMasterPinConfigured();
-    const isGuest = !hasPin || authService.getCurrentUser()?.provider === 'guest';
+    const isGuestUser = auth.isGuest || !hasPin || authService.getCurrentUser()?.provider === 'guest';
 
     try {
       if (vaultKey && hasPin) {
@@ -2229,10 +2244,10 @@ export default function App() {
         const encApiKeys = await encryptObjectWithVaultKey(currentKeys, vaultKey);
         sessionStorage.setItem('aipodium_api_keys', encApiKeys);
         sessionStorage.removeItem('aipodium_cloud_api_key');
-      } else if (isGuest) {
+      } else if (isGuestUser) {
         // GUEST / UNREGISTERED USER AUTO-PURGE:
         // When a user without PIN locks or exceeds idle timeout, purge all local files, sessions, and databases completely.
-        await purgeGuestWorkspaceData();
+        await purgeGuestSession();
         authService.logout();
         setCurrentUser(null);
       } else {
@@ -2263,7 +2278,9 @@ export default function App() {
     setApiKeys({ gemini: '', openai: '', anthropic: '', deepseek: '', groq: '' });
     activeVaultKeyRef.current = null;
     clearSensitiveClipboard();
-  }, []);
+  }, [auth.isGuest]);
+
+  handleWipeInMemoryDataOnLockRef.current = handleWipeInMemoryDataOnLock;
 
   // Re-fetch / rehydrate & decrypt data from local storage on successful unlock
   const reloadSecureWorkspaceData = useCallback(async (providedVaultKey?: string | null) => {
@@ -8396,9 +8413,9 @@ ${projectEvents
               user={currentUser}
               variant="header"
               onSignOut={async () => {
-                const isGuest = currentUser?.provider === 'guest' || !hasMasterPinConfigured();
-                if (isGuest) {
-                  await purgeGuestWorkspaceData();
+                const isGuestUser = auth.isGuest || currentUser?.provider === 'guest' || currentUser?.isGuest === true || !hasMasterPinConfigured();
+                if (isGuestUser) {
+                  await purgeGuestSession();
                   setEditorContent('');
                   setFiles({});
                   setFileFolders({});
@@ -8406,11 +8423,11 @@ ${projectEvents
                   setSessions([]);
                   setActiveSessionId(null);
                 }
-                authService.logout();
+                await auth.logout();
                 setCurrentUser(null);
                 setIsLocked(true);
                 showToast(
-                  isGuest
+                  isGuestUser
                     ? '게스트 세션이 종료되고 임시 데이터가 모두 삭제되었습니다.'
                     : '로그아웃되었습니다.'
                 );

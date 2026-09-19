@@ -3,6 +3,7 @@ import {createRoot} from 'react-dom/client';
 import 'katex/dist/katex.min.css';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
+import { AuthProvider } from './context/AuthContext.tsx';
 import './index.css';
 
 // Global error handlers for resilience
@@ -22,7 +23,9 @@ if (typeof window !== 'undefined') {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </ErrorBoundary>
   </StrictMode>,
 );

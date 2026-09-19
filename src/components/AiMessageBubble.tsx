@@ -13,7 +13,7 @@ import {
   ExternalLink,
   Zap,
 } from 'lucide-react';
-import { renderMarkdownToHtml, cleanAiContentText } from '../utils/markdownParser';
+import { renderMarkdownToHtml, cleanAiContentText, sanitizeHtml } from '../utils/markdownParser';
 import type { ChatMessage } from '../types';
 
 interface AiMessageBubbleProps {
@@ -65,7 +65,7 @@ function renderAiMessageHtml(text: string, isStreaming?: boolean): string {
     }
   }
   
-  return html;
+  return sanitizeHtml(html);
 }
 
 export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
@@ -160,7 +160,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
           className={`markdown-chat-content font-sans text-xs leading-relaxed select-text cursor-text ${
             msg.isStreaming ? 'stream-text-active' : ''
           }`}
-          dangerouslySetInnerHTML={{ __html: renderedHtml }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderedHtml) }}
         />
 
         {/* Initial Action Chips (온보딩 인터랙티브 칩) */}

@@ -16,6 +16,7 @@ import {
   Rows
 } from 'lucide-react';
 import { renderMarkdownToHtml } from '../utils/markdownParser';
+import { sanitizeHtml } from '../utils/securitySanitizer';
 
 export interface TiptapWysiwygEditorRef {
   executeCommand: (formatType: string) => void;
@@ -102,7 +103,8 @@ export const TiptapWysiwygEditor = memo(
         editorProps: {
           attributes: {
             class: 'tiptap-prosemirror-body focus:outline-none min-h-[500px] leading-relaxed text-sm'
-          }
+          },
+          transformPastedHTML: (html) => sanitizeHtml(html)
         },
         onUpdate: ({ editor: currentEditor }) => {
           isInternalUpdateRef.current = true;
@@ -195,7 +197,7 @@ export const TiptapWysiwygEditor = memo(
             const headerHtml = metadataTitle
               ? `${isDocEmpty ? '' : '<hr />'}<blockquote><p>📌 <strong>${metadataTitle}</strong></p></blockquote>`
               : '';
-            const fullHtml = headerHtml + htmlBody;
+            const fullHtml = sanitizeHtml(headerHtml + htmlBody);
 
             // 포커스가 없으면 문서 끝으로 이동하여 자연스럽게 주입
             if (!editor.isFocused) {

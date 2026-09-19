@@ -2,6 +2,7 @@
 // Supports Google SSO, GitHub SSO, API Key direct auth, and Guest mode.
 
 import { GoogleUserProfile, googleDriveService } from './googleDriveService';
+import { hasMasterPinConfigured } from '../utils/securityCrypto';
 
 export interface AuthUser {
   id: string;
@@ -13,6 +14,7 @@ export interface AuthUser {
   apiKeyMasked?: string;
   githubRepo?: string;
   createdAt: string;
+  isGuest?: boolean;
 }
 
 const AUTH_STORAGE_KEY = 'podium_auth_session_v1';
@@ -78,11 +80,33 @@ class AuthService {
   }
 
   public getCurrentUser(): AuthUser | null {
-    return this.currentUser;
+    if (!this.currentUser) return null;
+    return {
+      ...this.currentUser,
+      isGuest: this.isGuest()
+    };
   }
 
   public isAuthenticated(): boolean {
     return !!this.currentUser;
+  }
+
+  /**
+   * Tracks whether the current active user is in guest mode (isGuest: boolean)
+   * without a configured PIN or master password.
+   */
+  public isGuest(): boolean {
+    if (!this.currentUser) return true;
+    if (this.currentUser.provider === 'guest') return true;
+    return !hasMasterPinConfigured();
+  }
+
+  public get isGuestMode(): boolean {
+    return this.isGuest();
+  }
+
+  public isGuestUser(): boolean {
+    return this.isGuest();
   }
 
   public async loginWithGoogle(profile?: GoogleUserProfile): Promise<AuthUser> {
@@ -102,6 +126,7 @@ class AuthService {
       email: googleUser?.email || 'developer@google.com',
       avatar: googleUser?.picture || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
       provider: 'google',
+      isGuest: !hasMasterPinConfigured(),
       role: 'Cloud Architect',
       createdAt: new Date().toISOString()
     };
@@ -140,6 +165,7 @@ class AuthService {
       email: userEmail,
       avatar: avatarUrl,
       provider: 'github',
+      isGuest: !hasMasterPinConfigured(),
       role: 'Core Contributor',
       githubRepo: repo,
       createdAt: new Date().toISOString()
@@ -160,6 +186,7 @@ class AuthService {
       name,
       email: 'api-developer@ai-podium.local',
       provider: 'apikey',
+      isGuest: !hasMasterPinConfigured(),
       apiKeyMasked: masked,
       role: 'API Key Master',
       createdAt: new Date().toISOString()
@@ -177,6 +204,7 @@ class AuthService {
       name,
       email: 'guest@ai-podium.workspace',
       provider: 'guest',
+      isGuest: true,
       role: 'Workspace Explorer',
       createdAt: new Date().toISOString()
     };
