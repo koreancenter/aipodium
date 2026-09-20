@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { OptimizedEditor } from './components/OptimizedEditor';
-import { PdfViewer, PdfViewerHandle } from './components/PdfViewer';
+import { PdfViewer, PdfViewerHandle, PdfViewerState } from './components/PdfViewer';
 import { SAMPLE_PDF_DATA_URL } from './data/samplePdfData';
 import { motion, AnimatePresence } from 'motion/react';
 import { googleDriveService, GoogleUserProfile, DriveFolderInfo } from './services/googleDriveService';
@@ -53,6 +53,8 @@ import { analyzeSSOTDriftLocally } from './utils/ssotDriftEngine';
 import { CouncilOfCriticsModal } from './components/CouncilOfCriticsModal';
 import { GhostDiffModal } from './components/GhostDiffModal';
 import { AiRoleAssignmentModal } from './components/AiRoleAssignmentModal';
+import { InlineModelSelector } from './components/InlineModelSelector';
+import { LinkAttachmentInput } from './components/LinkAttachmentInput';
 import { AiMessageBubble } from './components/AiMessageBubble';
 import { evaluateDocumentLocally } from './utils/criticsEngine';
 import { LocalAiResourceMonitor } from './components/LocalAiResourceMonitor';
@@ -86,7 +88,6 @@ import type {
 import { DEFAULT_AI_ROLE_MODELS } from './types';
 import { useToast } from './hooks/useToast';
 import { Toast } from './components/Toast';
-import { usePaneResizer } from './hooks/usePaneResizer';
 import { useProjectEvents } from './hooks/useProjectEvents';
 import { useAutoLock } from './hooks/useAutoLock';
 import { useAuth } from './context/AuthContext';
@@ -101,6 +102,7 @@ import {
   purgeGuestWorkspaceData,
   purgeGuestSession
 } from './utils/securityCrypto';
+import { clearAiDecryptedKeyMemory } from './services/aiEngineCore';
 import {
   Brain,
   Cpu,
@@ -129,6 +131,7 @@ import {
   Bold,
   Italic,
   Link,
+  Link2,
   Code,
   Quote,
   List,
@@ -179,7 +182,14 @@ import {
   Minimize2,
   Columns2,
   Maximize2,
-  Upload
+  Upload,
+  Loader2,
+  PanelLeft,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRight,
+  PanelRightClose,
+  PanelRightOpen
 } from 'lucide-react';
 
 export default function App() {
@@ -213,17 +223,33 @@ export default function App() {
   // Authentication & Local Lock State
   const auth = useAuth();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => auth.currentUser || authService.getCurrentUser());
-  const isGuest = auth.isGuest || !hasMasterPinConfigured() || currentUser?.provider === 'guest' || currentUser?.isGuest === true;
+  const hasPin = hasMasterPinConfigured();
+  const isGuest = auth.isGuest || !hasPin || currentUser?.provider === 'guest' || currentUser?.isGuest === true;
+
+  const [isLocked, setIsLocked] = useState<boolean>(() => preferences.security?.lockOnStartup !== false);
 
   const handleWipeInMemoryDataOnLockRef = useRef<(() => Promise<void>) | null>(null);
 
   // Auto-Lock Hook (Startup Lock + Inactivity timer + Ctrl/Cmd + L shortcut)
   // Default to locking on page startup (preferences.security?.lockOnStartup !== false) for zero-trust security
-  const { isLocked, setIsLocked, lockNow, unlock } = useAutoLock({
+  const { lockNow, unlock } = useAutoLock({
     timeoutMinutes: preferences.security?.autoLockMinutes ?? 5,
-    enabled: (preferences.security?.autoLockMinutes ?? 5) > 0,
+    isEnabled: !isLocked,
+    enabled: !isLocked,
+    isLocked,
+    setIsLocked,
     initialLocked: preferences.security?.lockOnStartup !== false,
     isGuest,
+    onTimeout: async () => {
+      if (isGuest || !hasPin) {
+        await purgeGuestWorkspaceData();
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
+      } else {
+        setIsLocked(true);
+      }
+    },
     onLock: async () => {
       if (handleWipeInMemoryDataOnLockRef.current) {
         await handleWipeInMemoryDataOnLockRef.current();
@@ -340,22 +366,44 @@ export default function App() {
     }
   });
 
-  // Keep secrets out of persistent browser storage. Prefer temporary session storage only.
+  // Startup effect: auto-migrate any legacy plaintext keys and load encrypted credentials
+  useEffect(() => {
+    (async () => {
+      try {
+        await authService.migrateLegacyPlaintextKeys();
+        const encGemini = await authService.getEncryptedApiKey();
+        const encAll = await authService.getEncryptedApiKeys();
+        if (encGemini || Object.keys(encAll).length > 0) {
+          setApiKeys((prev) => ({
+            ...prev,
+            ...encAll,
+            gemini: encGemini || prev.gemini || ''
+          }));
+        }
+      } catch (err) {
+        console.warn('[App] Encrypted credentials startup load warning:', err);
+      }
+    })();
+  }, []);
+
+  // Secure API key persistence: always encrypt keys with AES-GCM (256-bit) and PBKDF2; zero plaintext storage
   useEffect(() => {
     try {
-      if (!preferences.security?.isEncryptionEnabled) {
-        sessionStorage.setItem('aipodium_api_keys', JSON.stringify(apiKeys));
-        if (apiKeys.gemini) {
-          sessionStorage.setItem('aipodium_cloud_api_key', apiKeys.gemini);
-        } else {
-          sessionStorage.removeItem('aipodium_cloud_api_key');
-        }
-      } else {
-        sessionStorage.removeItem('aipodium_api_keys');
-        sessionStorage.removeItem('aipodium_cloud_api_key');
+      if (apiKeys.gemini) {
+        authService.saveEncryptedApiKey(apiKeys.gemini);
       }
+      const hasAnyKeys = Object.values(apiKeys).some((k) => Boolean(k));
+      if (hasAnyKeys) {
+        authService.saveEncryptedApiKeys(apiKeys);
+      }
+      // Guarantee zero unencrypted remnants in storage
+      sessionStorage.removeItem('aipodium_api_keys');
+      sessionStorage.removeItem('aipodium_cloud_api_key');
+      localStorage.removeItem('gemini_api_key');
+      localStorage.removeItem('aipodium_cloud_api_key');
+      localStorage.removeItem('aipodium_api_keys');
     } catch {}
-  }, [apiKeys, preferences.security?.isEncryptionEnabled]);
+  }, [apiKeys]);
 
   useEffect(() => {
     try {
@@ -383,7 +431,8 @@ export default function App() {
   });
 
   const [selectedModel, setSelectedModel] = useState<string>(() => {
-    return roleModels.chat || preferences.defaultModel || 'gemini-3.8-flash';
+    const raw = roleModels.chat || preferences.defaultModel || DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-2.5-flash';
+    return raw === 'gemini-3.8-flash' ? 'gemini-2.5-flash' : raw;
   });
   const [aiParameters, setAiParameters] = useState<AiInferenceParameters>(() => {
     try {
@@ -397,16 +446,8 @@ export default function App() {
     return DEFAULT_AI_PARAMETERS;
   });
   const [ghostWriterModel, setGhostWriterModel] = useState<string>(() => {
-    return roleModels.ghostWriter || 'gemini-3.8-flash';
+    return roleModels.ghostWriter || DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-2.5-flash';
   });
-  const ghostWriterModelOptions = useMemo(() => {
-    return DEFAULT_FALLBACK_MODELS.map((m) => ({
-      id: m.id,
-      name: m.name,
-      tier: m.tier || '1x 크레딧',
-      desc: m.desc || ''
-    }));
-  }, []);
 
   const handleSaveRoleModels = useCallback((newRoles: AiRoleModels) => {
     setRoleModels(newRoles);
@@ -444,8 +485,8 @@ export default function App() {
   }, [preferences]);
 
   const [selectedMultiModels, setSelectedMultiModels] = useState<string[]>([
-    'gemini-3.8-flash',
-    'gemini-3.1-pro-preview'
+    DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-2.5-flash',
+    DEFAULT_FALLBACK_MODELS[1]?.id || 'gemini-2.5-pro'
   ]);
   const [mode, setMode] = useState<'single' | 'routing' | 'multi'>('single');
 
@@ -453,7 +494,17 @@ export default function App() {
   const [discoveredLocalModels, setDiscoveredLocalModels] = useState<{ id: string; name: string }[]>(() => {
     try {
       const saved = localStorage.getItem('aipodium_discovered_models');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(
+            (m) =>
+              m.id !== 'qwen2.5-coder:7b' &&
+              m.id !== 'llama3.2:3b' &&
+              m.id !== 'webllm-llama-3.2-3b'
+          );
+        }
+      }
     } catch {}
     return [];
   });
@@ -463,6 +514,30 @@ export default function App() {
       localStorage.setItem('aipodium_discovered_models', JSON.stringify(discoveredLocalModels));
     } catch {}
   }, [discoveredLocalModels]);
+
+  // Dynamic fetching for Local Ollama models when local provider is selected
+  useEffect(() => {
+    if (provider === 'local-pc' || provider === 'local-server') {
+      const endpoint = (localEndpointAddress || 'http://localhost:11434').trim().replace(/\/+$/, '');
+      fetchOllamaTags(endpoint)
+        .then((tags) => {
+          if (tags && tags.length > 0) {
+            const formatted = tags.map((t) => ({
+              id: t.id,
+              name: t.name
+            }));
+            setDiscoveredLocalModels(formatted);
+            try {
+              localStorage.setItem('aipodium_discovered_models', JSON.stringify(formatted));
+            } catch {}
+            setIsVerified(true);
+          }
+        })
+        .catch((err) => {
+          console.warn('[Ollama] Dynamic tags fetch failed:', err);
+        });
+    }
+  }, [provider, localEndpointAddress]);
 
   // WebLLM browser-native AI state
   const [webllmProgress, setWebllmProgress] = useState<{ isSupported: boolean; isLoading: boolean; isReady: boolean; progressText: string; progressPercent: number }>({
@@ -525,18 +600,18 @@ export default function App() {
           group: 'local'
         });
       });
+    } else {
+      DEFAULT_FALLBACK_MODELS.filter((m) => m.group === 'local').forEach((dl) => {
+        if (!localModels.some((lm) => lm.id === dl.id)) {
+          localModels.push({
+            id: dl.id,
+            name: dl.name,
+            desc: dl.desc || '',
+            group: 'local'
+          });
+        }
+      });
     }
-
-    DEFAULT_FALLBACK_MODELS.filter((m) => m.group === 'local').forEach((dl) => {
-      if (!localModels.some((lm) => lm.id === dl.id)) {
-        localModels.push({
-          id: dl.id,
-          name: dl.name,
-          desc: dl.desc || '',
-          group: 'local'
-        });
-      }
-    });
 
     if (webllmProgress.isReady) {
       localModels.unshift({
@@ -559,6 +634,17 @@ export default function App() {
 
     return all;
   }, [dynamicProviderModels, discoveredLocalModels, selectedModel, provider, webllmProgress.isReady]);
+
+  // Dynamic model options for Ghost Writer synchronized with available models
+  const ghostWriterModelOptions = useMemo(() => {
+    return availableChatModels.map((m) => ({
+      id: m.id,
+      name: m.name,
+      tier: m.desc || (m.group === 'local' ? '로컬' : '클라우드'),
+      desc: m.desc || '',
+      group: m.group
+    }));
+  }, [availableChatModels]);
 
   const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState<boolean>(false);
   const [preferencesInitialTab, setPreferencesInitialTab] = useState<'ai-engine' | 'persona' | 'integrations' | 'storage' | 'security' | 'ghost-writer'>('ai-engine');
@@ -587,8 +673,24 @@ export default function App() {
   ]);
   const [activeSessionId, setActiveSessionId] = useState<string>('session-default');
   const [isChatHistoryOpen, setIsChatHistoryOpen] = useState<boolean>(true);
-  const [isAiModelSelectionOpen, setIsAiModelSelectionOpen] = useState<boolean>(true);
   const [isChatHistoryPinned] = useState<boolean>(true);
+  const [isLinkInputOpen, setIsLinkInputOpen] = useState<boolean>(false);
+
+  // Add or update an attachment (supports external links and files)
+  const handleAddOrUpdateAttachment = useCallback((attachment: ChatAttachment) => {
+    setChatAttachments((prev) => {
+      const idx = prev.findIndex((a) => a.id === attachment.id);
+      if (idx !== -1) {
+        if (!attachment.isParsing && !attachment.content && attachment.size === '실패') {
+          return prev.filter((a) => a.id !== attachment.id);
+        }
+        const next = [...prev];
+        next[idx] = attachment;
+        return next;
+      }
+      return [...prev, attachment];
+    });
+  }, []);
 
   // Check whether onboarding guide bot should be active (guest user without API key or Ollama connection)
   const hasConfiguredApiKey = Boolean(cloudApiKey?.trim() || Object.values(apiKeys).some((k) => typeof k === 'string' && k.trim().length > 0));
@@ -692,6 +794,21 @@ export default function App() {
   }, [pdfMarkdownMap]);
 
   const pdfViewerRef = useRef<PdfViewerHandle>(null);
+  const [pdfViewerState, setPdfViewerState] = useState<PdfViewerState | null>(null);
+  const [isPdfSettingsOpen, setIsPdfSettingsOpen] = useState(false);
+  const pdfSettingsMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (pdfSettingsMenuRef.current && !pdfSettingsMenuRef.current.contains(e.target as Node)) {
+        setIsPdfSettingsOpen(false);
+      }
+    };
+    if (isPdfSettingsOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isPdfSettingsOpen]);
 
   const getWorkspaceDisplayPath = (ws: ActiveWorkspace) => {
     if (ws.path) return ws.path;
@@ -948,46 +1065,128 @@ export default function App() {
   }, []);
 
   const [chatInput, setChatInput] = useState<string>('');
-  const [chatInputHeight, setChatInputHeight] = useState<number>(64);
+  const [chatInputHeight, setChatInputHeight] = useState<number>(44);
   const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
   const [chatAttachments, setChatAttachments] = useState<ChatAttachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const mentionDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Process selected or dropped/pasted files
+  // Auto-growing textarea logic: dynamically expands between 44px and 220px, scrollable beyond
+  const adjustChatInputHeight = () => {
+    if (chatInputRef.current) {
+      chatInputRef.current.style.height = 'auto';
+      const nextHeight = Math.min(Math.max(chatInputRef.current.scrollHeight, 44), 220);
+      chatInputRef.current.style.height = `${nextHeight}px`;
+      setChatInputHeight(nextHeight);
+    }
+  };
+
+  const resetChatInputHeight = () => {
+    if (chatInputRef.current) {
+      chatInputRef.current.style.height = '44px';
+    }
+    setChatInputHeight(44);
+  };
+
+  useEffect(() => {
+    if (!chatInput) {
+      resetChatInputHeight();
+    } else {
+      adjustChatInputHeight();
+    }
+  }, [chatInput]);
+
+  // Process selected or dropped/pasted files with client-side document converter
   const processFiles = (fileList: FileList | File[]) => {
-    Array.from(fileList).forEach((file) => {
+    Array.from(fileList).forEach(async (file) => {
       const isImage = file.type.startsWith('image/');
-      const reader = new FileReader();
+      const fileId = `att-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      const formattedSize = file.size < 1024 * 1024
+        ? `${(file.size / 1024).toFixed(1)} KB`
+        : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+
+      // Store metadata immediately with isParsing: true
+      const initialAtt: ChatAttachment = {
+        id: fileId,
+        name: file.name,
+        type: isImage ? 'image' : 'file',
+        size: formattedSize,
+        parsedMarkdown: '',
+        isParsing: true
+      };
+      setChatAttachments((prev) => [...prev, initialAtt]);
 
       if (isImage) {
+        const reader = new FileReader();
         reader.onload = (e) => {
-          const newAtt: ChatAttachment = {
-            id: `att-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-            name: file.name,
-            type: 'image',
-            size: `${(file.size / 1024).toFixed(1)} KB`,
-            url: e.target?.result as string
-          };
-          setChatAttachments((prev) => [...prev, newAtt]);
+          const dataUrl = e.target?.result as string;
+          setChatAttachments((prev) =>
+            prev.map((att) =>
+              att.id === fileId
+                ? {
+                    ...att,
+                    url: dataUrl,
+                    parsedMarkdown: `[Attached Image: ${file.name}]`,
+                    isParsing: false
+                  }
+                : att
+            )
+          );
           showToast(`📷 이미지 '${file.name}' 첨부 완료`);
+        };
+        reader.onerror = () => {
+          setChatAttachments((prev) =>
+            prev.map((att) =>
+              att.id === fileId
+                ? {
+                    ...att,
+                    parsedMarkdown: `[Attached Image: ${file.name}]`,
+                    isParsing: false
+                  }
+                : att
+            )
+          );
         };
         reader.readAsDataURL(file);
       } else {
-        reader.onload = (e) => {
-          const textContent = e.target?.result as string;
-          const newAtt: ChatAttachment = {
-            id: `att-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-            name: file.name,
-            type: 'file',
-            size: `${(file.size / 1024).toFixed(1)} KB`,
-            content: textContent
-          };
-          setChatAttachments((prev) => [...prev, newAtt]);
-          showToast(`📄 파일 '${file.name}' 첨부 완료`);
-        };
-        reader.readAsText(file);
+        try {
+          const result = await convertDocumentToMarkdown(file);
+          const parsedMd = (result.markdown || '').trim();
+          setChatAttachments((prev) =>
+            prev.map((att) =>
+              att.id === fileId
+                ? {
+                    ...att,
+                    content: parsedMd,
+                    parsedMarkdown: parsedMd,
+                    isParsing: false
+                  }
+                : att
+            )
+          );
+          showToast(`📄 파일 '${file.name}' 파싱 및 첨부 완료`);
+        } catch (err: any) {
+          let fallbackText = '';
+          try {
+            fallbackText = await file.text();
+          } catch {
+            fallbackText = `*(파일 '${file.name}' 내용을 파싱할 수 없습니다.)*`;
+          }
+          setChatAttachments((prev) =>
+            prev.map((att) =>
+              att.id === fileId
+                ? {
+                    ...att,
+                    content: fallbackText,
+                    parsedMarkdown: fallbackText,
+                    isParsing: false
+                  }
+                : att
+            )
+          );
+          showToast(`📄 파일 '${file.name}' 텍스트 파싱 완료`);
+        }
       }
     });
   };
@@ -1032,18 +1231,19 @@ export default function App() {
   const [isAiCleaning, setIsAiCleaning] = useState<boolean>(false);
   const [isEditorToolbarDrawerOpen, setIsEditorToolbarDrawerOpen] = useState<boolean>(false);
 
-  // Editor Font Size State (12px ~ 22px, Default 15px)
+  // Editor Font Size State (12px ~ 22px, Default 12px - matches chat window)
   const [editorFontSize, setEditorFontSize] = useState<number>(() => {
     try {
       const saved = localStorage.getItem('editor_font_size');
       if (saved) {
         const parsed = parseInt(saved, 10);
+        if (parsed === 15) return 12;
         if (!isNaN(parsed) && parsed >= 12 && parsed <= 22) {
           return parsed;
         }
       }
     } catch {}
-    return 15;
+    return 12;
   });
   const editorContainerRef = useRef<HTMLDivElement>(null);
 
@@ -1429,6 +1629,7 @@ export default function App() {
     const val = e.target.value;
     const cursorPos = e.target.selectionStart;
     setChatInput(val);
+    adjustChatInputHeight();
 
     // Look back from cursorPos to find @
     const textBeforeCursor = val.slice(0, cursorPos);
@@ -1736,7 +1937,7 @@ export default function App() {
   const handleGenerateGhostText = useCallback(async (textToTranslate?: string) => {
     const raw = (textToTranslate !== undefined ? textToTranslate : chatInput).trim();
     if (!raw) {
-      showToast('⚠️ 한국어 질문 또는 개념을 먼저 입력해주세요.');
+      showToast('한국어 질문 또는 개념을 먼저 입력해 주세요.');
       return;
     }
 
@@ -1749,26 +1950,90 @@ export default function App() {
     let targetEn = translateToEnglishPrompt(raw); // Fallback string
 
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `Translate the following Korean query into a professional, concise, and highly effective English prompt for an AI assistant. Output ONLY the translated English prompt text, with no introductory words, quotes, or markdown wrappers.\n\nQuery: ${raw}`,
-          editorContent: '',
-          model: ghostWriterModel,
-          systemInstruction: 'You are an expert technical translator and prompt engineer. Your sole task is to translate Korean queries into professional English prompts. Provide ONLY the translated English text. Do not provide explanations, markdown code blocks, or conversational filler.'
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data.text) {
-        targetEn = data.text.trim();
-        // Remove surrounding quotes if the AI somehow included them
-        targetEn = targetEn.replace(/^["'](.*)["']$/s, '$1');
+      if (ghostWriterModel === WEB_LLM_MODEL_ID) {
+        let fullText = '';
+        await streamWebLLMCompletion(
+          [
+            {
+              role: 'system',
+              content: 'You are an expert technical translator and prompt engineer. Your sole task is to translate Korean queries into professional English prompts. Provide ONLY the translated English text. Do not provide explanations, markdown code blocks, or conversational filler.'
+            },
+            {
+              role: 'user',
+              content: `Translate the following Korean query into a professional, concise, and highly effective English prompt for an AI assistant. Output ONLY the translated English prompt text, with no introductory words, quotes, or markdown wrappers.\n\nQuery: ${raw}`
+            }
+          ],
+          (chunk: string) => {
+            fullText += chunk;
+          },
+          0.3
+        );
+        if (fullText.trim()) {
+          targetEn = fullText.trim().replace(/^["'](.*)["']$/s, '$1');
+        }
       } else {
-        showToast(`💡 ${data?.error || '기본 템플릿으로 생성되었습니다.'}`);
+        const isLocalModel =
+          availableChatModels.find((m) => m.id === ghostWriterModel)?.group === 'local' ||
+          provider === 'local-pc' ||
+          provider === 'local-server' ||
+          ghostWriterModel.includes(':');
+
+        if (isLocalModel) {
+          const cleanEndpoint = (localEndpointAddress || 'http://localhost:11434').trim().replace(/\/+$/, '');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
+          const res = await fetch(`${cleanEndpoint}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              model: ghostWriterModel,
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are an expert technical translator and prompt engineer. Your sole task is to translate Korean queries into professional English prompts. Provide ONLY the translated English text. Do not provide explanations, markdown code blocks, or conversational filler.'
+                },
+                {
+                  role: 'user',
+                  content: `Translate the following Korean query into a professional, concise, and highly effective English prompt for an AI assistant. Output ONLY the translated English prompt text, with no introductory words, quotes, or markdown wrappers.\n\nQuery: ${raw}`
+                }
+              ],
+              stream: false
+            })
+          });
+          clearTimeout(timeoutId);
+          if (res.ok) {
+            const data = await res.json();
+            const piece = data?.message?.content || data?.response;
+            if (piece && piece.trim()) {
+              targetEn = piece.trim().replace(/^["'](.*)["']$/s, '$1');
+            }
+          }
+        } else {
+          // Cloud model (Gemini or Server API)
+          const targetApiKey = getApiKeyForModel(ghostWriterModel) || cloudApiKey;
+          const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: `Translate the following Korean query into a professional, concise, and highly effective English prompt for an AI assistant. Output ONLY the translated English prompt text, with no introductory words, quotes, or markdown wrappers.\n\nQuery: ${raw}`,
+              editorContent: '',
+              model: ghostWriterModel,
+              apiKey: targetApiKey || undefined,
+              systemInstruction: 'You are an expert technical translator and prompt engineer. Your sole task is to translate Korean queries into professional English prompts. Provide ONLY the translated English text. Do not provide explanations, markdown code blocks, or conversational filler.'
+            })
+          });
+          const data = await res.json();
+          if (res.ok && data.text) {
+            targetEn = data.text.trim();
+            targetEn = targetEn.replace(/^["'](.*)["']$/s, '$1');
+          } else if (data?.error) {
+            showToast(`안내: ${data.error}`);
+          }
+        }
       }
     } catch {
-      showToast('💡 기본 템플릿으로 생성되었습니다.');
+      showToast('기본 템플릿으로 생성되었습니다.');
     }
 
     setGhostTargetEnglish(targetEn);
@@ -1782,8 +2047,8 @@ export default function App() {
       ghostInputRef.current?.focus();
     }, 50);
 
-    showToast('👻 영작 고스트 텍스트가 생성되었습니다. 오른쪽 창에서 영작을 연습하세요!');
-  }, [chatInput, ghostWriterModel, ghostWriterLevel, translateToEnglishPrompt, generateGhostTemplate, showToast]);
+    showToast('영작 고스트 텍스트가 생성되었습니다. 오른쪽 창에서 영작을 연습하세요.');
+  }, [chatInput, ghostWriterModel, ghostWriterLevel, availableChatModels, provider, localEndpointAddress, cloudApiKey, translateToEnglishPrompt, generateGhostTemplate, showToast]);
 
   // When ghostWriterLevel changes, update template if ghostTargetEnglish already exists
   useEffect(() => {
@@ -1841,7 +2106,7 @@ export default function App() {
   // Send message specifically from Ghost Writer
   const handleSendGhostMessage = () => {
     const promptToSend = ghostUserInput.trim() || ghostTargetEnglish;
-    if (!promptToSend && !chatInput.trim()) return;
+    if (!promptToSend && !chatInput.trim() && chatAttachments.length === 0) return;
 
     handleSendMessage(promptToSend || chatInput, {
       originalText: chatInput.trim(),
@@ -1862,26 +2127,109 @@ export default function App() {
   } | null>(null);
   const [hasUnreadAiChanges, setHasUnreadAiChanges] = useState<boolean>(false);
 
-  // Resizable Panes & Section Collapse State
+  // Fixed Optimal Panels (Golden Ratio Layout) & Pure Collapsible State
   const mainContainerRef = useRef<HTMLElement>(null);
-  const {
-    pane1Width,
-    setPane1Width,
-    pane2Width,
-    setPane2Width,
-    isResizing,
-    isSection1Collapsed,
-    setIsSection1Collapsed,
-    isSection2Collapsed,
-    setIsSection2Collapsed,
-    isSection3Collapsed,
-    setIsSection3Collapsed,
-    handleMouseDownDivider,
-    handleTouchStartDivider,
-    applyDefaultPanelsForCurrentDevice
-  } = usePaneResizer(mainContainerRef);
 
-  // Auto-collapse Section 1 (AI Chat) when a PDF tab is active to allocate 50:50 wide space
+  // Persist toggle states in localStorage:
+  // aipodium_left_panel_visible: boolean
+  // aipodium_right_panel_visible: boolean
+  const [isLeftPanelVisible, setIsLeftPanelVisible] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const saved = localStorage.getItem('aipodium_left_panel_visible');
+    if (saved !== null) return saved === 'true';
+    return window.innerWidth >= 1024;
+  });
+
+  const [isRightPanelVisible, setIsRightPanelVisible] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const saved = localStorage.getItem('aipodium_right_panel_visible');
+    if (saved !== null) return saved === 'true';
+    return window.innerWidth >= 1024;
+  });
+
+  const [isSection2Collapsed, setIsSection2Collapsed] = useState<boolean>(false);
+
+  // Derived collapsed states for backwards compatibility across existing handlers
+  const isSection1Collapsed = !isLeftPanelVisible;
+  const isSection3Collapsed = !isRightPanelVisible;
+
+  const setIsSection1Collapsed = useCallback((collapsed: boolean | ((prev: boolean) => boolean)) => {
+    setIsLeftPanelVisible((prevVisible) => {
+      const nextCollapsed = typeof collapsed === 'function' ? collapsed(!prevVisible) : collapsed;
+      const nextVisible = !nextCollapsed;
+      try {
+        localStorage.setItem('aipodium_left_panel_visible', String(nextVisible));
+      } catch {}
+      return nextVisible;
+    });
+  }, []);
+
+  const setIsSection3Collapsed = useCallback((collapsed: boolean | ((prev: boolean) => boolean)) => {
+    setIsRightPanelVisible((prevVisible) => {
+      const nextCollapsed = typeof collapsed === 'function' ? collapsed(!prevVisible) : collapsed;
+      const nextVisible = !nextCollapsed;
+      try {
+        localStorage.setItem('aipodium_right_panel_visible', String(nextVisible));
+      } catch {}
+      return nextVisible;
+    });
+  }, []);
+
+  const toggleLeftPanel = useCallback((force?: boolean) => {
+    setIsLeftPanelVisible((prev) => {
+      const next = typeof force === 'boolean' ? force : !prev;
+      try {
+        localStorage.setItem('aipodium_left_panel_visible', String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const toggleRightPanel = useCallback((force?: boolean) => {
+    setIsRightPanelVisible((prev) => {
+      const next = typeof force === 'boolean' ? force : !prev;
+      try {
+        localStorage.setItem('aipodium_right_panel_visible', String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const applyDefaultPanelsForCurrentDevice = useCallback(() => {
+    const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 1024 : true;
+    if (isDesktop) {
+      setIsLeftPanelVisible(true);
+      setIsRightPanelVisible(true);
+      try {
+        localStorage.setItem('aipodium_left_panel_visible', 'true');
+        localStorage.setItem('aipodium_right_panel_visible', 'true');
+      } catch {}
+    } else {
+      setIsLeftPanelVisible(false);
+      setIsRightPanelVisible(false);
+      try {
+        localStorage.setItem('aipodium_left_panel_visible', 'false');
+        localStorage.setItem('aipodium_right_panel_visible', 'false');
+      } catch {}
+    }
+    setIsSection2Collapsed(false);
+  }, []);
+
+  // Responsive fallback on mobile/tablet viewport resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        const savedLeft = localStorage.getItem('aipodium_left_panel_visible');
+        const savedRight = localStorage.getItem('aipodium_right_panel_visible');
+        if (savedLeft === null) setIsLeftPanelVisible(false);
+        if (savedRight === null) setIsRightPanelVisible(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Auto-collapse Section 1 (AI Chat) when a PDF tab is active to allocate wide space
   const prevActiveFilePdfRef = useRef<string>(currentActiveFile);
   useEffect(() => {
     const isPdf = currentActiveFile.toLowerCase().endsWith('.pdf');
@@ -1889,16 +2237,14 @@ export default function App() {
     prevActiveFilePdfRef.current = currentActiveFile;
 
     if (isPdf && !wasPdf) {
-      setIsSection1Collapsed(true);
-      setPane2Width((prev) => (prev < 75 ? 78 : prev));
+      setIsLeftPanelVisible(false);
     }
-  }, [currentActiveFile, setIsSection1Collapsed, setPane2Width]);
+  }, [currentActiveFile]);
 
   // Initial check on mount if active file is a PDF
   useEffect(() => {
     if (currentActiveFile.toLowerCase().endsWith('.pdf')) {
-      setIsSection1Collapsed(true);
-      setPane2Width((prev) => (prev < 75 ? 78 : prev));
+      setIsLeftPanelVisible(false);
     }
   }, []);
 
@@ -2429,6 +2775,18 @@ export default function App() {
       if (loadedFiles && Object.keys(loadedFiles).length > 0) {
         delete loadedFiles['rest_graphql_comparison.md'];
         delete loadedFiles['redis_caching_guide.md'];
+        if (loadedFiles['welcome.md'] && (loadedFiles['welcome.md'].includes('🚀') || loadedFiles['welcome.md'].startsWith('# '))) {
+          loadedFiles['welcome.md'] = GUEST_SAMPLE_FILES['welcome.md'];
+          if (loadedActiveFile === 'welcome.md' || !loadedActiveFile) {
+            loadedContent = GUEST_SAMPLE_FILES['welcome.md'];
+          }
+        }
+        if (loadedFiles['ai_guide.md'] && (loadedFiles['ai_guide.md'].includes('🤖') || loadedFiles['ai_guide.md'].startsWith('# '))) {
+          loadedFiles['ai_guide.md'] = GUEST_SAMPLE_FILES['ai_guide.md'];
+          if (loadedActiveFile === 'ai_guide.md') {
+            loadedContent = GUEST_SAMPLE_FILES['ai_guide.md'];
+          }
+        }
         setFiles(loadedFiles);
       }
       if (loadedFolders) {
@@ -2752,7 +3110,7 @@ export default function App() {
     if (editorTab === 'wysiwyg' && tiptapEditorRef.current) {
       // 1. 서식 모드 (워드프로세서 방식): 서식 그대로 리치 텍스트 노드로 주입
       const syncedMd = tiptapEditorRef.current.insertFormattedMarkdown(msgText, headerTitle);
-      const updated = syncedMd || (editorContent ? `${editorContent}\n\n---\n> 📌 [${headerTitle}]\n\n${msgText.trim()}\n` : `> 📌 [${headerTitle}]\n\n${msgText.trim()}\n`);
+      const updated = syncedMd || (editorContent ? `${editorContent}\n\n---\n> [${headerTitle}]\n\n${msgText.trim()}\n` : `> [${headerTitle}]\n\n${msgText.trim()}\n`);
 
       setEditorContent(updated);
       setFiles((prev) => ({
@@ -2776,8 +3134,8 @@ export default function App() {
       // 2. 마크다운 모드 (edit, split, preview): 마크다운 문법 원문으로 주입
       const isDocEmpty = !editorContent.trim();
       const formattedAppend = isDocEmpty
-        ? `> 📌 [${headerTitle}]\n\n` + msgText.trim() + `\n`
-        : `\n\n---\n> 📌 [${headerTitle}]\n\n` + msgText.trim() + `\n`;
+        ? `> [${headerTitle}]\n\n` + msgText.trim() + `\n`
+        : `\n\n---\n> [${headerTitle}]\n\n` + msgText.trim() + `\n`;
 
       const textarea = editorRef.current;
       let updated: string;
@@ -4822,6 +5180,13 @@ export default function App() {
   // Switch to another project and link its editor content
   const handleSelectSession = (sessionId: string) => {
     if (sessionId === activeSessionId) return;
+
+    // Ephemeral in-memory zeroing of decrypted API keys upon project switch
+    clearAiDecryptedKeyMemory();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('aipodium:project_switch'));
+    }
+
     checkUnsavedChanges(() => {
 
     // Save only the tab/filename state to session, do NOT auto-save editorContent to preserve manual save architecture.
@@ -5263,7 +5628,7 @@ ${sourceTextsCombined}
 
 위 소스 자료를 빠짐없이 종합하여, 누락 없이 완결성 있는 고품질 마크다운 SSOT 문서를 작성해 주세요.`;
 
-        const ssotModel = config.model || roleModels.ssot || roleModels.architect || selectedModel || 'gemini-3.8-flash';
+        const ssotModel = config.model || selectedModel || roleModels.ssot || roleModels.architect || DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-2.5-flash';
         const targetProvider = config.provider || (availableChatModels.find(m => m.id === ssotModel)?.group === 'local' ? (provider.startsWith('local') ? provider : 'local-pc') : 'cloud');
         const res = await fetch('/api/chat', {
           method: 'POST',
@@ -6153,7 +6518,6 @@ ${projectEvents
         setEditorContent(pairedMd);
         setEditorTab('edit');
         setIsSection1Collapsed(true);
-        setPane2Width((prev) => (prev < 75 ? 78 : prev));
       } else {
         setEditorContent(targetContent);
         setEditorTab(fname.endsWith('.html') ? 'preview' : 'edit');
@@ -6310,16 +6674,18 @@ ${projectEvents
       originalText?: string;
       translatedText?: string;
       ghostWriterLevel?: string;
-    }
+    },
+    attachedFiles?: ChatAttachment[]
   ) => {
+    const filesToAttach = attachedFiles || (chatAttachments.length > 0 ? [...chatAttachments] : []);
     const targetSessionId = activeSessionId;
     const userTimestamp = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     const userMsg: ChatMessage = {
       id: `msg-user-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       sender: 'user',
-      text: queryText,
+      text: queryText || (filesToAttach.length > 0 ? `[첨부 파일: ${filesToAttach.map((a) => a.name).join(', ')}]` : ''),
       timestamp: userTimestamp,
-      attachments: chatAttachments.length > 0 ? [...chatAttachments] : undefined,
+      attachments: filesToAttach.length > 0 ? [...filesToAttach] : undefined,
       originalText: meta?.originalText,
       translatedText: meta?.translatedText,
       ghostWriterLevel: meta?.ghostWriterLevel,
@@ -6338,6 +6704,7 @@ ${projectEvents
     );
 
     setChatInput('');
+    resetChatInputHeight();
     setChatAttachments([]);
     setIsAiLoading(true);
     isUserScrolledUpRef.current = false;
@@ -6533,12 +6900,34 @@ ${projectEvents
       ghostWriterLevel?: string;
     }
   ) => {
-    const textToSend = (overrideText !== undefined ? overrideText : chatInput).trim();
-    if (!textToSend && chatAttachments.length === 0) return;
+    if (chatAttachments.some((a) => a.isParsing)) {
+      showToast('⏳ 첨부 파일 분석 중입니다. 잠시만 기다려 주세요.');
+      return;
+    }
+
+    const userMessageText = (overrideText !== undefined ? overrideText : chatInput).trim();
+    if (!userMessageText && chatAttachments.length === 0) return;
+
+    // Snapshot current attachments
+    const attachedFiles = [...chatAttachments];
+
+    // Inject Attached File Content into the Outgoing AI Prompt
+    let finalPrompt = userMessageText;
+    if (attachedFiles.length > 0) {
+      const contextBlock = attachedFiles
+        .map((file) => {
+          if (file.type === 'link') {
+            return `\n\n--- [Reference Web/Repo: ${file.url || file.name}] ---\n${file.parsedMarkdown || file.content || ''}\n--- [End] ---\n`;
+          }
+          return `\n\n--- [Attached Document: ${file.name}] ---\n${file.parsedMarkdown || file.content || ''}\n--- [End of Document] ---\n`;
+        })
+        .join('\n');
+      finalPrompt = `${finalPrompt}\n\n[Reference Context]:\n${contextBlock}`;
+    }
 
     // Route to Onboarding Interactive Guide Bot for guest users without API keys or Ollama
     if (isOnboardingMode) {
-      executeOnboardingSimulation(textToSend, undefined, meta);
+      executeOnboardingSimulation(userMessageText, undefined, meta, attachedFiles);
       return;
     }
 
@@ -6546,20 +6935,15 @@ ${projectEvents
     const userMsg: ChatMessage = {
       id: `msg-user-${Date.now()}`,
       sender: 'user',
-      text: textToSend,
+      text: userMessageText || (attachedFiles.length > 0 ? `[첨부 파일: ${attachedFiles.map((a) => a.name).join(', ')}]` : ''),
       timestamp: userTimestamp,
-      attachments: chatAttachments.length > 0 ? [...chatAttachments] : undefined,
+      attachments: attachedFiles.length > 0 ? [...attachedFiles] : undefined,
       originalText: meta?.originalText,
       translatedText: meta?.translatedText,
       ghostWriterLevel: meta?.ghostWriterLevel,
     };
 
     const targetSessionId = activeSessionId;
-
-    if (overrideText === undefined) {
-      setChatInput('');
-      setChatAttachments([]);
-    }
 
     const customInstruction = preferences.aiPersona?.systemInstruction?.trim();
     const formattingDirectives = `\n\n[출력 서식 엄격 준수 규칙]:\n1. 이모지 및 아이콘 사용 절대 금지: 제목, 목록, 본문 어디에도 이모지(📌, 📋, 💡, 🚀, 🤖, ✅, 📝, 🎯, 📊, ⚡ 등)나 장식용 아이콘을 일절 넣지 마세요. 사용자가 문서로 바로 가져가므로 순수 텍스트로만 작성해야 합니다.\n2. 단일 폰트 크기 및 볼드체 제목: 글자 크기를 키우는 H1, H2, H3 등의 큰 헤딩 서식을 쓰지 마시고, 제목은 볼드체(**제목**)로만 작성하세요.`;
@@ -6574,13 +6958,13 @@ ${projectEvents
       targetsToExecute = activeMulti.map((m) => ({ modelKey: m }));
     } else if (mode === 'routing') {
       // Intelligent Auto Routing
-      const combined = `${textToSend} ${editorContent || ''}`.toLowerCase();
+      const combined = `${finalPrompt} ${editorContent || ''}`.toLowerCase();
       const isComplex =
         combined.length > 1200 ||
         /```|code|function|class|algorithm|refactor|architecture|typescript|python|sql|math|calcul|regex|구조|설계|리팩토링|아키텍처|성능 최적화/i.test(combined);
       const isLite =
-        textToSend.length < 60 &&
-        /번역|요약|맞춤법|오타|간단히|한줄|translate|summarize|proofread/i.test(textToSend);
+        userMessageText.length < 60 &&
+        /번역|요약|맞춤법|오타|간단히|한줄|translate|summarize|proofread/i.test(userMessageText);
 
       if (provider !== 'cloud') {
         const coderModel = availableChatModels.find((m) => m.group === 'local' && /coder|code|dev|qwen/i.test(m.id))?.id;
@@ -6594,14 +6978,15 @@ ${projectEvents
           targetsToExecute = [{ modelKey: selectedModel || 'llama-3.3-70b', labelSuffix: ' [Auto-Routed: Local Ollama]' }];
         }
       } else if (isComplex) {
-        targetsToExecute = [{ modelKey: 'gemini-3.1-pro-preview', labelSuffix: ' [Auto-Routed: Gemini 3.1 Pro (심층 추론·코드 특화)]' }];
+        targetsToExecute = [{ modelKey: 'gemini-2.5-pro', labelSuffix: ' [Auto-Routed: Gemini 2.5 Pro (심층 추론·코드 특화)]' }];
       } else if (isLite) {
-        targetsToExecute = [{ modelKey: 'gemini-3.1-flash-lite', labelSuffix: ' [Auto-Routed: Gemini 3.1 Flash-Lite (초저지연 경량)]' }];
+        targetsToExecute = [{ modelKey: 'gemini-2.5-flash', labelSuffix: ' [Auto-Routed: Gemini 2.5 Flash (초고속 종합)]' }];
       } else {
-        targetsToExecute = [{ modelKey: 'gemini-3.8-flash', labelSuffix: ' [Auto-Routed: Gemini 3.8 Flash (고속 범용)]' }];
+        const defaultCloudId = DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-2.5-flash';
+        targetsToExecute = [{ modelKey: defaultCloudId, labelSuffix: ` [Auto-Routed: ${getModelDisplayName(defaultCloudId)} (고속 범용)]` }];
       }
     } else {
-      targetsToExecute = [{ modelKey: selectedModel || 'gemini-3.8-flash' }];
+      targetsToExecute = [{ modelKey: selectedModel || DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-2.5-flash' }];
     }
 
     // Prepare initial AI placeholders with streaming state
@@ -6637,6 +7022,11 @@ ${projectEvents
         return session;
       })
     );
+
+    // Reset Attachment State: Clear attached files list and input only after message has been formatted and dispatched
+    setChatInput('');
+    resetChatInputHeight();
+    setChatAttachments([]);
 
     setIsAiLoading(true);
     isUserScrolledUpRef.current = false;
@@ -6765,7 +7155,7 @@ ${projectEvents
 
           const messagesForWebLlm = [
             ...(fullSystem ? [{ role: 'system' as const, content: fullSystem }] : []),
-            { role: 'user' as const, content: textToSend }
+            { role: 'user' as const, content: finalPrompt }
           ];
 
           await streamWebLLMCompletion(
@@ -6794,7 +7184,7 @@ ${projectEvents
               model: modelKey,
               messages: [
                 ...(fullSystem ? [{ role: 'system', content: fullSystem }] : []),
-                { role: 'user', content: textToSend }
+                { role: 'user', content: finalPrompt }
               ],
               stream: true,
               options: {
@@ -6853,7 +7243,7 @@ ${projectEvents
               'Accept': 'text/event-stream, application/json'
             },
             body: JSON.stringify({
-              message: textToSend,
+              message: finalPrompt,
               editorContent: editorContent,
               model: modelKey,
               parameters: aiParameters,
@@ -6966,8 +7356,8 @@ ${projectEvents
   }, [showToast]);
 
   const handleEditorZoomReset = useCallback(() => {
-    setEditorFontSize(15);
-    showToast('에디터 폰트 기본 크기 복원: 15px');
+    setEditorFontSize(12);
+    showToast('에디터 폰트 기본 크기 복원: 12px');
   }, [showToast]);
 
   // Ctrl + Mouse Wheel font size adjustment on editor container
@@ -7137,6 +7527,19 @@ ${projectEvents
     return getModelDisplayName(targetId);
   }, [preferences.defaultModel, selectedModel]);
 
+  const sidebarModels = useMemo(() => {
+    if (provider === 'local-pc' || provider === 'local-server') {
+      const localList = availableChatModels.filter((m) => m.group === 'local');
+      return localList.length > 0
+        ? localList
+        : DEFAULT_FALLBACK_MODELS.filter((m) => m.group === 'local');
+    }
+    const cloudList = availableChatModels.filter((m) => m.group === 'cloud');
+    return cloudList.length > 0
+      ? cloudList
+      : DEFAULT_FALLBACK_MODELS.filter((m) => m.group === 'cloud');
+  }, [provider, availableChatModels]);
+
   const currentGhostLabel = useMemo(() => {
     const g = preferences.ghostWriterLevel || ghostWriterLevel;
     return g === 'off' ? 'Off' : `${g}%`;
@@ -7154,7 +7557,7 @@ ${projectEvents
             activeVaultKeyRef.current = vaultKey;
           }
           await reloadSecureWorkspaceData(vaultKey);
-          if (user.provider === 'guest' && !localStorage.getItem('aipodium_guest_init_v1')) {
+          if (user.provider === 'guest' && !localStorage.getItem('aipodium_guest_init_v2')) {
             setFiles(GUEST_SAMPLE_FILES);
             setFileFolders(GUEST_SAMPLE_FOLDERS);
             setCurrentActiveFile('welcome.md');
@@ -7165,7 +7568,7 @@ ${projectEvents
             localStorage.setItem('notebooklm_file_folders', JSON.stringify(GUEST_SAMPLE_FOLDERS));
             localStorage.setItem('notebooklm_active_file', 'welcome.md');
             localStorage.setItem('notebooklm_editor_content', GUEST_SAMPLE_FILES['welcome.md']);
-            localStorage.setItem('aipodium_guest_init_v1', 'true');
+            localStorage.setItem('aipodium_guest_init_v2', 'true');
           }
           showToast(
             user.provider === 'guest'
@@ -8177,10 +8580,12 @@ ${projectEvents
                       </div>
                     </button>
                     {activeSubmenu === 'ai-model' && (
-                      <div className="absolute left-full top-0 pl-1.5 -ml-1 w-52 z-50 animate-in fade-in zoom-in-95 duration-100">
+                      <div className="absolute left-full top-0 pl-1.5 -ml-1 w-56 z-50 animate-in fade-in zoom-in-95 duration-100">
                         <div className="bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 max-h-72 overflow-y-auto">
-                          <div className="px-3 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">추천 AI 모델</div>
-                          {RECOMMENDED_QUICK_MODELS.map((m) => (
+                          <div className="px-3 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+                            {provider.startsWith('local') ? '로컬 AI 모델' : 'AI 모델 선택'}
+                          </div>
+                          {sidebarModels.map((m) => (
                             <button
                               key={m.id}
                               type="button"
@@ -8512,30 +8917,27 @@ ${projectEvents
         </div>
       )}
 
-      {/* MAIN AREA: 3-PANE SPLIT LAYOUT WITH DRAGGABLE DIVIDERS */}
+      {/* MAIN AREA: 3-PANE FIXED GOLDEN RATIO LAYOUT WITH COLLAPSIBLE SIDEBARS */}
       <main ref={mainContainerRef} className="flex-1 flex items-stretch h-full min-h-0 overflow-hidden relative w-full">
 
-        {/* ==================== LEFT PANE: AI Chat Area ==================== */}
+        {/* Mobile / Tablet Overlay Backdrop for Left Pane (< lg) */}
+        {isLeftPanelVisible && (
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs z-30 lg:hidden"
+            onClick={() => toggleLeftPanel(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* ==================== LEFT PANE: AI Chat Area (Fixed 340px) ==================== */}
         <section
-          style={{
-            width: isSection1Collapsed
-              ? '0px'
-              : isSection2Collapsed && isSection3Collapsed
-              ? '100%'
-              : isSection2Collapsed
-              ? `${pane1Width + pane2Width}%`
-              : isSection3Collapsed
-              ? `${pane1Width}%`
-              : `${pane1Width}%`,
-            minWidth: isSection1Collapsed ? '0px' : '220px',
-            opacity: isSection1Collapsed ? 0 : 1,
-            pointerEvents: isSection1Collapsed ? 'none' : 'auto',
-          }}
-          className={`h-full min-h-0 flex flex-col bg-[#121214] border-r border-[#222226] shrink-0 overflow-hidden ${
-            isResizing ? 'transition-none select-none' : 'transition-[width,min-width,opacity] duration-300 ease-in-out'
+          className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 transition-all duration-200 ease-in-out z-40 lg:z-10 ${
+            isLeftPanelVisible
+              ? 'w-[320px] sm:w-[340px] lg:w-[340px] opacity-100 pointer-events-auto border-r border-[#222226] fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/80 lg:shadow-none'
+              : 'w-0 opacity-0 pointer-events-none overflow-hidden border-r-0'
           }`}
         >
-            
+          <div className="w-[320px] sm:w-[340px] lg:w-[340px] h-full flex flex-col min-h-0 overflow-hidden">
             {/* Header */}
             <div className="bg-[#0f0f12] border-b border-[#222226] px-2.5 h-8 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0">
@@ -8590,6 +8992,17 @@ ${projectEvents
                     <ArrowRight className="w-3 h-3 text-amber-400" />
                   </button>
                 )}
+
+                {/* Close/Collapse Left Panel Button */}
+                <button
+                  type="button"
+                  onClick={() => toggleLeftPanel(false)}
+                  className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-white transition cursor-pointer"
+                  title="좌측 AI 대화 패널 접기"
+                  aria-label="좌측 AI 대화 패널 접기"
+                >
+                  <PanelLeftClose className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 
@@ -8830,184 +9243,6 @@ ${projectEvents
                   });
                 })()}
               </div>
-
-              {/* AI Model Selection Box at the bottom of Project List */}
-              <div className="border-t border-[#222226] bg-[#09090b]/85 flex flex-col shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsAiModelSelectionOpen(!isAiModelSelectionOpen)}
-                  className="flex items-center justify-between px-2.5 py-1.5 hover:bg-[#09090b]/60 transition-colors cursor-pointer w-full text-slate-300 hover:text-white"
-                  title={isAiModelSelectionOpen ? "AI 모델 패널 접기" : "AI 모델 패널 펼치기"}
-                >
-                  <div className="flex items-center gap-1.5 text-[0.6875rem] font-semibold tracking-wider uppercase text-zinc-400">
-                    <Cpu className="w-[13px] h-[13px] text-zinc-500 shrink-0" />
-                    <span>AI MODEL</span>
-                  </div>
-                  {isAiModelSelectionOpen ? (
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                  ) : (
-                    <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
-                  )}
-                </button>
-                <div
-                  className={`grid transition-all duration-300 ease-in-out px-2 ${
-                    isAiModelSelectionOpen ? 'grid-rows-[1fr] opacity-100 pb-2' : 'grid-rows-[0fr] opacity-0 pb-0'
-                  }`}
-                >
-                  <div className="overflow-hidden flex flex-col">
-                    <div className="space-y-1.5">
-
-                      {/* Mode Selector Buttons: Single Mode, Routing Mode, Multi Mode */}
-                      <div className="flex items-center bg-[#09090b] border border-[#222226] rounded-md p-0.5 text-[0.6875rem] gap-0.5">
-                        <button
-                          type="button"
-                          onClick={() => { setMode('single'); showToast('Single Mode (단일 모델 모드) 설정'); }}
-                          className={`flex-1 py-1 rounded transition flex items-center justify-center font-medium cursor-pointer ${
-                            mode === 'single' ? 'bg-[#6366f1] text-white font-semibold shadow-xs' : 'text-zinc-400 hover:text-white'
-                          }`}
-                          title="Single Mode (단일 모델 모드)"
-                        >
-                          <span>Single</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setMode('routing'); showToast('Routing Mode (스마트 오토 라우팅) 활성화'); }}
-                          className={`flex-1 py-1 rounded transition flex items-center justify-center font-medium cursor-pointer ${
-                            mode === 'routing' ? 'bg-[#6366f1] text-white font-semibold shadow-xs' : 'text-zinc-400 hover:text-white'
-                          }`}
-                          title="Routing Mode (스마트 오토 라우팅 모드)"
-                        >
-                          <span>Routing</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setMode('multi'); showToast('Multi Mode (다중 모델 병렬 모드) 활성화'); }}
-                          className={`flex-1 py-1 rounded transition flex items-center justify-center font-medium cursor-pointer ${
-                            mode === 'multi' ? 'bg-[#6366f1] text-white font-semibold shadow-xs' : 'text-zinc-400 hover:text-white'
-                          }`}
-                          title="Multi Mode (다중 모델 병렬 모드)"
-                        >
-                          <span>Multi</span>
-                        </button>
-                      </div>
-
-                      {/* Model Selection Dropdown (Single/Routing) or Checkbox List (Multi) */}
-                      {mode === 'multi' ? (
-                        <div className="bg-[#09090b]/90 border border-[#222226] rounded-md p-1.5 space-y-0.5 max-h-40 overflow-y-auto custom-scrollbar">
-                          <div className="text-[0.625rem] text-zinc-400 font-mono px-1 flex justify-between items-center pb-1 border-b border-[#222226]">
-                            <span>병렬 응답 모델 선택:</span>
-                            <span className="text-zinc-300 font-medium">{selectedMultiModels.length}개 선택</span>
-                          </div>
-                          {availableChatModels.map((m) => {
-                            const isChecked = selectedMultiModels.includes(m.id);
-                            return (
-                              <label
-                                key={m.id}
-                                className={`flex items-center gap-2 py-1.5 px-2 rounded-md cursor-pointer transition select-none hover:bg-white/5 text-xs ${
-                                  isChecked
-                                    ? 'text-zinc-100 font-medium'
-                                    : 'text-zinc-400 hover:text-zinc-200'
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => {
-                                    if (isChecked) {
-                                      if (selectedMultiModels.length === 1) {
-                                        showToast('Multi Mode에서는 최소 1개 이상의 모델을 선택해야 합니다.', 'warn');
-                                        return;
-                                      }
-                                      setSelectedMultiModels((prev) => prev.filter((id) => id !== m.id));
-                                    } else {
-                                      setSelectedMultiModels((prev) => [...prev, m.id]);
-                                    }
-                                  }}
-                                  className="w-3.5 h-3.5 accent-emerald-500 rounded cursor-pointer shrink-0"
-                                />
-                                <span className="flex-1 truncate">{m.name}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      ) : mode === 'routing' ? (
-                        <div className="bg-[#09090b]/90 border border-indigo-500/40 rounded-md p-2 text-[0.6875rem] text-indigo-200 flex items-start gap-1.5">
-                          <Route className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
-                          <div>
-                            <span className="font-semibold text-indigo-300 block">
-                              스마트 오토 라우팅 ({provider === 'cloud' ? 'Gemini Cloud' : 'Local Ollama'})
-                            </span>
-                            <span className="text-[0.625rem] text-slate-400 leading-tight block mt-0.5">
-                              {provider === 'cloud'
-                                ? '입력 프롬프트의 복잡도/코드/길이를 자동 분석하여 Gemini 3.1 Pro, 3.8 Flash, 3.1 Flash-Lite로 지능형 배정합니다.'
-                                : '프롬프트 복잡도 및 코드 유무를 분석하여 감지된 로컬 Coder/Lite/기본 Ollama 모델로 자동 배정합니다.'}
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="bg-[#09090b]/90 border border-[#222226] rounded-md p-1.5 space-y-0.5 max-h-40 overflow-y-auto custom-scrollbar">
-                          <div className="text-[0.625rem] text-zinc-400 font-mono px-1 flex justify-between items-center pb-1 border-b border-[#222226]">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="shrink-0">단일 응답 모델:</span>
-                              <span className="text-zinc-300 font-medium truncate">
-                                {availableChatModels.find((m) => m.id === selectedModel)?.name || selectedModel}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setIsAiRoleModalOpen(true)}
-                              title="역할별 AI 모델 지정"
-                              className="p-0.5 text-zinc-400 hover:text-indigo-300 hover:bg-[#18181b] rounded transition shrink-0 cursor-pointer ml-1"
-                            >
-                              <SlidersHorizontal className="w-3 h-3" />
-                            </button>
-                          </div>
-                          {availableChatModels.map((m) => {
-                            const isSelected = selectedModel === m.id;
-                            return (
-                              <button
-                                key={m.id}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedModel(m.id);
-                                  setRoleModels((prev) => {
-                                    const updated = { ...prev, chat: m.id };
-                                    try {
-                                      localStorage.setItem('aipodium_ai_role_models', JSON.stringify(updated));
-                                    } catch {}
-                                    return updated;
-                                  });
-                                }}
-                                className={`w-full flex items-center gap-2 py-1.5 px-2 rounded-md cursor-pointer transition select-none text-left hover:bg-white/5 text-xs ${
-                                  isSelected
-                                    ? 'text-zinc-100 font-medium'
-                                    : 'text-zinc-400 hover:text-zinc-200'
-                                }`}
-                              >
-                                <div
-                                  className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
-                                    isSelected
-                                      ? 'border-[#6366f1] bg-[#6366f1]/20'
-                                      : 'border-[#3a3a40] bg-[#09090b]'
-                                  }`}
-                                >
-                                  {isSelected && (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-[#6366f1]" />
-                                  )}
-                                </div>
-                                <span className="flex-1 truncate">{m.name}</span>
-                                {isSelected && (
-                                  <Check className="w-3 h-3 text-[#6366f1] shrink-0" />
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Slide-open tab button when panel is tucked away */}
@@ -9100,6 +9335,12 @@ ${projectEvents
                                         alt={att.name}
                                         className="max-h-36 rounded border border-white/[0.06] object-cover"
                                       />
+                                    ) : att.type === 'link' ? (
+                                      <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-slate-300 font-mono">
+                                        <Link2 className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
+                                        <span className="truncate max-w-[150px] font-medium">{att.name}</span>
+                                        <span className="text-[0.625rem] text-slate-400">({att.size})</span>
+                                      </div>
                                     ) : (
                                       <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-slate-300 font-mono">
                                         <FileText className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
@@ -9198,7 +9439,7 @@ ${projectEvents
                   e.target.value = '';
                 }
               }}
-              accept="image/*,.txt,.md,.pdf,.json,.js,.ts,.py,.css,.html"
+              accept="image/*,.txt,.md,.markdown,.pdf,.docx,.xlsx,.xls,.csv,.pptx,.ppt,.json,.js,.ts,.py,.css,.html"
               className="hidden"
             />
 
@@ -9219,14 +9460,20 @@ ${projectEvents
                       key={att.id}
                       className="relative group bg-[#09090b] border border-[#222226] rounded-xs p-1 flex items-center gap-1.5 text-xs text-slate-200 shrink-0"
                     >
-                      {att.type === 'image' && att.url ? (
+                      {att.isParsing ? (
+                        <RotateCw className="w-3.5 h-3.5 text-[#6366f1] animate-spin shrink-0" />
+                      ) : att.type === 'image' && att.url ? (
                         <img src={att.url} alt={att.name} className="w-7 h-7 rounded object-cover border border-[#222226]" />
+                      ) : att.type === 'link' ? (
+                        <Link2 className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
                       ) : (
-                        <FileText className="w-3.5 h-3.5 text-[#6366f1]" />
+                        <FileText className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
                       )}
                       <div className="flex flex-col text-[0.625rem] pr-4">
                         <span className="truncate max-w-[120px] font-medium text-slate-200">{att.name}</span>
-                        <span className="text-[0.5625rem] text-slate-400 font-mono">{att.size}</span>
+                        <span className="text-[0.5625rem] text-slate-400 font-mono">
+                          {att.isParsing ? '파싱 중...' : att.size}
+                        </span>
                       </div>
                       <button
                         type="button"
@@ -9361,13 +9608,14 @@ ${projectEvents
                           onFocus={() => {
                             lastActiveTextTargetRef.current = 'chat';
                           }}
+                          onInput={adjustChatInputHeight}
                           onChange={(e) => {
                             handleChatInputChange(e);
                             if (ghostTargetEnglish || ghostTemplateText || ghostUserInput) {
                               setGhostTargetEnglish('');
                               setGhostTemplateText('');
                               setGhostUserInput('');
-                                                        setGhostShowFullAnswer(false);
+                              setGhostShowFullAnswer(false);
                             }
                           }}
                           onPaste={handlePaste}
@@ -9384,7 +9632,7 @@ ${projectEvents
                             handleChatInputKeyDown(e);
                           }}
                           placeholder="한국어로 입력 (예: REST API vs GraphQL)... Enter로 영작 생성"
-                          className="w-full bg-[#09090b] p-2 text-xs text-slate-100 placeholder:text-slate-400 rounded-xs border border-[#222226] focus:border-[#6366f1] resize-none outline-none font-sans leading-relaxed transition"
+                          className="w-full bg-[#09090b] p-2 text-xs text-slate-100 placeholder:text-slate-400 rounded-xs border border-[#222226] focus:border-[#6366f1] resize-none min-h-[44px] max-h-[220px] overflow-y-auto outline-none font-sans leading-relaxed transition"
                         />
                       </div>
 
@@ -9465,11 +9713,12 @@ ${projectEvents
                     onFocus={() => {
                       lastActiveTextTargetRef.current = 'chat';
                     }}
+                    onInput={adjustChatInputHeight}
                     onChange={handleChatInputChange}
                     onPaste={handlePaste}
                     onKeyDown={handleChatInputKeyDown}
                     placeholder="질문 또는 요청 입력, '@'로 워크스페이스 폴더 및 문서 참조..."
-                    className="w-full bg-transparent p-2.5 text-xs text-slate-100 placeholder:text-slate-400 resize-none min-h-[44px] max-h-[350px] outline-none font-sans leading-relaxed"
+                    className="w-full bg-transparent p-2.5 text-xs text-slate-100 placeholder:text-slate-400 resize-none min-h-[44px] max-h-[220px] overflow-y-auto outline-none font-sans leading-relaxed"
                   />
                 )}
 
@@ -9485,6 +9734,18 @@ ${projectEvents
                       <Paperclip className="w-3.5 h-3.5" />
                     </button>
 
+                    {/* 🔗 Add External Link Button */}
+                    <button
+                      type="button"
+                      onClick={() => setIsLinkInputOpen((prev) => !prev)}
+                      className={`p-1 hover:bg-white/[0.06] rounded transition flex items-center justify-center cursor-pointer ${
+                        isLinkInputOpen ? 'bg-white/[0.1] text-indigo-400' : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                      title="웹 링크 또는 GitHub URL 첨부"
+                    >
+                      <Link2 className="w-3.5 h-3.5" />
+                    </button>
+
                     {/* @ Workspace Reference Trigger Button */}
                     <button
                       type="button"
@@ -9494,6 +9755,37 @@ ${projectEvents
                     >
                       <AtSign className="w-3.5 h-3.5" />
                     </button>
+
+                    {/* Inline VS-Code Style Model Selector & Routing Mode Toggle */}
+                    <div className="h-3.5 w-[1px] bg-white/[0.1] mx-0.5" />
+                    <InlineModelSelector
+                      selectedModel={selectedModel}
+                      onSelectModel={(m) => {
+                        setSelectedModel(m);
+                        setRoleModels((prev) => {
+                          const updated = { ...prev, chat: m };
+                          try {
+                            localStorage.setItem('aipodium_ai_role_models', JSON.stringify(updated));
+                          } catch {}
+                          return updated;
+                        });
+                      }}
+                      selectedMultiModels={selectedMultiModels}
+                      onSelectMultiModels={(list) => setSelectedMultiModels(list)}
+                      mode={mode}
+                      onModeChange={(newMode) => setMode(newMode)}
+                      availableChatModels={availableChatModels}
+                      onOpenRoleModal={() => setIsAiRoleModalOpen(true)}
+                      onShowToast={(msg, type) => showToast(msg, type)}
+                    />
+
+                    {/* Link Attachment Input Popover */}
+                    <LinkAttachmentInput
+                      isOpen={isLinkInputOpen}
+                      onClose={() => setIsLinkInputOpen(false)}
+                      onAddAttachment={handleAddOrUpdateAttachment}
+                      onShowToast={showToast}
+                    />
 
                     {/* Ghost Writer Auto-Complete Button (Visible when GW is enabled in Preferences) */}
                     {ghostWriterLevel !== 'off' && ghostTargetEnglish && (
@@ -9512,48 +9804,21 @@ ${projectEvents
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {/* Quick Height Preset Buttons - Clean Text Group */}
-                    <div className="flex items-center gap-0.5 text-[0.625rem] font-mono text-slate-400 bg-white/[0.03] px-1 py-0.5 rounded border border-white/[0.06]">
-                      <button
-                        type="button"
-                        onClick={() => setChatInputHeight(44)}
-                        className={`px-1.5 py-0.5 rounded transition cursor-pointer ${chatInputHeight <= 50 ? 'bg-white/10 text-white font-bold' : 'hover:text-slate-200'}`}
-                        title="높이 소: 44픽셀"
-                      >
-                        S
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setChatInputHeight(110)}
-                        className={`px-1.5 py-0.5 rounded transition cursor-pointer ${chatInputHeight > 50 && chatInputHeight <= 150 ? 'bg-white/10 text-white font-bold' : 'hover:text-slate-200'}`}
-                        title="높이 중: 110픽셀"
-                      >
-                        M
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setChatInputHeight(220)}
-                        className={`px-1.5 py-0.5 rounded transition cursor-pointer ${chatInputHeight > 150 ? 'bg-white/10 text-white font-bold' : 'hover:text-slate-200'}`}
-                        title="높이 대: 220픽셀"
-                      >
-                        L
-                      </button>
-                    </div>
-
+                  <div className="flex items-center gap-1.5 ml-auto">
                     {/* Secondary & Primary Send Buttons */}
                     {ghostWriterLevel !== 'off' && (
                       <button
                         type="button"
+                        disabled={isAiLoading || chatAttachments.some((a) => a.isParsing) || (!chatInput.trim() && chatAttachments.length === 0)}
                         onClick={() => {
-                          if (chatInput.trim()) {
+                          if (chatInput.trim() || chatAttachments.length > 0) {
                             handleSendMessage(chatInput.trim(), {
                               originalText: chatInput.trim(),
                               ghostWriterLevel: 'off'
                             });
                           }
                         }}
-                        className="hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 h-6 w-6 flex items-center justify-center rounded transition cursor-pointer"
+                        className="hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed text-slate-400 hover:text-slate-200 h-6 w-6 flex items-center justify-center rounded transition cursor-pointer"
                         title="한국어 원문으로 직접 전송"
                       >
                         <Languages className="w-3.5 h-3.5" />
@@ -9562,16 +9827,31 @@ ${projectEvents
 
                     <button
                       type="submit"
+                      disabled={isAiLoading || chatAttachments.some((a) => a.isParsing) || (!chatInput.trim() && chatAttachments.length === 0)}
                       onClick={(e) => {
                         if (ghostWriterLevel !== 'off') {
                           e.preventDefault();
                           handleSendGhostMessage();
                         }
                       }}
-                      className="bg-indigo-600/80 hover:bg-indigo-600 active:bg-indigo-700 text-white border border-indigo-500/40 h-6 px-2.5 rounded transition flex items-center justify-center cursor-pointer"
-                      title={ghostWriterLevel !== 'off' ? '영작된 영어 프롬프트로 AI 전송' : '메시지 전송'}
+                      className={`h-6 px-2.5 rounded transition flex items-center justify-center ${
+                        isAiLoading || chatAttachments.some((a) => a.isParsing) || (!chatInput.trim() && chatAttachments.length === 0)
+                          ? 'bg-zinc-800 text-zinc-500 border border-zinc-700/40 cursor-not-allowed'
+                          : 'bg-indigo-600/80 hover:bg-indigo-600 active:bg-indigo-700 text-white border border-indigo-500/40 cursor-pointer'
+                      }`}
+                      title={
+                        chatAttachments.some((a) => a.isParsing)
+                          ? '파일 분석 중...'
+                          : ghostWriterLevel !== 'off'
+                          ? '영작된 영어 프롬프트로 AI 전송'
+                          : '메시지 전송'
+                      }
                     >
-                      <Send className="w-3 h-3" />
+                      {chatAttachments.some((a) => a.isParsing) ? (
+                        <RotateCw className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Send className="w-3 h-3" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -9579,51 +9859,14 @@ ${projectEvents
             </form>
           </div>
 
+        </div>
         </section>
 
-        {/* Resizer Divider 1 */}
-        {!isSection1Collapsed && !isSection2Collapsed && (
-          <div
-            onMouseDown={(e) => handleMouseDownDivider(1, e)}
-            onTouchStart={(e) => handleTouchStartDivider(1, e)}
-            className="w-1.5 hover:w-2 bg-[#09090b]/80 hover:bg-[#6366f1]/40 active:bg-[#6366f1] cursor-col-resize shrink-0 transition-all z-20 flex items-center justify-center group select-none border-r border-white/[0.06]"
-            title="좌우로 드래그하여 패널 크기 조절 (대화창 / 에디터)"
-          >
-            <div className="w-0.5 h-8 bg-slate-500 group-hover:bg-[#6366f1] rounded-full transition" />
-          </div>
-        )}
-
-        {/* Resizer Divider when Section 2 is collapsed */}
-        {!isSection1Collapsed && isSection2Collapsed && !isSection3Collapsed && (
-          <div
-            onMouseDown={(e) => handleMouseDownDivider(3, e)}
-            onTouchStart={(e) => handleTouchStartDivider(3, e)}
-            className="w-1.5 hover:w-2 bg-[#09090b]/80 hover:bg-[#6366f1]/40 active:bg-[#6366f1] cursor-col-resize shrink-0 transition-all z-20 flex items-center justify-center group select-none border-r border-white/[0.06]"
-            title="좌우로 드래그하여 패널 크기 조절 (대화창 / 파일 탐색기)"
-          >
-            <div className="w-0.5 h-8 bg-slate-500 group-hover:bg-[#6366f1] rounded-full transition" />
-          </div>
-        )}
-
-        {/* ==================== CENTER PANE: Markdown Editor ==================== */}
+        {/* ==================== CENTER PANE: Markdown Editor (Flex-1 Canvas) ==================== */}
         <section
-          style={{
-            width: isSection2Collapsed
-              ? '0px'
-              : isSection1Collapsed && isSection3Collapsed
-              ? '100%'
-              : isSection1Collapsed
-              ? `${pane1Width + pane2Width}%`
-              : isSection3Collapsed
-              ? `${100 - pane1Width}%`
-              : `${pane2Width}%`,
-            minWidth: isSection2Collapsed ? '0px' : isSection1Collapsed && isSection3Collapsed ? '100%' : '300px',
-            opacity: isSection2Collapsed ? 0 : 1,
-            pointerEvents: isSection2Collapsed ? 'none' : 'auto',
-          }}
-          className={`h-full min-h-0 flex-1 flex flex-col bg-[#09090b] backdrop-blur-md shrink-0 overflow-hidden ${
-            isResizing ? 'transition-none select-none' : 'transition-[width,min-width,opacity] duration-300 ease-in-out'
-          } min-w-0 z-10`}
+          className={`h-full min-h-0 flex-1 min-w-0 flex flex-col bg-[#09090b] backdrop-blur-md overflow-hidden z-10 relative ${
+            isSection2Collapsed ? 'hidden' : ''
+          }`}
           onDragOver={(e) => {
             if (e.dataTransfer.types.includes('Files')) {
               e.preventDefault();
@@ -9639,6 +9882,18 @@ ${projectEvents
         >
           {/* Multi-Tab Document Bar */}
               <div className="bg-[#0c0c0e] border-b border-white/[0.06] flex items-center justify-between px-1.5 pt-1 select-none min-h-[34px] z-20 w-full min-w-0 relative">
+                {/* Left Panel Quick Toggle when collapsed */}
+                {!isLeftPanelVisible && (
+                  <button
+                    type="button"
+                    onClick={() => toggleLeftPanel(true)}
+                    className="p-1 mr-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-indigo-400 border border-[#222226] transition flex items-center justify-center shrink-0 cursor-pointer"
+                    title="좌측 AI 대화 패널 펼치기"
+                    aria-label="좌측 AI 대화 패널 펼치기"
+                  >
+                    <PanelLeftOpen className="w-3.5 h-3.5" />
+                  </button>
+                )}
                 <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-2">
                   {openTabs.map((tabFileName) => {
                     const isActive = tabFileName === currentActiveFile;
@@ -9747,6 +10002,19 @@ ${projectEvents
                       )}
                     </button>
 
+                    {/* Right Panel Quick Toggle when collapsed */}
+                    {!isRightPanelVisible && (
+                      <button
+                        type="button"
+                        onClick={() => toggleRightPanel(true)}
+                        className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-amber-400 border border-[#222226] transition flex items-center justify-center shrink-0 cursor-pointer"
+                        title="우측 파일 탐색기 패널 펼치기"
+                        aria-label="우측 파일 탐색기 패널 펼치기"
+                      >
+                        <PanelRightOpen className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+
                     {/* Compact Top-Right Drawer Button (24px wide, 12px high - half size of standard 24px button) */}
                     <button
                       id="editor-toolbar-drawer-toggle"
@@ -9841,25 +10109,6 @@ ${projectEvents
                             aria-label="실시간 분할 모드"
                           >
                             <BookOpen className="w-3.5 h-3.5 text-slate-200 shrink-0" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditorTab('preview');
-                              setSessions((prev) =>
-                                prev.map((s) => (s.id === activeSessionId ? { ...s, editorTab: 'preview' } : s))
-                              );
-                            }}
-                            className={`h-6 w-6 min-w-[24px] px-0 rounded-xs transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
-                              editorTab === 'preview'
-                                ? 'bg-[#18181b] text-white font-medium'
-                                : 'text-slate-400 hover:text-white hover:bg-[#18181b]/60'
-                            }`}
-                            title="미리보기 전용 모드"
-                            aria-label="미리보기 전용 모드"
-                          >
-                            <Eye className="w-3.5 h-3.5 shrink-0" />
                           </button>
 
                           {/* Divider */}
@@ -10186,6 +10435,168 @@ ${projectEvents
                     </AnimatePresence>
                   </div>
                 )}
+
+                {/* Right: PDF Active Mode Controls [ ✨ 마크다운 추출 ] [ ⚙️ ] */}
+                {currentActiveFile?.toLowerCase().endsWith('.pdf') && (
+                  <div className="shrink-0 flex items-center gap-1.5 pl-1.5 pr-1 relative z-40">
+                    {/* Primary Markdown Extraction Button: [ ✨ 마크다운 추출 ] */}
+                    <button
+                      type="button"
+                      disabled={pdfViewerState?.isExtracting}
+                      onClick={() => pdfViewerRef.current?.extractToMarkdown()}
+                      className="h-7 px-3 rounded-md bg-[#6366f1] hover:bg-[#5254e0] active:bg-[#4345c9] text-white text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-50"
+                      title="마크다운 추출 실행"
+                    >
+                      {pdfViewerState?.isExtracting ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-300 shrink-0" />
+                      ) : (
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                      )}
+                      <span className="text-xs font-medium whitespace-nowrap">
+                        {pdfViewerState?.isExtracting ? '추출 중...' : '마크다운 추출'}
+                      </span>
+                    </button>
+
+                    {/* Settings Popover Button: [ ⚙️ ] */}
+                    <div className="relative" ref={pdfSettingsMenuRef}>
+                      <button
+                        type="button"
+                        onClick={() => setIsPdfSettingsOpen((prev) => !prev)}
+                        className={`w-7 h-7 rounded-md border flex items-center justify-center transition cursor-pointer ${
+                          isPdfSettingsOpen
+                            ? 'bg-[#18181b] text-white border-[#6366f1]'
+                            : 'bg-[#09090b] text-zinc-300 border-[#222226] hover:text-white hover:bg-[#18181b]'
+                        }`}
+                        title="PDF 및 추출 설정"
+                        aria-label="PDF 및 추출 설정"
+                      >
+                        <Settings className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Settings Popover Dropdown */}
+                      {isPdfSettingsOpen && (
+                        <div className="absolute right-0 top-full mt-1.5 w-64 bg-[#121214] border border-[#222226] rounded-lg shadow-2xl p-2.5 z-50 text-xs text-zinc-200 select-none">
+                          <div className="text-[11px] font-semibold text-zinc-400 mb-2 px-1">
+                            추출 설정
+                          </div>
+
+                          {/* Scope Selection */}
+                          <div className="flex items-center justify-between gap-2 p-1.5 rounded-md hover:bg-white/[0.04]">
+                            <span className="text-zinc-300">추출 범위</span>
+                            <div className="flex bg-[#09090b] border border-[#222226] rounded-md p-0.5">
+                              <button
+                                type="button"
+                                onClick={() => pdfViewerRef.current?.setScope('current')}
+                                className={`px-2 py-0.5 rounded text-[11px] font-medium transition cursor-pointer ${
+                                  pdfViewerState?.extractScope === 'current'
+                                    ? 'bg-[#6366f1] text-white'
+                                    : 'text-zinc-400 hover:text-white'
+                                }`}
+                              >
+                                현재 쪽
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => pdfViewerRef.current?.setScope('all')}
+                                className={`px-2 py-0.5 rounded text-[11px] font-medium transition cursor-pointer ${
+                                  pdfViewerState?.extractScope === 'all'
+                                    ? 'bg-[#6366f1] text-white'
+                                    : 'text-zinc-400 hover:text-white'
+                                }`}
+                              >
+                                전체
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Engine Selection */}
+                          <div className="mt-2 px-1">
+                            <span className="text-zinc-300 block mb-1">파서 엔진</span>
+                            <div className="grid grid-cols-2 gap-1">
+                              {[
+                                { id: 'fast', name: '고속 텍스트' },
+                                { id: 'gemini', name: '클라우드 AI' },
+                                { id: 'ollama', name: '로컬 비전' },
+                                { id: 'ocr', name: '문자 인식' },
+                              ].map((engine) => (
+                                <button
+                                  key={engine.id}
+                                  type="button"
+                                  onClick={() => pdfViewerRef.current?.setEngine(engine.id as any)}
+                                  className={`px-2 py-1.5 rounded-md text-[11px] text-left transition cursor-pointer border ${
+                                    pdfViewerState?.extractEngine === engine.id
+                                      ? 'bg-indigo-950/60 text-indigo-300 border-indigo-500/50 font-medium'
+                                      : 'bg-[#09090b] text-zinc-400 border-[#222226] hover:text-white'
+                                  }`}
+                                >
+                                  {engine.name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="my-2 border-t border-[#222226]" />
+
+                          {/* View & Tool Actions */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              pdfViewerRef.current?.toggleSplitView();
+                            }}
+                            className="w-full text-left px-2 py-1.5 rounded-md hover:bg-white/[0.06] flex items-center justify-between text-zinc-300 hover:text-white transition cursor-pointer"
+                          >
+                            <span>분할 편집 화면 전환</span>
+                            <span className="text-[10px] text-zinc-500">{pdfViewerState?.isSplitView ? '분할 모드' : '단일 뷰'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsPdfSettingsOpen(false);
+                              pdfViewerRef.current?.clearCacheAndReparse();
+                            }}
+                            className="w-full text-left px-2 py-1.5 rounded-md hover:bg-white/[0.06] text-zinc-300 hover:text-white transition cursor-pointer"
+                          >
+                            캐시 초기화 및 재파싱
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsPdfSettingsOpen(false);
+                              pdfViewerRef.current?.openReducerModal();
+                            }}
+                            className="w-full text-left px-2 py-1.5 rounded-md hover:bg-white/[0.06] text-zinc-300 hover:text-white transition cursor-pointer"
+                          >
+                            PDF 최적화 및 용량 줄이기...
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsPdfSettingsOpen(false);
+                              pdfViewerRef.current?.openFilePicker();
+                            }}
+                            className="w-full text-left px-2 py-1.5 rounded-md hover:bg-white/[0.06] text-zinc-300 hover:text-white transition cursor-pointer"
+                          >
+                            다른 PDF 파일 열기...
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsPdfSettingsOpen(false);
+                              pdfViewerRef.current?.downloadPdf();
+                            }}
+                            className="w-full text-left px-2 py-1.5 rounded-md hover:bg-white/[0.06] text-zinc-300 hover:text-white transition cursor-pointer"
+                          >
+                            현재 PDF 다운로드
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
             {/* Recent AI Changes Notification Banner */}
@@ -10248,6 +10659,8 @@ ${projectEvents
                         ollamaModel={preferences.pdfParser?.ollamaModel || 'llama3.2-vision'}
                         onToast={showToast}
                         renderMarkdownToHtml={renderMarkdownToHtml}
+                        hideTopToolbar={true}
+                        onViewerStateChange={setPdfViewerState}
                       />
                     ) : (
                       <OptimizedEditor
@@ -10333,35 +10746,22 @@ ${projectEvents
               </div>
         </section>
 
-        {/* Resizer Divider 2 */}
-        {!isSection2Collapsed && !isSection3Collapsed && (
+        {/* Mobile / Tablet Overlay Backdrop for Right Pane (< lg) */}
+        {isRightPanelVisible && (
           <div
-            onMouseDown={(e) => handleMouseDownDivider(2, e)}
-            onTouchStart={(e) => handleTouchStartDivider(2, e)}
-            className="w-1.5 hover:w-2 bg-[#09090b]/80 hover:bg-[#6366f1]/40 active:bg-[#6366f1] cursor-col-resize shrink-0 transition-all z-20 flex items-center justify-center group select-none shadow-xs border-x border-[#222226]"
-            title="좌우로 드래그하여 패널 크기 조절 (에디터 / 파일 탐색기)"
-          >
-            <div className="w-0.5 h-8 bg-slate-500 group-hover:bg-[#6366f1] rounded-full transition" />
-          </div>
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs z-30 lg:hidden"
+            onClick={() => toggleRightPanel(false)}
+            aria-hidden="true"
+          />
         )}
 
-        {/* ==================== RIGHT PANE: Project File Explorer ==================== */}
+        {/* ==================== RIGHT PANE: Project File Explorer (Fixed 240px) ==================== */}
         <section
-          style={{
-            width: isSection3Collapsed
-              ? '0px'
-              : isSection1Collapsed && isSection2Collapsed
-              ? '100%'
-              : isSection2Collapsed
-              ? `${100 - pane1Width}%`
-              : `${100 - pane1Width - pane2Width}%`,
-            minWidth: isSection3Collapsed ? '0px' : '180px',
-            opacity: isSection3Collapsed ? 0 : 1,
-            pointerEvents: isSection3Collapsed ? 'none' : 'auto',
-          }}
-          className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 overflow-hidden relative ${
-            isResizing ? 'transition-none select-none' : 'transition-[width,min-width,opacity] duration-300 ease-in-out'
-          } min-w-0 border-l border-[#222226]`}
+          className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 transition-all duration-200 ease-in-out z-40 lg:z-10 ${
+            isRightPanelVisible
+              ? 'w-[240px] opacity-100 pointer-events-auto border-l border-[#222226] fixed lg:relative inset-y-0 right-0 shadow-2xl shadow-black/80 lg:shadow-none'
+              : 'w-0 opacity-0 pointer-events-none overflow-hidden border-l-0'
+          }`}
           onDragOver={(e) => {
             if (e.dataTransfer.types.includes('Files')) {
               e.preventDefault();
@@ -10375,6 +10775,7 @@ ${projectEvents
             }
           }}
         >
+          <div className="w-[240px] h-full flex flex-col min-h-0 overflow-hidden">
             
             {/* Integrated Sleek 1-Line File Explorer Header Toolbar */}
             {/* Explorer Header */}
@@ -10465,6 +10866,17 @@ ${projectEvents
                   title="오피스 및 PDF 문서 가져오기"
                 >
                   <FileUp className="w-3.5 h-3.5 text-indigo-400 group-hover:text-indigo-300" />
+                </button>
+
+                {/* [Collapse Right Panel Button] */}
+                <button
+                  type="button"
+                  onClick={() => toggleRightPanel(false)}
+                  className="p-1 rounded-xs hover:bg-[#18181b] hover:text-white text-slate-400 transition cursor-pointer"
+                  title="우측 파일 탐색기 패널 접기"
+                  aria-label="우측 파일 탐색기 패널 접기"
+                >
+                  <PanelRightClose className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -10804,6 +11216,7 @@ ${projectEvents
             })()}
           </div>
 
+        </div>
         </section>
 
       </main>
@@ -11769,7 +12182,10 @@ ${projectEvents
         }
         availableTemplates={Object.keys(files).filter(f => f.endsWith('.md') && !f.startsWith('.podium/'))}
         availableModels={availableChatModels}
-        currentModel={roleModels.ssot || roleModels.architect || selectedModel || 'gemini-3.8-flash'}
+        currentModel={selectedModel}
+        onModelChange={(modelId) => {
+          handleQuickDefaultModel(modelId, getModelDisplayName(modelId));
+        }}
         currentProvider={provider}
         onGenerate={(config) => {
           setIsSSOTGeneratorModalOpen(false);

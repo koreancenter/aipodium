@@ -135,20 +135,20 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
   const handleApplyPreset = (type: 'balanced' | 'deep' | 'local') => {
     if (type === 'balanced') {
       setLocalRoles({
-        chat: 'gemini-3.8-flash',
-        ghostWriter: 'gemini-3.1-flash-lite',
-        architect: 'gemini-3.1-pro-preview',
-        ssot: 'gemini-3.1-pro-preview',
-        critic: 'gemini-3.1-pro-preview'
+        chat: 'gemini-2.5-flash',
+        ghostWriter: 'gemini-2.5-flash',
+        architect: 'gemini-2.5-pro',
+        ssot: 'gemini-2.5-pro',
+        critic: 'gemini-2.5-pro'
       });
       onToast('초고속 균형형 프리셋이 적용되었습니다.', 'info');
     } else if (type === 'deep') {
       setLocalRoles({
-        chat: 'gemini-3.1-pro-preview',
-        ghostWriter: 'gemini-3.8-flash',
-        architect: 'gemini-3.1-pro-preview',
-        ssot: 'gemini-3.1-pro-preview',
-        critic: 'deepseek-r1'
+        chat: 'gemini-2.5-pro',
+        ghostWriter: 'gemini-2.5-flash',
+        architect: 'gemini-2.5-pro',
+        ssot: 'gemini-2.5-pro',
+        critic: 'gemini-2.5-pro'
       });
       onToast('심층 추론 특화형 프리셋이 적용되었습니다.', 'info');
     } else if (type === 'local') {

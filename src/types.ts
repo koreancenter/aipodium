@@ -12,10 +12,12 @@ export interface FileTreeFolder {
 export interface ChatAttachment {
   id: string;
   name: string;
-  type: 'image' | 'file';
+  type: 'image' | 'file' | 'link';
   size: string;
   url?: string;
   content?: string;
+  parsedMarkdown?: string;
+  isParsing?: boolean;
 }
 
 export interface ChatActionButton {
@@ -104,9 +106,9 @@ export interface AiRoleModels {
 }
 
 export const DEFAULT_AI_ROLE_MODELS: AiRoleModels = {
-  chat: 'gemini-3.8-flash',
-  ghostWriter: 'gemini-3.1-flash-lite',
-  architect: 'gemini-3.1-pro-preview',
-  ssot: 'gemini-3.1-pro-preview',
-  critic: 'gemini-3.1-pro-preview'
+  chat: 'gemini-2.5-flash',
+  ghostWriter: 'gemini-2.5-flash',
+  architect: 'gemini-2.5-pro',
+  ssot: 'gemini-2.5-pro',
+  critic: 'gemini-2.5-pro'
 };

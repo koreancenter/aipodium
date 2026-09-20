@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cpu, Sparkles, AlertCircle, CheckCircle2, Loader2, X, Zap } from 'lucide-react';
+import { AlertCircle, Loader2, X } from 'lucide-react';
 
 interface WebLlmBannerProps {
   isSupported: boolean;
@@ -122,18 +122,13 @@ export const WebLlmBanner: React.FC<WebLlmBannerProps> = ({
   return (
     <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 mb-4 transition select-none animate-in fade-in duration-150">
       <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-6 h-6 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center shrink-0">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-          </div>
-          <div className="flex items-center gap-2 min-w-0 flex-wrap">
-            <span className="text-xs font-semibold text-zinc-100 whitespace-nowrap">
-              API 키 없이 바로 체험하기
-            </span>
-            <span className="text-[0.625rem] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-indigo-300 font-mono">
-              WebGPU 내장
-            </span>
-          </div>
+        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+          <span className="text-xs font-semibold text-zinc-100 whitespace-nowrap">
+            API 키 없이 바로 체험하기
+          </span>
+          <span className="text-[0.625rem] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-indigo-300 font-mono">
+            WebGPU 내장
+          </span>
         </div>
 
         {onDismiss && (
@@ -156,9 +151,8 @@ export const WebLlmBanner: React.FC<WebLlmBannerProps> = ({
         <button
           type="button"
           onClick={onStartDownload}
-          className="w-full sm:w-auto bg-white/10 hover:bg-white/15 text-zinc-100 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition flex items-center justify-center gap-1.5 shadow-xs active:scale-[0.98]"
+          className="w-full sm:w-auto bg-white/10 hover:bg-white/15 text-zinc-100 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition flex items-center justify-center shadow-xs active:scale-[0.98]"
         >
-          <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
           <span>무설치 브라우저 AI 활성화</span>
         </button>
       </div>

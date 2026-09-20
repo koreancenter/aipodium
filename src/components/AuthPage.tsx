@@ -19,7 +19,9 @@ import {
   AlertTriangle,
   RotateCcw,
   Cpu,
-  Layers
+  Layers,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { authService, AuthUser } from '../services/authService';
 import { PolicyModal, PolicyType } from './PolicyModal';
@@ -99,6 +101,29 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
   const hasPinConfigured = Boolean(storedPinHash);
 
+  // Mandatory Pre-flight Terms & Conditions Agreement
+  const isDisclaimerInitiallyAccepted = () => {
+    try {
+      return localStorage.getItem('aipodium_disclaimer_accepted') === 'true';
+    } catch {
+      return false;
+    }
+  };
+
+  const [agreeApiKey, setAgreeApiKey] = useState(isDisclaimerInitiallyAccepted);
+  const [agreeLocalStorage, setAgreeLocalStorage] = useState(isDisclaimerInitiallyAccepted);
+  const [agreeAiOutput, setAgreeAiOutput] = useState(isDisclaimerInitiallyAccepted);
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(() => !isDisclaimerInitiallyAccepted());
+
+  const isAllAgreed = agreeApiKey && agreeLocalStorage && agreeAiOutput;
+
+  const handleToggleAllAgreements = () => {
+    const nextVal = !isAllAgreed;
+    setAgreeApiKey(nextVal);
+    setAgreeLocalStorage(nextVal);
+    setAgreeAiOutput(nextVal);
+  };
+
   // Scenario A: First-time / No PIN set state
   const [showSetPinForm, setShowSetPinForm] = useState(false);
   const [newPin, setNewPin] = useState('');
@@ -171,6 +196,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
   // 1. Direct Workspace Entry (Scenario A - No PIN set)
   const handleOpenWorkspaceDirectly = () => {
+    if (!isAllAgreed) return;
+    try {
+      localStorage.setItem('aipodium_disclaimer_accepted', 'true');
+    } catch {}
     setIsLoading(true);
     setErrorMsg(null);
     try {
@@ -180,6 +209,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
       setErrorMsg(err?.message || (lang === 'KR' ? '워크스페이스를 여는데 실패했습니다.' : 'Failed to open workspace.'));
       setIsLoading(false);
     }
+  };
+
+  const handleOpenPinSetup = () => {
+    if (!isAllAgreed) return;
+    try {
+      localStorage.setItem('aipodium_disclaimer_accepted', 'true');
+    } catch {}
+    setShowSetPinForm(true);
+    setErrorMsg(null);
   };
 
   // 2. Stage Master PIN and prompt Emergency Master Access Key
@@ -233,6 +271,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
       localStorage.setItem(LOCAL_PIN_HASH_KEY, pendingPinHash);
       localStorage.setItem(LOCAL_RECOVERY_KEY_HASH, recHash);
       localStorage.setItem(LOCAL_LOCK_ENABLED_KEY, 'true');
+      localStorage.setItem('aipodium_disclaimer_accepted', 'true');
 
       setStoredPinHash(pendingPinHash);
       setStoredRecoveryHash(recHash);
@@ -440,23 +479,20 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
   };
 
   return (
-    <div className="w-full min-h-screen h-full bg-[#09090b] text-zinc-200 font-['Plus_Jakarta_Sans',Inter,-apple-system,BlinkMacSystemFont,sans-serif] antialiased selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] flex flex-col justify-between relative overflow-y-auto">
+    <div className="w-full min-h-screen min-h-[100dvh] bg-[#09090b] text-zinc-200 font-['Plus_Jakarta_Sans',Inter,-apple-system,BlinkMacSystemFont,sans-serif] antialiased selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] flex flex-col justify-between relative overflow-x-hidden overflow-y-auto">
       {/* Subtle ambient lighting adhering strictly to Clean Dark rules */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(99,102,241,0.06),transparent_70%)] pointer-events-none" />
 
       {/* Main Bounded Container: Perfectly centers layout on all screen sizes (ultrawide to mobile) */}
-      <div className="relative z-10 w-full max-w-6xl xl:max-w-7xl mx-auto min-h-screen flex flex-col justify-between px-6 sm:px-10 lg:px-12 py-6 lg:py-8">
+      <div className="relative z-10 w-full max-w-6xl xl:max-w-7xl mx-auto min-h-screen min-h-[100dvh] flex flex-col justify-between px-4 sm:px-8 lg:px-12 py-2 sm:py-5 lg:py-8">
         {/* Top Header: Brand Identity & Language Toggle */}
-        <header className="w-full flex items-center justify-between pb-6 border-b border-white/[0.08]">
+        <header className="w-full flex items-center justify-between pt-2 pb-1 sm:py-6 border-b border-white/[0.08]">
           <div className="flex items-center gap-2.5">
             <span className="text-base font-semibold tracking-tight text-zinc-100">
               {t.brandName}
             </span>
             <span className="px-1.5 py-0.5 rounded-sm text-[11px] font-normal bg-white/5 text-zinc-400 border border-white/10">
               {t.betaTag}
-            </span>
-            <span className="hidden sm:inline-block text-xs text-zinc-500 pl-2.5 border-l border-white/10">
-              {t.subtitle}
             </span>
           </div>
 
@@ -495,62 +531,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
           </div>
         </header>
 
-        {/* Middle: Golden Ratio 2-Column Responsive Workspace Grid */}
-        <main className="my-auto py-8 lg:py-12 w-full grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-16 items-center">
-          {/* Left Column (7 cols): Academic Value Proposition & Architectural Pillars */}
-          <div className="lg:col-span-7 space-y-8">
-            <div className="space-y-3">
-              <h1 className="text-2xl sm:text-3xl xl:text-4xl font-semibold tracking-tight leading-snug text-zinc-100 break-keep">
-                {t.heroTitle}
-              </h1>
-              <p className="text-sm sm:text-base text-zinc-400 leading-relaxed max-w-xl break-keep">
-                {t.heroDesc}
-              </p>
-            </div>
-
-            {/* Academic Value Cards - Flat Rows per DESIGN.md 제4조 */}
-            <div className="space-y-3 max-w-xl">
-              <div className="flex items-start gap-3.5 p-3.5 rounded-md border border-transparent hover:border-white/[0.06] hover:bg-white/[0.02] transition-colors">
-                <div className="w-8 h-8 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 mt-0.5">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-zinc-200">{t.card1Title}</div>
-                  <div className="text-xs sm:text-sm text-zinc-400 leading-relaxed mt-1">
-                    {t.card1Desc}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3.5 p-3.5 rounded-md border border-transparent hover:border-white/[0.06] hover:bg-white/[0.02] transition-colors">
-                <div className="w-8 h-8 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 mt-0.5">
-                  <Cpu className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-zinc-200">{t.card2Title}</div>
-                  <div className="text-xs sm:text-sm text-zinc-400 leading-relaxed mt-1">
-                    {t.card2Desc}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3.5 p-3.5 rounded-md border border-transparent hover:border-white/[0.06] hover:bg-white/[0.02] transition-colors">
-                <div className="w-8 h-8 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 mt-0.5">
-                  <Layers className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-zinc-200">{t.card3Title}</div>
-                  <div className="text-xs sm:text-sm text-zinc-400 leading-relaxed mt-1">
-                    {t.card3Desc}
-                  </div>
-                </div>
-              </div>
-            </div>
+        {/* Middle: Responsive Workspace Grid (Action Card prioritized on mobile/tablet) */}
+        <main className="my-auto py-2 sm:py-6 lg:py-12 w-full flex flex-col lg:grid lg:grid-cols-12 gap-3 sm:gap-6 lg:gap-10 xl:gap-16 items-center">
+          {/* Mobile/Tablet Compact Hero Header (< lg): immediate brand context */}
+          <div className="lg:hidden w-full text-center space-y-1 sm:space-y-1.5 order-1">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight leading-snug text-zinc-100 break-keep">
+              {t.heroTitle}
+            </h1>
+            <p className="hidden sm:block text-xs sm:text-sm text-zinc-400 mt-1 leading-relaxed max-w-lg mx-auto break-keep">
+              {t.heroDesc}
+            </p>
           </div>
 
-          {/* Right Column (5 cols): Academic Onboarding & Security Gateway Card */}
-          <div className="lg:col-span-5 w-full flex flex-col items-center lg:items-end">
-            <div className="w-full max-w-md bg-[#121214] border border-white/[0.08] rounded-xl p-6 sm:p-8">
+          {/* Action Card (Onboarding & Security Gateway Card): Prioritized order-2 on mobile/tablet */}
+          <div className="w-full flex flex-col items-center lg:items-end order-2 lg:order-none lg:col-span-5 lg:col-start-8 lg:row-start-1">
+            <div className="w-full max-w-md bg-[#121214] border border-white/[0.08] rounded-xl p-4 sm:p-6 md:p-8 shadow-xl shadow-black/40">
               <div>
                 {/* Status Feedback Banners */}
                 {errorMsg && (
@@ -632,9 +627,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                       onClick={handleConfirmRecoveryKeyAndEnter}
                       disabled={!confirmedSavedRecoveryKey || isLoading}
                       title={t.openWorkspaceAfterRecovery}
-                      className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md py-2.5 font-medium text-xs transition-colors cursor-pointer disabled:opacity-50"
+                      className="h-11 sm:h-12 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md px-4 font-medium text-sm sm:text-base transition-colors cursor-pointer disabled:opacity-50"
                     >
-                      <Rocket className="w-4 h-4 shrink-0" />
+                      <Rocket className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
                       <span>{t.openWorkspaceAfterRecovery}</span>
                     </button>
                   </div>
@@ -642,12 +637,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
                 {/* Returning User Locked State (Scenario B) */}
                 {!generatedRecoveryKey && hasPinConfigured && !showRecoveryForm && (
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-5 lg:space-y-6">
                     <div>
-                      <div className="w-10 h-10 rounded-md bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-3.5">
-                        <Lock className="w-5 h-5" />
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-2 sm:mb-4">
+                        <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
-                      <h2 className="text-xl font-semibold text-zinc-100 tracking-tight">
+                      <h2 className="text-lg sm:text-xl font-semibold text-zinc-100 tracking-tight">
                         {t.unlockTitle}
                       </h2>
                       <p className="mt-1 text-xs text-zinc-400 leading-relaxed">
@@ -709,9 +704,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                         type="submit"
                         disabled={isLoading || lockoutState.isLockedOut}
                         title={t.unlockWorkspace}
-                        className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md py-2.5 font-medium text-xs transition-colors cursor-pointer disabled:opacity-50"
+                        className="h-11 sm:h-12 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md px-4 font-medium text-sm sm:text-base transition-colors cursor-pointer disabled:opacity-50"
                       >
-                        <Unlock className="h-4 w-4 shrink-0" />
+                        <Unlock className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
                         <span>{t.unlockWorkspace}</span>
                       </button>
                     </form>
@@ -793,9 +788,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                           type="submit"
                           disabled={isLoading}
                           title={t.verifyRecoveryKeyButton}
-                          className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md py-2.5 font-medium text-xs transition-colors cursor-pointer disabled:opacity-50"
+                          className="h-11 sm:h-12 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md px-4 font-medium text-sm sm:text-base transition-colors cursor-pointer disabled:opacity-50"
                         >
-                          <Check className="w-4 h-4" />
+                          <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                           <span>{t.verifyRecoveryKeyButton}</span>
                         </button>
                       </form>
@@ -830,9 +825,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                           type="submit"
                           disabled={isLoading}
                           title={t.saveNewPinButton}
-                          className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md py-2.5 font-medium text-xs transition-colors cursor-pointer"
+                          className="h-11 sm:h-12 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md px-4 font-medium text-sm sm:text-base transition-colors cursor-pointer"
                         >
-                          <Check className="w-4 h-4" />
+                          <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                           <span>{t.saveNewPinButton}</span>
                         </button>
                       </form>
@@ -842,47 +837,123 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
                 {/* First-time User / No PIN Set (Scenario A - Redesigned Clean IDE Look) */}
                 {!generatedRecoveryKey && !hasPinConfigured && (
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-5 lg:space-y-6">
                     <div>
-                      <div className="w-10 h-10 rounded-md bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-3.5">
-                        <BookOpen className="w-5 h-5" />
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-2 sm:mb-4">
+                        <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
-                      <h2 className="text-xl font-semibold text-zinc-100 tracking-tight">
+                      <h2 className="text-lg sm:text-xl font-semibold text-zinc-100 tracking-tight">
                         {t.welcomeTitle}
                       </h2>
-                      <p className="mt-1.5 text-xs text-zinc-400 leading-relaxed">
+                      <p className="mt-1 sm:mt-1.5 text-xs text-zinc-400 leading-relaxed">
                         {t.welcomeDesc}
                       </p>
                     </div>
 
                     {!showSetPinForm ? (
-                      <div className="space-y-3">
-                        {/* Primary Action: Open Research Workspace */}
-                        <button
-                          type="button"
-                          onClick={handleOpenWorkspaceDirectly}
-                          disabled={isLoading}
-                          title={t.openWorkspace}
-                          className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md py-2.5 px-4 font-medium text-xs transition-colors cursor-pointer disabled:opacity-60"
-                        >
-                          <Rocket className="h-4 w-4 shrink-0 text-white" />
-                          <span>{t.openWorkspace}</span>
-                        </button>
+                      <div className="space-y-3 sm:space-y-4">
+                        {/* Mandatory Pre-flight Terms & Agreement Checklist */}
+                        <div className="rounded-lg bg-[#0c0c0e] border border-[#222226] p-2.5 sm:p-3 text-xs space-y-2 sm:space-y-2.5 my-3 sm:my-5">
+                          {/* Master All-in-one Toggle */}
+                          <div className="flex items-start justify-between gap-2">
+                            <label className="flex items-start gap-2.5 cursor-pointer select-none group flex-1">
+                              <input
+                                type="checkbox"
+                                checked={isAllAgreed}
+                                onChange={handleToggleAllAgreements}
+                                className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
+                              />
+                              <span className="text-xs font-medium text-zinc-200 group-hover:text-white transition-colors leading-snug">
+                                {t.termsAllAgree}
+                              </span>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
+                              className="text-[11px] text-zinc-400 hover:text-zinc-200 flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded hover:bg-white/5 transition-colors cursor-pointer"
+                              aria-expanded={isDetailsExpanded}
+                              title={isDetailsExpanded ? t.termsHideDetails : t.termsViewDetails}
+                            >
+                              <span>{isDetailsExpanded ? t.termsHideDetails : t.termsViewDetails}</span>
+                              {isDetailsExpanded ? (
+                                <ChevronUp className="w-3.5 h-3.5" />
+                              ) : (
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          </div>
 
-                        {/* Secondary Action: Enable Workspace PIN Lock */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowSetPinForm(true);
-                            setErrorMsg(null);
-                          }}
-                          disabled={isLoading}
-                          title={t.enablePinLock}
-                          className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/10 rounded-md py-2.5 px-4 text-xs font-medium transition-colors cursor-pointer disabled:opacity-60"
-                        >
-                          <Lock className="h-4 w-4 text-zinc-400 shrink-0" />
-                          <span>{t.enablePinLock}</span>
-                        </button>
+                          {/* Expandable Individual Checklist */}
+                          {isDetailsExpanded && (
+                            <div className="pt-2 border-t border-[#222226] space-y-2 pl-0.5">
+                              {/* Item 1: API Key responsibility */}
+                              <label className="flex items-start gap-2.5 cursor-pointer select-none group">
+                                <input
+                                  type="checkbox"
+                                  checked={agreeApiKey}
+                                  onChange={(e) => setAgreeApiKey(e.target.checked)}
+                                  className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
+                                />
+                                <span className="text-[11px] text-zinc-400 group-hover:text-zinc-300 leading-tight">
+                                  {t.termsApiKeyAgree}
+                                </span>
+                              </label>
+
+                              {/* Item 2: Local storage risk acknowledgement */}
+                              <label className="flex items-start gap-2.5 cursor-pointer select-none group">
+                                <input
+                                  type="checkbox"
+                                  checked={agreeLocalStorage}
+                                  onChange={(e) => setAgreeLocalStorage(e.target.checked)}
+                                  className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
+                                />
+                                <span className="text-[11px] text-zinc-400 group-hover:text-zinc-300 leading-tight">
+                                  {t.termsLocalStorageAgree}
+                                </span>
+                              </label>
+
+                              {/* Item 3: AI output verification responsibility */}
+                              <label className="flex items-start gap-2.5 cursor-pointer select-none group">
+                                <input
+                                  type="checkbox"
+                                  checked={agreeAiOutput}
+                                  onChange={(e) => setAgreeAiOutput(e.target.checked)}
+                                  className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
+                                />
+                                <span className="text-[11px] text-zinc-400 group-hover:text-zinc-300 leading-tight">
+                                  {t.termsAiOutputAgree}
+                                </span>
+                              </label>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="space-y-2 sm:space-y-2.5">
+                          {/* Primary Action: Open Research Workspace */}
+                          <button
+                            type="button"
+                            onClick={handleOpenWorkspaceDirectly}
+                            disabled={isLoading || !isAllAgreed}
+                            title={t.openWorkspace}
+                            className="h-11 sm:h-12 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md px-4 font-medium text-sm sm:text-base transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Rocket className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-white" />
+                            <span>{t.openWorkspace}</span>
+                          </button>
+
+                          {/* Secondary Action: Enable Workspace PIN Lock */}
+                          <button
+                            type="button"
+                            onClick={handleOpenPinSetup}
+                            disabled={isLoading || !isAllAgreed}
+                            title={t.enablePinLock}
+                            className="h-11 sm:h-12 w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/10 rounded-md px-4 text-sm sm:text-base font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Lock className="h-4 w-4 sm:h-5 sm:w-5 text-zinc-400 shrink-0" />
+                            <span>{t.enablePinLock}</span>
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <form onSubmit={handleStageMasterPin} className="space-y-4">
@@ -961,9 +1032,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                           type="submit"
                           disabled={isLoading}
                           title={t.savePinAndGenKey}
-                          className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md py-2.5 font-medium text-xs transition-colors cursor-pointer disabled:opacity-60 mt-3"
+                          className="h-11 sm:h-12 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md px-4 font-medium text-sm sm:text-base transition-colors cursor-pointer disabled:opacity-60 mt-3"
                         >
-                          <ShieldCheck className="h-4 w-4" />
+                          <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5" />
                           <span>{t.savePinAndGenKey}</span>
                         </button>
                       </form>
@@ -974,8 +1045,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
             </div>
 
-            {/* Under-Card System Architecture & Trust Badges (Visual Balance 방안 2) */}
-            <div className="w-full max-w-md mt-3.5 grid grid-cols-3 gap-2 text-center select-none">
+            {/* Under-Card System Architecture & Trust Badges (Only on desktop lg: for visual balance) */}
+            <div className="hidden lg:grid w-full max-w-md mt-3.5 grid-cols-3 gap-2 text-center select-none">
               <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-2.5 flex flex-col items-center justify-center transition-colors hover:border-white/10">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 mb-1" />
                 <span className="text-[0.6875rem] font-medium text-zinc-200">
@@ -1005,16 +1076,73 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
               </div>
             </div>
 
-            {/* Under-Card 1-Line Subtle Meta Text */}
-            <p className="w-full max-w-md mt-2.5 px-1 text-center lg:text-right text-[0.6875rem] text-zinc-400">
-              {t.academicConfidentialityTitle}
-            </p>
+          </div>
+
+          {/* Intro Section & Architectural Pillars (Desktop Left Column / Mobile Below-Card Section) */}
+          <div className="w-full lg:col-span-7 lg:col-start-1 lg:row-start-1 order-3 lg:order-none space-y-3 sm:space-y-4 lg:space-y-8 hidden sm:block">
+            {/* Desktop Full Hero Header (hidden on mobile/tablet since displayed above action card) */}
+            <div className="hidden lg:block space-y-3">
+              <h1 className="text-2xl sm:text-3xl xl:text-4xl font-semibold tracking-tight leading-snug text-zinc-100 break-keep">
+                {t.heroTitle}
+              </h1>
+              <p className="text-sm sm:text-base text-zinc-400 leading-relaxed max-w-xl break-keep">
+                {t.heroDesc}
+              </p>
+            </div>
+
+            {/* Academic Value Cards - Responsive Presentation (Hidden on mobile < sm & short viewports < 750px) */}
+            <div className="w-full max-w-xl grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 gap-2 md:gap-3 lg:gap-3 mx-auto lg:mx-0 short-screen-hide">
+              <div className="flex items-center lg:items-start gap-2.5 sm:gap-3 lg:gap-3.5 p-2 sm:p-2.5 lg:p-3.5 rounded-lg lg:rounded-md border border-white/[0.05] lg:border-transparent lg:hover:border-white/[0.06] bg-white/[0.02] lg:bg-transparent lg:hover:bg-white/[0.02] transition-colors">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                  <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-xs lg:text-sm font-medium text-zinc-200">
+                    <span className="lg:hidden">{t.card1CompactTitle}</span>
+                    <span className="hidden lg:inline">{t.card1Title}</span>
+                  </div>
+                  <div className="hidden lg:block text-xs sm:text-sm text-zinc-400 leading-relaxed mt-1">
+                    {t.card1Desc}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center lg:items-start gap-2.5 sm:gap-3 lg:gap-3.5 p-2 sm:p-2.5 lg:p-3.5 rounded-lg lg:rounded-md border border-white/[0.05] lg:border-transparent lg:hover:border-white/[0.06] bg-white/[0.02] lg:bg-transparent lg:hover:bg-white/[0.02] transition-colors">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                  <Cpu className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-xs lg:text-sm font-medium text-zinc-200">
+                    <span className="lg:hidden">{t.card2CompactTitle}</span>
+                    <span className="hidden lg:inline">{t.card2Title}</span>
+                  </div>
+                  <div className="hidden lg:block text-xs sm:text-sm text-zinc-400 leading-relaxed mt-1">
+                    {t.card2Desc}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center lg:items-start gap-2.5 sm:gap-3 lg:gap-3.5 p-2 sm:p-2.5 lg:p-3.5 rounded-lg lg:rounded-md border border-white/[0.05] lg:border-transparent lg:hover:border-white/[0.06] bg-white/[0.02] lg:bg-transparent lg:hover:bg-white/[0.02] transition-colors">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                  <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-xs lg:text-sm font-medium text-zinc-200">
+                    <span className="lg:hidden">{t.card3CompactTitle}</span>
+                    <span className="hidden lg:inline">{t.card3Title}</span>
+                  </div>
+                  <div className="hidden lg:block text-xs sm:text-sm text-zinc-400 leading-relaxed mt-1">
+                    {t.card3Desc}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </main>
 
         {/* Global Footer: Academic Policies & Operational Status Indicators */}
-        <footer className="w-full pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
-          <div className="flex flex-wrap items-center gap-3">
+        <footer className="w-full pt-3 sm:pt-4 border-t border-white/[0.08] flex items-center justify-center text-[11px] sm:text-xs text-zinc-500">
+          <div id="auth-footer-legal" className="flex flex-wrap items-center justify-center text-center gap-2.5 sm:gap-3">
             <span>{t.copyright}</span>
             <span className="text-zinc-700">·</span>
             <button
@@ -1040,17 +1168,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
             >
               {t.academicDisclaimer}
             </button>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span>{t.offlineReady}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-              <span>{t.encryptedStorage}</span>
-            </div>
           </div>
         </footer>
       </div>

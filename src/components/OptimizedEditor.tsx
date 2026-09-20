@@ -38,6 +38,8 @@ import { VisualTableModal } from './VisualTableModal';
 import { TiptapWysiwygEditor, TiptapWysiwygEditorRef } from './TiptapWysiwygEditor';
 import { getTextareaSelectionCoordinates } from '../utils/caretCoordinates';
 import { sanitizeHtml } from '../utils/securitySanitizer';
+import { VirtualizedMarkdownPreview } from './VirtualizedMarkdownPreview';
+import { getEphemeralDecryptedApiKey } from '../services/aiEngineCore';
 
 export interface OptimizedEditorProps {
   value: string;
@@ -608,15 +610,7 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
 
       let apiKey = '';
       try {
-        const sessionKey = sessionStorage.getItem('aipodium_cloud_api_key');
-        if (sessionKey) apiKey = sessionKey;
-        else {
-          const raw = localStorage.getItem('aipodium_api_keys');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed.gemini) apiKey = parsed.gemini;
-          }
-        }
+        apiKey = await getEphemeralDecryptedApiKey('gemini');
       } catch (e) {
         // ignore
       }
@@ -637,7 +631,7 @@ ${tableMarkdown}
 2. 마크다운 코드블록(\`\`\`markdown)이나 인사말, 설명 등 부연 텍스트는 절대 포함하지 말 것.
 3. 마크다운 표 헤더, 구분선, 행 파이프 문법을 온전히 유지할 것.`,
           apiKey: apiKey || undefined,
-          model: 'gemini-3.8-flash',
+          model: 'gemini-2.5-flash',
           systemInstruction: 'You are a professional Markdown Table Editor. Output ONLY the clean Markdown table syntax (| ... |). Do not output any markdown code blocks (```) or explanation text.'
         })
       });
@@ -1018,15 +1012,7 @@ ${tableMarkdown}
     try {
       let apiKey = '';
       try {
-        const sessionKey = sessionStorage.getItem('aipodium_cloud_api_key');
-        if (sessionKey) apiKey = sessionKey;
-        else {
-          const raw = localStorage.getItem('aipodium_api_keys');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed.gemini) apiKey = parsed.gemini;
-          }
-        }
+        apiKey = await getEphemeralDecryptedApiKey('gemini');
       } catch (e) {
         // ignore
       }
@@ -1047,7 +1033,7 @@ ${targetText}
 2. 불필요한 인사말, 따옴표, 설명이나 부연 텍스트(예: "수정된 텍스트입니다:")는 절대 포함하지 말 것.
 3. 마크다운 서식이 요청된 경우 올바른 마크다운 문법을 적용할 것.`,
           apiKey: apiKey || undefined,
-          model: 'gemini-3.8-flash',
+          model: 'gemini-2.5-flash',
           systemInstruction: 'You are an expert Markdown and Text Editor assistant. Output ONLY the edited/transformed text directly. Never output conversational pleasantries, explanations, or meta commentary.'
         })
       });
@@ -1940,20 +1926,13 @@ ${targetText}
     }
 
     return (
-      <div
-        className="w-full h-full overflow-y-auto custom-scrollbar"
-        style={{ background: 'var(--bg-editor)' }}
-      >
-        <div
-          id="markdown-preview"
-          style={{
-            color: 'var(--text-primary)',
-            fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)'
-          }}
-          className="max-w-3xl mx-auto px-6 py-8 min-h-full leading-[1.65] font-sans select-text break-words [word-break:break-word] [overflow-wrap:anywhere] markdown-preview"
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdownToHtml(localValue)) }}
-        />
-      </div>
+      <VirtualizedMarkdownPreview
+        id="markdown-preview"
+        content={localValue}
+        renderMarkdownToHtml={renderMarkdownToHtml}
+        fontSize={fontSize}
+        isSplitMode={false}
+      />
     );
   }
 
@@ -1995,7 +1974,7 @@ ${targetText}
             style={{
               background: 'var(--bg-editor)',
               color: 'var(--text-main)',
-              fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)',
+              fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 12px)',
               lineHeight: 1.65
             }}
             className="w-full flex-1 font-mono px-3.5 pt-9 pb-12 resize-none border-none focus:outline-none leading-[1.65] selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] placeholder:opacity-40 whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] custom-scrollbar"
@@ -2071,16 +2050,14 @@ ${targetText}
               sandbox="allow-scripts allow-modals"
             />
           ) : (
-            <div
+            <VirtualizedMarkdownPreview
               id="markdown-preview-split"
               ref={previewContainerRef}
-              style={{
-                background: 'var(--bg-editor)',
-                color: 'var(--text-primary)',
-                fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)'
-              }}
-              className="flex-1 w-full p-5 overflow-y-auto leading-[1.65] font-sans select-text break-words [word-break:break-word] [overflow-wrap:anywhere] markdown-preview custom-scrollbar"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderMarkdownToHtml(localValue)) }}
+              content={localValue}
+              renderMarkdownToHtml={renderMarkdownToHtml}
+              fontSize={fontSize}
+              isSplitMode={true}
+              className="flex-1 w-full"
             />
           )}
         </div>
@@ -2129,7 +2106,7 @@ ${targetText}
         style={{
           background: 'var(--bg-editor)',
           color: 'var(--text-main)',
-          fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)',
+          fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 12px)',
           lineHeight: 1.65
         }}
         className="w-full flex-1 font-mono px-3.5 pt-9 pb-12 resize-none border-none focus:outline-none leading-[1.65] selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] placeholder:opacity-40 whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] custom-scrollbar"

@@ -143,10 +143,10 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   themeMode: 'standard',
   fontSize: 'md',
   compactness: 'dense',
-  defaultModel: 'gemini-3.8-flash',
+  defaultModel: 'gemini-2.5-flash',
   roleModels: DEFAULT_AI_ROLE_MODELS,
   ghostWriterLevel: 'off',
-  ghostWriterModel: 'gemini-3.8-flash',
+  ghostWriterModel: 'gemini-2.5-flash',
   apiKeys: {
     gemini: '',
     openai: '',
@@ -204,7 +204,7 @@ export const CLOUD_VENDORS: CloudVendorMeta[] = [
     signupLabel: 'API 키 발급',
     guide: 'Google AI Studio에서 구글 계정으로 로그인 후 무료 API 키를 발급받을 수 있습니다. 안정적인 고속 쿼리를 지원합니다.',
     placeholder: 'AIzaSy...',
-    defaultModel: 'gemini-3.8-flash'
+    defaultModel: 'gemini-2.5-flash'
   },
   {
     id: 'openai',
@@ -255,7 +255,7 @@ export interface PreferencesModalProps {
   preferences: UserPreferences;
   onSave: (prefs: UserPreferences) => void;
   onApplyPrompt?: (promptBody: string) => void;
-  modelOptions?: { id: string; name: string; tier: string }[];
+  modelOptions?: { id: string; name: string; tier?: string; desc?: string; group?: string }[];
   
   // AI Engine & Provider props
   provider?: 'cloud' | 'local-pc' | 'local-server';
@@ -301,7 +301,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   modelOptions,
   provider = 'cloud',
   onSelectProvider,
-  selectedModel = 'gemini-3.8-flash',
+  selectedModel = 'gemini-2.5-flash',
   onSelectModel,
   currentApiKey = '',
   onUpdateApiKey = (_k: string) => {},
@@ -566,7 +566,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
     setLocalProviderType(type);
     if (type === 'cloud') {
       if (localSelectedModel.includes('local') || localSelectedModel.includes('llama') || localSelectedModel === 'custom') {
-        setLocalSelectedModel('gemini-3.8-flash');
+        setLocalSelectedModel('gemini-2.5-flash');
       }
     } else {
       if (localSelectedModel.includes('gemini') || localSelectedModel.includes('gpt') || localSelectedModel.includes('claude')) {
@@ -634,12 +634,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   const currentPreset = getActivePreset();
 
   // Combine discovered models with default local models
-  const localModelOptions = [
-    ...discoveredModels,
-    ...DEFAULT_LOCAL_MODEL_OPTIONS.filter(
-      (m) => !discoveredModels.some((dm) => dm.id === m.id)
-    )
-  ];
+  // If actual models were discovered from Ollama, populate with user's actual installed models instead of static mock tags
+  const localModelOptions = discoveredModels.length > 0
+    ? [
+        ...discoveredModels,
+        { id: 'custom', name: '직접 입력' }
+      ]
+    : DEFAULT_LOCAL_MODEL_OPTIONS;
 
   const handleSave = () => {
     // 1. Save general preferences with updated defaultModel & apiKeys & grounding
@@ -1963,15 +1964,42 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         />
                       </div>
                       <select
-                        value={localPrefs.ghostWriterModel || 'gemini-3.8-flash'}
+                        value={localPrefs.ghostWriterModel || (modelOptions && modelOptions[0]?.id) || 'gemini-2.5-flash'}
                         onChange={(e) => setLocalPrefs({ ...localPrefs, ghostWriterModel: e.target.value })}
                         className="w-64 bg-[#09090b] border border-[#222226] rounded px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-indigo-500 transition cursor-pointer"
                       >
-                        {(modelOptions && modelOptions.length > 0 ? modelOptions : DEFAULT_FALLBACK_MODELS).map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.name}
-                          </option>
-                        ))}
+                        {(() => {
+                          const opts = modelOptions && modelOptions.length > 0 ? modelOptions : DEFAULT_FALLBACK_MODELS;
+                          const cloudOpts = opts.filter((m) => (m as any).group !== 'local');
+                          const localOpts = opts.filter((m) => (m as any).group === 'local');
+
+                          if (cloudOpts.length > 0 && localOpts.length > 0) {
+                            return (
+                              <>
+                                <optgroup label="클라우드 모델">
+                                  {cloudOpts.map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                      {m.name}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="로컬 모델">
+                                  {localOpts.map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                      {m.name}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              </>
+                            );
+                          }
+
+                          return opts.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.name}
+                            </option>
+                          ));
+                        })()}
                       </select>
                     </div>
                   </div>

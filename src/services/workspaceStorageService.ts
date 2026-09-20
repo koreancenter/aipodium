@@ -600,14 +600,24 @@ export async function purgeGuestSession(
     'aipodium_custom_prompts',
 
     // API keys & local endpoints (guest zero-retention)
+    'gemini_api_key',
+    'aipodium_enc_gemini_key_v1',
+    'aipodium_enc_api_keys_v1',
     'aipodium_api_keys',
     'aipodium_cloud_api_key',
     'aipodium_local_endpoint',
 
     // Guest session flags & auth user
     'aipodium_guest_init_v1',
+    'aipodium_guest_init_v2',
     'aipodium_auth_user',
     'podium_auth_session_v1',
+    'aipodium_pinned_models',
+    'aipodium_discovered_models',
+    'ai_podium_parameters',
+    'aipodium_webllm_banner_dismissed',
+    'aipodium_ai_role_models',
+    'aipodium_ghost_writer_model',
   ];
 
   if (typeof localStorage !== 'undefined' && localStorage) {
@@ -643,10 +653,15 @@ export async function purgeGuestSession(
     sessionStorage.removeItem('aipodium_local_endpoint');
   }
 
-  // 5. Clear sensitive clipboard memory
+  // 5. Clear sensitive clipboard memory and in-memory decrypted keys
   try {
     const { clearSensitiveClipboard } = await import('../utils/securityCrypto');
     clearSensitiveClipboard();
+  } catch {}
+
+  try {
+    const { clearAiDecryptedKeyMemory } = await import('./aiEngineCore');
+    clearAiDecryptedKeyMemory();
   } catch {}
 
   // 6. Reset the storage state to the initial default sample workspace
@@ -679,7 +694,7 @@ export async function purgeGuestSession(
         localStorage.setItem('notebooklm_active_file', 'welcome.md');
         localStorage.setItem('notebooklm_open_tabs', JSON.stringify(['welcome.md', 'ai_guide.md']));
         localStorage.setItem('notebooklm_sessions', JSON.stringify([]));
-        localStorage.setItem('aipodium_guest_init_v1', 'true');
+        localStorage.setItem('aipodium_guest_init_v2', 'true');
       }
     } catch (err) {
       console.warn('[workspaceStorageService] Reset sample workspace error:', err);

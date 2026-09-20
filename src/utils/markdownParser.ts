@@ -434,11 +434,7 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       closeList();
       closeTable();
       closeBlockquote();
-      if (options?.isChat) {
-        result.push(`<h1 class="text-xs font-bold text-slate-100 mt-2.5 mb-1 leading-relaxed border-none pb-0">${formatInline(trimmed)}</h1>`);
-      } else {
-        result.push(`<h1 class="text-base sm:text-lg font-bold text-slate-100 border-b border-[#222226] pb-2 mt-5 mb-2.5 leading-snug tracking-tight">${formatInline(trimmed)}</h1>`);
-      }
+      result.push(`<h1 class="text-xs font-bold text-slate-100 mt-2.5 mb-1 leading-relaxed border-none pb-0">${formatInline(trimmed)}</h1>`);
       i++; // Skip the underline row
       continue;
     }
@@ -448,16 +444,13 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       closeList();
       closeTable();
       closeBlockquote();
-      if (options?.isChat) {
-        result.push(`<h2 class="text-xs font-bold text-slate-100 mt-2 mb-1 leading-relaxed border-none pb-0">${formatInline(trimmed)}</h2>`);
-      } else {
-        result.push(`<h2 class="text-sm sm:text-base font-semibold text-slate-200 border-b border-[#222226] pb-1.5 mt-4 mb-2 leading-snug tracking-tight">${formatInline(trimmed)}</h2>`);
-      }
+      result.push(`<h2 class="text-xs font-bold text-slate-100 mt-2 mb-1 leading-relaxed border-none pb-0">${formatInline(trimmed)}</h2>`);
       i++; // Skip the underline row
       continue;
     }
 
     // ATX Headings: # to ###### (supports with or without spaces, e.g., '### 한글' or '###한글', and strips trailing hashes)
+    // Both chat and editor enforce base font size (text-xs bold-only) with no H1/H2/H3 enlargement
     const headingMatch = trimmed.match(/^(#{1,6})\s*(.*)$/);
     if (headingMatch && !trimmed.startsWith('#unordered') && !trimmed.startsWith('#ordered')) {
       const level = headingMatch[1].length;
@@ -466,22 +459,7 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       closeTable();
       closeBlockquote();
 
-      if (options?.isChat) {
-        // AI 응답 창: H1, H2, H3 등 크기를 키우지 않고 오직 단일 폰트 크기(text-xs)의 볼드체로만 렌더링
-        result.push(`<h${level} class="text-xs font-bold text-slate-100 mt-2.5 mb-1 leading-relaxed border-none pb-0">${formatInline(headingContent)}</h${level}>`);
-      } else if (level === 1) {
-        result.push(`<h1 class="text-base sm:text-lg font-bold text-slate-100 border-b border-[#222226] pb-2 mt-5 mb-2.5 leading-snug tracking-tight">${formatInline(headingContent)}</h1>`);
-      } else if (level === 2) {
-        result.push(`<h2 class="text-sm sm:text-base font-semibold text-slate-200 border-b border-[#222226] pb-1.5 mt-4 mb-2 leading-snug tracking-tight">${formatInline(headingContent)}</h2>`);
-      } else if (level === 3) {
-        result.push(`<h3 class="text-xs sm:text-sm font-semibold text-slate-200 mt-3.5 mb-1.5 leading-snug tracking-tight">${formatInline(headingContent)}</h3>`);
-      } else if (level === 4) {
-        result.push(`<h4 class="text-xs font-semibold text-slate-300 mt-3 mb-1 leading-snug">${formatInline(headingContent)}</h4>`);
-      } else if (level === 5) {
-        result.push(`<h5 class="text-xs font-medium text-slate-400 mt-2.5 mb-0.5 leading-snug">${formatInline(headingContent)}</h5>`);
-      } else if (level === 6) {
-        result.push(`<h6 class="text-[0.6875rem] font-medium text-slate-400 mt-2 mb-0.5 uppercase tracking-wider leading-snug">${formatInline(headingContent)}</h6>`);
-      }
+      result.push(`<h${level} class="text-xs font-bold text-slate-100 mt-2.5 mb-1 leading-relaxed border-none pb-0">${formatInline(headingContent)}</h${level}>`);
       continue;
     }
 

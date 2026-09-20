@@ -356,6 +356,8 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
           aiModel = 'gemini-3.1-flash-lite';
         } else if (lowerModel.includes('flash')) {
           aiModel = 'gemini-3.8-flash';
+        } else if (lowerModel.startsWith('gemini-')) {
+          aiModel = model;
         }
       }
 

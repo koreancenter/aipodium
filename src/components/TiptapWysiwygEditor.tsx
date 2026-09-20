@@ -102,7 +102,7 @@ export const TiptapWysiwygEditor = memo(
         content: value,
         editorProps: {
           attributes: {
-            class: 'tiptap-prosemirror-body focus:outline-none min-h-[500px] leading-relaxed text-sm'
+            class: 'tiptap-prosemirror-body focus:outline-none min-h-[500px] leading-relaxed text-xs'
           },
           transformPastedHTML: (html) => sanitizeHtml(html)
         },
@@ -195,7 +195,7 @@ export const TiptapWysiwygEditor = memo(
             const htmlBody = renderMarkdownToHtml(trimmed);
             const isDocEmpty = editor.isEmpty;
             const headerHtml = metadataTitle
-              ? `${isDocEmpty ? '' : '<hr />'}<blockquote><p>📌 <strong>${metadataTitle}</strong></p></blockquote>`
+              ? `${isDocEmpty ? '' : '<hr />'}<blockquote><p><strong>${metadataTitle}</strong></p></blockquote>`
               : '';
             const fullHtml = sanitizeHtml(headerHtml + htmlBody);
 
@@ -353,7 +353,7 @@ export const TiptapWysiwygEditor = memo(
           <div className="flex-1 w-full overflow-y-auto custom-scrollbar">
             <div
               className="max-w-3xl mx-auto px-6 py-8 min-h-full"
-              style={{ fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 15px)' }}
+              style={{ fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 12px)' }}
             >
               <EditorContent editor={editor} />
             </div>

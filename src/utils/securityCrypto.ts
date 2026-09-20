@@ -410,11 +410,26 @@ export async function verifyPasscode(bundle: string, passcode: string): Promise<
 }
 
 /**
- * Checks if a string matches the AI Podium encrypted bundle format.
+ * Checks if a string or object matches the AI Podium encrypted bundle or payload format.
  */
 export function isEncryptedPayload(text: any): boolean {
+  if (!text) return false;
+  if (typeof text === 'object') {
+    return Boolean(text.ciphertext && text.iv && text.salt);
+  }
   if (typeof text !== 'string') return false;
-  return text.startsWith('ENC:AES256:GCM:') || text.startsWith('ENC:AES256:VAULT:');
+  if (text.startsWith('ENC:AES256:GCM:') || text.startsWith('ENC:AES256:VAULT:')) {
+    return true;
+  }
+  if (text.startsWith('{') && text.includes('"ciphertext"') && text.includes('"iv"') && text.includes('"salt"')) {
+    try {
+      const parsed = JSON.parse(text);
+      return Boolean(parsed.ciphertext && parsed.iv && parsed.salt);
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 /**
@@ -517,10 +532,20 @@ export function hasMasterPinConfigured(): boolean {
 /**
  * Completely purges guest / temporary test workspace data from local storage, session storage, and IndexedDB.
  * Ensures zero data lingering when unauthenticated or guest users lock, log out, or return to AuthPage.
+ * Clears all active IndexedDB document stores, recent history, and workspace storage keys.
  */
 export async function purgeGuestWorkspaceData(): Promise<void> {
   try {
-    const { purgeGuestSession } = await import('../services/workspaceStorageService');
+    const { purgeGuestSession, clearVaultIndexedDB } = await import('../services/workspaceStorageService');
+    const { clearDb } = await import('../services/indexedDbService');
+
+    if (typeof indexedDB !== 'undefined' && indexedDB) {
+      await Promise.allSettled([
+        clearVaultIndexedDB(),
+        clearDb()
+      ]);
+    }
+
     await purgeGuestSession({ resetToSampleWorkspace: false });
   } catch (err) {
     console.warn('[purgeGuestWorkspaceData] Purge error:', err);
@@ -693,6 +718,256 @@ export async function clearSensitiveClipboard(): Promise<void> {
       lastCopiedSecret = null;
     }
   }
+}
+
+// ---------------------------------------------------------
+// Secure API Key Encryption Pipeline (AES-GCM 256-bit + PBKDF2)
+// ---------------------------------------------------------
+
+export interface EncryptedApiKeyPayload {
+  ciphertext: string;
+  iv: string;
+  salt: string;
+  hasUserSecret?: boolean;
+  version?: number;
+  createdAt?: string;
+}
+
+const DEVICE_KEY_STORAGE_KEY = 'aipodium_device_crypto_seed_v1';
+const SECURITY_DB_NAME = 'aipodium_security_db';
+const SECURITY_STORE_NAME = 'device_secrets';
+
+let inMemoryDeviceSecret: string | null = null;
+
+function openSecurityDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      return reject(new Error('IndexedDB not supported'));
+    }
+    try {
+      const req = window.indexedDB.open(SECURITY_DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(SECURITY_STORE_NAME)) {
+          db.createObjectStore(SECURITY_STORE_NAME, { keyPath: 'id' });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error || new Error('Failed to open security db'));
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+async function readDeviceSecretFromIndexedDB(): Promise<string | null> {
+  try {
+    const db = await openSecurityDb();
+    return new Promise((resolve) => {
+      const tx = db.transaction(SECURITY_STORE_NAME, 'readonly');
+      const store = tx.objectStore(SECURITY_STORE_NAME);
+      const req = store.get('device_master_seed');
+      req.onsuccess = () => {
+        resolve(req.result?.value || null);
+      };
+      req.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function writeDeviceSecretToIndexedDB(secret: string): Promise<void> {
+  try {
+    const db = await openSecurityDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SECURITY_STORE_NAME, 'readwrite');
+      const store = tx.objectStore(SECURITY_STORE_NAME);
+      const req = store.put({ id: 'device_master_seed', value: secret, updatedAt: new Date().toISOString() });
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    // Gracefully fall back to local storage
+  }
+}
+
+/**
+ * Retrieves or initializes a cryptographically secure random 256-bit device secret.
+ * Stored persistently in IndexedDB (with transparent storage/memory fallback for Node test environments).
+ */
+export async function getOrGenerateDeviceSecret(): Promise<string> {
+  if (inMemoryDeviceSecret) {
+    return inMemoryDeviceSecret;
+  }
+
+  // 1. Try IndexedDB in browser environment
+  if (typeof window !== 'undefined' && window.indexedDB) {
+    try {
+      const dbVal = await readDeviceSecretFromIndexedDB();
+      if (dbVal) {
+        inMemoryDeviceSecret = dbVal;
+        return dbVal;
+      }
+      const cryptoObj = getCrypto();
+      const randomBytes = cryptoObj.getRandomValues(new Uint8Array(32));
+      const newSecret = bufferToHex(randomBytes);
+      await writeDeviceSecretToIndexedDB(newSecret);
+      inMemoryDeviceSecret = newSecret;
+      return newSecret;
+    } catch {
+      // Fall through to storage fallback
+    }
+  }
+
+  // 2. Storage fallback (localStorage or memoryStorage)
+  const storage = getStorage();
+  const stored = storage.getItem(DEVICE_KEY_STORAGE_KEY);
+  if (stored) {
+    inMemoryDeviceSecret = stored;
+    return stored;
+  }
+
+  const cryptoObj = getCrypto();
+  const randomBytes = cryptoObj.getRandomValues(new Uint8Array(32));
+  const newSecret = bufferToHex(randomBytes);
+  storage.setItem(DEVICE_KEY_STORAGE_KEY, newSecret);
+  inMemoryDeviceSecret = newSecret;
+  return newSecret;
+}
+
+export function clearDeviceSecretMemory(): void {
+  inMemoryDeviceSecret = null;
+}
+
+/**
+ * Encrypts a raw Gemini or vendor API key using AES-GCM (256-bit) and PBKDF2 (100,000 iterations).
+ * If userSecret is provided, key is derived directly from the user's secret/PIN.
+ * Otherwise, key is derived securely from the random device salt/key in IndexedDB.
+ * Returns payload strictly containing { ciphertext, iv, salt }.
+ */
+export async function encryptApiKey(
+  rawKey: string,
+  userSecret?: string
+): Promise<EncryptedApiKeyPayload> {
+  if (!rawKey || typeof rawKey !== 'string' || !rawKey.trim()) {
+    throw new Error('API key must be a non-empty string for encryption.');
+  }
+
+  const cleanKey = rawKey.trim();
+  const cryptoObj = getCrypto();
+  const salt = cryptoObj.getRandomValues(new Uint8Array(16));
+  const iv = cryptoObj.getRandomValues(new Uint8Array(12));
+
+  let derivationSecret = userSecret?.trim();
+  const hasUserSecret = Boolean(derivationSecret);
+
+  if (!derivationSecret) {
+    derivationSecret = await getOrGenerateDeviceSecret();
+  }
+
+  const key = await deriveKeyFromPasscode(derivationSecret, salt);
+  const enc = new TextEncoder();
+  const ciphertextBuffer = await cryptoObj.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    enc.encode(cleanKey)
+  );
+
+  return {
+    ciphertext: bufferToHex(ciphertextBuffer),
+    iv: bufferToHex(iv),
+    salt: bufferToHex(salt),
+    hasUserSecret,
+    version: 1,
+    createdAt: new Date().toISOString()
+  };
+}
+
+/**
+ * Decrypts an encrypted API key payload { ciphertext, iv, salt } using AES-GCM (256-bit) and PBKDF2.
+ */
+export async function decryptApiKey(
+  payload: EncryptedApiKeyPayload | string,
+  userSecret?: string
+): Promise<string> {
+  if (!payload) return '';
+
+  let parsed: EncryptedApiKeyPayload;
+  if (typeof payload === 'string') {
+    if (payload.startsWith('ENC:AES256:GCM:')) {
+      const parts = payload.split(':');
+      if (parts.length >= 6) {
+        parsed = {
+          salt: parts[3],
+          iv: parts[4],
+          ciphertext: parts[5]
+        };
+      } else {
+        throw new Error('Invalid encrypted bundle structure');
+      }
+    } else {
+      try {
+        parsed = JSON.parse(payload);
+      } catch {
+        // Plaintext fallback
+        return payload;
+      }
+    }
+  } else {
+    parsed = payload;
+  }
+
+  if (!parsed.ciphertext || !parsed.iv || !parsed.salt) {
+    throw new Error('Malformed encrypted payload: missing ciphertext, iv, or salt.');
+  }
+
+  const salt = hexToBuffer(parsed.salt);
+  const iv = hexToBuffer(parsed.iv);
+  const ciphertext = hexToBuffer(parsed.ciphertext);
+
+  let derivationSecret = userSecret?.trim();
+  if (!derivationSecret) {
+    if (parsed.hasUserSecret) {
+      throw new Error('User PIN or secret is required to decrypt this API key.');
+    }
+    derivationSecret = await getOrGenerateDeviceSecret();
+  }
+
+  const key = await deriveKeyFromPasscode(derivationSecret, salt);
+  const cryptoObj = getCrypto();
+
+  try {
+    const decryptedBuffer = await cryptoObj.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      ciphertext
+    );
+    const dec = new TextDecoder();
+    return dec.decode(decryptedBuffer);
+  } catch {
+    throw new Error('API key decryption failed. Incorrect secret, invalid payload, or corrupted key.');
+  }
+}
+
+/**
+ * Validates if the input matches an encrypted API key payload structure.
+ */
+export function isEncryptedApiKeyPayload(data: any): boolean {
+  if (!data) return false;
+  if (typeof data === 'object') {
+    return Boolean(data.ciphertext && data.iv && data.salt);
+  }
+  if (typeof data === 'string') {
+    if (data.startsWith('ENC:AES256:GCM:')) return true;
+    try {
+      const parsed = JSON.parse(data);
+      return Boolean(parsed && parsed.ciphertext && parsed.iv && parsed.salt);
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 

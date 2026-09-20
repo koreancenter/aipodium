@@ -7,10 +7,13 @@ export interface AuthStrings {
   heroTitle: string;
   heroDesc: string;
   card1Title: string;
+  card1CompactTitle: string;
   card1Desc: string;
   card2Title: string;
+  card2CompactTitle: string;
   card2Desc: string;
   card3Title: string;
+  card3CompactTitle: string;
   card3Desc: string;
   copyright: string;
   privacyPolicy: string;
@@ -73,6 +76,12 @@ export interface AuthStrings {
   purgeFailed: string;
   showPassword: string;
   hidePassword: string;
+  termsAllAgree: string;
+  termsApiKeyAgree: string;
+  termsLocalStorageAgree: string;
+  termsAiOutputAgree: string;
+  termsViewDetails: string;
+  termsHideDetails: string;
 }
 
 export const AUTH_TRANSLATIONS: Record<AuthLang, AuthStrings> = {
@@ -83,10 +92,13 @@ export const AUTH_TRANSLATIONS: Record<AuthLang, AuthStrings> = {
     heroTitle: '내가 지휘하는 AI 오케스트라',
     heroDesc: '외부 유출 걱정 없는 안전한 환경에서 흩어진 자료를 하나의 명확한 기준 문서로 통합하세요.',
     card1Title: '완벽한 데이터 주권과 보안',
+    card1CompactTitle: '완벽한 데이터 로컬 격리',
     card1Desc: '모든 문서와 작업 내용은 외부 클라우드가 아닌 사용자 브라우저에 로컬 격리 보관됩니다.',
     card2Title: '자유로운 AI 모델 연결',
+    card2CompactTitle: '자유로운 클라우드 & 로컬 AI',
     card2Desc: '강력한 클라우드 API부터 완전 오프라인 로컬 AI(Ollama, WebLLM)까지 목적에 맞게 자유롭게 구동하세요.',
     card3Title: '원클릭 2차 가공 확장',
+    card3CompactTitle: '기준 문서 오케스트레이션',
     card3Desc: '완성된 기준 문서를 바탕으로 발표 슬라이드(Vibe Slide), 보고서 등 다양한 비즈니스 산출물을 즉시 생성합니다.',
     copyright: '© 2026 aipodium.net · AI Podium',
     privacyPolicy: '개인정보 처리방침',
@@ -149,6 +161,12 @@ export const AUTH_TRANSLATIONS: Record<AuthLang, AuthStrings> = {
     purgeFailed: '보안 초기화에 실패했습니다.',
     showPassword: '비밀번호 표시',
     hidePassword: '비밀번호 숨기기',
+    termsAllAgree: '[필수] API Key 비용 책임, 로컬 데이터 보관 및 AI 면책 조항에 모두 동의합니다.',
+    termsApiKeyAgree: '[필수] 개인 AI API Key 관리 및 사용 비용은 사용자 본인 책임입니다.',
+    termsLocalStorageAgree: '[필수] 로컬 브라우저 저장 특성상 캐시 삭제/세션 만료 시 데이터 유실 위험을 인지하고 동의합니다.',
+    termsAiOutputAgree: '[필수] AI 모델이 생성한 결과물의 정확성 검증 책임은 사용자에게 있습니다.',
+    termsViewDetails: '상세 항목',
+    termsHideDetails: '접기',
   },
   ENG: {
     brandName: 'AI Podium',
@@ -157,10 +175,13 @@ export const AUTH_TRANSLATIONS: Record<AuthLang, AuthStrings> = {
     heroTitle: 'Your AI Orchestra, Conducted by You',
     heroDesc: 'Consolidate scattered information into a single clear source of truth in a secure environment with zero external leakage.',
     card1Title: 'Complete Data Sovereignty & Security',
+    card1CompactTitle: 'Complete Local Data Isolation',
     card1Desc: "All documents and work remain isolated inside your browser's local sandbox with zero external sync.",
     card2Title: 'Flexible AI Model Integration',
+    card2CompactTitle: 'Flexible Cloud & Local AI',
     card2Desc: 'Seamlessly run powerful cloud APIs or completely offline local AI (Ollama, WebLLM) tailored to your needs.',
     card3Title: 'One-Click Derivative Expansion',
+    card3CompactTitle: 'Core Document Orchestration',
     card3Desc: 'Instantly generate presentation slides (Vibe Slide), reports, and various business outputs from your core document.',
     copyright: '© 2026 aipodium.net · AI Podium',
     privacyPolicy: 'Privacy Policy',
@@ -223,5 +244,11 @@ export const AUTH_TRANSLATIONS: Record<AuthLang, AuthStrings> = {
     purgeFailed: 'Failed to complete reset.',
     showPassword: 'Show password',
     hidePassword: 'Hide password',
+    termsAllAgree: '[Required] I agree to API billing responsibility, local data storage, and AI disclaimer.',
+    termsApiKeyAgree: "[Required] Individual AI API key management and usage costs are the user's responsibility.",
+    termsLocalStorageAgree: '[Required] I acknowledge and accept the risk of data loss on browser cache clearing or session expiry.',
+    termsAiOutputAgree: '[Required] The user is responsible for verifying the accuracy of AI-generated content.',
+    termsViewDetails: 'Details',
+    termsHideDetails: 'Collapse',
   }
 };

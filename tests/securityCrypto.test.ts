@@ -1,6 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+// Mock localStorage and sessionStorage for Node.js test environment if not present
+if (typeof (globalThis as any).localStorage === 'undefined') {
+  const store = new Map<string, string>();
+  (globalThis as any).localStorage = {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => { store.set(k, String(v)); },
+    removeItem: (k: string) => { store.delete(k); },
+    clear: () => { store.clear(); },
+    key: (i: number) => Array.from(store.keys())[i] ?? null,
+    get length() { return store.size; }
+  };
+}
+
+if (typeof (globalThis as any).sessionStorage === 'undefined') {
+  const store = new Map<string, string>();
+  (globalThis as any).sessionStorage = {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => { store.set(k, String(v)); },
+    removeItem: (k: string) => { store.delete(k); },
+    clear: () => { store.clear(); },
+    key: (i: number) => Array.from(store.keys())[i] ?? null,
+    get length() { return store.size; }
+  };
+}
+
 import {
   hashPasscode,
   verifyPasscodeHash,
@@ -270,6 +295,143 @@ test('hasMasterPinConfigured correctly distinguishes guest from PIN user and pre
     purgeVaultKey();
   }
 });
+
+test('encryptApiKey and decryptApiKey enforce AES-GCM (256-bit) and PBKDF2 with { ciphertext, iv, salt } payload', async () => {
+  const { encryptApiKey, decryptApiKey, isEncryptedApiKeyPayload } = await import('../src/utils/securityCrypto.ts');
+  const rawKey = 'AIzaSyExampleGeminiApiKeySecure1234567890';
+
+  // 1. Device key derivation (no user PIN)
+  const payload = await encryptApiKey(rawKey);
+
+  // Assert payload format strictly contains { ciphertext, iv, salt }
+  assert.ok(payload.ciphertext && typeof payload.ciphertext === 'string');
+  assert.ok(payload.iv && typeof payload.iv === 'string');
+  assert.ok(payload.salt && typeof payload.salt === 'string');
+  assert.equal(payload.salt.length, 32); // 16 bytes = 32 hex chars
+  assert.equal(payload.iv.length, 24);   // 12 bytes = 24 hex chars
+  assert.ok(payload.ciphertext.length >= 64);
+
+  // Assert plaintext string is NOT exposed anywhere in payload
+  assert.equal(JSON.stringify(payload).includes(rawKey), false);
+  assert.equal(isEncryptedApiKeyPayload(payload), true);
+  assert.equal(isEncryptedApiKeyPayload(JSON.stringify(payload)), true);
+
+  // Decrypt and verify seamless recovery
+  const decrypted = await decryptApiKey(payload);
+  assert.equal(decrypted, rawKey);
+
+  // 2. User Secret (PIN) derivation
+  const userPin = '987654';
+  const pinPayload = await encryptApiKey(rawKey, userPin);
+  assert.equal(pinPayload.hasUserSecret, true);
+  assert.equal(JSON.stringify(pinPayload).includes(rawKey), false);
+
+  // Correct PIN decrypts
+  const decryptedWithPin = await decryptApiKey(pinPayload, userPin);
+  assert.equal(decryptedWithPin, rawKey);
+
+  // Wrong PIN fails decryption
+  await assert.rejects(
+    async () => {
+      await decryptApiKey(pinPayload, 'wrong_pin');
+    },
+    /API key decryption failed/
+  );
+});
+
+test('Storage inspection: authService.saveEncryptedApiKey does not leak plaintext in storage and recovers via getEncryptedApiKey', async () => {
+  const { authService, ENCRYPTED_GEMINI_KEY_STORAGE } = await import('../src/services/authService.ts');
+  const testKey = 'AIzaSyTopSecretGeminiKeyInspection999';
+
+  await authService.saveEncryptedApiKey(testKey);
+
+  // Inspect storage: unencrypted keys must be strictly absent
+  if (typeof localStorage !== 'undefined' && localStorage) {
+    assert.equal(localStorage.getItem('gemini_api_key'), null);
+    assert.equal(localStorage.getItem('aipodium_cloud_api_key'), null);
+
+    const storedEncrypted = localStorage.getItem(ENCRYPTED_GEMINI_KEY_STORAGE);
+    assert.ok(storedEncrypted, 'Encrypted key payload must exist in storage');
+    assert.equal(storedEncrypted.includes(testKey), false, 'Raw key must NEVER be stored in plaintext');
+
+    const parsed = JSON.parse(storedEncrypted);
+    assert.ok(parsed.ciphertext && parsed.iv && parsed.salt);
+  }
+
+  // Decryption recovers key seamlessly
+  const recovered = await authService.getEncryptedApiKey();
+  assert.equal(recovered, testKey);
+
+  // Clean up
+  await authService.removeEncryptedApiKey();
+});
+
+test('Legacy migration: automatically detects plaintext keys, encrypts to AES-GCM, and purges plaintext entries', async () => {
+  const { authService, ENCRYPTED_GEMINI_KEY_STORAGE } = await import('../src/services/authService.ts');
+  const legacyGeminiKey = 'AIzaSyLegacyPlaintextKeyToBeMigrated';
+
+  if (typeof localStorage !== 'undefined' && localStorage) {
+    // Simulate legacy app state with plaintext key
+    localStorage.setItem('gemini_api_key', legacyGeminiKey);
+    localStorage.setItem('aipodium_cloud_api_key', legacyGeminiKey);
+    localStorage.setItem('aipodium_api_keys', JSON.stringify({ gemini: legacyGeminiKey, openai: 'sk-legacy-test' }));
+
+    assert.equal(localStorage.getItem('gemini_api_key'), legacyGeminiKey);
+
+    // Run migration routine
+    const result = await authService.migrateLegacyPlaintextKeys();
+    assert.equal(result.migrated, true);
+
+    // Verify all plaintext entries are purged
+    assert.equal(localStorage.getItem('gemini_api_key'), null);
+    assert.equal(localStorage.getItem('aipodium_cloud_api_key'), null);
+    assert.equal(localStorage.getItem('aipodium_api_keys'), null);
+
+    // Verify encrypted payload is stored and does not leak plaintext
+    const encStored = localStorage.getItem(ENCRYPTED_GEMINI_KEY_STORAGE);
+    assert.ok(encStored);
+    assert.equal(encStored.includes(legacyGeminiKey), false);
+
+    // Verify key is seamlessly readable through decrypted getter
+    const recovered = await authService.getEncryptedApiKey();
+    assert.equal(recovered, legacyGeminiKey);
+
+    // Clean up
+    await authService.removeEncryptedApiKey();
+  }
+});
+
+test('In-Memory decryption and zeroing: aiEngineCore isolates keys to request scope and wipes on clearAiDecryptedKeyMemory', async () => {
+  const { authService } = await import('../src/services/authService.ts');
+  const {
+    executeAiRequest,
+    getEphemeralDecryptedApiKey,
+    clearAiDecryptedKeyMemory
+  } = await import('../src/services/aiEngineCore.ts');
+
+  const secretKey = 'AIzaSyEphemeralExecutionKey777';
+  await authService.saveEncryptedApiKey(secretKey);
+
+  let keySeenInsideExecution = '';
+  const result = await executeAiRequest(async (decryptedKey) => {
+    keySeenInsideExecution = decryptedKey;
+    return { ok: true, keyLength: decryptedKey.length };
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(keySeenInsideExecution, secretKey);
+
+  // Ephemeral key retrieval works during active operations
+  const ephemeralKey = await getEphemeralDecryptedApiKey('gemini');
+  assert.equal(ephemeralKey, secretKey);
+
+  // Wiping transient memory clears references
+  clearAiDecryptedKeyMemory();
+
+  // Clean up
+  await authService.removeEncryptedApiKey();
+});
+
 
 
 

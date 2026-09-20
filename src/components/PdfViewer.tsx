@@ -87,6 +87,18 @@ export interface PdfViewerHandle {
   getExtractScope: () => 'current' | 'all';
 }
 
+export interface PdfViewerState {
+  isExtracting: boolean;
+  extractEngine: PdfParserEngine | 'ocr';
+  extractScope: 'current' | 'all';
+  isSplitView: boolean;
+  currentPage: number;
+  numPages: number;
+  scale: number;
+  ocrProgress: OcrProgressInfo | null;
+  reductionStats: PdfReductionResult | null;
+}
+
 export interface PdfViewerProps {
   fileName: string;
   pdfData?: string | ArrayBuffer | Uint8Array | null;
@@ -98,6 +110,8 @@ export interface PdfViewerProps {
   ollamaModel?: string;
   onToast?: (msg: string, type?: 'success' | 'error' | 'info') => void;
   renderMarkdownToHtml?: (md: string) => string;
+  onViewerStateChange?: (state: PdfViewerState) => void;
+  hideTopToolbar?: boolean;
 }
 
 export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
@@ -111,6 +125,8 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
   ollamaModel = 'llama3.2-vision',
   onToast,
   renderMarkdownToHtml,
+  onViewerStateChange,
+  hideTopToolbar = true,
 }, ref) => {
   const [pdfDoc, setPdfDoc] = useState<any>(null);
   const [numPages, setNumPages] = useState<number>(1);
@@ -127,12 +143,14 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
   const [isRenderingPage, setIsRenderingPage] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isExtracting, setIsExtracting] = useState<boolean>(false);
-  const [extractEngine, setExtractEngine] = useState<PdfParserEngine | 'ocr'>('ollama');
+  const [extractEngine, setExtractEngine] = useState<PdfParserEngine | 'ocr'>('fast');
   const [extractScope, setExtractScope] = useState<'current' | 'all'>('current');
   const [ocrProgress, setOcrProgress] = useState<OcrProgressInfo | null>(null);
   const [ocrLanguage, setOcrLanguage] = useState<'kor+eng' | 'eng'>('kor+eng');
   const [isSyncScrollEnabled, setIsSyncScrollEnabled] = useState<boolean>(true);
   const [hasCopied, setHasCopied] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const leftPaneContainerRef = useRef<HTMLDivElement>(null);
 
   // PDF Size Reducer States (strips embedded high-res image metadata to reduce memory footprint)
   const [isAutoReduceEnabled, setIsAutoReduceEnabled] = useState<boolean>(() => {
@@ -992,6 +1010,58 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
     }
   };
 
+  const handleToggleFullscreen = useCallback(() => {
+    const container = leftPaneContainerRef.current || viewerContainerRef.current;
+    if (!container) return;
+
+    if (!document.fullscreenElement) {
+      if (container.requestFullscreen) {
+        container.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {
+          setIsSplitView(false);
+        });
+      } else {
+        setIsSplitView(false);
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  useEffect(() => {
+    onViewerStateChange?.({
+      isExtracting,
+      extractEngine,
+      extractScope,
+      isSplitView,
+      currentPage,
+      numPages,
+      scale,
+      ocrProgress,
+      reductionStats,
+    });
+  }, [
+    isExtracting,
+    extractEngine,
+    extractScope,
+    isSplitView,
+    currentPage,
+    numPages,
+    scale,
+    ocrProgress,
+    reductionStats,
+    onViewerStateChange,
+  ]);
+
   React.useImperativeHandle(ref, () => ({
     clearCacheAndReparse: handleClearCacheAndReparse,
     openReducerModal: () => setShowReducerModal(true),
@@ -1023,7 +1093,8 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
         onChange={handleFileChange}
       />
 
-      {/* Main Toolbar: Compact IDE Design Constitution Compliant */}
+      {/* Main Toolbar: Compact IDE Design Constitution Compliant (Rendered only when hideTopToolbar is false) */}
+      {!hideTopToolbar && (
       <div className="h-8.5 px-2 bg-[#181a24] border-b border-[#222226] flex items-center justify-between gap-1.5 shrink-0 z-20 text-xs select-none">
         {/* Left Section: Pure Viewer Controls */}
         <div className="flex items-center gap-1.5 shrink-0">
@@ -1447,6 +1518,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
           </div>
         </div>
       </div>
+      )}
 
       {/* Animated Extraction / OCR Progress Bar */}
       {isExtracting && (
@@ -1462,12 +1534,16 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
       <div className="flex-1 flex flex-row min-h-0 relative overflow-hidden bg-[#0d0e12]">
         {/* Left Pane: PDF Canvas Viewer */}
         <div
-          ref={viewerContainerRef}
-          className={`h-full min-h-0 overflow-auto custom-scrollbar flex flex-col items-center justify-start p-4 relative ${
+          ref={leftPaneContainerRef}
+          className={`h-full min-h-0 relative flex flex-col overflow-hidden bg-[#0d0e12] ${
             isSplitView ? 'w-1/2 border-r border-[#222226]' : 'w-full'
           }`}
-          style={{ scrollBehavior: 'smooth' }}
         >
+          <div
+            ref={viewerContainerRef}
+            className="flex-1 min-h-0 overflow-auto custom-scrollbar flex flex-col items-center justify-start p-4 relative"
+            style={{ scrollBehavior: 'smooth' }}
+          >
           {/* Active OCR / Extraction Floating Status Pill */}
           {isExtracting && ocrProgress && (
             <div className="sticky top-2 z-30 mb-2 bg-[#09090b]/95 border border-indigo-500/60 text-indigo-100 text-xs px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-2 backdrop-blur-md">
@@ -1539,90 +1615,149 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
           </div>
         </div>
 
+          {/* Bottom Floating Dock: Navigation & Zoom & Fullscreen */}
+          <div
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-zinc-900/90 backdrop-blur-md border border-white/10 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-xl z-20 select-none text-xs"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Prev Button */}
+            <button
+              type="button"
+              onClick={handlePrevPage}
+              disabled={currentPage <= 1 || isLoadingPdf}
+              className="p-1 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+              title="이전 페이지"
+              aria-label="이전 페이지"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            {/* Page Indicator */}
+            <div className="flex items-center gap-1 font-mono text-xs text-zinc-200 px-1">
+              <span className="font-semibold text-white">{currentPage}</span>
+              <span className="text-zinc-500">/</span>
+              <span className="text-zinc-400">{numPages}</span>
+            </div>
+
+            {/* Next Button */}
+            <button
+              type="button"
+              onClick={handleNextPage}
+              disabled={currentPage >= numPages || isLoadingPdf}
+              className="p-1 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+              title="다음 페이지"
+              aria-label="다음 페이지"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+
+            <div className="h-3.5 w-px bg-white/15 shrink-0" />
+
+            {/* Fit-to-width Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                if (fitMode === 'width') {
+                  handleSetExactZoom(1.0);
+                } else {
+                  handleFitWidth();
+                }
+              }}
+              className={`px-2 py-0.5 rounded-full text-xs font-mono transition cursor-pointer flex items-center gap-1 ${
+                fitMode === 'width'
+                  ? 'bg-indigo-500/30 text-indigo-200 border border-indigo-500/40'
+                  : 'text-zinc-300 hover:text-white hover:bg-white/10'
+              }`}
+              title={fitMode === 'width' ? '너비 맞춤 해제 (100%로 변경)' : '너비 맞춤으로 변경'}
+            >
+              <span>{fitMode === 'width' ? '너비 맞춤' : `${Math.round(scale * 100)}%`}</span>
+            </button>
+
+            <div className="h-3.5 w-px bg-white/15 shrink-0" />
+
+            {/* Fullscreen Button */}
+            <button
+              type="button"
+              onClick={handleToggleFullscreen}
+              className="p-1 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              title={isFullscreen ? '전체화면 종료' : '전체화면'}
+              aria-label="전체화면"
+            >
+              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+
         {/* Right Pane: Markdown Text Editor (Split View Mode) */}
         {isSplitView && (
-          <div className="w-1/2 h-full min-h-0 flex flex-col bg-[#14151e] overflow-hidden select-text">
-            {/* Editor Sub-Header */}
-            <div className="h-8 px-2.5 bg-[#191b26] border-b border-[#222226] flex items-center justify-between gap-2 shrink-0 select-none overflow-hidden text-xs">
-              <div className="flex items-center gap-2 min-w-0 shrink-0">
-                <span className="font-semibold text-slate-200 flex items-center gap-1.5 text-xs whitespace-nowrap shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block shrink-0" />
-                  마크다운 편집
-                </span>
-                <span className="text-[0.5625rem] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 whitespace-nowrap shrink-0">
-                  로컬 동기화
-                </span>
+          <div className="w-1/2 h-full min-h-0 flex flex-col bg-[#0c0c0e] overflow-hidden select-text">
+            {/* Editor Sub-Header: Clean, Flat, Borderless IDE Aesthetic */}
+            <div className="h-8.5 px-3 bg-[#0c0c0e] border-b border-[#222226] flex items-center justify-between gap-2 shrink-0 select-none text-xs">
+              {/* Left: Saved indicator */}
+              <div className="flex items-center gap-1.5 font-mono text-[0.6875rem] text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block shadow-xs shadow-emerald-500/50" />
+                <span className="text-slate-300 font-medium">저장됨</span>
               </div>
 
-              <div className="flex items-center gap-1.5 shrink-0">
-                {/* Sync Scroll Toggle Button */}
+              {/* Right: Icon-only buttons with tooltips */}
+              <div className="flex items-center gap-1 shrink-0">
+                {/* Scroll Sync Toggle Button [ ⇅ ] */}
                 <button
                   type="button"
                   onClick={() => setIsSyncScrollEnabled((prev) => !prev)}
-                  className={`px-1.5 py-0.5 rounded-xs text-[0.625rem] transition cursor-pointer flex items-center gap-1 border whitespace-nowrap shrink-0 ${
+                  className={`w-6 h-6 rounded-xs flex items-center justify-center transition cursor-pointer ${
                     isSyncScrollEnabled
-                      ? 'bg-indigo-950/60 text-indigo-300 border-indigo-500/40 font-medium'
-                      : 'bg-[#09090b] text-slate-400 border-[#222226] hover:text-slate-200'
+                      ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
+                      : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.04]'
                   }`}
                   title={
                     isSyncScrollEnabled
-                      ? '페이지 연동 스크롤 켜짐 - PDF 페이지 변경 시 에디터 자동 이동'
-                      : '페이지 연동 스크롤 꺼짐 - 클릭하여 활성화'
+                      ? '스크롤 연동 활성화됨 (PDF 페이지 변경 시 에디터 자동 이동)'
+                      : '스크롤 연동 비활성화됨 (클릭하여 활성화)'
                   }
+                  aria-label="스크롤 연동"
                 >
-                  <ArrowDownUp className={`w-3 h-3 shrink-0 ${isSyncScrollEnabled ? 'text-indigo-400' : 'text-slate-500'}`} />
-                  <span>스크롤 연동</span>
+                  <ArrowDownUp className="w-3.5 h-3.5" />
                 </button>
 
-                {/* Instant Page Scroll Trigger */}
-                <button
-                  type="button"
-                  onClick={() => scrollToCurrentPageInEditor(currentPage)}
-                  className="p-1 rounded-xs text-slate-400 hover:text-indigo-300 hover:bg-[#18181b] transition cursor-pointer shrink-0"
-                  title={`현재 PDF ${currentPage}페이지 위치로 에디터 이동`}
-                >
-                  <LocateFixed className="w-3.5 h-3.5" />
-                </button>
-
-                <div className="h-3.5 w-px bg-[#222226] shrink-0" />
-
-                {/* Tab Switcher: Edit vs Preview */}
-                <div className="flex bg-[#09090b] border border-[#222226] rounded-xs p-0.5 shrink-0">
+                {/* Edit / Preview Toggle [ ✏️/👁️ ] */}
+                <div className="flex items-center bg-[#18181b]/70 border border-[#222226] rounded-xs p-0.5">
                   <button
                     type="button"
                     onClick={() => setRightPaneTab('edit')}
-                    className={`px-2 py-0.5 rounded-xs text-[0.625rem] transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+                    className={`w-6 h-5.5 rounded-xs flex items-center justify-center transition cursor-pointer ${
                       rightPaneTab === 'edit'
-                        ? 'bg-[#18181b] text-white font-medium'
+                        ? 'bg-[#27272a] text-white shadow-xs'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
+                    title="편집 모드"
+                    aria-label="편집 모드"
                   >
-                    <Edit3 className="w-3 h-3" />
-                    <span>편집</span>
+                    <Edit3 className="w-3.5 h-3.5" />
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setRightPaneTab('preview')}
-                    className={`px-2 py-0.5 rounded-xs text-[0.625rem] transition cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+                    className={`w-6 h-5.5 rounded-xs flex items-center justify-center transition cursor-pointer ${
                       rightPaneTab === 'preview'
-                        ? 'bg-[#18181b] text-white font-medium'
+                        ? 'bg-[#27272a] text-white shadow-xs'
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
+                    title="미리보기 모드"
+                    aria-label="미리보기 모드"
                   >
-                    <Eye className="w-3 h-3" />
-                    <span>미리보기</span>
+                    <Eye className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
-                <div className="h-3.5 w-px bg-[#222226] shrink-0" />
-
-                {/* Copy Markdown */}
+                {/* Copy Markdown [ 📋 ] */}
                 <button
                   type="button"
                   onClick={handleCopyMarkdown}
-                  className="p-1 rounded-xs text-slate-400 hover:text-white hover:bg-[#18181b] transition cursor-pointer shrink-0"
+                  className="w-6 h-6 rounded-xs flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/[0.04] transition cursor-pointer"
                   title="마크다운 복사"
+                  aria-label="마크다운 복사"
                 >
                   {hasCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
@@ -1630,38 +1765,38 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
             </div>
 
             {/* Editor Workspace Area */}
-            <div className="flex-1 min-h-0 relative overflow-hidden flex flex-col">
+            <div className="flex-1 min-h-0 relative overflow-hidden flex flex-col bg-[#0c0c0e]">
               {rightPaneTab === 'edit' ? (
-                <div className="flex-1 min-h-0 relative flex flex-col bg-[#09090b]">
+                <div className="flex-1 min-h-0 relative flex flex-col bg-[#0c0c0e]">
                   <textarea
                     ref={editorTextareaRef}
                     value={markdownContent}
                     onChange={(e) => onMarkdownChange(e.target.value)}
-                    placeholder="# PDF 마크다운 내용&#10;&#10;상단의 [마크다운 추출] 버튼을 누르면 원본 PDF의 표, 목록, 텍스트가 자동으로 완벽하게 구조화되어 여기에 채워집니다. 직접 마크다운을 타이핑하거나 수정할 수도 있습니다."
+                    placeholder="# PDF 마크다운 내용&#10;&#10;상단의 [마크다운 추출] 버튼을 누르면 원본 PDF의 내용이 마크다운으로 자동 추출됩니다."
                     className="flex-1 w-full h-full p-4 bg-transparent text-slate-200 font-mono text-xs leading-relaxed resize-none outline-none custom-scrollbar selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] border-none"
                     spellCheck={false}
                   />
 
                   {/* Character/Line Stats Bar */}
-                  <div className="h-6 px-3 bg-[#161822] border-t border-[#222226] flex items-center justify-between text-[0.625rem] font-mono text-slate-400 select-none">
+                  <div className="h-6 px-3 bg-[#0c0c0e] border-t border-[#222226] flex items-center justify-between text-[0.625rem] font-mono text-slate-500 select-none">
                     <div className="flex items-center gap-3">
                       <span>줄: {markdownContent.split('\n').length}</span>
                       <span>단어: {markdownContent.trim() ? markdownContent.trim().split(/\s+/).length : 0}</span>
                       <span>글자수: {markdownContent.length}</span>
                       {isSyncScrollEnabled && (
                         <span className="text-indigo-400/90 font-medium">
-                          • 동기화: {currentPage}P 포커스
+                          • 동기화: {currentPage}쪽
                         </span>
                       )}
                     </div>
-                    <span className="text-slate-500">Ctrl+S 또는 입력 즉시 자동 저장</span>
+                    <span className="text-slate-500">자동 저장됨</span>
                   </div>
                 </div>
               ) : (
                 /* Markdown Preview Mode */
                 <div
                   ref={previewContainerRef}
-                  className="flex-1 min-h-0 overflow-y-auto p-6 bg-[#161722] text-slate-200 custom-scrollbar"
+                  className="flex-1 min-h-0 overflow-y-auto p-6 bg-[#0c0c0e] text-slate-200 custom-scrollbar"
                 >
                   {markdownContent.trim() ? (
                     renderMarkdownToHtml ? (
@@ -1679,7 +1814,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                       <FileText className="w-8 h-8 mx-auto text-slate-600" />
                       <p className="text-xs">추출된 마크다운 내용이 없습니다.</p>
                       <p className="text-[0.6875rem] text-slate-600">
-                        상단 미니 툴바의 <strong>[마크다운 추출]</strong> 버튼을 눌러보세요.
+                        상단의 <strong>[마크다운 추출]</strong> 버튼을 눌러보세요.
                       </p>
                     </div>
                   )}
