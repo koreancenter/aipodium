@@ -735,7 +735,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
               </button>
               <button
                 type="submit"
-                className="px-4 py-1.5 rounded-md text-xs font-medium bg-[#6366f1] hover:bg-[#4f46e5] text-white transition shadow-sm flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0"
+                className="px-4 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0"
                 title="선택된 소스 문서들을 분석 종합하여 맞춤형 기준 문서를 생성합니다"
               >
                 <span>기준 문서 생성</span>

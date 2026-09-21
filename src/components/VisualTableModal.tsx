@@ -465,7 +465,7 @@ export const VisualTableModal: React.FC<VisualTableModalProps> = ({
             <button
               type="button"
               onClick={handleSave}
-              className="px-4 py-1.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-md text-xs font-semibold transition flex items-center gap-1.5 shadow-md cursor-pointer whitespace-nowrap"
+              className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-xs font-semibold transition flex items-center gap-1.5 shadow-md cursor-pointer whitespace-nowrap"
             >
               <Check className="w-3.5 h-3.5" />
               <span>본문에 반영</span>

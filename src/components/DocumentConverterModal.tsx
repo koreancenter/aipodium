@@ -515,7 +515,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                 onClick={() => setActiveTab('preview')}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer ${
                   activeTab === 'preview'
-                    ? 'bg-[#6366f1] text-white shadow-xs'
+                    ? 'bg-indigo-600 text-white shadow-xs'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-[#18181b]'
                 }`}
               >
@@ -528,7 +528,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                 onClick={() => setActiveTab('source')}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer ${
                   activeTab === 'source'
-                    ? 'bg-[#6366f1] text-white shadow-xs'
+                    ? 'bg-indigo-600 text-white shadow-xs'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-[#18181b]'
                 }`}
               >
@@ -606,7 +606,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
             <button
               type="button"
               onClick={() => handleSaveAndOpen(false)}
-              className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-[#6366f1] hover:bg-[#5254e0] text-white transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+              className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition cursor-pointer flex items-center gap-1.5 shadow-xs"
             >
               <Check className="w-3.5 h-3.5" />
               <span>작업 공간에 저장 및 열기</span>

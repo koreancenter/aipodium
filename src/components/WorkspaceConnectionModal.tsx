@@ -604,7 +604,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
           <button
             type="button"
             onClick={handleOpenFolder}
-            className="w-full bg-[#6366f1] hover:bg-[#5254e0] text-white py-2.5 px-4 rounded-md font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 px-4 rounded-md font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
           >
             <FolderOpen className="w-4 h-4 shrink-0" />
             <span>내 PC 폴더 열기...</span>

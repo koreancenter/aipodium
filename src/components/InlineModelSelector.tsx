@@ -269,8 +269,8 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
             handleModelToggle(m.id);
           }
         }}
-        className={`model-row-item group w-full flex items-center justify-between px-3 py-1.5 hover:bg-white/[0.05] cursor-pointer text-xs select-none transition-colors ${
-          checked ? 'text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'
+        className={`model-row-item group w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-white/[0.06] rounded-md cursor-pointer text-xs select-none transition-colors ${
+          checked ? 'text-zinc-100' : 'text-zinc-300 hover:text-zinc-100'
         }`}
       >
         {/* Left: Checkbox */}
@@ -282,12 +282,12 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
             e.stopPropagation();
             handleModelToggle(m.id);
           }}
-          className="w-3.5 h-3.5 accent-[#6366f1] rounded-xs cursor-pointer shrink-0"
+          className="w-3.5 h-3.5 accent-[#6366f1] rounded-sm cursor-pointer shrink-0"
         />
 
         {/* Center: Model Name only (flat horizontal row, normal font) */}
         <div className="flex items-center min-w-0 flex-1 mx-2.5">
-          <span className="truncate font-normal">
+          <span className="truncate font-normal text-xs text-zinc-300 group-hover:text-zinc-100">
             {m.name}
           </span>
         </div>
@@ -299,7 +299,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
           className={`p-0.5 hover:text-amber-400 transition cursor-pointer shrink-0 text-xs flex items-center justify-center ${
             isPinned
               ? 'text-amber-400'
-              : 'text-zinc-600 hover:text-zinc-400 opacity-50 group-hover:opacity-100'
+              : 'text-zinc-500 hover:text-zinc-300 opacity-40 group-hover:opacity-100'
           }`}
           title={isPinned ? '즐겨찾기 고정 해제' : '즐겨찾기에 고정'}
         >
@@ -365,10 +365,10 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.98 }}
             transition={{ duration: 0.12, ease: 'easeOut' }}
-            className="absolute bottom-full left-0 mb-2 w-72 sm:w-80 bg-[#121214] border border-[#222226] rounded-md shadow-2xl z-50 flex flex-col overflow-hidden text-xs font-normal"
+            className="absolute bottom-full left-0 mb-2 w-72 sm:w-80 bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden text-xs font-normal"
           >
             {/* Search / Filter Input Header */}
-            <div className="p-2.5 border-b border-[#222226] bg-[#0c0c0e] flex items-center gap-2">
+            <div className="p-2.5 border-b border-white/[0.08] bg-[#09090b]/40 flex items-center gap-2">
               <Search className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
               <input
                 type="text"
@@ -382,7 +382,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="text-zinc-500 hover:text-zinc-300 text-[0.6875rem] font-normal px-1 cursor-pointer"
+                  className="text-zinc-400 hover:text-zinc-200 text-[0.6875rem] font-normal px-1 cursor-pointer"
                 >
                   지우기
                 </button>
@@ -394,7 +394,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                     setIsOpen(false);
                     onOpenRoleModal();
                   }}
-                  className="p-1 text-zinc-400 hover:text-indigo-300 hover:bg-[#18181b] rounded transition shrink-0 cursor-pointer"
+                  className="p-1 text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06] rounded-md transition shrink-0 cursor-pointer"
                   title="역할별 AI 모델 지정"
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -403,13 +403,13 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
             </div>
 
             {/* Scrollable Model Lists (Clean flat layout, edge-to-edge rows, no box-in-box) */}
-            <div className="overflow-y-auto max-h-72 py-1 custom-scrollbar bg-[#121214]">
+            <div className="overflow-y-auto max-h-72 p-1.5 custom-scrollbar bg-transparent">
               {/* Pinned favorites first */}
               {pinnedList.map((m) => renderModelRow(m))}
 
               {/* Subtle divider between pinned and remaining models if both exist */}
               {pinnedList.length > 0 && (remainingCloudList.length > 0 || remainingLocalList.length > 0) && (
-                <div className="h-px bg-[#222226] my-1" />
+                <div className="h-px bg-white/[0.08] my-1" />
               )}
 
               {/* Remaining Cloud Models */}
@@ -426,7 +426,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
             </div>
 
             {/* Popover Footer */}
-            <div className="px-3 py-2 bg-[#09090b] border-t border-[#222226] text-xs font-normal text-zinc-400 flex items-center justify-between">
+            <div className="px-3 py-2 bg-[#09090b]/50 border-t border-white/[0.08] text-xs font-normal text-zinc-400 flex items-center justify-between">
               <span className="font-normal">
                 {activeCount >= 2
                   ? `${activeCount}개 선택됨 (멀티 응답 모드)`

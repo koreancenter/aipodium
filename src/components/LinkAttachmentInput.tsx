@@ -169,7 +169,7 @@ export const LinkAttachmentInput: React.FC<LinkAttachmentInputProps> = ({
               <button
                 type="submit"
                 disabled={isLoading || !url.trim()}
-                className="h-6 px-2.5 rounded-xs bg-[#6366f1] hover:bg-[#5457e5] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[0.6875rem] font-medium flex items-center gap-1 transition cursor-pointer"
+                className="h-6 px-2.5 rounded-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-[0.6875rem] font-medium flex items-center gap-1 transition cursor-pointer"
               >
                 {isLoading ? (
                   <RotateCw className="w-3 h-3 animate-spin" />
