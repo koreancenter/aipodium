@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   Server,
-  Key,
-  Folder,
   CheckCircle2,
   AlertCircle,
   X,
   Check,
   RotateCw,
-  Lock,
   Eye,
   EyeOff,
   Unlink,
@@ -85,7 +82,8 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isConnected = !!(currentConfig?.host && currentConfig?.username);
+  const isRemoteConnected = !!(currentConfig?.host && currentConfig?.username);
+  const isConnected = isRemoteConnected;
 
   const handleTestConnection = () => {
     const cleanHost = host.trim();
@@ -156,21 +154,27 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
         {/* Header */}
         <div className="flex items-start justify-between pb-3 border-b border-[#222226]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[#18181b] border border-[#222226] flex items-center justify-center text-slate-100 shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-[#18181b] border border-[#222226] flex items-center justify-center text-zinc-100 shrink-0">
               <Server className="w-5 h-5 text-indigo-400" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-medium text-slate-100">원격 서버 연동</h2>
-                <span className="badge-muted text-[10px] font-medium px-2 py-0.5 rounded">
-                  직접 연동
-                </span>
+                <h2 className="text-sm font-medium text-zinc-100">원격 서버 연동</h2>
+                {isRemoteConnected ? (
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    연결됨
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-white/5 text-zinc-400 border border-white/10">
+                    미연동
+                  </span>
+                )}
                 <HelpTooltip
                   title="원격 서버 직접 연동 안내"
                   content="원격 서버 접속 정보는 외부 서버로 전송되지 않으며, 사용자 브라우저 로컬 저장소에만 안전하게 보관됩니다."
                 />
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-zinc-400 mt-0.5">
                 원격 호스트 또는 사설 서버의 작업 디렉토리를 워크스페이스로 마운트합니다.
               </p>
             </div>
@@ -179,7 +183,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 p-1.5 rounded hover:bg-[#18181b] transition cursor-pointer shrink-0"
+            className="text-zinc-400 hover:text-zinc-200 p-1.5 rounded hover:bg-white/5 transition cursor-pointer shrink-0"
             title="닫기"
             aria-label="닫기"
           >
@@ -193,8 +197,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2 space-y-1.5">
               <div className="flex items-center gap-1.5">
-                <Server className="w-3.5 h-3.5 text-indigo-400" />
-                <label className="font-medium text-slate-300">원격 호스트 주소</label>
+                <label className="font-medium text-zinc-300">원격 호스트 주소</label>
                 <HelpTooltip
                   title="호스트 주소 안내"
                   content="연결할 원격 서버의 IP 주소 또는 도메인 이름을 입력합니다. 예: 192.168.1.100 또는 dev.example.com"
@@ -206,13 +209,13 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                 onChange={(e) => setHost(e.target.value)}
                 placeholder="192.168.1.100 또는 host.domain.com"
                 required
-                className="w-full bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition"
+                className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none transition"
               />
             </div>
 
             <div className="sm:col-span-1 space-y-1.5">
               <div className="flex items-center gap-1.5">
-                <label className="font-medium text-slate-300">포트</label>
+                <label className="font-medium text-zinc-300">포트</label>
               </div>
               <input
                 type="number"
@@ -220,7 +223,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                 onChange={(e) => setPort(parseInt(e.target.value, 10) || 22)}
                 placeholder="22"
                 required
-                className="w-full bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition"
+                className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none transition"
               />
             </div>
           </div>
@@ -228,29 +231,29 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
           {/* User & Auth Type */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="font-medium text-slate-300">사용자명</label>
+              <label className="font-medium text-zinc-300">사용자명</label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="ubuntu, root, developer"
                 required
-                className="w-full bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition"
+                className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none transition"
               />
             </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center gap-1.5">
-                <label className="font-medium text-slate-300">인증 방식</label>
+                <label className="font-medium text-zinc-300">인증 방식</label>
               </div>
-              <div className="flex rounded bg-[#09090b] p-0.5 border border-[#222226]">
+              <div className="flex rounded bg-[#09090b] p-0.5 border border-white/10">
                 <button
                   type="button"
                   onClick={() => setAuthType('password')}
                   className={`flex-1 py-1.5 text-center rounded text-xs transition cursor-pointer font-medium ${
                     authType === 'password'
                       ? 'bg-indigo-600 text-white font-medium'
-                      : 'text-slate-400 hover:text-slate-200'
+                      : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
                   비밀번호
@@ -261,7 +264,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                   className={`flex-1 py-1.5 text-center rounded text-xs transition cursor-pointer font-medium ${
                     authType === 'key'
                       ? 'bg-indigo-600 text-white font-medium'
-                      : 'text-slate-400 hover:text-slate-200'
+                      : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
                   비공개 키
@@ -274,8 +277,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
           {authType === 'password' ? (
             <div className="space-y-1.5">
               <div className="flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-indigo-400" />
-                <label className="font-medium text-slate-300">비밀번호</label>
+                <label className="font-medium text-zinc-300">비밀번호</label>
               </div>
               <div className="relative">
                 <input
@@ -283,12 +285,12 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="접속 비밀번호 입력"
-                  className="w-full bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-3 py-2 pr-9 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition"
+                  className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded px-3 py-2 pr-9 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none transition"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-1 cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 p-1 cursor-pointer"
                   title={showPassword ? '비밀번호 숨기기' : '비밀번호 표시'}
                 >
                   {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -298,8 +300,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
           ) : (
             <div className="space-y-1.5">
               <div className="flex items-center gap-1.5">
-                <Key className="w-3.5 h-3.5 text-indigo-400" />
-                <label className="font-medium text-slate-300">SSH 비공개 키</label>
+                <label className="font-medium text-zinc-300">SSH 비공개 키</label>
                 <HelpTooltip
                   title="SSH 키 형식"
                   content="OpenSSH 형식 또는 RSA 키 형식의 비공개 키 전문을 입력합니다."
@@ -310,7 +311,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                 value={privateKey}
                 onChange={(e) => setPrivateKey(e.target.value)}
                 placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;..."
-                className="w-full bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition resize-none"
+                className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none transition resize-none"
               />
             </div>
           )}
@@ -318,8 +319,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
           {/* Remote Directory Path */}
           <div className="space-y-1.5">
             <div className="flex items-center gap-1.5">
-              <Folder className="w-3.5 h-3.5 text-indigo-400" />
-              <label className="font-medium text-slate-300">원격 디렉토리 경로</label>
+              <label className="font-medium text-zinc-300">원격 디렉토리 경로</label>
               <HelpTooltip
                 title="원격 경로 지정"
                 content="마운트할 원격 서버 내부의 절대 경로를 지정합니다. 예: /home/ubuntu/project-docs"
@@ -331,7 +331,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
               onChange={(e) => setRemotePath(e.target.value)}
               placeholder="/home/developer/workspace"
               required
-              className="w-full bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-slate-200 placeholder:text-slate-600 outline-none transition"
+              className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none transition"
             />
           </div>
 
@@ -360,9 +360,9 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                 type="button"
                 onClick={handleTestConnection}
                 disabled={isTesting}
-                className="btn-secondary text-xs"
+                className="px-3 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer inline-flex items-center gap-1.5"
               >
-                <RotateCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin text-indigo-400' : 'text-slate-400'}`} />
+                <RotateCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin text-indigo-400' : 'text-zinc-400'}`} />
                 <span>{isTesting ? '테스트 중...' : '연결 테스트'}</span>
               </button>
 
@@ -370,7 +370,7 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
                 <button
                   type="button"
                   onClick={onDisconnect}
-                  className="btn-secondary text-xs text-rose-400 hover:text-rose-300 border-rose-900/50 hover:bg-rose-950/40"
+                  className="px-3 py-1.5 rounded-md text-xs font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 transition-colors cursor-pointer inline-flex items-center gap-1.5"
                   title="현재 연결된 원격 서버 설정을 해제합니다."
                 >
                   <Unlink className="w-3.5 h-3.5" />
@@ -383,13 +383,13 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="btn-ghost text-xs"
+                className="px-3.5 py-1.5 rounded-md text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
               >
                 취소
               </button>
               <button
                 type="submit"
-                className="btn-primary text-xs"
+                className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>{isConnected ? '설정 저장' : '원격 서버 연결'}</span>
@@ -397,23 +397,21 @@ export const RemoteWorkspaceModal: React.FC<RemoteWorkspaceModalProps> = ({
             </div>
           </div>
 
-          {/* Cloud Account Sync Hint */}
-          <div className="pt-3 border-t border-[#222226] flex items-center justify-between text-[11px] text-slate-400">
+          {/* Integration Connection Status Footer Banner */}
+          <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between text-[11px] text-zinc-400">
             <span className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-              <span>다중 기기 동기화 및 클라우드 보관이 필요하신가요?</span>
+              <Sparkles className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+              <span>원격 서버 연동 상태</span>
             </span>
-            {currentUser ? (
-              <span className="badge-success text-[10px] font-medium px-2 py-0.5 rounded">계정 연동됨</span>
-            ) : onOpenAccountModal ? (
-              <button
-                type="button"
-                onClick={onOpenAccountModal}
-                className="text-indigo-400 hover:text-indigo-300 font-medium hover:underline cursor-pointer"
-              >
-                계정 로그인 및 연동 &rarr;
-              </button>
-            ) : null}
+            {isRemoteConnected ? (
+              <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                연결됨
+              </span>
+            ) : (
+              <span className="text-[11px] px-2 py-0.5 rounded bg-white/5 text-zinc-400 border border-white/5">
+                미연동
+              </span>
+            )}
           </div>
         </form>
       </div>

@@ -917,6 +917,8 @@ export default function App() {
               repo: meta.repo,
               owner: meta.owner,
               branch: meta.branch || 'main',
+              useCustomCommitMessage: meta.useCustomCommitMessage,
+              customCommitMessage: meta.customCommitMessage,
             };
             setGithubConfig(restoredConfig);
             sessionStorage.setItem('aipodium_github_config', JSON.stringify(restoredConfig));
@@ -4282,6 +4284,9 @@ export default function App() {
         const parts = githubConfig.repo.split('/');
         const owner = githubConfig.owner || parts[0];
         const repoName = parts.length > 1 ? parts.slice(1).join('/') : githubConfig.repo;
+        const commitMsg = githubConfig.useCustomCommitMessage && githubConfig.customCommitMessage
+          ? githubConfig.customCommitMessage.replace(/\${filename}/g, currentActiveFile)
+          : undefined;
         syncDocumentToGithub({
           owner,
           repo: repoName,
@@ -4289,6 +4294,7 @@ export default function App() {
           token: githubConfig.token,
           filePath: currentActiveFile,
           content: editorContent,
+          commitMessage: commitMsg,
           onToast: (msg, type) => showToast(msg, type === 'error' ? 'error' : type === 'warn' ? 'warn' : 'success'),
         }).catch(console.error);
       }
@@ -4374,6 +4380,9 @@ export default function App() {
       const parts = githubConfig.repo.split('/');
       const owner = githubConfig.owner || parts[0];
       const repoName = parts.length > 1 ? parts.slice(1).join('/') : githubConfig.repo;
+      const commitMsg = githubConfig.useCustomCommitMessage && githubConfig.customCommitMessage
+        ? githubConfig.customCommitMessage.replace(/\${filename}/g, newFileName)
+        : undefined;
       syncDocumentToGithub({
         owner,
         repo: repoName,
@@ -4381,6 +4390,7 @@ export default function App() {
         token: githubConfig.token,
         filePath: newFileName,
         content: contentToSave,
+        commitMessage: commitMsg,
         onToast: (msg, type) => showToast(msg, type === 'error' ? 'error' : type === 'warn' ? 'warn' : 'success'),
       }).catch(console.error);
     }
@@ -12069,6 +12079,8 @@ ${projectEvents
         onClose={() => setIsGithubModalOpen(false)}
         initialConfig={githubConfig}
         currentUser={currentUser}
+        currentActiveFile={currentActiveFile}
+        editorContent={editorContent}
         onOpenAccountModal={() => {
           setIsGithubModalOpen(false);
           setIsGoogleAccountModalOpen(true);
@@ -12092,7 +12104,13 @@ ${projectEvents
             sessionStorage.setItem('aipodium_github_config', JSON.stringify(config));
             // Keep persistent storage clean of raw access tokens
             localStorage.removeItem('aipodium_github_config');
-            const safeMeta = { repo: config.repo, branch: config.branch, owner: config.owner };
+            const safeMeta = {
+              repo: config.repo,
+              branch: config.branch,
+              owner: config.owner,
+              useCustomCommitMessage: config.useCustomCommitMessage,
+              customCommitMessage: config.customCommitMessage,
+            };
             localStorage.setItem('aipodium_github_meta', JSON.stringify(safeMeta));
             await saveEncryptedGithubPat(config.token);
           } catch {}

@@ -14,7 +14,6 @@ import {
   Download,
   Upload,
   ExternalLink,
-  ShieldCheck,
   LogOut,
   AlertCircle,
   FileCode,
@@ -506,14 +505,20 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
               <div className="w-7 h-7 rounded bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center">
                 <HardDrive className="w-4 h-4 text-indigo-400" />
               </div>
-              <h2 className="text-sm font-medium text-slate-200 tracking-tight flex items-center gap-2">
+              <h2 className="text-sm font-medium text-zinc-200 tracking-tight flex items-center gap-2">
                 구글 드라이브 파일 탐색기
-                <span className="badge-success text-[10px] font-medium px-2 py-0.5 rounded">
-                  전용 파일 보안 모드
-                </span>
+                {authStatus === 'connected' ? (
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    연결됨
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-white/5 text-zinc-400 border border-white/10">
+                    미연동
+                  </span>
+                )}
               </h2>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-zinc-400">
               계정 로그인 여부와 무관하게 구글 드라이브 파일을 안전하게 열고 저장합니다.
             </p>
           </div>
@@ -521,16 +526,16 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
           <div className="flex items-center gap-2">
             {authStatus === 'connected' && (
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#09090b] border border-[#222226] text-xs">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#09090b] border border-white/10 text-xs">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-slate-300 font-medium truncate max-w-[140px]">
+                  <span className="text-zinc-300 font-medium truncate max-w-[140px]">
                     {currentUserProfile?.name || currentUserProfile?.email || '연동됨'}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={handleDisconnect}
-                  className="btn-secondary text-xs text-rose-400 hover:text-rose-300 border-rose-900/50 hover:bg-rose-950/40"
+                  className="px-2.5 py-1 rounded text-xs font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 transition-colors cursor-pointer inline-flex items-center gap-1.5"
                   title="구글 드라이브 연동 해제"
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -542,7 +547,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-200 p-1.5 rounded hover:bg-[#18181b] transition cursor-pointer"
+              className="text-zinc-400 hover:text-zinc-200 p-1.5 rounded hover:bg-white/5 transition cursor-pointer"
               title="닫기"
             >
               <X className="w-4 h-4" />
@@ -551,70 +556,62 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
         </div>
 
         {/* Tab Navigation - Flat IDE Tab Style */}
-        <div className="flex items-center justify-between border-b border-[#222226] shrink-0 text-xs">
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setActiveTab('open')}
-              className={`px-3.5 py-2 font-medium flex items-center gap-1.5 transition cursor-pointer border-b-2 -mb-[1px] ${
-                activeTab === 'open'
-                  ? 'border-indigo-500 text-indigo-300 bg-[#09090b]/50'
-                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#09090b]/25'
-              }`}
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>파일 불러오기</span>
-            </button>
+        {authStatus === 'connected' && (
+          <div className="flex items-center justify-between border-b border-[#222226] shrink-0 text-xs">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('open')}
+                className={`px-3.5 py-2 font-medium flex items-center gap-1.5 transition cursor-pointer border-b-2 -mb-[1px] ${
+                  activeTab === 'open'
+                    ? 'border-indigo-500 text-indigo-300 bg-[#09090b]/50'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-[#09090b]/25'
+                }`}
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>파일 불러오기</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab('save')}
-              className={`px-3.5 py-2 font-medium flex items-center gap-1.5 transition cursor-pointer border-b-2 -mb-[1px] ${
-                activeTab === 'save'
-                  ? 'border-indigo-500 text-indigo-300 bg-[#09090b]/50'
-                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#09090b]/25'
-              }`}
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>드라이브에 저장</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('save')}
+                className={`px-3.5 py-2 font-medium flex items-center gap-1.5 transition cursor-pointer border-b-2 -mb-[1px] ${
+                  activeTab === 'save'
+                    ? 'border-indigo-500 text-indigo-300 bg-[#09090b]/50'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-[#09090b]/25'
+                }`}
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>드라이브에 저장</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab('folders')}
-              className={`px-3.5 py-2 font-medium flex items-center gap-1.5 transition cursor-pointer border-b-2 -mb-[1px] ${
-                activeTab === 'folders'
-                  ? 'border-indigo-500 text-indigo-300 bg-[#09090b]/50'
-                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#09090b]/25'
-              }`}
-            >
-              <FolderOpen className="w-3.5 h-3.5" />
-              <span>기본 폴더 설정</span>
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('folders')}
+                className={`px-3.5 py-2 font-medium flex items-center gap-1.5 transition cursor-pointer border-b-2 -mb-[1px] ${
+                  activeTab === 'folders'
+                    ? 'border-indigo-500 text-indigo-300 bg-[#09090b]/50'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-[#09090b]/25'
+                }`}
+              >
+                <FolderOpen className="w-3.5 h-3.5" />
+                <span>기본 폴더 설정</span>
+              </button>
+            </div>
 
-          {authStatus === 'connected' && (
             <button
               type="button"
               onClick={() => {
                 loadFolders();
                 loadFiles();
               }}
-              className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-[#18181b] transition cursor-pointer"
+              className="p-1.5 text-zinc-400 hover:text-white rounded hover:bg-white/5 transition cursor-pointer"
               title="새로고침"
             >
               <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-indigo-400' : ''}`} />
             </button>
-          )}
-        </div>
-
-        {/* Security Info Indicator (1줄 컴팩트 안내) */}
-        <div className="bg-[#09090b] border border-[#222226] rounded px-3 py-1.5 text-xs flex items-center gap-2 shrink-0">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-          <span className="text-[11px] text-slate-300">
-            <span className="text-emerald-400 font-medium">최소 권한 원칙:</span> 본 앱에서 열거나 생성한 전용 파일에만 안전하게 접근합니다.
-          </span>
-        </div>
+          </div>
+        )}
 
         {/* Missing Config Warning Indicator */}
         {missingConfigWarning && (
@@ -639,13 +636,13 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
 
         {/* BODY AREA: Unified Disconnected Hero State OR Connected Tab Viewports */}
         {authStatus !== 'connected' ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#09090b] border border-[#222226] rounded-lg my-auto space-y-4 animate-in fade-in duration-150">
-            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-              <HardDrive className="w-6 h-6" />
+          <div className="flex-1 flex flex-col items-center justify-center py-12 px-4 text-center space-y-4 animate-in fade-in duration-150">
+            <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-zinc-400">
+              <HardDrive className="w-6 h-6 text-zinc-300" />
             </div>
-            <div className="space-y-1.5 max-w-md">
-              <h3 className="text-sm font-medium text-slate-200">구글 드라이브 연동이 필요합니다</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+            <div className="space-y-1.5 max-w-sm">
+              <h3 className="text-sm font-medium text-zinc-200">구글 드라이브 연동이 필요합니다</h3>
+              <p className="text-xs text-zinc-400 leading-relaxed">
                 클라우드에 저장된 마크다운 및 HTML 문서를 즉시 불러오거나 현재 작성 중인 문서를 드라이브에 안전하게 보관할 수 있습니다.
               </p>
             </div>
@@ -654,7 +651,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
               id="google-drive-connect-btn"
               onClick={handleOnDemandConnect}
               disabled={isConnecting}
-              className="btn-primary text-xs px-4 py-2"
+              className="px-4 py-2 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center gap-2 cursor-pointer"
             >
               <HardDrive className="w-4 h-4" />
               <span>{isConnecting ? '연동 진행 중...' : '구글 드라이브 연결하기'}</span>

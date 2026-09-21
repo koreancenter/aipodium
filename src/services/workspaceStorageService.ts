@@ -715,6 +715,45 @@ export async function purgeGuestSession(
 // 5. GitHub Repository Bidirectional Sync Engine (Push/Pull)
 // ---------------------------------------------------------
 
+export const GITHUB_REPO_REGEX = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/;
+
+/**
+ * Smartly sanitizes GitHub repository input, stripping protocol, domain, and .git extensions:
+ * - https://github.com/owner/repo -> owner/repo
+ * - https://github.com/owner/repo.git -> owner/repo
+ * - git@github.com:owner/repo.git -> owner/repo
+ * - github.com/owner/repo -> owner/repo
+ */
+export function sanitizeGithubRepo(input: string): string {
+  if (!input) return '';
+  let val = input.trim();
+  val = val.replace(/^git@github\.com:/i, '');
+  val = val.replace(/^https?:\/\/(www\.)?github\.com\/?/i, '');
+  val = val.replace(/^(www\.)?github\.com\/?/i, '');
+  val = val.replace(/^\/+/, '');
+  val = val.replace(/\.git$/i, '');
+  val = val.replace(/\/+$/, '');
+  return val;
+}
+
+/**
+ * Auto-generates standard conventional commit messages for document push pipeline:
+ * - For new files: docs: create ${filename} (via AI Podium)
+ * - For modified files: docs: update ${filename} (${new Date().toLocaleTimeString()})
+ */
+export function generateConventionalCommitMessage(
+  filename: string,
+  isNewFile: boolean,
+  timeString?: string
+): string {
+  const cleanFilename = filename.replace(/^\/+/, '').split('/').pop() || filename;
+  const time = timeString || new Date().toLocaleTimeString();
+  if (isNewFile) {
+    return `docs: create ${cleanFilename} (via AI Podium)`;
+  }
+  return `docs: update ${cleanFilename} (${time})`;
+}
+
 function utf8ToBase64(str: string): string {
   try {
     return btoa(unescape(encodeURIComponent(str)));
@@ -816,7 +855,19 @@ export async function syncDocumentToGithub(
 
     // 2. Commit and push changes via PUT /repos/{owner}/{repo}/contents/{path}
     const base64Content = utf8ToBase64(content);
-    const message = commitMessage || `Update ${cleanPath} via AI Podium`;
+    const isNewFile = !existingSha;
+    const filename = cleanPath.split('/').pop() || cleanPath;
+
+    let message: string;
+    if (commitMessage && commitMessage.trim()) {
+      message = commitMessage
+        .replace(/\$\{filename\}/g, filename)
+        .replace(/\{filename\}/g, filename)
+        .replace(/\$\{time\}/g, new Date().toLocaleTimeString())
+        .trim();
+    } else {
+      message = generateConventionalCommitMessage(filename, isNewFile);
+    }
 
     const putBody: Record<string, any> = {
       message,

@@ -752,25 +752,21 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.98, y: 6 }}
           transition={{ duration: 0.15 }}
-          className="bg-[#121214] border border-[#222226] rounded-xl shadow-2xl w-full max-w-4xl h-[630px] max-h-[92vh] flex flex-col overflow-hidden text-slate-200"
+          className="bg-[#121214] border border-white/[0.08] rounded-xl shadow-2xl w-full max-w-4xl h-[630px] max-h-[92vh] flex flex-col overflow-hidden text-zinc-200"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-4 py-3 border-b border-[#222226] bg-[#121214] flex items-center justify-between shrink-0">
+          <div className="px-4 py-3 border-b border-white/[0.08] bg-[#121214] flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-md bg-[#18181b] text-indigo-400 border border-[#222226]">
-                <Settings className="w-3.5 h-3.5" />
-              </div>
-              <div>
-                <h2 className="font-medium text-xs text-slate-200 tracking-wide">
-                  환경 설정
-                </h2>
-              </div>
+              <Settings className="w-4 h-4 text-zinc-400" />
+              <h2 className="font-medium text-xs text-zinc-200 tracking-wide">
+                환경 설정
+              </h2>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-[#18181b] rounded transition cursor-pointer"
+              className="p-1 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] rounded transition cursor-pointer"
               title="닫기"
               aria-label="닫기"
             >
@@ -781,22 +777,22 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           {/* Main Body */}
           <div className="flex flex-1 overflow-hidden min-h-0">
             {/* Sidebar Tabs */}
-            <div className="w-52 bg-[#0c0c0e] border-r border-[#222226] p-2 flex flex-col gap-1 shrink-0 select-none overflow-y-auto min-h-0">
+            <div className="w-52 bg-[#0c0c0e] border-r border-white/[0.08] p-2 flex flex-col gap-1 shrink-0 select-none overflow-y-auto min-h-0">
               {/* TAB: AI Engine & Provider */}
               <button
                 type="button"
                 onClick={() => setActiveTab('ai-engine')}
-                className={`w-full flex items-center justify-between text-left px-2.5 py-2 rounded-md text-xs font-medium transition cursor-pointer ${
+                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
                   activeTab === 'ai-engine'
-                    ? 'bg-[#18181b] text-indigo-300 font-medium border-l-2 border-indigo-500'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#18181b]/50'
+                    ? 'bg-white/[0.08] text-white font-medium'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
-                  <Cpu className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'ai-engine' ? 'text-indigo-400' : 'text-slate-400'}`} />
+                  <Cpu className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'ai-engine' ? 'text-white' : 'text-zinc-400'}`} />
                   <span className="truncate">AI 엔진 설정</span>
                 </div>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#09090b] text-slate-400 border border-[#222226] shrink-0 ml-1 font-normal">
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 shrink-0 ml-1 font-normal">
                   {localProviderType === 'cloud' ? '클라우드' : '로컬'}
                 </span>
               </button>
@@ -804,14 +800,14 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('persona')}
-                className={`w-full flex items-center justify-between text-left px-2.5 py-2 rounded-md text-xs font-medium transition cursor-pointer ${
+                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
                   activeTab === 'persona'
-                    ? 'bg-[#18181b] text-indigo-300 font-medium border-l-2 border-indigo-500'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#18181b]/50'
+                    ? 'bg-white/[0.08] text-white font-medium'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
-                  <Bot className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'persona' ? 'text-indigo-400' : 'text-slate-400'}`} />
+                  <Bot className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'persona' ? 'text-white' : 'text-zinc-400'}`} />
                   <span className="truncate">페르소나</span>
                 </div>
               </button>
@@ -819,23 +815,17 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('ghost-writer')}
-                className={`w-full flex items-center justify-between text-left px-2.5 py-2 rounded-md text-xs font-medium transition cursor-pointer ${
+                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
                   activeTab === 'ghost-writer'
-                    ? 'bg-[#18181b] text-indigo-300 font-medium border-l-2 border-indigo-500'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#18181b]/50'
+                    ? 'bg-white/[0.08] text-white font-medium'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
-                  <Ghost className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'ghost-writer' ? 'text-indigo-400' : 'text-slate-400'}`} />
+                  <Ghost className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'ghost-writer' ? 'text-white' : 'text-zinc-400'}`} />
                   <span className="truncate">고스트 라이터</span>
                 </div>
-                <span
-                  className={`text-[10px] font-mono px-1.5 py-0.5 rounded border shrink-0 ml-1 ${
-                    localPrefs.ghostWriterLevel && localPrefs.ghostWriterLevel !== 'off'
-                      ? 'bg-indigo-950/60 text-indigo-300 border-indigo-500/40 font-medium'
-                      : 'bg-[#09090b] text-slate-500 border-[#222226] font-normal'
-                  }`}
-                >
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 shrink-0 ml-1 font-normal">
                   {localPrefs.ghostWriterLevel && localPrefs.ghostWriterLevel !== 'off'
                     ? `${localPrefs.ghostWriterLevel}%`
                     : 'OFF'}
@@ -851,22 +841,22 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setActiveTab('integrations')}
-                    className={`w-full flex items-center justify-between text-left px-2.5 py-2 rounded-md text-xs font-medium transition cursor-pointer ${
+                    className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
                       activeTab === 'integrations'
-                        ? 'bg-[#18181b] text-indigo-300 font-medium border-l-2 border-indigo-500'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-[#18181b]/50'
+                        ? 'bg-white/[0.08] text-white font-medium'
+                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <Globe className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'integrations' ? 'text-indigo-400' : 'text-slate-400'}`} />
+                      <Globe className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'integrations' ? 'text-white' : 'text-zinc-400'}`} />
                       <span className="truncate">계정 연동</span>
                     </div>
                     {connectedCount > 0 ? (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-medium shrink-0 ml-1">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-300 font-normal shrink-0 ml-1">
                         {connectedCount}개 연결
                       </span>
                     ) : (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#09090b] text-slate-500 border border-[#222226] font-normal shrink-0 ml-1">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-zinc-500 font-normal shrink-0 ml-1">
                         미연결
                       </span>
                     )}
@@ -877,17 +867,17 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('storage')}
-                className={`w-full flex items-center justify-between text-left px-2.5 py-2 rounded-md text-xs font-medium transition cursor-pointer ${
+                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
                   activeTab === 'storage'
-                    ? 'bg-[#18181b] text-indigo-300 font-medium border-l-2 border-indigo-500'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#18181b]/50'
+                    ? 'bg-white/[0.08] text-white font-medium'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
-                  <Database className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'storage' ? 'text-indigo-400' : 'text-slate-400'}`} />
+                  <Database className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'storage' ? 'text-white' : 'text-zinc-400'}`} />
                   <span className="truncate">저장소 및 DB</span>
                 </div>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#09090b] text-slate-400 border border-[#222226] font-normal shrink-0 ml-1">
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 font-normal shrink-0 ml-1">
                   로컬 DB
                 </span>
               </button>
@@ -895,27 +885,27 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('security')}
-                className={`w-full flex items-center justify-between text-left px-2.5 py-2 rounded-md text-xs font-medium transition cursor-pointer ${
+                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
                   activeTab === 'security'
-                    ? 'bg-[#18181b] text-indigo-300 font-medium border-l-2 border-indigo-500'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#18181b]/50'
+                    ? 'bg-white/[0.08] text-white font-medium'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
-                  <ShieldCheck className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'security' ? 'text-indigo-400' : 'text-slate-400'}`} />
+                  <ShieldCheck className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'security' ? 'text-white' : 'text-zinc-400'}`} />
                   <span className="truncate">보안 및 볼트</span>
                 </div>
               </button>
 
               {/* System Status & Environment Info Widget */}
-              <div className="mt-auto pt-3 border-t border-[#222226]/60 px-2 py-1.5 text-[11px] text-slate-400 space-y-1.5 select-none">
+              <div className="mt-auto pt-3 border-t border-white/[0.08] px-2 py-1.5 text-[11px] text-zinc-400 space-y-1.5 select-none">
                 <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-slate-500 font-normal">빌드 환경</span>
-                  <span className="font-mono text-indigo-300 font-normal">v2.4.0 (IDE)</span>
+                  <span className="text-zinc-500 font-normal">빌드 환경</span>
+                  <span className="font-mono text-zinc-300 font-normal">v2.4.0</span>
                 </div>
                 <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-slate-500 font-normal">데이터 보존</span>
-                  <span className="font-mono text-emerald-400 flex items-center gap-1 font-normal">
+                  <span className="text-zinc-500 font-normal">데이터 보존</span>
+                  <span className="font-mono text-zinc-300 flex items-center gap-1.5 font-normal">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
                     로컬 암호화
                   </span>
@@ -924,20 +914,24 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             </div>
 
             {/* Tab Content Area */}
-            <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 bg-[#121214] min-h-0">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-[#121214] min-h-0">
               {/* TAB 0: AI Engine & Provider */}
               {activeTab === 'ai-engine' && (
-                <div className="space-y-4 animate-in fade-in duration-150">
-                  {/* 1. Mode Switcher (Top-Left): Cloud API vs Local Ollama */}
-                  <div className="flex items-center">
-                    <div className="inline-flex p-0.5 bg-[#09090b] border border-[#222226] rounded-md">
+                <div className="space-y-0 animate-in fade-in duration-150">
+                  {/* 1. Mode Switcher: Cloud API vs Local Ollama */}
+                  <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.06]">
+                    <div>
+                      <div className="text-xs font-medium text-zinc-200">엔진 모드</div>
+                      <div className="text-[11px] text-zinc-400 mt-0.5">클라우드 상용 LLM 또는 로컬 Ollama 모델 선택</div>
+                    </div>
+                    <div className="inline-flex p-0.5 bg-[#09090b] border border-white/10 rounded-md">
                       <button
                         type="button"
                         onClick={() => handleSwitchProvider('cloud')}
                         className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center gap-1.5 ${
                           localProviderType === 'cloud'
-                            ? 'bg-[#18181b] text-white font-medium border border-[#222226]'
-                            : 'text-slate-400 hover:text-slate-200'
+                            ? 'bg-white/10 text-white font-medium'
+                            : 'text-zinc-400 hover:text-zinc-200'
                         }`}
                       >
                         <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
@@ -949,8 +943,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         onClick={() => handleSwitchProvider('local')}
                         className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center gap-1.5 ${
                           localProviderType === 'local'
-                            ? 'bg-[#18181b] text-white font-medium border border-[#222226]'
-                            : 'text-slate-400 hover:text-slate-200'
+                            ? 'bg-white/10 text-white font-medium'
+                            : 'text-zinc-400 hover:text-zinc-200'
                         }`}
                       >
                         <Server className="w-3.5 h-3.5 text-indigo-400" />
@@ -961,9 +955,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
                   {/* 2. Provider Specific Credentials / Endpoint */}
                   {localProviderType === 'cloud' ? (
-                    <div className="bg-[#0c0c0e] border border-[#222226] rounded-md overflow-hidden">
-                      {/* BYOK Multi-Vendor Tabs - Flat Bottom-Border Tabs */}
-                      <div className="flex items-stretch border-b border-[#222226] bg-[#09090b]/70">
+                    <div>
+                      {/* BYOK Multi-Vendor Tabs - Flat Single Row */}
+                      <div className="flex items-stretch border-b border-white/[0.06]">
                         {CLOUD_VENDORS.map((v) => {
                           const isSelected = selectedVendor === v.id;
                           const hasKey = !!(localPrefs.apiKeys?.[v.id] || (v.id === selectedVendor && localApiKeyInput.trim()));
@@ -974,10 +968,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               key={v.id}
                               type="button"
                               onClick={() => handleSelectVendor(v.id)}
-                              className={`flex-1 py-2.5 px-1.5 text-center transition cursor-pointer flex flex-col items-center justify-center gap-0.5 relative -mb-[1px] border-b-2 ${
+                              className={`flex-1 py-2.5 px-1.5 text-center transition cursor-pointer flex flex-col items-center justify-center gap-0.5 relative border-b-2 ${
                                 isSelected
-                                  ? 'border-indigo-500 text-white font-medium bg-[#121214]/60'
-                                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#18181b]/30'
+                                  ? 'border-indigo-500 text-white font-medium bg-white/[0.04]'
+                                  : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.02]'
                               }`}
                             >
                               <div className="flex items-center gap-1.5 text-xs font-normal">
@@ -986,7 +980,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" title="키 등록됨" />
                                 )}
                               </div>
-                              <span className={`text-[10px] leading-tight ${isSelected ? 'text-indigo-300 font-normal' : 'text-slate-500 font-normal'}`}>
+                              <span className={`text-[10px] leading-tight ${isSelected ? 'text-indigo-300 font-normal' : 'text-zinc-500 font-normal'}`}>
                                 {vendorSub}
                               </span>
                             </button>
@@ -998,61 +992,66 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       {(() => {
                         const currentVendorMeta = CLOUD_VENDORS.find((v) => v.id === selectedVendor) || CLOUD_VENDORS[0];
                         return (
-                          <div className="p-3.5 space-y-3.5">
+                          <div>
                             {/* API Key Row */}
-                            <div className="flex items-center gap-2.5">
-                              <label className="text-xs font-medium text-slate-300 w-14 shrink-0">API 키</label>
-                              <div className="relative flex-1">
-                                <input
-                                  type={showApiKey ? 'text' : 'password'}
-                                  value={localApiKeyInput}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    setLocalApiKeyInput(val);
-                                    setLocalPrefs((prev) => ({
-                                      ...prev,
-                                      apiKeys: {
-                                        ...(prev.apiKeys || {}),
-                                        [selectedVendor]: val
-                                      }
-                                    }));
-                                  }}
-                                  placeholder={`${currentVendorMeta.name} API 키 입력`}
-                                  className="w-full bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded-md px-3 pr-8 py-1.5 text-xs font-mono text-slate-200 placeholder:text-slate-500 outline-none transition"
-                                />
+                            <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
+                              <div className="min-w-0">
+                                <div className="text-xs font-medium text-zinc-200">{currentVendorMeta.name} API 키</div>
+                                <div className="text-[11px] text-zinc-400 mt-0.5">클라우드 추론 요청 시 사용할 공급자 인증 키</div>
+                              </div>
+                              <div className="flex items-center gap-2 max-w-md w-full justify-end">
+                                <div className="relative flex-1 max-w-xs">
+                                  <input
+                                    type={showApiKey ? 'text' : 'password'}
+                                    value={localApiKeyInput}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setLocalApiKeyInput(val);
+                                      setLocalPrefs((prev) => ({
+                                        ...prev,
+                                        apiKeys: {
+                                          ...(prev.apiKeys || {}),
+                                          [selectedVendor]: val
+                                        }
+                                      }));
+                                    }}
+                                    placeholder={`${currentVendorMeta.name} API 키 입력`}
+                                    className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 pr-8 py-1.5 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none transition"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowApiKey(!showApiKey)}
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 cursor-pointer"
+                                    title={showApiKey ? '숨기기' : '표시'}
+                                  >
+                                    {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                  </button>
+                                </div>
+
                                 <button
                                   type="button"
-                                  onClick={() => setShowApiKey(!showApiKey)}
-                                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 cursor-pointer"
-                                  title={showApiKey ? '숨기기' : '표시'}
+                                  onClick={handleTriggerVerify}
+                                  disabled={isVerifying}
+                                  className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                                 >
-                                  {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                  <PlugZap className={`w-3.5 h-3.5 ${isVerifying ? 'animate-spin' : ''}`} />
+                                  <span>{isVerifying ? '검증 중' : '검증'}</span>
                                 </button>
+
+                                <a
+                                  href={currentVendorMeta.signupUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center gap-1 cursor-pointer"
+                                  title={currentVendorMeta.guide}
+                                >
+                                  <span>{currentVendorMeta.signupLabel}</span>
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
                               </div>
-
-                              <button
-                                type="button"
-                                onClick={handleTriggerVerify}
-                                disabled={isVerifying}
-                                className="btn-secondary text-xs shrink-0"
-                              >
-                                <PlugZap className={`w-3.5 h-3.5 ${isVerifying ? 'animate-spin' : ''}`} />
-                                <span>{isVerifying ? '검증 중' : '검증'}</span>
-                              </button>
-
-                              <a
-                                href={currentVendorMeta.signupUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="btn-secondary text-xs shrink-0"
-                                title={currentVendorMeta.guide}
-                              >
-                                <span>{currentVendorMeta.signupLabel}</span>
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
                             </div>
 
-                            {/* Model Selection (Inline Row with Dropdown & Role Assignment Button) */}
+                            {/* Model Selection Row */}
                             {(() => {
                               const spec = getModelSpec(localSelectedModel);
                               const contextStr = spec.contextTokens >= 1_000_000
@@ -1062,26 +1061,29 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               const specText = `${contextStr} 컨텍스트 · 입 $${spec.inputCostPer1M.toFixed(spec.inputCostPer1M < 0.01 ? 3 : 2)} / 출 $${spec.outputCostPer1M.toFixed(2)}${badgeClean ? ` (${badgeClean})` : ''}`;
 
                               return (
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2.5">
-                                    <label className="text-xs font-medium text-slate-300 w-14 shrink-0">모델</label>
+                                <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-medium text-zinc-200">기본 모델 선택</div>
+                                    <div className="text-[11px] text-zinc-400 mt-0.5">{specText}</div>
+                                  </div>
 
-                                    <div className="relative flex-1">
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <div className="relative min-w-[200px]">
                                       <select
                                         value={localSelectedModel}
                                         onChange={(e) => setLocalSelectedModel(e.target.value)}
-                                        className="w-full bg-[#09090b] border border-[#222226] hover:border-indigo-500/50 rounded-md px-3 py-1.5 text-xs text-slate-200 outline-none appearance-none cursor-pointer pr-8 font-normal"
+                                        className="w-full bg-[#09090b] border border-white/10 hover:border-white/20 rounded-md px-3 py-1.5 text-xs text-zinc-200 outline-none appearance-none cursor-pointer pr-8 font-normal"
                                       >
                                         {((vendorActiveModels[selectedVendor] && vendorActiveModels[selectedVendor].length > 0)
                                           ? vendorActiveModels[selectedVendor]
                                           : (VENDOR_MODELS_MAP[selectedVendor] || DEFAULT_FALLBACK_MODELS.filter((m) => m.vendor === selectedVendor))
                                         ).map((m) => (
-                                          <option key={m.id} value={m.id} className="bg-[#09090b] text-slate-200 py-1 font-normal">
+                                          <option key={m.id} value={m.id} className="bg-[#09090b] text-zinc-200 py-1 font-normal">
                                             {m.name}
                                           </option>
                                         ))}
                                       </select>
-                                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                      <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                                     </div>
 
                                     {onOpenRoleAssignment && (
@@ -1090,21 +1092,14 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                         onClick={() => {
                                           onOpenRoleAssignment();
                                         }}
-                                        className="btn-secondary text-xs shrink-0"
+                                        className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
                                         title="역할별 AI 모델 지정"
                                       >
-                                        <SlidersHorizontal className="w-3 h-3 text-indigo-400" />
+                                        <SlidersHorizontal className="w-3 h-3 text-zinc-400" />
                                         <span>역할별 모델 지정</span>
-                                        <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+                                        <ExternalLink className="w-2.5 h-2.5 text-zinc-400" />
                                       </button>
                                     )}
-                                  </div>
-
-                                  {/* Model Spec Line: 12px text-zinc-400 directly below dropdown */}
-                                  <div className="pl-[66px]">
-                                    <p className="text-[12px] text-zinc-400 font-normal">
-                                      {specText}
-                                    </p>
                                   </div>
                                 </div>
                               );
@@ -1112,24 +1107,32 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
                             {/* Search Grounding for Gemini */}
                             {selectedVendor === 'gemini' && (
-                              <div className="flex items-center justify-between gap-2 pt-1">
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  <span className="text-xs font-normal text-slate-300 truncate">실시간 구글 검색 연동</span>
-                                  <HelpTooltip
-                                    side="bottom"
-                                    align="right"
-                                    content="구글 검색 도구를 연동하여 최신 웹 기술 정보를 실시간으로 검색하고 답변에 출처 링크를 포함합니다. (Gemini 모델 전용)"
-                                  />
+                              <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
+                                <div className="min-w-0">
+                                  <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
+                                    <span>실시간 구글 검색 연동</span>
+                                    <HelpTooltip
+                                      side="bottom"
+                                      align="right"
+                                      content="구글 검색 도구를 연동하여 최신 웹 기술 정보를 실시간으로 검색하고 답변에 출처 링크를 포함합니다. (Gemini 모델 전용)"
+                                    />
+                                  </div>
+                                  <div className="text-[11px] text-zinc-400 mt-0.5">답변 작성 시 실시간 구글 웹 검색 결과 및 출처 포함</div>
                                 </div>
-                                <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                                  <input
-                                    type="checkbox"
-                                    checked={localGoogleGrounding}
-                                    onChange={(e) => setLocalGoogleGrounding(e.target.checked)}
-                                    className="sr-only peer"
+                                <button
+                                  type="button"
+                                  onClick={() => setLocalGoogleGrounding(!localGoogleGrounding)}
+                                  title={localGoogleGrounding ? "검색 연동 끄기" : "검색 연동 켜기"}
+                                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                    localGoogleGrounding ? 'bg-indigo-600' : 'bg-white/10'
+                                  }`}
+                                >
+                                  <span
+                                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition duration-200 ease-in-out ${
+                                      localGoogleGrounding ? 'translate-x-4' : 'translate-x-0'
+                                    }`}
                                   />
-                                  <div className="w-7 h-4 bg-[#18181b] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-3 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
-                                </label>
+                                </button>
                               </div>
                             )}
                           </div>
@@ -1137,108 +1140,106 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       })()}
                     </div>
                   ) : (
-                    <div className="bg-[#0c0c0e] border border-[#222226] rounded-md p-3 space-y-2.5">
-                      {/* Local Endpoint & Model Selector (2-Column Grid) */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {/* Endpoint */}
-                        <div className="flex items-center gap-1.5">
+                    <div>
+                      {/* Local Endpoint Row */}
+                      <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="text-xs font-medium text-zinc-200">Ollama 서비스 엔드포인트</div>
+                          <div className="text-[11px] text-zinc-400 mt-0.5">로컬 머신에 실행 중인 Ollama API 주소</div>
+                        </div>
+                        <div className="flex items-center gap-2 max-w-md w-full justify-end">
                           <input
                             type="text"
                             value={localEndpointInput}
                             onChange={(e) => setLocalEndpointInput(e.target.value)}
                             placeholder="http://localhost:11434"
-                            className="flex-1 bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded-md px-2.5 py-1.5 text-xs font-mono text-slate-200 placeholder:text-slate-500 outline-none"
+                            className="max-w-xs w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 py-1.5 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none"
                           />
                           <button
                             type="button"
                             onClick={handleTriggerVerify}
                             disabled={isVerifying}
-                            className="btn-secondary text-xs"
+                            className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                           >
                             <PlugZap className={`w-3.5 h-3.5 ${isVerifying ? 'animate-spin' : ''}`} />
                             <span>{isVerifying ? '연결 중' : '검증'}</span>
                           </button>
                         </div>
+                      </div>
 
-                        {/* Local Model Selector */}
-                        <div className="relative flex items-center bg-[#09090b] border border-[#222226] rounded-md px-2.5 py-1">
-                          <span className="text-[11px] font-normal text-slate-400 shrink-0 mr-1.5">로컬 모델</span>
+                      {/* Local Model Selector Row */}
+                      <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="text-xs font-medium text-zinc-200">로컬 모델 선택</div>
+                          <div className="text-[11px] text-zinc-400 mt-0.5">설치된 로컬 LLM 가중치 모델</div>
+                        </div>
+                        <div className="relative min-w-[220px]">
                           <select
                             value={localSelectedModel}
                             onChange={(e) => setLocalSelectedModel(e.target.value)}
-                            className="w-full bg-transparent text-xs text-slate-200 outline-none appearance-none cursor-pointer pr-5 truncate text-right font-normal"
+                            className="w-full bg-[#09090b] border border-white/10 hover:border-white/20 rounded-md px-3 py-1.5 text-xs text-zinc-200 outline-none appearance-none cursor-pointer pr-8 font-normal"
                           >
                             {localModelOptions.map((m) => (
-                              <option key={m.id} value={m.id} className="bg-[#09090b] text-slate-200 py-1 text-left">
+                              <option key={m.id} value={m.id} className="bg-[#09090b] text-zinc-200 py-1 font-normal">
                                 {m.name}
                               </option>
                             ))}
                           </select>
-                          <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                         </div>
-                      </div>
-
-                      {/* Local AI Free Indicator */}
-                      <div className="flex items-center justify-between bg-[#09090b] border border-[#222226] rounded-md px-2.5 py-1.5 text-[11px]">
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-300 font-medium">로컬 하드웨어 추론:</span>
-                          <span className="text-emerald-400 font-mono font-medium">토큰 비용 무료</span>
-                          <span className="text-[#222226]">|</span>
-                          <span className="text-slate-400">외부 네트워크 전송 없음 - 로컬 보안 보장</span>
-                        </div>
-                        <span className="badge-success text-[10px] px-1.5 py-0.5 rounded-sm">
-                          무제한 토큰
-                        </span>
                       </div>
 
                       {localSelectedModel === 'custom' && (
-                        <div className="flex items-center gap-2">
-                          <label className="text-[11px] font-normal text-slate-400 shrink-0">커스텀 모델명:</label>
+                        <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
+                          <div className="min-w-0">
+                            <div className="text-xs font-medium text-zinc-200">커스텀 모델 태그</div>
+                            <div className="text-[11px] text-zinc-400 mt-0.5">직접 입력할 Ollama 모델명</div>
+                          </div>
                           <input
                             type="text"
                             value={customModelInput}
                             onChange={(e) => setCustomModelInput(e.target.value)}
                             placeholder="예: llama3:latest 또는 mistral"
-                            className="flex-1 bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-2.5 py-1 text-xs text-slate-200 outline-none transition"
+                            className="max-w-xs w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 py-1.5 text-xs text-zinc-200 outline-none transition"
                           />
                         </div>
                       )}
 
-                      {/* CORS Diagnostic & 1-Line Accordion Guide */}
-                      <div className="pt-1.5 space-y-1.5">
+                      {/* CORS Diagnostic & Guide Row */}
+                      <div className="py-3.5 border-b border-white/[0.06] space-y-2">
                         <div className="flex items-center justify-between">
                           <button
                             type="button"
                             onClick={() => setIsCorsGuideOpen((prev) => !prev)}
-                            className="flex items-center gap-1.5 text-xs font-medium text-slate-300 hover:text-white transition cursor-pointer"
+                            className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 hover:text-white transition cursor-pointer"
                           >
                             <Terminal className="w-3.5 h-3.5 text-amber-400" />
                             <span>CORS 설정 가이드 보기</span>
-                            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-150 ${isCorsGuideOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-150 ${isCorsGuideOpen ? 'rotate-180' : ''}`} />
                           </button>
 
                           <button
                             type="button"
                             onClick={() => runCorsDiagnostic()}
                             disabled={corsStatus === 'testing'}
-                            className="btn-secondary text-[11px]"
+                            className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                           >
                             <RotateCcw className={`w-3 h-3 ${corsStatus === 'testing' ? 'animate-spin' : ''}`} />
                             <span>{corsStatus === 'testing' ? '진단 중...' : 'CORS 자가진단'}</span>
                           </button>
                         </div>
 
-                        {/* Diagnostic Result Banner (Always shown when active) */}
+                        {/* Diagnostic Result */}
                         {corsStatus !== 'idle' && (
                           <div
-                            className={`p-2 rounded border text-xs leading-relaxed flex items-start gap-1.5 ${
+                            className={`p-2.5 rounded-md border text-xs leading-relaxed flex items-start gap-2 ${
                               corsStatus === 'success'
-                                ? 'bg-emerald-950/30 border-emerald-800/50 text-emerald-300'
+                                ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300'
                                 : corsStatus === 'blocked'
-                                ? 'bg-amber-950/30 border-amber-800/50 text-amber-200'
+                                ? 'bg-amber-950/20 border-amber-500/30 text-amber-200'
                                 : corsStatus === 'offline'
-                                ? 'bg-rose-950/30 border-rose-800/50 text-rose-200'
-                                : 'bg-[#09090b] border-[#222226] text-slate-300'
+                                ? 'bg-rose-950/20 border-rose-500/30 text-rose-200'
+                                : 'bg-[#09090b] border-white/10 text-zinc-300'
                             }`}
                           >
                             {corsStatus === 'success' ? (
@@ -1246,16 +1247,14 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             ) : (
                               <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
                             )}
-                            <div>
-                              <p className="font-normal">{corsDetails}</p>
-                            </div>
+                            <p className="font-normal">{corsDetails}</p>
                           </div>
                         )}
 
                         {/* Collapsible Accordion Content for CORS Commands */}
                         {isCorsGuideOpen && (
-                          <div className="p-2.5 bg-[#09090b] border border-[#222226] rounded space-y-2 text-xs animate-in fade-in duration-100">
-                            <div className="flex items-center justify-between border-b border-[#222226] pb-1">
+                          <div className="p-3 bg-[#09090b] border border-white/10 rounded-md space-y-2 text-xs">
+                            <div className="flex items-center justify-between border-b border-white/[0.06] pb-1.5">
                               <div className="flex gap-1">
                                 {[
                                   { id: 'powershell', label: 'Windows 파워셸' },
@@ -1269,8 +1268,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                     onClick={() => setCorsOsTab(tab.id as any)}
                                     className={`px-2 py-0.5 rounded text-[11px] font-normal transition cursor-pointer ${
                                       corsOsTab === tab.id
-                                        ? 'bg-[#18181b] text-white font-medium border border-[#222226]'
-                                        : 'text-slate-400 hover:text-slate-200'
+                                        ? 'bg-white/10 text-white font-medium'
+                                        : 'text-zinc-400 hover:text-zinc-200'
                                     }`}
                                   >
                                     {tab.label}
@@ -1295,7 +1294,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               const isCopied = corsCopiedCmd === cmdText;
 
                               return (
-                                <div className="flex items-center justify-between bg-[#0c0c0e] border border-[#222226] rounded px-2.5 py-1 font-mono text-xs text-indigo-300">
+                                <div className="flex items-center justify-between bg-[#0c0c0e] border border-white/10 rounded-md px-3 py-1.5 font-mono text-xs text-indigo-300">
                                   <span className="select-all truncate mr-2">{cmdText}</span>
                                   <button
                                     type="button"
@@ -1305,9 +1304,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                       onToast('명령어가 클립보드에 복사되었습니다.', 'success');
                                       setTimeout(() => setCorsCopiedCmd(null), 2500);
                                     }}
-                                    className="btn-secondary text-[11px]"
+                                    className="px-2 py-1 rounded text-[11px] text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center gap-1 cursor-pointer"
                                   >
-                                    {isCopied ? <CheckCheck className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-400" />}
+                                    {isCopied ? <CheckCheck className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-zinc-400" />}
                                     <span>{isCopied ? '복사됨' : '복사'}</span>
                                   </button>
                                 </div>
@@ -1319,17 +1318,21 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     </div>
                   )}
 
-                  {/* 3. Inference Mode Presets & Advanced Parameters (Inline Row) */}
-                  <div className="flex items-center justify-between gap-3 pt-1">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex items-center gap-1">
-                        <label className="text-xs font-medium text-slate-300">추론 모드</label>
+                  {/* 3. Inference Mode Presets */}
+                  <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
+                        <span>추론 모드 및 파라미터</span>
                         <HelpTooltip
                           side="top"
                           content="코딩이나 정밀 분석에는 '정밀·코드'를, 일반 용도에는 '균형', 창의적 아이디어 발상에는 '창의적'을 권장합니다."
                         />
                       </div>
-                      <div className="inline-flex p-0.5 bg-[#09090b] border border-[#222226] rounded-md">
+                      <div className="text-[11px] text-zinc-400 mt-0.5">작업 목적에 맞춘 온도 및 토큰 파라미터 프리셋</div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="inline-flex p-0.5 bg-[#09090b] border border-white/10 rounded-md">
                         {[
                           { id: 'precision', label: '정밀·코드' },
                           { id: 'balanced', label: '균형' },
@@ -1343,8 +1346,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               onClick={() => handleApplyPreset(p.id as any)}
                               className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer ${
                                 isSelected
-                                  ? 'bg-[#18181b] text-white font-medium border border-[#222226]'
-                                  : 'text-slate-400 hover:text-slate-200'
+                                  ? 'bg-white/10 text-white font-medium'
+                                  : 'text-zinc-400 hover:text-zinc-200'
                               }`}
                             >
                               {p.label}
@@ -1352,36 +1355,36 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           );
                         })}
                       </div>
-                    </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setIsAdvancedParamsOpen(!isAdvancedParamsOpen)}
-                      className="btn-secondary text-xs"
-                    >
-                      <SlidersHorizontal className="w-3 h-3 text-indigo-400" />
-                      <span>세부 파라미터</span>
-                      {isAdvancedParamsOpen ? (
-                        <ChevronUp className="w-3 h-3 text-slate-400" />
-                      ) : (
-                        <ChevronDown className="w-3 h-3 text-slate-400" />
-                      )}
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsAdvancedParamsOpen(!isAdvancedParamsOpen)}
+                        className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <SlidersHorizontal className="w-3 h-3 text-zinc-400" />
+                        <span>세부 파라미터</span>
+                        {isAdvancedParamsOpen ? (
+                          <ChevronUp className="w-3 h-3 text-zinc-400" />
+                        ) : (
+                          <ChevronDown className="w-3 h-3 text-zinc-400" />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
-                  {/* 4. Collapsible Advanced Parameters (Clean Spaced Rows without inner dividers) */}
+                  {/* 4. Collapsible Advanced Parameters */}
                   {isAdvancedParamsOpen && (
-                    <div className="bg-[#0c0c0e] border border-[#222226] rounded-md px-3.5 py-1.5 animate-in fade-in duration-150">
+                    <div className="py-3.5 border-b border-white/[0.06] space-y-3">
                       {/* Temperature Row */}
-                      <div className="py-1.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div className="sm:w-48 shrink-0 flex items-center justify-between sm:justify-start gap-1.5">
-                          <span className="text-xs font-normal text-slate-300">온도 (Temperature)</span>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="w-48 shrink-0 flex items-center gap-1.5">
+                          <span className="text-xs text-zinc-300">온도 (Temperature)</span>
                           <HelpTooltip
                             side="top"
                             content="값이 낮을수록 결정적이고 일관된 답변을 생성하며, 높을수록 창의적이고 다양한 표현을 시도합니다."
                           />
                         </div>
-                        <div className="flex-1 flex items-center gap-3">
+                        <div className="flex-1 max-w-sm flex items-center gap-3">
                           <input
                             type="range"
                             min="0"
@@ -1393,22 +1396,22 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             }
                             className="flex-1 accent-indigo-500 cursor-pointer h-1.5 bg-[#18181b] rounded appearance-none"
                           />
-                          <span className="w-14 text-right font-mono text-xs font-medium text-indigo-300 shrink-0">
+                          <span className="w-12 text-right font-mono text-xs font-medium text-zinc-300 shrink-0">
                             {localAiParams.temperature.toFixed(2)}
                           </span>
                         </div>
                       </div>
 
                       {/* Max Tokens Row */}
-                      <div className="py-1.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div className="sm:w-48 shrink-0 flex items-center justify-between sm:justify-start gap-1.5">
-                          <span className="text-xs font-normal text-slate-300">최대 출력 토큰</span>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="w-48 shrink-0 flex items-center gap-1.5">
+                          <span className="text-xs text-zinc-300">최대 출력 토큰</span>
                           <HelpTooltip
                             side="top"
                             content="한 번의 질의에 AI가 생성할 수 있는 최대 토큰 수입니다."
                           />
                         </div>
-                        <div className="flex-1 flex items-center gap-3">
+                        <div className="flex-1 max-w-sm flex items-center gap-3">
                           <input
                             type="range"
                             min="512"
@@ -1420,22 +1423,22 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             }
                             className="flex-1 accent-indigo-500 cursor-pointer h-1.5 bg-[#18181b] rounded appearance-none"
                           />
-                          <span className="w-14 text-right font-mono text-xs font-medium text-indigo-300 shrink-0">
+                          <span className="w-12 text-right font-mono text-xs font-medium text-zinc-300 shrink-0">
                             {localAiParams.maxTokens}
                           </span>
                         </div>
                       </div>
 
                       {/* Top-P Row */}
-                      <div className="py-1.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div className="sm:w-48 shrink-0 flex items-center justify-between sm:justify-start gap-1.5">
-                          <span className="text-xs font-normal text-slate-300">표본 추출 확률 (Top-P)</span>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="w-48 shrink-0 flex items-center gap-1.5">
+                          <span className="text-xs text-zinc-300">표본 추출 확률 (Top-P)</span>
                           <HelpTooltip
                             side="top"
                             content="누적 확률 분포 상위 P 범위 내의 토큰 중에서만 다음 단어를 선택합니다."
                           />
                         </div>
-                        <div className="flex-1 flex items-center gap-3">
+                        <div className="flex-1 max-w-sm flex items-center gap-3">
                           <input
                             type="range"
                             min="0.05"
@@ -1447,59 +1450,63 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             }
                             className="flex-1 accent-indigo-500 cursor-pointer h-1.5 bg-[#18181b] rounded appearance-none"
                           />
-                          <span className="w-14 text-right font-mono text-xs font-medium text-indigo-300 shrink-0">
+                          <span className="w-12 text-right font-mono text-xs font-medium text-zinc-300 shrink-0">
                             {localAiParams.topP.toFixed(2)}
                           </span>
                         </div>
                       </div>
 
                       {/* Streaming Checkbox Row */}
-                      <div className="py-1.5 flex items-center justify-between gap-2">
+                      <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-normal text-slate-300">스트리밍 실시간 응답</span>
+                          <span className="text-xs text-zinc-300">스트리밍 실시간 응답</span>
                           <HelpTooltip
                             side="top"
                             content="답변이 생성되는 즉시 화면에 한 글자씩 실시간으로 표시합니다."
                           />
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={localAiParams.streamEnabled}
-                            onChange={(e) =>
-                              setLocalAiParams((prev) => ({ ...prev, streamEnabled: e.target.checked }))
-                            }
-                            className="sr-only peer"
+                        <button
+                          type="button"
+                          onClick={() => setLocalAiParams((prev) => ({ ...prev, streamEnabled: !prev.streamEnabled }))}
+                          title={localAiParams.streamEnabled ? "스트리밍 끄기" : "스트리밍 켜기"}
+                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                            localAiParams.streamEnabled ? 'bg-indigo-600' : 'bg-white/10'
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition duration-200 ease-in-out ${
+                              localAiParams.streamEnabled ? 'translate-x-4' : 'translate-x-0'
+                            }`}
                           />
-                          <div className="w-7 h-4 bg-[#18181b] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-3 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
-                        </label>
+                        </button>
                       </div>
                     </div>
                   )}
 
-                  {/* 5. PDF 문서 파싱 엔진 (Flat Form Field) */}
-                  <div className="pt-1 space-y-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-xs font-medium text-slate-200">
-                          PDF 문서 파싱 엔진
-                        </span>
-                        <HelpTooltip
-                          side="top"
-                          title="PDF 파싱 엔진 안내"
-                          content="PDF 파일을 에디터로 불러올 때 사용할 방식을 지정합니다. 기본 브라우저 파서는 즉시 텍스트를 추출하며, 로컬 AI 파서는 제목, 표, 목록 구조를 정밀한 마크다운으로 재구성합니다."
-                        />
+                  {/* 5. PDF 문서 파싱 엔진 */}
+                  <div className="py-3.5 border-b border-white/[0.06] space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
+                          <span>PDF 문서 파싱 엔진</span>
+                          <HelpTooltip
+                            side="top"
+                            title="PDF 파싱 엔진 안내"
+                            content="PDF 파일을 에디터로 불러올 때 사용할 방식을 지정합니다. 기본 브라우저 파서는 즉시 텍스트를 추출하며, 로컬 AI 파서는 제목, 표, 목록 구조를 정밀한 마크다운으로 재구성합니다."
+                          />
+                        </div>
+                        <div className="text-[11px] text-zinc-400 mt-0.5">문서 업로드 시 서식 및 표를 구조화할 파서 선택</div>
                       </div>
 
                       {/* Parser Selector Segments */}
-                      <div className="inline-flex p-0.5 bg-[#09090b] border border-[#222226] rounded-md shrink-0">
+                      <div className="inline-flex p-0.5 bg-[#09090b] border border-white/10 rounded-md shrink-0">
                         <button
                           type="button"
                           onClick={() => setPdfParserEngine('fast')}
                           className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center gap-1.5 ${
                             pdfParserEngine === 'fast'
-                              ? 'bg-[#18181b] text-white font-medium border border-[#222226]'
-                              : 'text-slate-400 hover:text-slate-200'
+                              ? 'bg-white/10 text-white font-medium'
+                              : 'text-zinc-400 hover:text-zinc-200'
                           }`}
                         >
                           <Zap className="w-3 h-3 text-amber-400" />
@@ -1511,8 +1518,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           onClick={() => setPdfParserEngine('gemini')}
                           className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center gap-1.5 ${
                             pdfParserEngine === 'gemini'
-                              ? 'bg-[#18181b] text-white font-medium border border-[#222226]'
-                              : 'text-slate-400 hover:text-slate-200'
+                              ? 'bg-white/10 text-white font-medium'
+                              : 'text-zinc-400 hover:text-zinc-200'
                           }`}
                         >
                           <Sparkles className="w-3 h-3 text-indigo-400" />
@@ -1524,8 +1531,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           onClick={() => setPdfParserEngine('ollama')}
                           className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center gap-1.5 ${
                             pdfParserEngine === 'ollama'
-                              ? 'bg-[#18181b] text-white font-medium border border-[#222226]'
-                              : 'text-slate-400 hover:text-slate-200'
+                              ? 'bg-white/10 text-white font-medium'
+                              : 'text-zinc-400 hover:text-zinc-200'
                           }`}
                         >
                           <Server className="w-3 h-3 text-sky-400" />
@@ -1536,7 +1543,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
                     {/* Ollama Local AI Options */}
                     {pdfParserEngine === 'ollama' && (
-                      <div className="pt-1.5 space-y-2 animate-in fade-in duration-150">
+                      <div className="pt-2 space-y-2">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <div className="flex items-center gap-1.5">
                             <input
@@ -1544,13 +1551,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               value={pdfOllamaEndpoint}
                               onChange={(e) => setPdfOllamaEndpoint(e.target.value)}
                               placeholder="http://localhost:11434"
-                              className="flex-1 bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-2.5 py-1 text-xs font-mono text-slate-200 placeholder:text-slate-500 outline-none"
+                              className="flex-1 bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded px-2.5 py-1 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none"
                             />
                             <button
                               type="button"
                               onClick={handleRefreshOllamaPdfModels}
                               disabled={isCheckingPdfOllama}
-                              className="btn-secondary text-xs"
+                              className="px-2.5 py-1 rounded text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center gap-1 cursor-pointer"
                               title="설치된 로컬 Ollama 모델 목록 새로고침"
                             >
                               <RotateCcw className={`w-3 h-3 ${isCheckingPdfOllama ? 'animate-spin' : ''}`} />
@@ -1562,7 +1569,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             <select
                               value={pdfOllamaModel}
                               onChange={(e) => setPdfOllamaModel(e.target.value)}
-                              className="w-full bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-2.5 py-1 text-xs text-slate-200 outline-none transition appearance-none cursor-pointer pr-6 truncate"
+                              className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded px-2.5 py-1 text-xs text-zinc-200 outline-none transition appearance-none cursor-pointer pr-6 truncate"
                             >
                               <optgroup label="추천 파싱 모델">
                                 <option value="llama3.2-vision">ollama/llama3.2-vision - 서식 및 비전 추천</option>
@@ -1583,19 +1590,19 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               )}
                               <option value="custom">직접 입력 - 사용자 보유 모델</option>
                             </select>
-                            <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <ChevronDown className="w-3 h-3 text-zinc-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                           </div>
                         </div>
 
                         {pdfOllamaModel === 'custom' && (
                           <div className="flex items-center gap-2">
-                            <label className="text-[11px] font-normal text-slate-400 shrink-0">커스텀 모델 태그:</label>
+                            <label className="text-[11px] font-normal text-zinc-400 shrink-0">커스텀 모델 태그:</label>
                             <input
                               type="text"
                               value={pdfCustomModel}
                               onChange={(e) => setPdfCustomModel(e.target.value)}
                               placeholder="예: llava:latest 또는 mistral:instruct"
-                              className="flex-1 bg-[#09090b] border border-[#222226] focus:border-indigo-500 rounded px-2.5 py-1 text-xs font-mono text-slate-200 outline-none"
+                              className="flex-1 bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded px-2.5 py-1 text-xs font-mono text-zinc-200 outline-none"
                             />
                           </div>
                         )}
@@ -1613,7 +1620,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     {/* Field 1: Assistant Name */}
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-1.5">
-                        <label className="text-xs text-zinc-400 font-medium">어시스턴트 이름</label>
+                        <label className="text-xs text-zinc-300 font-medium">어시스턴트 이름</label>
                         <HelpTooltip
                           content="대화창 및 시스템 출력 시 표시될 AI의 호칭입니다."
                         />
@@ -1628,14 +1635,14 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           })
                         }
                         placeholder="Podium Assistant"
-                        className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 py-2 text-xs text-slate-200 outline-none transition placeholder:text-slate-600"
+                        className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 py-2 text-xs text-zinc-200 outline-none transition placeholder:text-zinc-600"
                       />
                     </div>
 
                     {/* Field 2: Role / Tone */}
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-1.5">
-                        <label className="text-xs text-zinc-400 font-medium">역할 및 어조</label>
+                        <label className="text-xs text-zinc-300 font-medium">역할 및 어조</label>
                         <HelpTooltip
                           content="AI 답변의 전문성 및 전반적인 커뮤니케이션 톤앤매너를 결정합니다."
                         />
@@ -1650,7 +1657,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           })
                         }
                         placeholder="소프트웨어 엔지니어 및 기술 작가"
-                        className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 py-2 text-xs text-slate-200 outline-none transition placeholder:text-slate-600"
+                        className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 py-2 text-xs text-zinc-200 outline-none transition placeholder:text-zinc-600"
                       />
                     </div>
                   </div>
@@ -1659,7 +1666,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   <div className="flex-1 flex flex-col min-h-0 space-y-1.5 pt-0.5">
                     <div className="flex items-center justify-between shrink-0">
                       <div className="flex items-center gap-1.5">
-                        <label className="text-xs text-zinc-400 font-medium">시스템 프롬프트 지침</label>
+                        <label className="text-xs text-zinc-300 font-medium">시스템 프롬프트 지침</label>
                         <HelpTooltip
                           content="AI가 코드 작성, 번역 및 질의응답 시 최우선으로 준수해야 할 기본 지침입니다."
                         />
@@ -1675,7 +1682,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             }
                           })
                         }
-                        className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 border border-zinc-700/60 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                        className="px-2.5 py-1 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                       >
                         <RotateCcw className="w-3 h-3" />
                         <span>기본값 복원</span>
@@ -1689,7 +1696,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           aiPersona: { ...localPrefs.aiPersona, systemInstruction: e.target.value }
                         })
                       }
-                      className="w-full flex-1 min-h-[360px] bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md p-3 text-xs font-mono text-slate-200 outline-none transition resize-none leading-relaxed placeholder:text-slate-600"
+                      className="w-full flex-1 min-h-[360px] bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md p-3 text-xs font-mono text-zinc-200 outline-none transition resize-none leading-relaxed placeholder:text-zinc-600"
                       placeholder="AI에게 전달할 프롬프트 지침 입력..."
                     />
                   </div>
@@ -1698,39 +1705,34 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
               {/* TAB: Integrations & Accounts */}
               {activeTab === 'integrations' && (
-                <div className="bg-[#0c0c0e] border border-[#222226] rounded-md p-3.5 space-y-2 animate-in fade-in duration-150 text-xs">
+                <div className="divide-y divide-white/[0.06] animate-in fade-in duration-150">
                   {/* Item 1: Google Drive On-Demand & Workspace Integration */}
                   {(() => {
                     const isConnected = googleTokenStatus === 'connected' && !!googleUser;
                     const isExpired = googleTokenStatus === 'expired';
 
                     return (
-                      <div className="flex items-center justify-between py-2 border-b border-white/[0.06] gap-3">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-7 h-7 rounded-md bg-[#18181b] text-indigo-400 border border-[#222226] flex items-center justify-center shrink-0">
-                            <Globe className="w-3.5 h-3.5" />
-                          </div>
+                      <div className="py-3.5 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Globe className="w-4 h-4 text-zinc-400 shrink-0" />
                           <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-xs font-medium text-slate-200">구글 드라이브</span>
-                              {isConnected ? (
-                                <span className="badge-success text-[10px] px-1.5 py-0.5 rounded-sm font-mono flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                  연동됨
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-zinc-200">구글 드라이브</span>
+                              {isConnected && (
+                                <span className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-normal">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                  <span>연동됨</span>
                                 </span>
-                              ) : isExpired ? (
-                                <span className="badge-warning text-[10px] px-1.5 py-0.5 rounded-sm font-mono">
+                              )}
+                              {isExpired && (
+                                <span className="text-[11px] text-amber-400 font-normal">
                                   토큰 만료
-                                </span>
-                              ) : (
-                                <span className="badge-muted text-[10px] px-1.5 py-0.5 rounded-sm font-mono">
-                                  단독 연동 가능
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] text-slate-400 truncate">
+                            <p className="text-[11px] text-zinc-400 truncate mt-0.5">
                               {isConnected && googleUser ? (
-                                <span className="font-mono text-slate-300">
+                                <span className="font-mono text-zinc-300">
                                   {googleUser.email}
                                 </span>
                               ) : (
@@ -1746,19 +1748,19 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               <button
                                 type="button"
                                 onClick={onOpenGoogleDrive}
-                                className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
+                                className="px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
                                 title="Google Drive 파일 탐색 모달 열기"
                               >
-                                <FolderOpen className="w-3.5 h-3.5 text-slate-400" />
+                                <FolderOpen className="w-3.5 h-3.5 text-zinc-400" />
                                 <span>드라이브 탐색</span>
                               </button>
                               <button
                                 type="button"
                                 onClick={onOpenGoogleAccount}
-                                className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
+                                className="px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
                                 title="Google 계정 및 연결 관리"
                               >
-                                <KeyRound className="w-3.5 h-3.5 text-indigo-400" />
+                                <KeyRound className="w-3.5 h-3.5 text-zinc-400" />
                                 <span>계정 관리</span>
                               </button>
                             </>
@@ -1766,7 +1768,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             <button
                               type="button"
                               onClick={onOpenGoogleDrive || onOpenGoogleAccount}
-                              className="bg-zinc-800/80 hover:bg-zinc-700 text-amber-300 hover:text-amber-200 border border-amber-500/40 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
+                              className="px-3 py-1.5 rounded-md text-xs text-amber-300 hover:text-amber-200 bg-amber-500/10 border border-amber-500/30 transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
                             >
                               <KeyRound className="w-3.5 h-3.5" />
                               <span>토큰 재인증 및 열기</span>
@@ -1775,10 +1777,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             <button
                               type="button"
                               onClick={onOpenGoogleDrive || onOpenGoogleAccount}
-                              className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
+                              className="px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
                               title="Google OAuth 연동을 시작합니다."
                             >
-                              <Globe className="w-3.5 h-3.5 text-slate-400" />
+                              <Globe className="w-3.5 h-3.5 text-zinc-400" />
                               <span>구글 드라이브 연결</span>
                             </button>
                           )}
@@ -1793,32 +1795,31 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     const hasPat = !!githubConfig?.token;
 
                     return (
-                      <div className="flex items-center justify-between py-2 border-b border-white/[0.06] gap-3">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-7 h-7 rounded-md bg-[#18181b] text-purple-400 border border-[#222226] flex items-center justify-center shrink-0">
-                            <Github className="w-3.5 h-3.5" />
-                          </div>
+                      <div className="py-3.5 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Github className="w-4 h-4 text-zinc-400 shrink-0" />
                           <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-xs font-medium text-slate-200">GitHub</span>
-                              {isConnected ? (
-                                <span className="badge-success text-[10px] px-1.5 py-0.5 rounded-sm font-mono flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                  연결됨
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-zinc-200">GitHub</span>
+                              {isConnected && (
+                                <span className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-normal">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                  <span>연결됨</span>
                                 </span>
-                              ) : hasPat ? (
-                                <span className="badge-warning text-[10px] px-1.5 py-0.5 rounded-sm font-mono">
+                              )}
+                              {!isConnected && hasPat && (
+                                <span className="text-[11px] text-amber-400 font-normal">
                                   토큰 등록됨
-                                </span>
-                              ) : (
-                                <span className="badge-muted text-[10px] px-1.5 py-0.5 rounded-sm font-mono">
-                                  미연결
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] text-slate-400 truncate">
+                            <p className="text-[11px] text-zinc-400 truncate mt-0.5">
                               {isConnected ? (
-                                <span className="font-mono text-purple-300">{githubConfig?.owner}/{githubConfig?.repo}</span>
+                                <span className="font-mono text-zinc-300">
+                                  {githubConfig?.repo?.includes('/')
+                                    ? githubConfig.repo
+                                    : (githubConfig?.owner ? `${githubConfig.owner}/${githubConfig.repo}` : githubConfig?.repo)}
+                                </span>
                               ) : (
                                 '원격 저장소 커밋, 푸시, 브랜치 관리 및 동기화'
                               )}
@@ -1830,9 +1831,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           <button
                             type="button"
                             onClick={onOpenGithub}
-                            className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
+                            className="px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
                           >
-                            <Github className="w-3.5 h-3.5 text-slate-400" />
+                            <Github className="w-3.5 h-3.5 text-zinc-400" />
                             <span>{isConnected ? '저장소 관리' : '연결 설정'}</span>
                           </button>
                         </div>
@@ -1845,28 +1846,22 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     const isConnected = !!remoteConfig?.host;
 
                     return (
-                      <div className="flex items-center justify-between py-2 gap-3">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-7 h-7 rounded-md bg-[#18181b] text-indigo-400 border border-[#222226] flex items-center justify-center shrink-0">
-                            <Server className="w-3.5 h-3.5" />
-                          </div>
+                      <div className="py-3.5 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Server className="w-4 h-4 text-zinc-400 shrink-0" />
                           <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-xs font-medium text-slate-200">원격 서버</span>
-                              {isConnected ? (
-                                <span className="badge-success text-[10px] px-1.5 py-0.5 rounded-sm font-mono flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                  연결됨
-                                </span>
-                              ) : (
-                                <span className="badge-muted text-[10px] px-1.5 py-0.5 rounded-sm font-mono">
-                                  미연결
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-zinc-200">원격 서버</span>
+                              {isConnected && (
+                                <span className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-normal">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                  <span>연결됨</span>
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] text-slate-400 truncate">
+                            <p className="text-[11px] text-zinc-400 truncate mt-0.5">
                               {isConnected ? (
-                                <span className="font-mono text-indigo-300">
+                                <span className="font-mono text-zinc-300">
                                   {remoteConfig?.username || 'root'}@{remoteConfig?.host}:{remoteConfig?.port || 22}
                                 </span>
                               ) : (
@@ -1880,9 +1875,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           <button
                             type="button"
                             onClick={onOpenRemoteSSH}
-                            className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-3 py-1.5 rounded-md text-xs font-medium transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
+                            className="px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
                           >
-                            <Server className="w-3.5 h-3.5 text-slate-400" />
+                            <Server className="w-3.5 h-3.5 text-zinc-400" />
                             <span>{isConnected ? '서버 관리' : '서버 설정'}</span>
                           </button>
                         </div>
@@ -1916,57 +1911,63 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
               {/* TAB 6: Ghost Writer Mode */}
               {activeTab === 'ghost-writer' && (
-                <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="space-y-3.5 divide-y divide-[#222226]">
-                    {/* Mode & Level Selection */}
-                    <div className="flex items-center justify-between gap-4 pt-1 first:pt-0">
-                      <div className="flex items-center gap-1.5">
-                        <label className="text-xs font-medium text-slate-300">작동 수준</label>
+                <div className="divide-y divide-white/[0.06] animate-in fade-in duration-150">
+                  {/* Mode & Level Selection */}
+                  <div className="py-3.5 flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
+                        <span>작동 수준</span>
                         <HelpTooltip
                           title="고스트 라이터 수준"
                           content="에디터에서 문서를 작성하는 동안 백그라운드에서 실시간 번역 및 문맥 완성을 제안하는 강도입니다."
                         />
                       </div>
-                      <div className="flex rounded bg-[#09090b] p-0.5 border border-[#222226]">
-                        {[
-                          { id: 'off', label: '사용 안 함' },
-                          { id: '30', label: '30%' },
-                          { id: '50', label: '50%' },
-                          { id: '70', label: '70%' },
-                          { id: '100', label: '100%' },
-                        ].map((lvl) => {
-                          const isSelected = (!localPrefs.ghostWriterLevel && lvl.id === 'off') || localPrefs.ghostWriterLevel === lvl.id;
-                          return (
-                            <button
-                              key={lvl.id}
-                              type="button"
-                              onClick={() => setLocalPrefs({ ...localPrefs, ghostWriterLevel: lvl.id as any })}
-                              className={`px-2.5 py-1 text-xs font-medium rounded transition cursor-pointer ${
-                                isSelected
-                                  ? 'bg-[#18181b] text-indigo-300 font-medium shadow-xs border border-indigo-500/40'
-                                  : 'text-slate-400 hover:text-slate-200'
-                              }`}
-                            >
-                              {lvl.label}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <div className="text-[11px] text-zinc-400 mt-0.5">실시간 번역 및 문맥 완성 제안 강도 설정</div>
                     </div>
+                    <div className="inline-flex p-0.5 bg-[#09090b] border border-white/10 rounded-md shrink-0">
+                      {[
+                        { id: 'off', label: '사용 안 함' },
+                        { id: '30', label: '30%' },
+                        { id: '50', label: '50%' },
+                        { id: '70', label: '70%' },
+                        { id: '100', label: '100%' },
+                      ].map((lvl) => {
+                        const isSelected = (!localPrefs.ghostWriterLevel && lvl.id === 'off') || localPrefs.ghostWriterLevel === lvl.id;
+                        return (
+                          <button
+                            key={lvl.id}
+                            type="button"
+                            onClick={() => setLocalPrefs({ ...localPrefs, ghostWriterLevel: lvl.id as any })}
+                            className={`px-2.5 py-1 text-xs font-normal rounded transition cursor-pointer ${
+                              isSelected
+                                ? 'bg-white/10 text-white font-medium'
+                                : 'text-zinc-400 hover:text-zinc-200'
+                            }`}
+                          >
+                            {lvl.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-                    {/* Translation Model Selection */}
-                    <div className="flex items-center justify-between gap-4 pt-3">
-                      <div className="flex items-center gap-1.5">
-                        <label className="text-xs font-medium text-slate-300">번역 모델</label>
+                  {/* Translation Model Selection */}
+                  <div className="py-3.5 flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
+                        <span>번역 모델</span>
                         <HelpTooltip
                           title="고스트 라이터 전용 모델"
                           content="실시간 문장 생성 및 다국어 번역을 전담할 경량 고속 모델을 선택합니다."
                         />
                       </div>
+                      <div className="text-[11px] text-zinc-400 mt-0.5">실시간 번역 및 문맥 완성을 전담할 AI 모델</div>
+                    </div>
+                    <div className="relative min-w-[220px]">
                       <select
                         value={localPrefs.ghostWriterModel || (modelOptions && modelOptions[0]?.id) || 'gemini-2.5-flash'}
                         onChange={(e) => setLocalPrefs({ ...localPrefs, ghostWriterModel: e.target.value })}
-                        className="w-64 bg-[#09090b] border border-[#222226] rounded px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-indigo-500 transition cursor-pointer"
+                        className="w-full bg-[#09090b] border border-white/10 hover:border-white/20 rounded-md px-3 py-1.5 text-xs text-zinc-200 outline-none appearance-none cursor-pointer pr-8 font-normal"
                       >
                         {(() => {
                           const opts = modelOptions && modelOptions.length > 0 ? modelOptions : DEFAULT_FALLBACK_MODELS;
@@ -1978,14 +1979,14 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               <>
                                 <optgroup label="클라우드 모델">
                                   {cloudOpts.map((m) => (
-                                    <option key={m.id} value={m.id}>
+                                    <option key={m.id} value={m.id} className="bg-[#09090b] text-zinc-200 py-1 font-normal">
                                       {m.name}
                                     </option>
                                   ))}
                                 </optgroup>
                                 <optgroup label="로컬 모델">
                                   {localOpts.map((m) => (
-                                    <option key={m.id} value={m.id}>
+                                    <option key={m.id} value={m.id} className="bg-[#09090b] text-zinc-200 py-1 font-normal">
                                       {m.name}
                                     </option>
                                   ))}
@@ -1995,12 +1996,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           }
 
                           return opts.map((m) => (
-                            <option key={m.id} value={m.id}>
+                            <option key={m.id} value={m.id} className="bg-[#09090b] text-zinc-200 py-1 font-normal">
                               {m.name}
                             </option>
                           ));
                         })()}
                       </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
                   </div>
                 </div>
@@ -2009,8 +2011,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="px-5 py-3 border-t border-[#222226] bg-[#121214] flex justify-between items-center shrink-0">
-            <span className="text-xs text-slate-400 flex items-center gap-1.5">
+          <div className="px-5 py-3 border-t border-white/[0.08] bg-[#121214] flex justify-between items-center shrink-0">
+            <span className="text-xs text-zinc-400 flex items-center gap-1.5">
               <Check className="w-3.5 h-3.5 text-emerald-400" />
               <span>설정은 브라우저 로컬 저장소에 안전하게 보존됩니다</span>
             </span>
@@ -2018,16 +2020,16 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
               >
                 취소
               </button>
               <button
                 type="button"
                 onClick={handleSave}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors inline-flex items-center gap-2 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center gap-1.5 cursor-pointer"
               >
-                <Save className="w-4 h-4" />
+                <Save className="w-3.5 h-3.5" />
                 <span>저장 및 적용</span>
               </button>
             </div>
