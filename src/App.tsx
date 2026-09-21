@@ -8434,18 +8434,6 @@ ${projectEvents
 
               {activeMenu === 'pdf' && (
                 <div className="absolute left-0 top-full mt-1.5 w-56 bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  {/* Current Active File Header */}
-                  <div className="px-3 py-1.5 border-b border-white/[0.06] mb-1 flex items-center justify-between">
-                    <span className="font-medium text-[11px] truncate text-zinc-300">
-                      {currentActiveFile.toLowerCase().endsWith('.pdf') ? currentActiveFile : '활성 PDF 문서 없음'}
-                    </span>
-                    {currentActiveFile.toLowerCase().endsWith('.pdf') && (
-                      <span className="text-[10px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded border border-rose-500/30 uppercase font-mono">
-                        PDF
-                      </span>
-                    )}
-                  </div>
-
                   {/* Extraction & Parsing Group */}
                   <button
                     type="button"
@@ -11349,41 +11337,33 @@ ${projectEvents
       {/* Delete Confirmation Warning Modal */}
       {deleteConfirmSession && (
         <div className="fixed inset-0 bg-[#09090b]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#121214] border border-[#222226] rounded-xs max-w-md w-full p-5 space-y-4 animate-in fade-in zoom-in duration-150">
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 bg-rose-950/80 border border-rose-800/80 text-rose-400 rounded-xs shrink-0">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div className="space-y-1 min-w-0 flex-1">
-                <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                  <span>프로젝트 삭제 경고</span>
-                  <span className="text-xs font-mono font-normal text-rose-400 bg-rose-950/60 border border-rose-800/60 px-2 py-0.5 rounded-xs">
-                    주의
-                  </span>
-                </h3>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  '<span className="font-semibold text-amber-300">{deleteConfirmSession.title}</span>' 프로젝트를 삭제하시겠습니까?
-                </p>
-                <p className="text-[0.6875rem] text-slate-400 leading-normal pt-1">
-                  프로젝트를 삭제하면 좌측 대화, 중앙 메모, 우측 폴더 연동 항목이 모두 휴지통으로 이동합니다. 휴지통에서 언제든지 복구할 수 있습니다.
-                </p>
-              </div>
+          <div className="bg-[#121214] border border-[#222226] rounded-md max-w-md w-full p-5 space-y-4 animate-in fade-in zoom-in duration-150">
+            <div className="space-y-1.5 min-w-0">
+              <h3 className="text-sm font-semibold text-zinc-100">
+                프로젝트 삭제 경고
+              </h3>
+              <p className="text-xs text-zinc-200 leading-relaxed">
+                '<span className="font-medium text-amber-200">{deleteConfirmSession.title}</span>' 프로젝트를 삭제하시겠습니까?
+              </p>
+              <p className="text-[0.6875rem] text-zinc-400 leading-relaxed pt-0.5">
+                프로젝트를 삭제하면 좌측 대화, 중앙 메모, 우측 폴더 연동 항목이 모두 휴지통으로 이동합니다. 휴지통에서 언제든지 복구할 수 있습니다.
+              </p>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#222226]">
               <button
                 type="button"
                 onClick={() => setDeleteConfirmSession(null)}
-                className="px-3 py-1.5 rounded-xs bg-[#121214] hover:bg-[#18181b] text-slate-300 text-xs font-medium transition cursor-pointer border border-[#222226]"
+                className="px-3 py-1.5 rounded-md bg-[#121214] hover:bg-white/[0.06] text-zinc-300 text-xs font-medium transition cursor-pointer border border-[#222226]"
               >
                 취소
               </button>
               <button
                 type="button"
                 onClick={executeDeleteSession}
-                className="px-3.5 py-1.5 rounded-xs bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium transition flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-md bg-rose-800/80 hover:bg-rose-700/80 text-rose-100 border border-rose-700/40 text-xs font-medium transition flex items-center gap-1.5 cursor-pointer shadow-sm"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-3.5 h-3.5 text-rose-200" />
                 <span>휴지통으로 이동</span>
               </button>
             </div>
@@ -11615,9 +11595,9 @@ ${projectEvents
               <button
                 type="button"
                 onClick={executeDeleteFile}
-                className="px-4 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5"
+                className="px-4 py-1.5 bg-rose-800/80 hover:bg-rose-700/80 text-rose-100 border border-rose-700/40 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5 shadow-sm"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-3.5 h-3.5 text-rose-200" />
                 삭제
               </button>
             </div>
