@@ -20,6 +20,7 @@ import {
   sanitizeGithubRepo,
   GITHUB_REPO_REGEX,
   syncDocumentToGithub,
+  syncDocToGithub,
 } from '../services/workspaceStorageService';
 
 export interface GithubConfig {
@@ -214,7 +215,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
         ? customCommitMessage.replace(/\${filename}/g, currentActiveFile)
         : undefined;
 
-      const res = await syncDocumentToGithub({
+      const res = await syncDocToGithub({
         owner: owner || repoName,
         repo: repoName,
         branch: cleanBranch,
@@ -228,6 +229,11 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
         setTestResult({
           success: true,
           message: `'${currentActiveFile}' 문서가 GitHub에 성공적으로 커밋 및 푸시되었습니다. (SHA: ${res.sha?.slice(0, 7) || '완료'})`,
+        });
+      } else if (res.conflict) {
+        setTestResult({
+          success: false,
+          message: '원격 저장소에 더 최신 문서가 존재하여 충돌이 감지되었습니다. (에디터 자동 동기화 시 안전한 충돌 사본이 생성됩니다)',
         });
       } else {
         setTestResult({

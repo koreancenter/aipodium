@@ -739,7 +739,7 @@ export function sanitizeGithubRepo(input: string): string {
 /**
  * Auto-generates standard conventional commit messages for document push pipeline:
  * - For new files: docs: create ${filename} (via AI Podium)
- * - For modified files: docs: update ${filename} (${new Date().toLocaleTimeString()})
+ * - For modified files: docs: update ${filename} (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
  */
 export function generateConventionalCommitMessage(
   filename: string,
@@ -747,7 +747,7 @@ export function generateConventionalCommitMessage(
   timeString?: string
 ): string {
   const cleanFilename = filename.replace(/^\/+/, '').split('/').pop() || filename;
-  const time = timeString || new Date().toLocaleTimeString();
+  const time = timeString || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   if (isNewFile) {
     return `docs: create ${cleanFilename} (via AI Podium)`;
   }
@@ -795,14 +795,19 @@ export interface SyncDocumentToGithubResult {
   success: boolean;
   sha?: string;
   conflict?: boolean;
+  conflictFileName?: string;
+  remoteContent?: string;
   error?: string;
 }
 
 /**
- * Pushes a document (e.g. Markdown) directly to a GitHub repository branch.
+ * Pushes a single document (e.g. Markdown) directly to a GitHub repository branch.
  * 1. Fetches current file SHA via GET /repos/{owner}/{repo}/contents/{path}.
  * 2. Commits and pushes changes via PUT /repos/{owner}/{repo}/contents/{path} with base64 content and SHA.
- * 3. Handles 409 Conflict gracefully with a sync toast notification.
+ * 3. Handles 409 Conflict gracefully with Safe Fork:
+ *    - Fetches remote head content
+ *    - Creates conflict filename: ${baseFileName}_conflict_${Date.now()}.md
+ *    - Notifies caller to preserve user edits in the conflict file and update tab to remote head.
  */
 export async function syncDocumentToGithub(
   options: SyncDocumentToGithubOptions
@@ -863,7 +868,7 @@ export async function syncDocumentToGithub(
       message = commitMessage
         .replace(/\$\{filename\}/g, filename)
         .replace(/\{filename\}/g, filename)
-        .replace(/\$\{time\}/g, new Date().toLocaleTimeString())
+        .replace(/\$\{time\}/g, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
         .trim();
     } else {
       message = generateConventionalCommitMessage(filename, isNewFile);
@@ -891,11 +896,45 @@ export async function syncDocumentToGithub(
       }
     );
 
-    // 3. Handle 409 Conflict gracefully with a sync toast notification
+    // 3. Graceful 409 Conflict Handling (Safe Fork):
     if (putRes.status === 409) {
-      const conflictMsg = `동기화 충돌: GitHub 저장소의 '${cleanPath}' 파일이 원격에서 이미 변경되었습니다. 최신 커밋을 확인하세요.`;
+      let remoteContent: string | undefined = undefined;
+      let remoteSha: string | undefined = undefined;
+      try {
+        const remoteRes = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/contents/${cleanPath}?ref=${encodeURIComponent(branch)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${cleanToken}`,
+              Accept: 'application/vnd.github.v3+json',
+            },
+          }
+        );
+        if (remoteRes.ok) {
+          const remoteData = await remoteRes.json();
+          remoteSha = remoteData.sha;
+          if (remoteData.content) {
+            remoteContent = base64ToUtf8(remoteData.content);
+          }
+        }
+      } catch (remoteFetchErr) {
+        console.warn('[syncDocumentToGithub] Error fetching remote content during 409 conflict:', remoteFetchErr);
+      }
+
+      const baseFileName = filename.replace(/\.[^/.]+$/, '');
+      const conflictFileName = `${baseFileName}_conflict_${Date.now()}.md`;
+      const conflictMsg = '원격 저장소에 더 최신 문서가 존재하여 충돌 사본이 생성되었습니다.';
+
       if (onToast) onToast(conflictMsg, 'warn');
-      return { success: false, conflict: true, error: conflictMsg };
+
+      return {
+        success: false,
+        conflict: true,
+        conflictFileName,
+        remoteContent,
+        sha: remoteSha,
+        error: conflictMsg,
+      };
     }
 
     if (!putRes.ok) {
@@ -922,6 +961,11 @@ export async function syncDocumentToGithub(
     return { success: false, error: errorMsg };
   }
 }
+
+/**
+ * Single-Document Push Engine alias for syncDocumentToGithub
+ */
+export const syncDocToGithub = syncDocumentToGithub;
 
 export interface PullDocumentsFromGithubOptions {
   owner: string;

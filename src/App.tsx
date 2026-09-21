@@ -24,6 +24,7 @@ import {
   getMemoryDirectoryHandle,
   rescanLocalDirectory,
   syncDocumentToGithub,
+  syncDocToGithub,
   pullDocumentsFromGithub,
   saveEncryptedGithubPat,
   loadEncryptedGithubPat,
@@ -930,6 +931,12 @@ export default function App() {
     }
     restoreGithubSession();
   }, []);
+
+  // GitHub Auto-Push debouncing & status indicators
+  const [githubSyncStatus, setGithubSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'conflict' | 'error'>('idle');
+  const autoPushTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastPushedContentRef = useRef<Record<string, string>>({});
+  const isPushingGithubRef = useRef(false);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -4222,6 +4229,180 @@ export default function App() {
     []
   );
 
+  // Single-Document Push Engine & Graceful 409 Safe Fork Conflict Handler
+  const handleSyncDocToGithub = useCallback(
+    async (
+      targetFile: string,
+      contentToPush: string,
+      options?: { isAutoPush?: boolean; showSuccessToast?: boolean }
+    ) => {
+      if (!githubConfig?.token || !githubConfig?.repo || !targetFile) return;
+
+      const isUntitledOrInitial =
+        untitledDocs[targetFile] !== undefined ||
+        targetFile.startsWith('Untitled-') ||
+        /^새 프로젝트(\s*\d*)?\.md$/i.test(targetFile) ||
+        targetFile === '새 문서.md' ||
+        targetFile.toLowerCase().endsWith('.pdf');
+
+      if (isUntitledOrInitial) return;
+
+      const parts = githubConfig.repo.split('/');
+      const owner = githubConfig.owner || parts[0];
+      const repoName = parts.length > 1 ? parts.slice(1).join('/') : githubConfig.repo;
+      const cleanBranch = githubConfig.branch || 'main';
+
+      const commitMsg =
+        githubConfig.useCustomCommitMessage && githubConfig.customCommitMessage
+          ? githubConfig.customCommitMessage.replace(/\${filename}/g, targetFile).replace(/\{filename\}/g, targetFile)
+          : undefined;
+
+      setGithubSyncStatus('syncing');
+      isPushingGithubRef.current = true;
+
+      try {
+        const res = await syncDocToGithub({
+          owner,
+          repo: repoName,
+          branch: cleanBranch,
+          token: githubConfig.token,
+          filePath: targetFile,
+          content: contentToPush,
+          commitMessage: commitMsg,
+        });
+
+        if (res.success) {
+          lastPushedContentRef.current[targetFile] = contentToPush;
+          setGithubSyncStatus('synced');
+          if (options?.showSuccessToast) {
+            showToast(`GitHub 저장소에 '${targetFile}' 파일이 동기화되었습니다.`, 'success');
+          }
+        } else if (res.conflict) {
+          // Graceful 409 Conflict Handling (Safe Fork):
+          // 1. Create a local conflict backup file in active folder: ${baseFileName}_conflict_${Date.now()}.md
+          const filename = targetFile.replace(/^\/+/, '').split('/').pop() || targetFile;
+          const baseFileName = filename.replace(/\.[^/.]+$/, '');
+          const conflictFileName = res.conflictFileName || `${baseFileName}_conflict_${Date.now()}.md`;
+          const activeFolder = fileFolders[targetFile] || activeSession?.title || 'docs';
+
+          const userEdits = contentToPush;
+          const remoteHeadContent = res.remoteContent;
+
+          // Preserve user edits safely in the conflict copy
+          setFiles((prevFiles) => {
+            const updated = { ...prevFiles, [conflictFileName]: userEdits };
+            if (remoteHeadContent !== undefined) {
+              updated[targetFile] = remoteHeadContent;
+            }
+            return updated;
+          });
+
+          setFileFolders((prevFolders) => ({
+            ...prevFolders,
+            [conflictFileName]: activeFolder,
+          }));
+
+          // Fetch remote content and update the current file tab to match remote head
+          if (remoteHeadContent !== undefined) {
+            if (currentActiveFile === targetFile) {
+              setEditorContent(remoteHeadContent);
+            }
+            setSessions((prev) =>
+              prev.map((s) =>
+                s.id === activeSessionId && s.fileName === targetFile
+                  ? { ...s, editorContent: remoteHeadContent }
+                  : s
+              )
+            );
+          }
+
+          // Persist conflict copy & remote head to local filesystem / IndexedDB if active
+          const dirHandle = getMemoryDirectoryHandle();
+          if (activeWorkspace.type === 'local' && dirHandle) {
+            saveFileToLocalDirectory(dirHandle, conflictFileName, userEdits).catch(console.error);
+            if (remoteHeadContent !== undefined) {
+              saveFileToLocalDirectory(dirHandle, targetFile, remoteHeadContent).catch(console.error);
+            }
+          } else if (activeWorkspace.type === 'indexeddb') {
+            setFiles((currentLatest) => {
+              saveVaultToIndexedDB(
+                activeWorkspace.vaultId || activeWorkspace.id,
+                currentLatest,
+                { ...fileFolders, [conflictFileName]: activeFolder },
+                activeWorkspace.name
+              ).catch(console.error);
+              return currentLatest;
+            });
+          }
+
+          // Clean, non-intrusive toast warning
+          showToast('원격 저장소에 더 최신 문서가 존재하여 충돌 사본이 생성되었습니다.', 'warn');
+          setGithubSyncStatus('conflict');
+          setTimeout(() => {
+            setGithubSyncStatus('idle');
+          }, 4000);
+        } else {
+          setGithubSyncStatus('error');
+          setTimeout(() => {
+            setGithubSyncStatus('idle');
+          }, 4000);
+          if (options?.showSuccessToast) {
+            showToast(res.error || 'GitHub 동기화에 실패했습니다.', 'error');
+          }
+        }
+      } catch (err: any) {
+        console.error('Error in GitHub sync:', err);
+        setGithubSyncStatus('error');
+        setTimeout(() => {
+          setGithubSyncStatus('idle');
+        }, 4000);
+      } finally {
+        isPushingGithubRef.current = false;
+      }
+    },
+    [githubConfig, untitledDocs, fileFolders, activeSession, currentActiveFile, activeSessionId, activeWorkspace, showToast]
+  );
+
+  // Debounced GitHub Auto-Push: 3000ms after user typing stops
+  useEffect(() => {
+    if (!githubConfig?.token || !githubConfig?.repo || !currentActiveFile) return;
+
+    // Check if untitled / placeholder / pdf
+    const isUntitled =
+      untitledDocs[currentActiveFile] !== undefined ||
+      currentActiveFile.startsWith('Untitled-') ||
+      /^새 프로젝트(\s*\d*)?\.md$/i.test(currentActiveFile) ||
+      currentActiveFile === '새 문서.md' ||
+      currentActiveFile.toLowerCase().endsWith('.pdf');
+
+    if (isUntitled) return;
+
+    // Initialize lastPushedContentRef if unset for this file
+    if (lastPushedContentRef.current[currentActiveFile] === undefined) {
+      lastPushedContentRef.current[currentActiveFile] = files[currentActiveFile] ?? editorContent;
+      return;
+    }
+
+    // Only debounce auto-push if editor content has actually changed
+    if (editorContent === lastPushedContentRef.current[currentActiveFile]) {
+      return;
+    }
+
+    if (autoPushTimerRef.current) {
+      clearTimeout(autoPushTimerRef.current);
+    }
+
+    autoPushTimerRef.current = setTimeout(() => {
+      handleSyncDocToGithub(currentActiveFile, editorContent, { isAutoPush: true });
+    }, 3000);
+
+    return () => {
+      if (autoPushTimerRef.current) {
+        clearTimeout(autoPushTimerRef.current);
+      }
+    };
+  }, [editorContent, currentActiveFile, githubConfig, untitledDocs, files, handleSyncDocToGithub]);
+
   // Save Document: if untitled or placeholder, open Save modal; otherwise save to physical file & sync storage
   const handleSaveDocument = useCallback(() => {
     if (!currentActiveFile) return;
@@ -4280,30 +4461,29 @@ export default function App() {
           fileFolders,
           activeWorkspace.name
         ).catch(console.error);
-      } else if (activeWorkspace.type === 'github' && githubConfig?.token && githubConfig?.repo) {
-        const parts = githubConfig.repo.split('/');
-        const owner = githubConfig.owner || parts[0];
-        const repoName = parts.length > 1 ? parts.slice(1).join('/') : githubConfig.repo;
-        const commitMsg = githubConfig.useCustomCommitMessage && githubConfig.customCommitMessage
-          ? githubConfig.customCommitMessage.replace(/\${filename}/g, currentActiveFile)
-          : undefined;
-        syncDocumentToGithub({
-          owner,
-          repo: repoName,
-          branch: githubConfig.branch || 'main',
-          token: githubConfig.token,
-          filePath: currentActiveFile,
-          content: editorContent,
-          commitMessage: commitMsg,
-          onToast: (msg, type) => showToast(msg, type === 'error' ? 'error' : type === 'warn' ? 'warn' : 'success'),
-        }).catch(console.error);
+      }
+
+      // Cancel any pending auto-push debounce timer & push immediately
+      if (autoPushTimerRef.current) {
+        clearTimeout(autoPushTimerRef.current);
+      }
+      if (githubConfig?.token && githubConfig?.repo) {
+        handleSyncDocToGithub(currentActiveFile, editorContent, { isAutoPush: false, showSuccessToast: false });
       }
 
       showToast(`💾 '${currentActiveFile}' 저장되었습니다.`);
     } else {
-      showToast(`✨ 이미 최신 상태입니다.`, 'info');
+      // If already matching local state, still allow pushing to GitHub if connected
+      if (githubConfig?.token && githubConfig?.repo) {
+        if (autoPushTimerRef.current) {
+          clearTimeout(autoPushTimerRef.current);
+        }
+        handleSyncDocToGithub(currentActiveFile, editorContent, { isAutoPush: false, showSuccessToast: true });
+      } else {
+        showToast(`✨ 이미 최신 상태입니다.`, 'info');
+      }
     }
-  }, [currentActiveFile, editorContent, activeSessionId, files, activeWorkspace, fileFolders, untitledDocs, githubConfig]);
+  }, [currentActiveFile, editorContent, activeSessionId, files, activeWorkspace, fileFolders, untitledDocs, githubConfig, handleSyncDocToGithub]);
 
   // Confirm Save Untitled Modal handler
   const handleConfirmSaveUntitled = (newFileName: string, targetFolder: string) => {
@@ -4376,23 +4556,14 @@ export default function App() {
         updatedFolders,
         activeWorkspace.name
       ).catch(console.error);
-    } else if (activeWorkspace.type === 'github' && githubConfig?.token && githubConfig?.repo) {
-      const parts = githubConfig.repo.split('/');
-      const owner = githubConfig.owner || parts[0];
-      const repoName = parts.length > 1 ? parts.slice(1).join('/') : githubConfig.repo;
-      const commitMsg = githubConfig.useCustomCommitMessage && githubConfig.customCommitMessage
-        ? githubConfig.customCommitMessage.replace(/\${filename}/g, newFileName)
-        : undefined;
-      syncDocumentToGithub({
-        owner,
-        repo: repoName,
-        branch: githubConfig.branch || 'main',
-        token: githubConfig.token,
-        filePath: newFileName,
-        content: contentToSave,
-        commitMessage: commitMsg,
-        onToast: (msg, type) => showToast(msg, type === 'error' ? 'error' : type === 'warn' ? 'warn' : 'success'),
-      }).catch(console.error);
+    }
+
+    // Sync to GitHub if connected
+    if (githubConfig?.token && githubConfig?.repo) {
+      if (autoPushTimerRef.current) {
+        clearTimeout(autoPushTimerRef.current);
+      }
+      handleSyncDocToGithub(newFileName, contentToSave, { isAutoPush: false, showSuccessToast: false });
     }
 
     showToast(`💾 '${newFileName}' 파일이 [${targetFolder}] 폴더에 저장되었습니다.`);
@@ -11335,6 +11506,34 @@ ${projectEvents
           <span className="text-slate-600 hidden sm:inline">|</span>
           <span className="uppercase">{activeWorkspace.type}</span>
           <span className="text-slate-600">|</span>
+          {githubConfig?.token && githubConfig?.repo && (
+            <>
+              <div className="flex items-center gap-1.5 text-[0.625rem]">
+                {githubSyncStatus === 'syncing' ? (
+                  <span className="inline-flex items-center gap-1.5 text-indigo-300">
+                    <span className="w-1 h-1 rounded-full bg-indigo-400 animate-pulse" />
+                    <span>동기화 중...</span>
+                  </span>
+                ) : githubSyncStatus === 'synced' ? (
+                  <span className="inline-flex items-center gap-1.5 text-zinc-300">
+                    <span className="w-1 h-1 rounded-full bg-emerald-400" />
+                    <span>GitHub 동기화 완료</span>
+                  </span>
+                ) : githubSyncStatus === 'conflict' ? (
+                  <span className="inline-flex items-center gap-1.5 text-amber-300">
+                    <span className="w-1 h-1 rounded-full bg-amber-400" />
+                    <span>충돌 사본 생성됨</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-zinc-400">
+                    <span className="w-1 h-1 rounded-full bg-zinc-500" />
+                    <span>GitHub 연동됨</span>
+                  </span>
+                )}
+              </div>
+              <span className="text-slate-600">|</span>
+            </>
+          )}
           <span className="text-slate-300 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/80 shadow-[0_0_5px_rgba(52,211,153,0.4)]" />
             연결됨
