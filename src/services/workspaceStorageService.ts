@@ -3,6 +3,14 @@
 // 1. Local Directory (Browser File System Access API - window.showDirectoryPicker)
 // 2. Remote / Cloud Storage (REST / WebDAV / Cloud API interface)
 // 3. Browser Vault (IndexedDB high-capacity offline persistent storage)
+// 4. GitHub Repository Bidirectional Sync Engine (Push/Pull)
+
+export {
+  saveEncryptedGithubPat,
+  loadEncryptedGithubPat,
+  removeEncryptedGithubPat,
+  GITHUB_PAT_ENC_STORAGE_KEY,
+} from '../utils/securityCrypto';
 
 export type WorkspaceStorageType = 'local' | 'remote' | 'indexeddb' | 'gdrive' | 'github';
 
@@ -564,6 +572,7 @@ export async function purgeGuestSession(
     'aipodium_remote_workspace_config',
     'aipodium_github_config',
     'aipodium_github_meta',
+    'aipodium_github_pat_enc',
     'aipodium_recent_workspaces',
     'aipodium_active_session_id',
     'aipodium_projects_sessions',
@@ -701,3 +710,269 @@ export async function purgeGuestSession(
     }
   }
 }
+
+// ---------------------------------------------------------
+// 5. GitHub Repository Bidirectional Sync Engine (Push/Pull)
+// ---------------------------------------------------------
+
+function utf8ToBase64(str: string): string {
+  try {
+    return btoa(unescape(encodeURIComponent(str)));
+  } catch {
+    const bytes = new TextEncoder().encode(str);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
+}
+
+function base64ToUtf8(str: string): string {
+  try {
+    return decodeURIComponent(escape(atob(str.replace(/\s/g, ''))));
+  } catch {
+    const binary = atob(str.replace(/\s/g, ''));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder('utf-8').decode(bytes);
+  }
+}
+
+export interface SyncDocumentToGithubOptions {
+  owner: string;
+  repo: string;
+  branch?: string;
+  token: string;
+  filePath: string;
+  content: string;
+  commitMessage?: string;
+  onToast?: (message: string, type?: 'success' | 'info' | 'warn' | 'error') => void;
+}
+
+export interface SyncDocumentToGithubResult {
+  success: boolean;
+  sha?: string;
+  conflict?: boolean;
+  error?: string;
+}
+
+/**
+ * Pushes a document (e.g. Markdown) directly to a GitHub repository branch.
+ * 1. Fetches current file SHA via GET /repos/{owner}/{repo}/contents/{path}.
+ * 2. Commits and pushes changes via PUT /repos/{owner}/{repo}/contents/{path} with base64 content and SHA.
+ * 3. Handles 409 Conflict gracefully with a sync toast notification.
+ */
+export async function syncDocumentToGithub(
+  options: SyncDocumentToGithubOptions
+): Promise<SyncDocumentToGithubResult> {
+  const {
+    owner,
+    repo,
+    branch = 'main',
+    token,
+    filePath,
+    content,
+    commitMessage,
+    onToast,
+  } = options;
+
+  if (!token || !owner || !repo || !filePath) {
+    const errMsg = 'GitHub 동기화 필수 정보가 누락되었습니다.';
+    if (onToast) onToast(errMsg, 'warn');
+    return { success: false, error: errMsg };
+  }
+
+  const cleanToken = token.trim();
+  const cleanPath = filePath.replace(/^\/+/, '');
+
+  try {
+    // 1. Fetch current file SHA via GET /repos/{owner}/{repo}/contents/{path}
+    let existingSha: string | undefined = undefined;
+    try {
+      const getRes = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/contents/${cleanPath}?ref=${encodeURIComponent(branch)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${cleanToken}`,
+            Accept: 'application/vnd.github.v3+json',
+          },
+        }
+      );
+
+      if (getRes.ok) {
+        const fileData = await getRes.json();
+        existingSha = fileData.sha;
+      } else if (getRes.status === 404) {
+        existingSha = undefined;
+      } else {
+        console.warn(`[syncDocumentToGithub] Checking file SHA returned HTTP ${getRes.status}`);
+      }
+    } catch (checkErr) {
+      console.warn('[syncDocumentToGithub] Error checking existing SHA:', checkErr);
+    }
+
+    // 2. Commit and push changes via PUT /repos/{owner}/{repo}/contents/{path}
+    const base64Content = utf8ToBase64(content);
+    const message = commitMessage || `Update ${cleanPath} via AI Podium`;
+
+    const putBody: Record<string, any> = {
+      message,
+      content: base64Content,
+      branch,
+    };
+    if (existingSha) {
+      putBody.sha = existingSha;
+    }
+
+    const putRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/contents/${cleanPath}`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${cleanToken}`,
+          Accept: 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(putBody),
+      }
+    );
+
+    // 3. Handle 409 Conflict gracefully with a sync toast notification
+    if (putRes.status === 409) {
+      const conflictMsg = `동기화 충돌: GitHub 저장소의 '${cleanPath}' 파일이 원격에서 이미 변경되었습니다. 최신 커밋을 확인하세요.`;
+      if (onToast) onToast(conflictMsg, 'warn');
+      return { success: false, conflict: true, error: conflictMsg };
+    }
+
+    if (!putRes.ok) {
+      const errorData = await putRes.json().catch(() => ({}));
+      const errorMsg = errorData.message || `HTTP ${putRes.status}`;
+      if (onToast) onToast(`GitHub 푸시 실패: ${errorMsg}`, 'error');
+      return { success: false, error: errorMsg };
+    }
+
+    const resData = await putRes.json();
+    const newSha = resData.content?.sha;
+
+    if (onToast) {
+      onToast(`GitHub 저장소에 '${cleanPath}' 파일이 동기화되었습니다.`, 'success');
+    }
+
+    return {
+      success: true,
+      sha: newSha,
+    };
+  } catch (err: any) {
+    const errorMsg = err?.message || '네트워크 연결 오류';
+    if (onToast) onToast(`GitHub 동기화 오류: ${errorMsg}`, 'error');
+    return { success: false, error: errorMsg };
+  }
+}
+
+export interface PullDocumentsFromGithubOptions {
+  owner: string;
+  repo: string;
+  branch?: string;
+  token: string;
+  onToast?: (message: string, type?: 'success' | 'info' | 'warn' | 'error') => void;
+}
+
+export interface PullDocumentsResult {
+  files: Record<string, string>;
+  fileFolders: Record<string, string>;
+  count: number;
+}
+
+/**
+ * Pulls existing Markdown documents from a GitHub repository branch into the workspace.
+ */
+export async function pullDocumentsFromGithub(
+  options: PullDocumentsFromGithubOptions
+): Promise<PullDocumentsResult> {
+  const { owner, repo, branch = 'main', token, onToast } = options;
+
+  if (!token || !owner || !repo) {
+    throw new Error('저장소 동기화에 필요한 토큰과 저장소 정보가 부족합니다.');
+  }
+
+  const cleanToken = token.trim();
+
+  try {
+    const treeRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`,
+      {
+        headers: {
+          Authorization: `Bearer ${cleanToken}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      }
+    );
+
+    if (!treeRes.ok) {
+      throw new Error(`저장소 파일 트리를 가져올 수 없습니다 (HTTP ${treeRes.status})`);
+    }
+
+    const treeData = await treeRes.json();
+    const tree = treeData.tree || [];
+
+    const mdBlobs = tree.filter(
+      (item: any) =>
+        item.type === 'blob' &&
+        typeof item.path === 'string' &&
+        (item.path.toLowerCase().endsWith('.md') || item.path.toLowerCase().endsWith('.markdown')) &&
+        !item.path.startsWith('.') &&
+        !item.path.includes('node_modules/')
+    );
+
+    if (mdBlobs.length === 0) {
+      return { files: {}, fileFolders: {}, count: 0 };
+    }
+
+    const pulledFiles: Record<string, string> = {};
+    const pulledFolders: Record<string, string> = {};
+    const rootFolder = `${owner}/${repo}`;
+
+    const BATCH_SIZE = 5;
+    for (let i = 0; i < mdBlobs.length; i += BATCH_SIZE) {
+      const batch = mdBlobs.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        batch.map(async (item: any) => {
+          try {
+            const blobRes = await fetch(item.url, {
+              headers: {
+                Authorization: `Bearer ${cleanToken}`,
+                Accept: 'application/vnd.github.v3+json',
+              },
+            });
+            if (blobRes.ok) {
+              const blobData = await blobRes.json();
+              if (blobData.encoding === 'base64' && blobData.content) {
+                const text = base64ToUtf8(blobData.content);
+                pulledFiles[item.path] = text;
+                pulledFolders[item.path] = rootFolder;
+              }
+            }
+          } catch (fetchErr) {
+            console.warn(`[pullDocumentsFromGithub] Failed to fetch blob for ${item.path}:`, fetchErr);
+          }
+        })
+      );
+    }
+
+    return {
+      files: pulledFiles,
+      fileFolders: pulledFolders,
+      count: Object.keys(pulledFiles).length,
+    };
+  } catch (err: any) {
+    console.error('Error pulling documents from GitHub:', err);
+    if (onToast) {
+      onToast(`GitHub 문서 동기화 실패: ${err?.message || '네트워크 오류'}`, 'error');
+    }
+    throw err;
+  }
+}
+

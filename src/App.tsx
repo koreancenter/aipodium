@@ -23,6 +23,11 @@ import {
   saveVaultToIndexedDB,
   getMemoryDirectoryHandle,
   rescanLocalDirectory,
+  syncDocumentToGithub,
+  pullDocumentsFromGithub,
+  saveEncryptedGithubPat,
+  loadEncryptedGithubPat,
+  removeEncryptedGithubPat,
 } from './services/workspaceStorageService';
 import {
   RecursiveFolderTree,
@@ -897,6 +902,33 @@ export default function App() {
     }
   });
 
+  // Restore encrypted GitHub PAT from localStorage under aipodium_github_pat_enc
+  useEffect(() => {
+    async function restoreGithubSession() {
+      try {
+        const encryptedPat = localStorage.getItem('aipodium_github_pat_enc');
+        const safeMetaStr = localStorage.getItem('aipodium_github_meta');
+        if (encryptedPat && safeMetaStr) {
+          const decryptedToken = await loadEncryptedGithubPat();
+          const meta = JSON.parse(safeMetaStr);
+          if (decryptedToken && meta.repo) {
+            const restoredConfig: GithubConfig = {
+              token: decryptedToken,
+              repo: meta.repo,
+              owner: meta.owner,
+              branch: meta.branch || 'main',
+            };
+            setGithubConfig(restoredConfig);
+            sessionStorage.setItem('aipodium_github_config', JSON.stringify(restoredConfig));
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to restore encrypted GitHub PAT:', err);
+      }
+    }
+    restoreGithubSession();
+  }, []);
+
   const handleGoogleSignIn = async () => {
     try {
       const { profile } = await googleDriveService.signIn();
@@ -1012,12 +1044,28 @@ export default function App() {
           setIsGoogleAccountModalOpen(true);
         }
       } else if (activeWorkspace.type === 'github') {
-        if (githubConfig?.token && githubConfig?.owner && githubConfig?.repo) {
-          showToast(`🐙 GitHub '${activeWorkspace.name}' 저장소 최신 상태 확인 완료`, 'success');
+        if (githubConfig?.token && githubConfig?.repo) {
+          const parts = githubConfig.repo.split('/');
+          const owner = githubConfig.owner || parts[0];
+          const repoName = parts.length > 1 ? parts.slice(1).join('/') : githubConfig.repo;
+          showToast(`🐙 GitHub '${activeWorkspace.name}' 저장소 동기화 중...`, 'info');
+          const pullResult = await pullDocumentsFromGithub({
+            owner,
+            repo: repoName,
+            branch: githubConfig.branch || 'main',
+            token: githubConfig.token,
+          });
+          if (pullResult && Object.keys(pullResult.files).length > 0) {
+            setFiles((prev) => ({ ...prev, ...pullResult.files }));
+            setFileFolders((prev) => ({ ...prev, ...pullResult.fileFolders }));
+            showToast(`🐙 GitHub 저장소에서 ${pullResult.count}개 문서를 동기화했습니다.`, 'success');
+          } else {
+            showToast(`🐙 GitHub '${activeWorkspace.name}' 저장소 최신 상태 확인 완료`, 'success');
+          }
           setActiveWorkspace((prev) => ({
             ...prev,
             lastSynced: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-            fileCount: Object.keys(files).length,
+            fileCount: Object.keys({ ...files, ...(pullResult?.files || {}) }).length,
           }));
         } else {
           showToast('⚠️ GitHub 연동 설정을 확인해주세요.', 'warn');
@@ -4230,13 +4278,26 @@ export default function App() {
           fileFolders,
           activeWorkspace.name
         ).catch(console.error);
+      } else if (activeWorkspace.type === 'github' && githubConfig?.token && githubConfig?.repo) {
+        const parts = githubConfig.repo.split('/');
+        const owner = githubConfig.owner || parts[0];
+        const repoName = parts.length > 1 ? parts.slice(1).join('/') : githubConfig.repo;
+        syncDocumentToGithub({
+          owner,
+          repo: repoName,
+          branch: githubConfig.branch || 'main',
+          token: githubConfig.token,
+          filePath: currentActiveFile,
+          content: editorContent,
+          onToast: (msg, type) => showToast(msg, type === 'error' ? 'error' : type === 'warn' ? 'warn' : 'success'),
+        }).catch(console.error);
       }
 
       showToast(`💾 '${currentActiveFile}' 저장되었습니다.`);
     } else {
       showToast(`✨ 이미 최신 상태입니다.`, 'info');
     }
-  }, [currentActiveFile, editorContent, activeSessionId, files, activeWorkspace, fileFolders, untitledDocs]);
+  }, [currentActiveFile, editorContent, activeSessionId, files, activeWorkspace, fileFolders, untitledDocs, githubConfig]);
 
   // Confirm Save Untitled Modal handler
   const handleConfirmSaveUntitled = (newFileName: string, targetFolder: string) => {
@@ -4309,6 +4370,19 @@ export default function App() {
         updatedFolders,
         activeWorkspace.name
       ).catch(console.error);
+    } else if (activeWorkspace.type === 'github' && githubConfig?.token && githubConfig?.repo) {
+      const parts = githubConfig.repo.split('/');
+      const owner = githubConfig.owner || parts[0];
+      const repoName = parts.length > 1 ? parts.slice(1).join('/') : githubConfig.repo;
+      syncDocumentToGithub({
+        owner,
+        repo: repoName,
+        branch: githubConfig.branch || 'main',
+        token: githubConfig.token,
+        filePath: newFileName,
+        content: contentToSave,
+        onToast: (msg, type) => showToast(msg, type === 'error' ? 'error' : type === 'warn' ? 'warn' : 'success'),
+      }).catch(console.error);
     }
 
     showToast(`💾 '${newFileName}' 파일이 [${targetFolder}] 폴더에 저장되었습니다.`);
@@ -8929,15 +9003,15 @@ ${projectEvents
           />
         )}
 
-        {/* ==================== LEFT PANE: AI Chat Area (Fixed 340px) ==================== */}
+        {/* ==================== LEFT PANE: AI Chat Area (Fixed 510px) ==================== */}
         <section
           className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 transition-all duration-200 ease-in-out z-40 lg:z-10 ${
             isLeftPanelVisible
-              ? 'w-[320px] sm:w-[340px] lg:w-[340px] opacity-100 pointer-events-auto border-r border-[#222226] fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/80 lg:shadow-none'
+              ? 'w-[320px] sm:w-[510px] lg:w-[510px] opacity-100 pointer-events-auto border-r border-[#222226] fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/80 lg:shadow-none'
               : 'w-0 opacity-0 pointer-events-none overflow-hidden border-r-0'
           }`}
         >
-          <div className="w-[320px] sm:w-[340px] lg:w-[340px] h-full flex flex-col min-h-0 overflow-hidden">
+          <div className="w-[320px] sm:w-[510px] lg:w-[510px] h-full flex flex-col min-h-0 overflow-hidden">
             {/* Header */}
             <div className="bg-[#0f0f12] border-b border-[#222226] px-2.5 h-8 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0">
@@ -12027,13 +12101,14 @@ ${projectEvents
             sessionStorage.removeItem('aipodium_github_config');
             localStorage.removeItem('aipodium_github_config');
             localStorage.removeItem('aipodium_github_meta');
+            removeEncryptedGithubPat();
           } catch {}
           setWorkspaceRootType('local');
           localStorage.setItem('aipodium_workspace_root_type', 'local');
           setIsGithubModalOpen(false);
           showToast('GitHub 저장소 연결이 해제되었습니다.', 'info');
         }}
-        onSave={(config) => {
+        onSave={async (config, pulledData) => {
           setGithubConfig(config);
           try {
             sessionStorage.setItem('aipodium_github_config', JSON.stringify(config));
@@ -12041,11 +12116,37 @@ ${projectEvents
             localStorage.removeItem('aipodium_github_config');
             const safeMeta = { repo: config.repo, branch: config.branch, owner: config.owner };
             localStorage.setItem('aipodium_github_meta', JSON.stringify(safeMeta));
+            await saveEncryptedGithubPat(config.token);
           } catch {}
           setWorkspaceRootType('github');
           localStorage.setItem('aipodium_workspace_root_type', 'github');
+
+          setActiveWorkspace({
+            id: `github-${config.repo}`,
+            name: config.repo,
+            type: 'github',
+            status: 'connected',
+            fileCount: pulledData?.count || Object.keys(files).length,
+            lastSynced: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+            githubRepo: config.repo,
+            githubOwner: config.owner,
+            githubBranch: config.branch,
+          });
+
+          if (pulledData && pulledData.count > 0) {
+            setFiles((prev) => ({ ...prev, ...pulledData.files }));
+            setFileFolders((prev) => ({ ...prev, ...pulledData.fileFolders }));
+            const firstFile = Object.keys(pulledData.files)[0];
+            if (firstFile) {
+              setCurrentActiveFile(firstFile);
+              setFileName(firstFile);
+              setEditorContent(pulledData.files[firstFile]);
+            }
+            showToast(`🐙 GitHub 저장소(${config.repo})에서 ${pulledData.count}개 문서를 불러와 워크스페이스를 활성화했습니다!`, 'success');
+          } else {
+            showToast(`✅ GitHub 저장소(${config.repo}) 워크스페이스 활성화 완료!`);
+          }
           setIsGithubModalOpen(false);
-          showToast(`✅ GitHub 저장소(${config.repo}) 워크스페이스 활성화 완료!`);
         }}
       />
 

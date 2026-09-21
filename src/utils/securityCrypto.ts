@@ -970,4 +970,55 @@ export function isEncryptedApiKeyPayload(data: any): boolean {
   return false;
 }
 
+// ---------------------------------------------------------
+// Secure GitHub Personal Access Token (PAT) Encryption Pipeline
+// ---------------------------------------------------------
+
+export const GITHUB_PAT_ENC_STORAGE_KEY = 'aipodium_github_pat_enc';
+
+/**
+ * Securely encrypts the GitHub PAT using AES-GCM (256-bit) and PBKDF2
+ * before persisting it in localStorage under 'aipodium_github_pat_enc'.
+ */
+export async function saveEncryptedGithubPat(token: string): Promise<void> {
+  if (!token || !token.trim()) {
+    try {
+      localStorage.removeItem(GITHUB_PAT_ENC_STORAGE_KEY);
+    } catch {}
+    return;
+  }
+  const cleanToken = token.trim();
+  const encryptedPayload = await encryptApiKey(cleanToken);
+  try {
+    localStorage.setItem(GITHUB_PAT_ENC_STORAGE_KEY, JSON.stringify(encryptedPayload));
+  } catch (err) {
+    console.warn('Failed to save encrypted GitHub PAT to localStorage:', err);
+  }
+}
+
+/**
+ * Loads and decrypts the GitHub PAT from localStorage under 'aipodium_github_pat_enc'.
+ */
+export async function loadEncryptedGithubPat(): Promise<string | null> {
+  try {
+    const raw = localStorage.getItem(GITHUB_PAT_ENC_STORAGE_KEY);
+    if (!raw) return null;
+    const decrypted = await decryptApiKey(raw);
+    return decrypted || null;
+  } catch (err) {
+    console.warn('Failed to decrypt GitHub PAT from localStorage:', err);
+    return null;
+  }
+}
+
+/**
+ * Removes the encrypted GitHub PAT from localStorage.
+ */
+export function removeEncryptedGithubPat(): void {
+  try {
+    localStorage.removeItem(GITHUB_PAT_ENC_STORAGE_KEY);
+  } catch {}
+}
+
+
 

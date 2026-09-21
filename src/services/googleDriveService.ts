@@ -1,6 +1,8 @@
 // Google Drive & Google Identity Services (GIS) Integration Service
 // AI Podium SSOT (Single Source of Truth) Workspace
 
+import { convertDocumentToMarkdown } from './documentConverterService';
+
 export interface GoogleUserProfile {
   id: string;
   name: string;
@@ -35,8 +37,134 @@ const STORAGE_KEYS = {
   SSOT_FOLDER: 'ai_podium_google_ssot_folder',
 };
 
-// Strictly minimized Google OAuth scope - Only drive.file requested
-export const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
+// Google OAuth scope for Drive read and file management
+export const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';
+
+/**
+ * Dynamic script loading state for GAPI and GIS
+ */
+let googleScriptsPromise: Promise<void> | null = null;
+
+/**
+ * Ensures that both Google API Client (gapi with 'picker' loaded)
+ * and Google Identity Services (GIS - google.accounts.oauth2) are loaded.
+ */
+export async function ensureGoogleScriptsLoaded(): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  const hasGapiPicker = Boolean((window as any).gapi?.picker);
+  const hasGsi = Boolean((window as any).google?.accounts?.oauth2);
+
+  if (hasGapiPicker && hasGsi) {
+    return;
+  }
+
+  if (googleScriptsPromise) {
+    return googleScriptsPromise;
+  }
+
+  googleScriptsPromise = new Promise<void>(async (resolve, reject) => {
+    try {
+      // 1. Load GAPI (https://apis.google.com/js/api.js) and gapi.load('picker')
+      const loadGapiPromise = new Promise<void>((resolveGapi, rejectGapi) => {
+        const initPicker = () => {
+          const gapi = (window as any).gapi;
+          if (!gapi) {
+            rejectGapi(new Error('Google API 스크립트(gapi)를 찾을 수 없습니다.'));
+            return;
+          }
+          if (gapi.picker) {
+            resolveGapi();
+            return;
+          }
+          if (typeof gapi.load === 'function') {
+            gapi.load('picker', {
+              callback: () => resolveGapi(),
+              onerror: () => rejectGapi(new Error('Google Picker API 로드에 실패했습니다.')),
+              timeout: 10000,
+              ontimeout: () => rejectGapi(new Error('Google Picker API 로드 시간이 초과되었습니다.')),
+            });
+          } else {
+            rejectGapi(new Error('gapi.load 함수를 찾을 수 없습니다.'));
+          }
+        };
+
+        if ((window as any).gapi) {
+          initPicker();
+        } else {
+          const existingGapiScript = document.getElementById('gapi-client-script') as HTMLScriptElement | null;
+          if (existingGapiScript) {
+            existingGapiScript.addEventListener('load', () => initPicker(), { once: true });
+            existingGapiScript.addEventListener('error', () => rejectGapi(new Error('Google API 스크립트 로드에 실패했습니다.')), { once: true });
+            setTimeout(() => {
+              if ((window as any).gapi) initPicker();
+            }, 300);
+          } else {
+            const script = document.createElement('script');
+            script.id = 'gapi-client-script';
+            script.src = 'https://apis.google.com/js/api.js';
+            script.async = true;
+            script.defer = true;
+            script.onload = () => initPicker();
+            script.onerror = () => rejectGapi(new Error('Google API 스크립트(https://apis.google.com/js/api.js) 로드에 실패했습니다.'));
+            document.head.appendChild(script);
+          }
+        }
+      });
+
+      // 2. Load GIS (https://accounts.google.com/gsi/client)
+      const loadGsiPromise = new Promise<void>((resolveGsi, rejectGsi) => {
+        const checkGsi = () => {
+          if ((window as any).google?.accounts?.oauth2) {
+            resolveGsi();
+            return true;
+          }
+          return false;
+        };
+
+        if (checkGsi()) return;
+
+        const existingGsiScript = document.getElementById('gsi-client-script') as HTMLScriptElement | null;
+        if (existingGsiScript) {
+          existingGsiScript.addEventListener('load', () => {
+            if (checkGsi()) return;
+            setTimeout(() => {
+              if (checkGsi()) return;
+              rejectGsi(new Error('Google Identity Services 객체 초기화 실패'));
+            }, 100);
+          }, { once: true });
+          existingGsiScript.addEventListener('error', () => rejectGsi(new Error('GIS 스크립트 로드에 실패했습니다.')), { once: true });
+          setTimeout(() => {
+            if (checkGsi()) return;
+          }, 300);
+        } else {
+          const script = document.createElement('script');
+          script.id = 'gsi-client-script';
+          script.src = 'https://accounts.google.com/gsi/client';
+          script.async = true;
+          script.defer = true;
+          script.onload = () => {
+            if (checkGsi()) return;
+            setTimeout(() => {
+              if (checkGsi()) return;
+              rejectGsi(new Error('Google Identity Services 객체 초기화 실패'));
+            }, 100);
+          };
+          script.onerror = () => rejectGsi(new Error('Google Identity Services 스크립트(https://accounts.google.com/gsi/client) 로드에 실패했습니다.'));
+          document.head.appendChild(script);
+        }
+      });
+
+      await Promise.all([loadGapiPromise, loadGsiPromise]);
+      resolve();
+    } catch (err) {
+      googleScriptsPromise = null;
+      reject(err);
+    }
+  });
+
+  return googleScriptsPromise;
+}
 
 class GoogleDriveService {
   private accessToken: string | null = null;
@@ -117,6 +245,10 @@ class GoogleDriveService {
     return !!this.getAccessToken();
   }
 
+  public hasValidToken(): boolean {
+    return !!this.getAccessToken();
+  }
+
   public getUserProfile(): GoogleUserProfile | null {
     return this.userProfile;
   }
@@ -171,44 +303,35 @@ class GoogleDriveService {
   }
 
   /**
-   * Dynamically loads Google Identity Services (GIS) client script on demand
+   * Ensures GAPI and GIS scripts are dynamically loaded
    */
-  private loadGsiScript(): Promise<boolean> {
-    return new Promise((resolve) => {
-      if (typeof window === 'undefined') {
-        resolve(false);
-        return;
-      }
-      const google = (window as any).google;
-      if (google?.accounts?.oauth2) {
-        resolve(true);
-        return;
-      }
-      const existingScript = document.getElementById('gsi-client-script');
-      if (existingScript) {
-        existingScript.addEventListener('load', () => resolve(true), { once: true });
-        existingScript.addEventListener('error', () => resolve(false), { once: true });
-        // If already loaded or timed out
-        setTimeout(() => resolve(!!(window as any).google?.accounts?.oauth2), 1500);
-        return;
-      }
-      try {
-        const script = document.createElement('script');
-        script.id = 'gsi-client-script';
-        script.src = 'https://accounts.google.com/gsi/client';
-        script.crossOrigin = 'anonymous';
-        script.async = true;
-        script.defer = true;
-        script.onload = () => resolve(true);
-        script.onerror = () => {
-          console.warn('Google Identity Services script failed to load, using graceful fallback.');
-          resolve(false);
-        };
-        document.head.appendChild(script);
-      } catch (err) {
-        console.warn('Failed to append GSI script tag:', err);
-        resolve(false);
-      }
+  public async ensureGoogleScriptsLoaded(): Promise<void> {
+    return ensureGoogleScriptsLoaded();
+  }
+
+  /**
+   * Create GIS Token Client
+   */
+  public createTokenClient(options: {
+    clientId?: string;
+    scope?: string;
+    callback: (response: any) => void;
+  }) {
+    const google = (window as any).google;
+    if (!google?.accounts?.oauth2) {
+      throw new Error('Google Identity Services(GIS) 스크립트가 준비되지 않았습니다.');
+    }
+
+    const envClientId = typeof import.meta !== 'undefined' && (import.meta as any)?.env?.VITE_GOOGLE_CLIENT_ID;
+    const cid = options.clientId || envClientId || '';
+    if (!cid) {
+      throw new Error('Google Cloud Client ID가 설정되지 않았습니다. .env 환경변수를 확인하세요.');
+    }
+
+    return google.accounts.oauth2.initTokenClient({
+      client_id: cid,
+      scope: options.scope || 'https://www.googleapis.com/auth/drive.readonly',
+      callback: options.callback,
     });
   }
 
@@ -216,7 +339,7 @@ class GoogleDriveService {
    * Request Login via Google Identity Services (GIS)
    */
   public async signIn(clientId?: string): Promise<{ token: string; profile: GoogleUserProfile }> {
-    await this.loadGsiScript();
+    await ensureGoogleScriptsLoaded();
     return new Promise((resolve, reject) => {
       // Check if google accounts gsi script is loaded
       const google = (window as any).google;
@@ -229,7 +352,7 @@ class GoogleDriveService {
       const envClientId = typeof import.meta !== 'undefined' && (import.meta as any)?.env?.VITE_GOOGLE_CLIENT_ID;
       const cid = clientId || envClientId || '';
       if (!cid) {
-        reject(new Error('Google Client ID가 설정되지 않았습니다. .env에 VITE_GOOGLE_CLIENT_ID를 설정하거나 연결 창에서 입력해 주세요.'));
+        reject(new Error('Google Cloud Client ID가 설정되지 않았습니다. .env 환경변수를 확인하세요.'));
         return;
       }
 
@@ -422,6 +545,69 @@ class GoogleDriveService {
       id: 'folder_' + Date.now(),
       name,
       mimeType: 'application/vnd.google-apps.folder',
+    };
+  }
+
+  /**
+   * Fetch file content from Google Drive via ?alt=media (or export for Docs)
+   * and parse via documentConverterService.ts
+   */
+  public async fetchAndConvertFile(
+    fileId: string,
+    fileName: string,
+    mimeType?: string,
+    tokenOverride?: string
+  ): Promise<{ fileName: string; markdown: string }> {
+    const token = tokenOverride || this.getAccessToken();
+    if (!token) {
+      throw new Error('Google Drive 인증 토큰이 유효하지 않습니다.');
+    }
+
+    let fileBlob: Blob;
+
+    // Handle Google Docs export if needed
+    if (mimeType === 'application/vnd.google-apps.document') {
+      const exportRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/plain`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (exportRes.ok) {
+        const text = await exportRes.text();
+        fileBlob = new Blob([text], { type: 'text/plain' });
+      } else {
+        const mediaRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!mediaRes.ok) throw new Error(`Google Drive 파일 다운로드 실패 (HTTP ${mediaRes.status})`);
+        fileBlob = await mediaRes.blob();
+      }
+    } else {
+      const mediaRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!mediaRes.ok) {
+        throw new Error(`Google Drive 파일 다운로드 실패 (HTTP ${mediaRes.status})`);
+      }
+      fileBlob = await mediaRes.blob();
+    }
+
+    const fileObj = new File([fileBlob], fileName, {
+      type: mimeType || fileBlob.type || 'application/octet-stream',
+    });
+
+    const conversion = await convertDocumentToMarkdown(fileObj);
+    const finalName = conversion.suggestedFileName || (fileName.endsWith('.md') ? fileName : `${fileName}.md`);
+    const finalMarkdown = conversion.markdown;
+
+    try {
+      sessionStorage.setItem(`gdrive_file_content_${fileId}`, finalMarkdown);
+    } catch {}
+
+    return {
+      fileName: finalName,
+      markdown: finalMarkdown,
     };
   }
 

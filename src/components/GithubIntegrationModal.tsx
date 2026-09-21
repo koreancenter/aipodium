@@ -14,20 +14,29 @@ import {
   ExternalLink,
   Unlink,
   Sparkles,
+  Download,
 } from 'lucide-react';
 import { HelpTooltip } from './HelpTooltip';
+import {
+  pullDocumentsFromGithub,
+  saveEncryptedGithubPat,
+} from '../services/workspaceStorageService';
 
 export interface GithubConfig {
   token: string;
   repo: string; // e.g. "owner/repo"
   owner?: string;
   branch: string;
+  pullOnConnect?: boolean;
 }
 
 export interface GithubIntegrationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (config: GithubConfig) => void;
+  onSave: (
+    config: GithubConfig,
+    pulledData?: { files: Record<string, string>; fileFolders: Record<string, string>; count: number }
+  ) => void;
   initialConfig?: GithubConfig | null;
   onDisconnect?: () => void;
   onOpenAccountModal?: () => void;
@@ -46,8 +55,10 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
   const [token, setToken] = useState('');
   const [repo, setRepo] = useState('');
   const [branch, setBranch] = useState('main');
+  const [pullOnConnect, setPullOnConnect] = useState(true);
   const [showToken, setShowToken] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isPulling, setIsPulling] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
@@ -56,13 +67,16 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
         setToken(initialConfig.token || '');
         setRepo(initialConfig.repo || '');
         setBranch(initialConfig.branch || 'main');
+        setPullOnConnect(initialConfig.pullOnConnect ?? true);
       } else {
         setToken('');
         setRepo('');
         setBranch('main');
+        setPullOnConnect(true);
       }
       setTestResult(null);
       setIsTesting(false);
+      setIsPulling(false);
     }
   }, [isOpen, initialConfig]);
 
@@ -83,49 +97,42 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
     setTestResult(null);
 
     try {
-      const response = await fetch(`https://api.github.com/repos/${cleanRepo}`, {
+      const parts = cleanRepo.split('/');
+      const owner = parts.length > 1 ? parts[0] : '';
+      const repoName = parts.length > 1 ? parts.slice(1).join('/') : cleanRepo;
+
+      const res = await fetch(`https://api.github.com/repos/${owner}/${repoName}`, {
         headers: {
           Authorization: `Bearer ${cleanToken}`,
           Accept: 'application/vnd.github.v3+json',
         },
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setTestResult({
-          success: true,
-          message: `연결 확인 성공: ${data.full_name} (기본 브랜치: ${data.default_branch || branch})`,
-        });
-        if (!branch.trim() && data.default_branch) {
-          setBranch(data.default_branch);
-        }
-      } else if (response.status === 404) {
-        setTestResult({
-          success: false,
-          message: '저장소를 찾을 수 없거나 접근 권한이 없습니다. (private 저장소인 경우 repo 권한 확인 필요)',
-        });
-      } else if (response.status === 401) {
-        setTestResult({
-          success: false,
-          message: '유효하지 않거나 만료된 개인 액세스 토큰입니다.',
-        });
-      } else {
-        setTestResult({
-          success: false,
-          message: `연결 실패: HTTP ${response.status}`,
-        });
+      if (!res.ok) throw new Error('저장소를 찾을 수 없거나 토큰이 유효하지 않습니다.');
+      const scopes = res.headers.get('x-oauth-scopes') || '';
+      if (!scopes.includes('repo') && !scopes.includes('contents')) {
+        throw new Error('토큰에 저장소 쓰기(repo) 권한이 필요합니다.');
       }
-    } catch {
+
+      const data = await res.json();
+      setTestResult({
+        success: true,
+        message: `연결 확인 성공: ${data.full_name}, 기본 브랜치: ${data.default_branch || branch}`,
+      });
+      if (!branch.trim() && data.default_branch) {
+        setBranch(data.default_branch);
+      }
+    } catch (err: any) {
       setTestResult({
         success: false,
-        message: '네트워크 연결 상태를 확인해주세요.',
+        message: err.message || '네트워크 연결 상태를 확인해주세요.',
       });
     } finally {
       setIsTesting(false);
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanRepo = repo.trim();
     const cleanToken = token.trim();
@@ -140,12 +147,37 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
     const owner = parts.length > 1 ? parts[0] : '';
     const repoName = parts.length > 1 ? parts.slice(1).join('/') : cleanRepo;
 
-    onSave({
-      token: cleanToken,
-      repo: cleanRepo,
-      owner: owner || repoName,
-      branch: cleanBranch,
-    });
+    let pulledData: { files: Record<string, string>; fileFolders: Record<string, string>; count: number } | undefined = undefined;
+
+    if (pullOnConnect) {
+      setIsPulling(true);
+      try {
+        pulledData = await pullDocumentsFromGithub({
+          owner: owner || repoName,
+          repo: repoName,
+          branch: cleanBranch,
+          token: cleanToken,
+        });
+      } catch (pullErr: any) {
+        console.warn('Initial pull error on connect:', pullErr);
+      } finally {
+        setIsPulling(false);
+      }
+    }
+
+    // Securely encrypt PAT using AES-GCM before persisting in localStorage
+    await saveEncryptedGithubPat(cleanToken);
+
+    onSave(
+      {
+        token: cleanToken,
+        repo: cleanRepo,
+        owner: owner || repoName,
+        branch: cleanBranch,
+        pullOnConnect,
+      },
+      pulledData
+    );
   };
 
   return (
@@ -278,6 +310,28 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             </div>
           </div>
 
+          {/* Initial Pull Option on Connect */}
+          <div className="bg-[#09090b] border border-[#222226] rounded-md p-3 flex items-start justify-between gap-3">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-200">
+                <Download className="w-3.5 h-3.5 text-indigo-400" />
+                <span>저장소 마크다운 문서 워크스페이스로 불러오기</span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                연결 시 대상 브랜치에 저장된 마크다운 문서들을 현재 작업 공간으로 즉시 동기화합니다.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer mt-0.5">
+              <input
+                type="checkbox"
+                checked={pullOnConnect}
+                onChange={(e) => setPullOnConnect(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-8 h-4 bg-[#222226] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+          </div>
+
           {/* Test Status Feedback */}
           {testResult && (
             <div
@@ -302,7 +356,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
               <button
                 type="button"
                 onClick={handleTestConnection}
-                disabled={isTesting}
+                disabled={isTesting || isPulling}
                 className="btn-secondary text-xs"
               >
                 <RotateCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin text-indigo-400' : 'text-slate-400'}`} />
@@ -313,6 +367,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 <button
                   type="button"
                   onClick={onDisconnect}
+                  disabled={isPulling}
                   className="btn-secondary text-xs text-rose-400 hover:text-rose-300 border-rose-900/50 hover:bg-rose-950/40"
                   title="현재 연결된 저장소 설정을 해제합니다."
                 >
@@ -326,19 +381,31 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
+                disabled={isPulling}
                 className="btn-ghost text-xs"
               >
                 취소
               </button>
               <button
                 type="submit"
+                disabled={isPulling || isTesting}
                 className="btn-primary text-xs"
               >
-                <Check className="w-3.5 h-3.5" />
-                <span>{isConnected ? '설정 저장' : '저장소 연결'}</span>
+                {isPulling ? (
+                  <>
+                    <RotateCw className="w-3.5 h-3.5 animate-spin text-white" />
+                    <span>문서 동기화 중...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>{isConnected ? '설정 저장' : '저장소 연결'}</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
+
 
           {/* Cloud Account Sync Hint */}
           <div className="pt-3 border-t border-[#222226] flex items-center justify-between text-[11px] text-slate-400">
