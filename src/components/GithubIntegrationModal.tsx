@@ -28,6 +28,7 @@ export interface GithubConfig {
   owner?: string;
   branch: string;
   pullOnConnect?: boolean;
+  autoCommit?: boolean;
   useCustomCommitMessage?: boolean;
   customCommitMessage?: string;
 }
@@ -63,7 +64,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
   const [repoError, setRepoError] = useState<string | null>(null);
   const [branch, setBranch] = useState('main');
   const [pullOnConnect, setPullOnConnect] = useState(true);
-  const [useCustomCommitMessage, setUseCustomCommitMessage] = useState(false);
+  const [autoCommit, setAutoCommit] = useState(true);
   const [customCommitMessage, setCustomCommitMessage] = useState('');
   const [showToken, setShowToken] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
@@ -79,14 +80,15 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
         setRepo(sanitizedRepo);
         setBranch(initialConfig.branch || 'main');
         setPullOnConnect(initialConfig.pullOnConnect ?? true);
-        setUseCustomCommitMessage(initialConfig.useCustomCommitMessage ?? false);
+        const isAuto = initialConfig.autoCommit ?? (!initialConfig.useCustomCommitMessage);
+        setAutoCommit(isAuto);
         setCustomCommitMessage(initialConfig.customCommitMessage || DEFAULT_COMMIT_TEMPLATE);
       } else {
         setToken('');
         setRepo('');
         setBranch('main');
         setPullOnConnect(true);
-        setUseCustomCommitMessage(false);
+        setAutoCommit(true);
         setCustomCommitMessage(DEFAULT_COMMIT_TEMPLATE);
       }
       setRepoError(null);
@@ -208,7 +210,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
       const owner = parts.length > 1 ? parts[0] : '';
       const repoName = parts.length > 1 ? parts.slice(1).join('/') : cleanRepo;
 
-      const commitMsg = useCustomCommitMessage && customCommitMessage
+      const commitMsg = !autoCommit && customCommitMessage
         ? customCommitMessage.replace(/\${filename}/g, currentActiveFile)
         : undefined;
 
@@ -292,8 +294,9 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
         owner: owner || repoName,
         branch: cleanBranch,
         pullOnConnect,
-        useCustomCommitMessage,
-        customCommitMessage: useCustomCommitMessage ? customCommitMessage.trim() : undefined,
+        autoCommit,
+        useCustomCommitMessage: !autoCommit,
+        customCommitMessage: !autoCommit ? customCommitMessage.trim() : undefined,
       },
       pulledData
     );
@@ -320,7 +323,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-medium text-zinc-100">GitHub 저장소 연동</h2>
                 {isGithubConnected ? (
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
                     연결됨
                   </span>
                 ) : (
@@ -351,7 +354,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
         </div>
 
         {/* Form Content */}
-        <form onSubmit={handleSave} className="space-y-3.5 text-xs">
+        <form onSubmit={handleSave} className="space-y-4 text-xs">
           {/* Repository URL with sleek prefix addon */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
@@ -447,109 +450,77 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             </div>
           </div>
 
-          {/* Automated Commit Message Pipeline Section */}
-          <div className="bg-[#09090b] border border-white/10 rounded-md p-3 space-y-2.5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-zinc-200">자동 커밋 메시지 생성 파이프라인</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">
-                    표준 규격
-                  </span>
-                </div>
-                <p className="text-[11px] text-zinc-400">
-                  문서 저장 시 컨벤션에 맞춘 표준 커밋 메시지가 자동으로 생성됩니다.
+          {/* Automated Commit Message Pipeline - Clean Flat Row */}
+          <div className="py-2 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-medium text-zinc-200">자동 커밋 메시지 생성</span>
+                <p className="text-[11px] text-zinc-500 mt-0.5">
+                  문서 저장 시 표준 커밋 메시지(docs: update...)를 자동으로 생성합니다.
                 </p>
               </div>
-              <div className="flex items-center gap-2 shrink-0 mt-0.5">
-                <span className="text-[11px] text-zinc-400 select-none">사용자 지정 메시지</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={useCustomCommitMessage}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setUseCustomCommitMessage(checked);
-                      if (checked && !customCommitMessage) {
-                        setCustomCommitMessage(DEFAULT_COMMIT_TEMPLATE);
-                      }
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-8 h-4 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
-                </label>
-              </div>
-            </div>
-
-            {useCustomCommitMessage ? (
-              <div className="space-y-1.5 pt-0.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-medium text-zinc-300">커밋 메시지 템플릿</label>
-                  <span className="text-[10px] text-zinc-500 font-mono">치환자: &#36;&#123;filename&#125;</span>
-                </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-3">
                 <input
-                  type="text"
-                  value={customCommitMessage}
-                  onChange={(e) => setCustomCommitMessage(e.target.value)}
-                  placeholder="docs: update ${filename} (via AI Podium)"
-                  className="w-full bg-[#121214] border border-white/10 focus:border-indigo-500 rounded px-3 py-1.5 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none transition"
+                  type="checkbox"
+                  checked={autoCommit}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setAutoCommit(checked);
+                    if (!checked && !customCommitMessage) {
+                      setCustomCommitMessage(DEFAULT_COMMIT_TEMPLATE);
+                    }
+                  }}
+                  className="sr-only peer"
                 />
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
-                <div className="bg-[#121214] border border-white/[0.06] rounded px-2.5 py-1.5 space-y-0.5">
-                  <span className="text-[10px] text-zinc-500 font-medium block">신규 파일 생성 시</span>
-                  <code className="text-[11px] font-mono text-emerald-400 truncate block">
-                    docs: create &#36;&#123;filename&#125; (via AI Podium)
-                  </code>
-                </div>
-                <div className="bg-[#121214] border border-white/[0.06] rounded px-2.5 py-1.5 space-y-0.5">
-                  <span className="text-[10px] text-zinc-500 font-medium block">기존 파일 수정 시</span>
-                  <code className="text-[11px] font-mono text-indigo-300 truncate block">
-                    docs: update &#36;&#123;filename&#125; (시간)
-                  </code>
-                </div>
-              </div>
+                <div className="w-8 h-4 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+            {!autoCommit && (
+              <input
+                type="text"
+                value={customCommitMessage}
+                onChange={(e) => setCustomCommitMessage(e.target.value)}
+                placeholder="docs: update ${filename} (via AI Podium)"
+                className="w-full bg-white/[0.03] border border-white/10 rounded-md px-3 py-1.5 text-xs text-zinc-200 mt-2 outline-none focus:border-indigo-500 font-mono transition"
+              />
             )}
           </div>
 
-          {/* Direct Push of Currently Active Editor Document if connected */}
+          {/* Direct Push of Currently Active Editor Document if connected - Flat Row */}
           {isConnected && currentActiveFile && (
-            <div className="bg-[#09090b] border border-white/10 rounded-md p-3 flex items-center justify-between gap-3">
-              <div className="space-y-0.5 min-w-0">
+            <div className="flex items-center justify-between py-2 border-b border-white/[0.06]">
+              <div className="min-w-0 pr-2">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-medium text-zinc-200">현재 활성 문서 커밋 및 푸시</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-zinc-300 font-mono truncate max-w-[140px]">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-zinc-400 font-mono truncate max-w-[140px]">
                     {currentActiveFile}
                   </span>
                 </div>
-                <p className="text-[11px] text-zinc-400 truncate">
-                  현재 에디터에서 작성 중인 문서를 GitHub 원격 저장소에 즉시 동기화합니다.
+                <p className="text-[11px] text-zinc-500 mt-0.5">
+                  현재 에디터에서 작성 중인 문서를 원격 저장소에 즉시 동기화합니다.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={handlePushActiveDocument}
                 disabled={isPushing || isTesting || isPulling}
-                className="px-3 py-1.5 rounded-md text-xs font-medium bg-white/5 hover:bg-white/10 text-zinc-200 border border-white/10 transition-colors inline-flex items-center gap-1.5 shrink-0 cursor-pointer"
+                className="px-2.5 py-1.5 rounded text-xs font-medium bg-white/5 hover:bg-white/10 text-zinc-200 border border-white/10 transition-colors inline-flex items-center gap-1.5 shrink-0 cursor-pointer"
               >
                 <Upload className={`w-3.5 h-3.5 ${isPushing ? 'animate-spin text-indigo-400' : 'text-zinc-400'}`} />
-                <span>{isPushing ? '푸시 중...' : '문서 즉시 푸시'}</span>
+                <span>{isPushing ? '푸시 중...' : '즉시 푸시'}</span>
               </button>
             </div>
           )}
 
-          {/* Initial Pull Option on Connect */}
-          <div className="bg-[#09090b] border border-white/10 rounded-md p-3 flex items-start justify-between gap-3">
-            <div className="space-y-0.5">
-              <div className="text-xs font-medium text-zinc-200">
-                <span>저장소 마크다운 문서 워크스페이스로 불러오기</span>
-              </div>
-              <p className="text-[11px] text-zinc-400">
-                연결 시 대상 브랜치에 저장된 마크다운 문서들을 현재 작업 공간으로 즉시 동기화합니다.
+          {/* Initial Pull Option on Connect - Clean Flat Row */}
+          <div className="flex items-center justify-between py-2 border-b border-white/[0.06]">
+            <div>
+              <span className="text-xs font-medium text-zinc-200">저장소 문서 워크스페이스 동기화</span>
+              <p className="text-[11px] text-zinc-500 mt-0.5">
+                연결 시 대상 브랜치의 마크다운 문서를 현재 작업 공간으로 불러옵니다.
               </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer mt-0.5">
+            <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-3">
               <input
                 type="checkbox"
                 checked={pullOnConnect}
@@ -565,12 +536,12 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             <div
               className={`p-2.5 rounded-md border text-xs flex items-center gap-2 ${
                 testResult.success
-                  ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300'
+                  ? 'bg-white/[0.03] border-white/10 text-zinc-300'
                   : 'bg-rose-950/30 border-rose-500/30 text-rose-300'
               }`}
             >
               {testResult.success ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
               ) : (
                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
               )}
@@ -641,7 +612,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
               <span>GitHub 연동 상태</span>
             </span>
             {isGithubConnected ? (
-              <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+              <span className="text-[11px] px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
                 연결됨
               </span>
             ) : (
