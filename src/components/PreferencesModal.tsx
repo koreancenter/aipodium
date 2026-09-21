@@ -40,7 +40,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { SecuritySettings, SecurityConfig, DEFAULT_SECURITY_CONFIG } from './SecuritySettings';
 import { StorageSettings } from './StorageSettings';
 import { googleDriveService, GoogleUserProfile } from '../services/googleDriveService';
-import type { RemoteConfig } from './RemoteWorkspaceModal';
 import type { GithubConfig } from './GithubIntegrationModal';
 import { fetchOllamaInstalledModels } from '../services/documentConverterService';
 import { HelpTooltip } from './HelpTooltip';
@@ -280,10 +279,8 @@ export interface PreferencesModalProps {
   // Integrations & Accounts props
   googleUser?: GoogleUserProfile | null;
   onOpenGoogleAccount?: () => void;
-  workspaceRootType?: 'local' | 'gdrive' | 'remote' | 'github';
+  workspaceRootType?: 'local' | 'gdrive' | 'github';
   onOpenGoogleDrive?: () => void;
-  remoteConfig?: RemoteConfig | null;
-  onOpenRemoteSSH?: () => void;
   githubConfig?: GithubConfig | null;
   onOpenGithub?: () => void;
   onOpenRoleAssignment?: () => void;
@@ -320,8 +317,6 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   onOpenGoogleAccount,
   workspaceRootType = 'local',
   onOpenGoogleDrive,
-  remoteConfig = null,
-  onOpenRemoteSSH,
   githubConfig = null,
   onOpenGithub,
   onOpenRoleAssignment,
@@ -835,8 +830,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               {(() => {
                 const isGoogleConnected = googleTokenStatus === 'connected' && !!googleUser;
                 const isGithubConnected = !!(githubConfig?.owner && githubConfig?.repo) || !!githubConfig?.token;
-                const isSshConnected = !!remoteConfig?.host;
-                const connectedCount = [isGoogleConnected, isGithubConnected, isSshConnected].filter(Boolean).length;
+                const connectedCount = [isGoogleConnected, isGithubConnected].filter(Boolean).length;
                 return (
                   <button
                     type="button"
@@ -1835,50 +1829,6 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           >
                             <Github className="w-3.5 h-3.5 text-zinc-400" />
                             <span>{isConnected ? '저장소 관리' : '연결 설정'}</span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Item 3: Remote SSH / SFTP */}
-                  {(() => {
-                    const isConnected = !!remoteConfig?.host;
-
-                    return (
-                      <div className="py-3.5 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <Server className="w-4 h-4 text-zinc-400 shrink-0" />
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-medium text-zinc-200">원격 서버</span>
-                              {isConnected && (
-                                <span className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-normal">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                  <span>연결됨</span>
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-zinc-400 truncate mt-0.5">
-                              {isConnected ? (
-                                <span className="font-mono text-zinc-300">
-                                  {remoteConfig?.username || 'root'}@{remoteConfig?.host}:{remoteConfig?.port || 22}
-                                </span>
-                              ) : (
-                                '원격 리눅스 서버 터미널 및 SFTP 파일 시스템 탐색'
-                              )}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={onOpenRemoteSSH}
-                            className="px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
-                          >
-                            <Server className="w-3.5 h-3.5 text-zinc-400" />
-                            <span>{isConnected ? '서버 관리' : '서버 설정'}</span>
                           </button>
                         </div>
                       </div>

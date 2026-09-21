@@ -5,7 +5,6 @@ import { SAMPLE_PDF_DATA_URL } from './data/samplePdfData';
 import { motion, AnimatePresence } from 'motion/react';
 import { googleDriveService, GoogleUserProfile, DriveFolderInfo } from './services/googleDriveService';
 import { GoogleDrivePickerModal } from './components/GoogleDrivePickerModal';
-import { RemoteWorkspaceModal, RemoteConfig } from './components/RemoteWorkspaceModal';
 import { PreferencesModal, UserPreferences, DEFAULT_PREFERENCES, AiInferenceParameters, DEFAULT_AI_PARAMETERS, applyThemeToDocument, PromptTemplate } from './components/PreferencesModal';
 import { PromptLibraryModal, DEFAULT_SYSTEM_PROMPTS } from './components/PromptLibraryModal';
 import { GoogleAccountModal } from './components/GoogleAccountModal';
@@ -26,10 +25,13 @@ import {
   syncDocumentToGithub,
   syncDocToGithub,
   pullDocumentsFromGithub,
+  purgeGuestSession,
+} from './services/workspaceStorageService';
+import {
   saveEncryptedGithubPat,
   loadEncryptedGithubPat,
   removeEncryptedGithubPat,
-} from './services/workspaceStorageService';
+} from './utils/securityCrypto';
 import {
   RecursiveFolderTree,
   TreeDirectoryNode,
@@ -106,7 +108,6 @@ import {
   clearSensitiveClipboard,
   hasMasterPinConfigured,
   purgeGuestWorkspaceData,
-  purgeGuestSession
 } from './utils/securityCrypto';
 import { clearAiDecryptedKeyMemory } from './services/aiEngineCore';
 import {
@@ -248,7 +249,7 @@ export default function App() {
     isGuest,
     onTimeout: async () => {
       if (isGuest || !hasPin) {
-        await purgeGuestWorkspaceData();
+        await purgeGuestWorkspaceData(() => purgeGuestSession({ resetToSampleWorkspace: false }));
         if (typeof window !== 'undefined') {
           window.location.reload();
         }
@@ -833,9 +834,11 @@ export default function App() {
 
   // Google Auth & SSOT Workspace State
   const [googleUser, setGoogleUser] = useState<GoogleUserProfile | null>(() => googleDriveService.getUserProfile());
-  const [workspaceRootType, setWorkspaceRootType] = useState<'local' | 'gdrive' | 'remote' | 'github'>(() => {
+  const [workspaceRootType, setWorkspaceRootType] = useState<'local' | 'gdrive' | 'github'>(() => {
     try {
-      return (localStorage.getItem('aipodium_workspace_root_type') as any) || 'local';
+      const saved = localStorage.getItem('aipodium_workspace_root_type');
+      if (saved === 'gdrive' || saved === 'github') return saved;
+      return 'local';
     } catch {
       return 'local';
     }
@@ -844,15 +847,6 @@ export default function App() {
   const [isGdrivePickerOpen, setIsGdrivePickerOpen] = useState<boolean>(false);
   const [gdrivePickerTab, setGdrivePickerTab] = useState<'open' | 'save' | 'folders'>('open');
   const [isGoogleAccountModalOpen, setIsGoogleAccountModalOpen] = useState<boolean>(false);
-  const [remoteConfig, setRemoteConfig] = useState<RemoteConfig | null>(() => {
-    try {
-      const saved = localStorage.getItem('aipodium_remote_workspace_config');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [isRemoteModalOpen, setIsRemoteModalOpen] = useState<boolean>(false);
   const [isGithubModalOpen, setIsGithubModalOpen] = useState<boolean>(false);
 
   // GitHub & Google Drive: Independent on-demand integration, runs directly via user PAT / OAuth
@@ -868,11 +862,6 @@ export default function App() {
   const handleOpenGoogleDrive = useCallback((tab: 'open' | 'save' | 'folders' = 'open') => {
     setGdrivePickerTab(tab);
     setIsGdrivePickerOpen(true);
-  }, []);
-
-  // Remote SSH & Enterprise Server: Independent on-demand integration
-  const handleOpenRemoteSSH = useCallback(() => {
-    setIsRemoteModalOpen(true);
   }, []);
   
   // SSOT Generator Modal State
@@ -1010,8 +999,6 @@ export default function App() {
     }
     if (newWorkspace.type === 'local') {
       setWorkspaceRootType('local');
-    } else if (newWorkspace.type === 'remote') {
-      setWorkspaceRootType('remote');
     } else if (newWorkspace.type === 'gdrive') {
       setWorkspaceRootType('gdrive');
     } else if (newWorkspace.type === 'github') {
@@ -12159,37 +12146,6 @@ ${projectEvents
         onToast={showToast}
       />
 
-      {/* Remote SSH Workspace Modal */}
-      <RemoteWorkspaceModal
-        isOpen={isRemoteModalOpen}
-        onClose={() => setIsRemoteModalOpen(false)}
-        currentConfig={remoteConfig}
-        currentUser={currentUser}
-        onOpenAccountModal={() => {
-          setIsRemoteModalOpen(false);
-          setIsGoogleAccountModalOpen(true);
-        }}
-        onDisconnect={() => {
-          setRemoteConfig(null);
-          try {
-            localStorage.removeItem('aipodium_remote_workspace_config');
-          } catch {}
-          setWorkspaceRootType('local');
-          localStorage.setItem('aipodium_workspace_root_type', 'local');
-          setIsRemoteModalOpen(false);
-          showToast('원격 서버 연결이 해제되었습니다.', 'info');
-        }}
-        onSaveConfig={(cfg) => {
-          setRemoteConfig(cfg);
-          try {
-            localStorage.setItem('aipodium_remote_workspace_config', JSON.stringify(cfg));
-          } catch {}
-          setWorkspaceRootType('remote');
-          localStorage.setItem('aipodium_workspace_root_type', 'remote');
-        }}
-        onToast={showToast}
-      />
-
       {/* Create New Markdown File Modal (Standard VS Code Style) */}
       {isNewFileModalOpen && (
         <div
@@ -12440,10 +12396,6 @@ ${projectEvents
         onOpenGoogleDrive={() => {
           handleOpenGoogleDrive('open');
         }}
-        remoteConfig={remoteConfig}
-        onOpenRemoteSSH={() => {
-          handleOpenRemoteSSH();
-        }}
         githubConfig={githubConfig}
         onOpenGithub={() => {
           handleOpenGithubModal();
@@ -12513,7 +12465,6 @@ ${projectEvents
         onOpenSSOTGenerator={() => setIsSSOTGeneratorModalOpen(true)}
         googleUser={googleUser}
         githubConfig={githubConfig}
-        remoteConfig={remoteConfig}
         onOpenSettings={(tab) => {
           setIsWorkspaceModalOpen(false);
           setPreferencesInitialTab(tab || 'integrations');

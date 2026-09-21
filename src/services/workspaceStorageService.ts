@@ -5,41 +5,27 @@
 // 3. Browser Vault (IndexedDB high-capacity offline persistent storage)
 // 4. GitHub Repository Bidirectional Sync Engine (Push/Pull)
 
-export {
-  saveEncryptedGithubPat,
-  loadEncryptedGithubPat,
-  removeEncryptedGithubPat,
-  GITHUB_PAT_ENC_STORAGE_KEY,
-} from '../utils/securityCrypto';
+import type {
+  WorkspaceStorageType,
+  ActiveWorkspace,
+  StoredVaultItem,
+  PurgeGuestSessionOptions,
+  SyncDocumentToGithubOptions,
+  SyncDocumentToGithubResult,
+  PullDocumentsFromGithubOptions,
+  PullDocumentsResult,
+} from '../types';
 
-export type WorkspaceStorageType = 'local' | 'remote' | 'indexeddb' | 'gdrive' | 'github';
-
-export interface ActiveWorkspace {
-  id: string;
-  name: string;
-  type: WorkspaceStorageType;
-  path?: string;
-  status: 'connected' | 'offline' | 'syncing';
-  lastSynced?: string;
-  fileCount: number;
-  remoteUrl?: string;
-  remoteToken?: string;
-  vaultId?: string;
-  isReadOnly?: boolean;
-  gdriveFolderId?: string;
-  gdriveFolderName?: string;
-  githubRepo?: string;
-  githubOwner?: string;
-  githubBranch?: string;
-}
-
-export interface StoredVaultItem {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-  fileCount: number;
-}
+export type {
+  WorkspaceStorageType,
+  ActiveWorkspace,
+  StoredVaultItem,
+  PurgeGuestSessionOptions,
+  SyncDocumentToGithubOptions,
+  SyncDocumentToGithubResult,
+  PullDocumentsFromGithubOptions,
+  PullDocumentsResult,
+};
 
 const DB_NAME = 'aipodium_vault_db';
 const DB_VERSION = 1;
@@ -507,10 +493,6 @@ export async function testRemoteStorageConnection(
 // 4. Guest Session Data Purge Pipeline
 // ---------------------------------------------------------
 
-export interface PurgeGuestSessionOptions {
-  resetToSampleWorkspace?: boolean;
-}
-
 /**
  * Truncates and clears all object stores in the vault IndexedDB.
  */
@@ -665,13 +647,18 @@ export async function purgeGuestSession(
   // 5. Clear sensitive clipboard memory and in-memory decrypted keys
   try {
     const { clearSensitiveClipboard } = await import('../utils/securityCrypto');
-    clearSensitiveClipboard();
+    await clearSensitiveClipboard();
   } catch {}
 
-  try {
-    const { clearAiDecryptedKeyMemory } = await import('./aiEngineCore');
-    clearAiDecryptedKeyMemory();
-  } catch {}
+  // Trigger memory wipe event in aiEngineCore without direct module coupling
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('aipodium:auto_lock'));
+  }
+  if (options.onClearKeys) {
+    try {
+      options.onClearKeys();
+    } catch {}
+  }
 
   // 6. Reset the storage state to the initial default sample workspace
   if (shouldResetToSample) {
@@ -778,26 +765,6 @@ function base64ToUtf8(str: string): string {
     }
     return new TextDecoder('utf-8').decode(bytes);
   }
-}
-
-export interface SyncDocumentToGithubOptions {
-  owner: string;
-  repo: string;
-  branch?: string;
-  token: string;
-  filePath: string;
-  content: string;
-  commitMessage?: string;
-  onToast?: (message: string, type?: 'success' | 'info' | 'warn' | 'error') => void;
-}
-
-export interface SyncDocumentToGithubResult {
-  success: boolean;
-  sha?: string;
-  conflict?: boolean;
-  conflictFileName?: string;
-  remoteContent?: string;
-  error?: string;
 }
 
 /**
@@ -967,20 +934,6 @@ export async function syncDocumentToGithub(
  */
 export const syncDocToGithub = syncDocumentToGithub;
 
-export interface PullDocumentsFromGithubOptions {
-  owner: string;
-  repo: string;
-  branch?: string;
-  token: string;
-  onToast?: (message: string, type?: 'success' | 'info' | 'warn' | 'error') => void;
-}
-
-export interface PullDocumentsResult {
-  files: Record<string, string>;
-  fileFolders: Record<string, string>;
-  count: number;
-}
-
 /**
  * Pulls existing Markdown documents from a GitHub repository branch into the workspace.
  */
@@ -1070,4 +1023,52 @@ export async function pullDocumentsFromGithub(
     throw err;
   }
 }
+
+// ---------------------------------------------------------
+// 6. WorkspaceStorageService Class & Lazy Singleton Getter
+// ---------------------------------------------------------
+
+export class WorkspaceStorageService {
+  setMemoryDirectoryHandle = setMemoryDirectoryHandle;
+  getMemoryDirectoryHandle = getMemoryDirectoryHandle;
+  saveVaultToIndexedDB = saveVaultToIndexedDB;
+  loadVaultFromIndexedDB = loadVaultFromIndexedDB;
+  listIndexedDBVaults = listIndexedDBVaults;
+  clearVaultIndexedDB = clearVaultIndexedDB;
+  isFileSystemAccessSupported = isFileSystemAccessSupported;
+  pickLocalDirectory = pickLocalDirectory;
+  saveFileToLocalDirectory = saveFileToLocalDirectory;
+  deleteFileFromLocalDirectory = deleteFileFromLocalDirectory;
+  renameFileInLocalDirectory = renameFileInLocalDirectory;
+  rescanLocalDirectory = rescanLocalDirectory;
+  purgeGuestSession = purgeGuestSession;
+  sanitizeGithubRepo = sanitizeGithubRepo;
+  generateConventionalCommitMessage = generateConventionalCommitMessage;
+  syncDocToGithub = syncDocToGithub;
+  syncDocumentToGithub = syncDocumentToGithub;
+  pullDocumentsFromGithub = pullDocumentsFromGithub;
+}
+
+let instance: WorkspaceStorageService | null = null;
+
+export const getWorkspaceStorageService = (): WorkspaceStorageService => {
+  if (!instance) {
+    instance = new WorkspaceStorageService();
+  }
+  return instance;
+};
+
+// Lazy proxy object for any legacy code expecting `workspaceStorageService.<method>`
+// without evaluating top-level instances prematurely at module load time.
+export const workspaceStorageService = new Proxy({} as WorkspaceStorageService, {
+  get(_target, prop: string | symbol) {
+    const realInstance = getWorkspaceStorageService();
+    const value = (realInstance as any)[prop];
+    if (typeof value === 'function') {
+      return value.bind(realInstance);
+    }
+    return value;
+  },
+});
+
 

@@ -530,29 +530,109 @@ export function hasMasterPinConfigured(): boolean {
 }
 
 /**
- * Completely purges guest / temporary test workspace data from local storage, session storage, and IndexedDB.
- * Ensures zero data lingering when unauthenticated or guest users lock, log out, or return to AuthPage.
- * Clears all active IndexedDB document stores, recent history, and workspace storage keys.
+ * Completely purges guest / temporary test workspace data from local storage, session storage, and memory.
+ * Decoupled from workspace storage services: accepts an optional storagePurgeHook callback
+ * so storage/database services are not statically or dynamically imported here.
  */
-export async function purgeGuestWorkspaceData(): Promise<void> {
+export async function purgeGuestWorkspaceData(
+  storagePurgeHook?: () => Promise<void> | void
+): Promise<void> {
   try {
-    const { purgeGuestSession, clearVaultIndexedDB } = await import('../services/workspaceStorageService');
-    const { clearDb } = await import('../services/indexedDbService');
+    clearDeviceSecretMemory();
+    await clearSensitiveClipboard();
 
-    if (typeof indexedDB !== 'undefined' && indexedDB) {
-      await Promise.allSettled([
-        clearVaultIndexedDB(),
-        clearDb()
-      ]);
+    const guestKeysToRemove = [
+      'aipodium_active_workspace',
+      'aipodium_workspace_root_type',
+      'aipodium_remote_workspace_config',
+      'aipodium_github_config',
+      'aipodium_github_meta',
+      'aipodium_github_pat_enc',
+      'aipodium_recent_workspaces',
+      'aipodium_active_session_id',
+      'aipodium_projects_sessions',
+      'aipodium_trash_sessions',
+      'notebooklm_sessions',
+      'notebooklm_active_session_id',
+      'notebooklm_trash_sessions',
+      'aipodium_files',
+      'aipodium_file_folders',
+      'aipodium_open_tabs',
+      'aipodium_active_file',
+      'aipodium_current_active_file',
+      'notebooklm_files',
+      'notebooklm_file_folders',
+      'notebooklm_open_tabs',
+      'notebooklm_active_file',
+      'aipodium_editor_content',
+      'notebooklm_editor_content',
+      'editor_font_size',
+      'notebooklm_chat_messages',
+      'notebooklm_chat_threads',
+      'notebooklm_custom_templates',
+      'aipodium_pdf_markdowns',
+      'aipodium_pdf_auto_reduce',
+      'aipodium_project_events',
+      'aipodium_custom_prompts',
+      'gemini_api_key',
+      'aipodium_enc_gemini_key_v1',
+      'aipodium_enc_api_keys_v1',
+      'aipodium_api_keys',
+      'aipodium_cloud_api_key',
+      'aipodium_local_endpoint',
+      'aipodium_guest_init_v1',
+      'aipodium_guest_init_v2',
+      'aipodium_auth_user',
+      'podium_auth_session_v1',
+      'aipodium_pinned_models',
+      'aipodium_discovered_models',
+      'ai_podium_parameters',
+      'aipodium_webllm_banner_dismissed',
+      'aipodium_ai_role_models',
+      'aipodium_ghost_writer_model',
+    ];
+
+    if (typeof localStorage !== 'undefined' && localStorage) {
+      for (const key of guestKeysToRemove) {
+        localStorage.removeItem(key);
+      }
+      const dynamicKeysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (
+          k &&
+          (k.startsWith('vault_') ||
+            k.startsWith('draft_') ||
+            k.startsWith('aipodium_draft_') ||
+            k.startsWith('buffer_') ||
+            k.startsWith('temp_'))
+        ) {
+          dynamicKeysToRemove.push(k);
+        }
+      }
+      for (const k of dynamicKeysToRemove) {
+        localStorage.removeItem(k);
+      }
     }
 
-    await purgeGuestSession({ resetToSampleWorkspace: false });
+    if (typeof sessionStorage !== 'undefined' && sessionStorage) {
+      for (const key of guestKeysToRemove) {
+        sessionStorage.removeItem(key);
+      }
+      sessionStorage.removeItem('aipodium_api_keys');
+      sessionStorage.removeItem('aipodium_cloud_api_key');
+      sessionStorage.removeItem('aipodium_local_endpoint');
+    }
+
+    // Invoke caller-supplied storage hook (e.g. clearVaultIndexedDB or purgeGuestSession)
+    if (storagePurgeHook) {
+      await storagePurgeHook();
+    }
   } catch (err) {
     console.warn('[purgeGuestWorkspaceData] Purge error:', err);
   }
 }
 
-export { purgeGuestSession } from '../services/workspaceStorageService';
 
 /**
  * High-performance AES-256-GCM encryption using the high-entropy Master Vault Key.
@@ -724,14 +804,8 @@ export async function clearSensitiveClipboard(): Promise<void> {
 // Secure API Key Encryption Pipeline (AES-GCM 256-bit + PBKDF2)
 // ---------------------------------------------------------
 
-export interface EncryptedApiKeyPayload {
-  ciphertext: string;
-  iv: string;
-  salt: string;
-  hasUserSecret?: boolean;
-  version?: number;
-  createdAt?: string;
-}
+import type { EncryptedApiKeyPayload } from '../types';
+export type { EncryptedApiKeyPayload };
 
 const DEVICE_KEY_STORAGE_KEY = 'aipodium_device_crypto_seed_v1';
 const SECURITY_DB_NAME = 'aipodium_security_db';

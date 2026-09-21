@@ -905,6 +905,11 @@ Sitemap: ${origin}/sitemap.xml
     );
   });
 
+  // Catch-all for undefined API routes (prevent falling through to SPA HTML)
+  app.all('/api/*', (req, res) => {
+    res.status(404).json({ error: 'API endpoint not found' });
+  });
+
   // Serve static assets from public folder
   const publicPath = path.join(process.cwd(), 'public');
   app.use(express.static(publicPath));
@@ -922,9 +927,14 @@ Sitemap: ${origin}/sitemap.xml
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
+    const indexPath = path.join(distPath, 'index.html');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      // Return 404 for missing static assets or extension-based files instead of index.html
+      if (req.path.startsWith('/assets/') || /\.[a-zA-Z0-9]+$/.test(req.path)) {
+        return res.status(404).send('Asset not found');
+      }
+      res.sendFile(indexPath);
     });
   }
 

@@ -22,7 +22,7 @@ export const AuthContext = createContext<AuthContextType>({
   loginAsGuest: () => authService.loginAsGuest(),
   logout: () => authService.logout(),
   purgeGuestSession: (options) => purgeGuestSession(options),
-  purgeGuestWorkspaceData: () => purgeGuestWorkspaceData()
+  purgeGuestWorkspaceData: () => purgeGuestWorkspaceData(() => purgeGuestSession({ resetToSampleWorkspace: false }))
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleLogout = useCallback(async () => {
     if (isGuest || !hasPin) {
       try {
-        await purgeGuestWorkspaceData();
+        await purgeGuestWorkspaceData(() => purgeGuestSession({ resetToSampleWorkspace: false }));
       } catch (err) {
         console.warn('[AuthContext] Guest purge warning on logout:', err);
       }
@@ -61,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loginAsGuest: (name?: string) => authService.loginAsGuest(name),
     logout: handleLogout,
     purgeGuestSession: (options) => purgeGuestSession(options),
-    purgeGuestWorkspaceData: () => purgeGuestWorkspaceData()
+    purgeGuestWorkspaceData: () => purgeGuestWorkspaceData(() => purgeGuestSession({ resetToSampleWorkspace: false }))
   };
 
   return (

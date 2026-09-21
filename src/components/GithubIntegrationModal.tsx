@@ -16,23 +16,14 @@ import {
 import { HelpTooltip } from './HelpTooltip';
 import {
   pullDocumentsFromGithub,
-  saveEncryptedGithubPat,
   sanitizeGithubRepo,
   GITHUB_REPO_REGEX,
   syncDocumentToGithub,
   syncDocToGithub,
 } from '../services/workspaceStorageService';
-
-export interface GithubConfig {
-  token: string;
-  repo: string; // e.g. "owner/repo"
-  owner?: string;
-  branch: string;
-  pullOnConnect?: boolean;
-  autoCommit?: boolean;
-  useCustomCommitMessage?: boolean;
-  customCommitMessage?: string;
-}
+import { saveEncryptedGithubPat } from '../utils/securityCrypto';
+import type { GithubConfig } from '../types';
+export type { GithubConfig };
 
 export interface GithubIntegrationModalProps {
   isOpen: boolean;
