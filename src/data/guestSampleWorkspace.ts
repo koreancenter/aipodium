@@ -2,7 +2,7 @@ import { SAMPLE_PDF_DATA_URL } from './samplePdfData';
 
 // Sample Workspace documents auto-populated for Guest Mode sessions
 
-export const GUEST_WELCOME_DOC = `**AI Podium 게스트 워크스페이스 시작하기**
+export const GUEST_WELCOME_DOC = `# AI Podium 시작하기
 
 안녕하세요! **AI Podium**에 오신 것을 환영합니다.
 
@@ -10,7 +10,7 @@ AI Podium은 파편화된 정보와 지식을 모아 **단일 진실 공급원(S
 
 ---
 
-**로컬 보안 및 동작 방식**
+### 로컬 보안 및 동작 방식
 
 - **100% 브라우저 로컬 격리**:
   - 게스트 세션의 모든 마크다운 파일, 프로젝트 폴더, 대화 기록은 사용자의 브라우저 로컬 스토리지(\`IndexedDB\` 및 \`localStorage\`)에만 안전하게 보관됩니다.
@@ -22,7 +22,7 @@ AI Podium은 파편화된 정보와 지식을 모아 **단일 진실 공급원(S
 
 ---
 
-**빠른 시작 가이드**
+### 빠른 시작 가이드
 
 1. **3단 IDE 인터페이스 둘러보기**:
    - **좌측 패널 (AI 어시스턴트)**: AI 어시스턴트와 실시간 대화 및 브레인스토밍
@@ -38,13 +38,13 @@ AI Podium은 파편화된 정보와 지식을 모아 **단일 진실 공급원(S
 *게스트 모드에서 작업한 모든 내용은 상단 프로필을 통해 계정을 생성하거나 로그인 시 그대로 보존되어 계정에 연동됩니다.*
 `;
 
-export const GUEST_AI_GUIDE_DOC = `**AI Podium 지식 가공 및 오케스트레이션 가이드**
+export const GUEST_AI_GUIDE_DOC = `# AI Podium 지식 가공 및 오케스트레이션 가이드
 
 본 문서는 AI Podium의 **Single · Routing · Multi** 모드와 **2차 가공 파이프라인**을 활용하는 실전 가이드입니다.
 
 ---
 
-**1. AI 오케스트레이션 3대 모드**
+### 1. AI 오케스트레이션 3대 모드
 
 | 모드 | 동작 방식 | 추천 사용 시나리오 |
 | :--- | :--- | :--- |
@@ -54,7 +54,7 @@ export const GUEST_AI_GUIDE_DOC = `**AI Podium 지식 가공 및 오케스트레
 
 ---
 
-**2. 로컬 AI (Ollama) 연결 방법**
+### 2. 로컬 AI (Ollama) 연결 방법
 
 AI Podium은 로컬 PC나 온프레미스 서버에서 구동되는 **Ollama** 모델을 완벽하게 지원합니다.
 
@@ -70,7 +70,7 @@ OLLAMA_ORIGINS="*" ollama serve
 
 ---
 
-**3. 2차 산출물 가공**
+### 3. 2차 산출물 가공
 
 축적된 SSOT 문서는 다음과 같은 다양한 비즈니스 문서로 1번의 클릭으로 자동 생성됩니다:
 
@@ -86,13 +86,15 @@ OLLAMA_ORIGINS="*" ollama serve
 `;
 
 export const GUEST_SAMPLE_FILES: Record<string, string> = {
+  'tech_notes.md': `# 기술 노트\n\nAI 지식 비서와 함께 작성하는 문서입니다.\n\n## 시작하기\nAI 어시스턴트와 대화하며 필요한 내용을 정리하고 에디터에 기록해 보세요.`,
   'welcome.md': GUEST_WELCOME_DOC,
   'ai_guide.md': GUEST_AI_GUIDE_DOC,
   'AI_Architecture_Whitepaper.pdf': SAMPLE_PDF_DATA_URL,
 };
 
 export const GUEST_SAMPLE_FOLDERS: Record<string, string> = {
-  'welcome.md': 'AI 지식 비서',
-  'ai_guide.md': 'AI 지식 비서',
+  'tech_notes.md': 'AI 지식 비서',
+  'welcome.md': '가이드 & 도움말',
+  'ai_guide.md': '가이드 & 도움말',
   'AI_Architecture_Whitepaper.pdf': '문서 라이브러리',
 };

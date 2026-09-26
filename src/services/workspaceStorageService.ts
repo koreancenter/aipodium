@@ -14,6 +14,7 @@ import type {
   SyncDocumentToGithubResult,
   PullDocumentsFromGithubOptions,
   PullDocumentsResult,
+  ChatSession,
 } from '../types';
 
 export type {
@@ -25,6 +26,7 @@ export type {
   SyncDocumentToGithubResult,
   PullDocumentsFromGithubOptions,
   PullDocumentsResult,
+  ChatSession,
 };
 
 const DB_NAME = 'aipodium_vault_db';
@@ -673,7 +675,7 @@ export async function purgeGuestSession(
           await setDbItem(STORAGE_KEYS.FILE_FOLDERS, GUEST_SAMPLE_FOLDERS);
           await setDbItem(STORAGE_KEYS.EDITOR_CONTENT, GUEST_SAMPLE_FILES['welcome.md']);
           await setDbItem(STORAGE_KEYS.ACTIVE_FILE, 'welcome.md');
-          await setDbItem(STORAGE_KEYS.OPEN_TABS, ['welcome.md', 'ai_guide.md']);
+          await setDbItem(STORAGE_KEYS.OPEN_TABS, ['welcome.md']);
           await setDbItem(STORAGE_KEYS.SESSIONS, []);
           await setDbItem(STORAGE_KEYS.ACTIVE_SESSION_ID, null);
           await setDbItem(STORAGE_KEYS.TRASH_SESSIONS, []);
@@ -688,7 +690,7 @@ export async function purgeGuestSession(
         localStorage.setItem('notebooklm_file_folders', JSON.stringify(GUEST_SAMPLE_FOLDERS));
         localStorage.setItem('notebooklm_editor_content', GUEST_SAMPLE_FILES['welcome.md']);
         localStorage.setItem('notebooklm_active_file', 'welcome.md');
-        localStorage.setItem('notebooklm_open_tabs', JSON.stringify(['welcome.md', 'ai_guide.md']));
+        localStorage.setItem('notebooklm_open_tabs', JSON.stringify(['welcome.md']));
         localStorage.setItem('notebooklm_sessions', JSON.stringify([]));
         localStorage.setItem('aipodium_guest_init_v2', 'true');
       }
@@ -1025,7 +1027,83 @@ export async function pullDocumentsFromGithub(
 }
 
 // ---------------------------------------------------------
-// 6. WorkspaceStorageService Class & Lazy Singleton Getter
+// 6. Auto-Project Creation & Session Persistence (IndexedDB)
+// ---------------------------------------------------------
+
+/**
+ * Auto-generates a concise project title from prompt text:
+ * Strips punctuation, excess whitespace, and truncates to 20 characters (+ '...')
+ */
+export function generateProjectTitleFromPrompt(prompt: string): string {
+  if (!prompt || typeof prompt !== 'string') return '새 프로젝트';
+  // Strip punctuation, newlines, markdown tokens
+  const cleaned = prompt
+    .replace(/[#*`_~>\-[\]()!?:;,"'./\\{}+=^%$@&|<>\n\r\t]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!cleaned) return '새 프로젝트';
+  if (cleaned.length <= 20) {
+    return cleaned;
+  }
+  return `${cleaned.slice(0, 20).trim()}...`;
+}
+
+/**
+ * Creates and persists a new project record into IndexedDB.
+ * Updates the project list in IndexedDB and LocalStorage for instantaneous access.
+ */
+export async function createProject(
+  title: string,
+  initialData?: Partial<ChatSession>
+): Promise<ChatSession> {
+  const cleanTitle = title.trim() || '새 프로젝트';
+  const projectId = `project-${Date.now()}`;
+  const nowStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  const sanitizedFileName = `${cleanTitle.toLowerCase().replace(/[^a-z0-9가-힣_-]/g, '_') || 'document'}.md`;
+
+  const newProject: ChatSession = {
+    id: projectId,
+    title: cleanTitle,
+    createdAt: nowStr,
+    fileName: sanitizedFileName,
+    editorTab: 'wysiwyg',
+    editorContent: `# ${cleanTitle}\n\nAI 지식 비서와 함께 작성하는 문서입니다.`,
+    messages: [],
+    ...initialData,
+  };
+
+  try {
+    if (typeof window !== 'undefined' && (window as any).indexedDB) {
+      const { getDbItem, setDbItem, STORAGE_KEYS } = await import('./indexedDbService');
+      const existing = (await getDbItem<ChatSession[]>(STORAGE_KEYS.SESSIONS)) || [];
+      const updated = [newProject, ...existing.filter((s) => s.id !== newProject.id && s.id !== 'session-default')];
+      await setDbItem(STORAGE_KEYS.SESSIONS, updated);
+      await setDbItem(STORAGE_KEYS.ACTIVE_SESSION_ID, newProject.id);
+    }
+
+    if (typeof localStorage !== 'undefined' && localStorage) {
+      const raw =
+        localStorage.getItem('aipodium_projects_sessions') ||
+        localStorage.getItem('notebooklm_sessions');
+      let existing: ChatSession[] = [];
+      try {
+        existing = raw ? JSON.parse(raw) : [];
+      } catch {}
+      const updated = [newProject, ...existing.filter((s: any) => s.id !== newProject.id && s.id !== 'session-default')];
+      localStorage.setItem('aipodium_projects_sessions', JSON.stringify(updated));
+      localStorage.setItem('notebooklm_sessions', JSON.stringify(updated));
+      localStorage.setItem('aipodium_active_session_id', newProject.id);
+    }
+  } catch (err) {
+    console.warn('[workspaceStorageService] createProject persistence notice:', err);
+  }
+
+  return newProject;
+}
+
+// ---------------------------------------------------------
+// 7. WorkspaceStorageService Class & Lazy Singleton Getter
 // ---------------------------------------------------------
 
 export class WorkspaceStorageService {
@@ -1047,6 +1125,8 @@ export class WorkspaceStorageService {
   syncDocToGithub = syncDocToGithub;
   syncDocumentToGithub = syncDocumentToGithub;
   pullDocumentsFromGithub = pullDocumentsFromGithub;
+  createProject = createProject;
+  generateProjectTitleFromPrompt = generateProjectTitleFromPrompt;
 }
 
 let instance: WorkspaceStorageService | null = null;
