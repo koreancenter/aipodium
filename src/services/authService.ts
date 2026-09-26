@@ -9,19 +9,8 @@ import {
   EncryptedApiKeyPayload,
   isEncryptedApiKeyPayload
 } from '../utils/securityCrypto';
-
-export interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  provider: 'google' | 'github' | 'apikey' | 'guest';
-  role?: string;
-  apiKeyMasked?: string;
-  githubRepo?: string;
-  createdAt: string;
-  isGuest?: boolean;
-}
+import type { AuthUser } from '../types';
+export type { AuthUser };
 
 const AUTH_STORAGE_KEY = 'podium_auth_session_v1';
 export const ENCRYPTED_GEMINI_KEY_STORAGE = 'aipodium_enc_gemini_key_v1';

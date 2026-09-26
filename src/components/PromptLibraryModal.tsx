@@ -235,7 +235,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
               <button
                 type="button"
                 onClick={startAdd}
-                className="px-3 py-1.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-md text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-xs"
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>새 프롬프트 추가</span>
@@ -314,7 +314,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                     type="button"
                     onClick={handleSaveForm}
                     disabled={!promptForm.title.trim() || !promptForm.body.trim()}
-                    className="px-4 py-1.5 bg-[#6366f1] hover:bg-[#4f46e5] disabled:opacity-50 text-white rounded-md text-xs font-medium transition cursor-pointer flex items-center gap-1.5"
+                    className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-md text-xs font-medium transition cursor-pointer flex items-center gap-1.5"
                   >
                     <Check className="w-3.5 h-3.5" />
                     <span>저장 완료</span>
@@ -376,7 +376,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                           onApplyPrompt(prompt.body);
                           onClose();
                         }}
-                        className="px-2.5 py-1.5 rounded-md bg-[#6366f1] hover:bg-[#4f46e5] text-white text-xs font-medium transition cursor-pointer flex items-center gap-1 shadow-xs"
+                        className="px-2.5 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition cursor-pointer flex items-center gap-1 shadow-xs"
                         title="이 프롬프트를 즉시 주입하고 닫기"
                       >
                         <Play className="w-3 h-3 fill-current" />

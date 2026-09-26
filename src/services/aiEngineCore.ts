@@ -10,6 +10,8 @@
 
 import { authService } from './authService';
 import { clearDeviceSecretMemory } from '../utils/securityCrypto';
+import type { ExecuteAiOptions } from '../types';
+export type { ExecuteAiOptions };
 
 // Module-closure isolated variables - NEVER accessible outside this file scope
 let inFlightEphemeralKey: string | null = null;
@@ -71,11 +73,6 @@ export async function getEphemeralDecryptedApiKey(
   }
 
   return resolved;
-}
-
-export interface ExecuteAiOptions {
-  vendor?: string;
-  userSecret?: string;
 }
 
 /**

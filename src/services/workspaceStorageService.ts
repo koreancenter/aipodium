@@ -3,35 +3,29 @@
 // 1. Local Directory (Browser File System Access API - window.showDirectoryPicker)
 // 2. Remote / Cloud Storage (REST / WebDAV / Cloud API interface)
 // 3. Browser Vault (IndexedDB high-capacity offline persistent storage)
+// 4. GitHub Repository Bidirectional Sync Engine (Push/Pull)
 
-export type WorkspaceStorageType = 'local' | 'remote' | 'indexeddb' | 'gdrive' | 'github';
+import type {
+  WorkspaceStorageType,
+  ActiveWorkspace,
+  StoredVaultItem,
+  PurgeGuestSessionOptions,
+  SyncDocumentToGithubOptions,
+  SyncDocumentToGithubResult,
+  PullDocumentsFromGithubOptions,
+  PullDocumentsResult,
+} from '../types';
 
-export interface ActiveWorkspace {
-  id: string;
-  name: string;
-  type: WorkspaceStorageType;
-  path?: string;
-  status: 'connected' | 'offline' | 'syncing';
-  lastSynced?: string;
-  fileCount: number;
-  remoteUrl?: string;
-  remoteToken?: string;
-  vaultId?: string;
-  isReadOnly?: boolean;
-  gdriveFolderId?: string;
-  gdriveFolderName?: string;
-  githubRepo?: string;
-  githubOwner?: string;
-  githubBranch?: string;
-}
-
-export interface StoredVaultItem {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-  fileCount: number;
-}
+export type {
+  WorkspaceStorageType,
+  ActiveWorkspace,
+  StoredVaultItem,
+  PurgeGuestSessionOptions,
+  SyncDocumentToGithubOptions,
+  SyncDocumentToGithubResult,
+  PullDocumentsFromGithubOptions,
+  PullDocumentsResult,
+};
 
 const DB_NAME = 'aipodium_vault_db';
 const DB_VERSION = 1;
@@ -499,10 +493,6 @@ export async function testRemoteStorageConnection(
 // 4. Guest Session Data Purge Pipeline
 // ---------------------------------------------------------
 
-export interface PurgeGuestSessionOptions {
-  resetToSampleWorkspace?: boolean;
-}
-
 /**
  * Truncates and clears all object stores in the vault IndexedDB.
  */
@@ -564,6 +554,7 @@ export async function purgeGuestSession(
     'aipodium_remote_workspace_config',
     'aipodium_github_config',
     'aipodium_github_meta',
+    'aipodium_github_pat_enc',
     'aipodium_recent_workspaces',
     'aipodium_active_session_id',
     'aipodium_projects_sessions',
@@ -656,13 +647,18 @@ export async function purgeGuestSession(
   // 5. Clear sensitive clipboard memory and in-memory decrypted keys
   try {
     const { clearSensitiveClipboard } = await import('../utils/securityCrypto');
-    clearSensitiveClipboard();
+    await clearSensitiveClipboard();
   } catch {}
 
-  try {
-    const { clearAiDecryptedKeyMemory } = await import('./aiEngineCore');
-    clearAiDecryptedKeyMemory();
-  } catch {}
+  // Trigger memory wipe event in aiEngineCore without direct module coupling
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('aipodium:auto_lock'));
+  }
+  if (options.onClearKeys) {
+    try {
+      options.onClearKeys();
+    } catch {}
+  }
 
   // 6. Reset the storage state to the initial default sample workspace
   if (shouldResetToSample) {
@@ -701,3 +697,378 @@ export async function purgeGuestSession(
     }
   }
 }
+
+// ---------------------------------------------------------
+// 5. GitHub Repository Bidirectional Sync Engine (Push/Pull)
+// ---------------------------------------------------------
+
+export const GITHUB_REPO_REGEX = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/;
+
+/**
+ * Smartly sanitizes GitHub repository input, stripping protocol, domain, and .git extensions:
+ * - https://github.com/owner/repo -> owner/repo
+ * - https://github.com/owner/repo.git -> owner/repo
+ * - git@github.com:owner/repo.git -> owner/repo
+ * - github.com/owner/repo -> owner/repo
+ */
+export function sanitizeGithubRepo(input: string): string {
+  if (!input) return '';
+  let val = input.trim();
+  val = val.replace(/^git@github\.com:/i, '');
+  val = val.replace(/^https?:\/\/(www\.)?github\.com\/?/i, '');
+  val = val.replace(/^(www\.)?github\.com\/?/i, '');
+  val = val.replace(/^\/+/, '');
+  val = val.replace(/\.git$/i, '');
+  val = val.replace(/\/+$/, '');
+  return val;
+}
+
+/**
+ * Auto-generates standard conventional commit messages for document push pipeline:
+ * - For new files: docs: create ${filename} (via AI Podium)
+ * - For modified files: docs: update ${filename} (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+ */
+export function generateConventionalCommitMessage(
+  filename: string,
+  isNewFile: boolean,
+  timeString?: string
+): string {
+  const cleanFilename = filename.replace(/^\/+/, '').split('/').pop() || filename;
+  const time = timeString || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (isNewFile) {
+    return `docs: create ${cleanFilename} (via AI Podium)`;
+  }
+  return `docs: update ${cleanFilename} (${time})`;
+}
+
+function utf8ToBase64(str: string): string {
+  try {
+    return btoa(unescape(encodeURIComponent(str)));
+  } catch {
+    const bytes = new TextEncoder().encode(str);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
+}
+
+function base64ToUtf8(str: string): string {
+  try {
+    return decodeURIComponent(escape(atob(str.replace(/\s/g, ''))));
+  } catch {
+    const binary = atob(str.replace(/\s/g, ''));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder('utf-8').decode(bytes);
+  }
+}
+
+/**
+ * Pushes a single document (e.g. Markdown) directly to a GitHub repository branch.
+ * 1. Fetches current file SHA via GET /repos/{owner}/{repo}/contents/{path}.
+ * 2. Commits and pushes changes via PUT /repos/{owner}/{repo}/contents/{path} with base64 content and SHA.
+ * 3. Handles 409 Conflict gracefully with Safe Fork:
+ *    - Fetches remote head content
+ *    - Creates conflict filename: ${baseFileName}_conflict_${Date.now()}.md
+ *    - Notifies caller to preserve user edits in the conflict file and update tab to remote head.
+ */
+export async function syncDocumentToGithub(
+  options: SyncDocumentToGithubOptions
+): Promise<SyncDocumentToGithubResult> {
+  const {
+    owner,
+    repo,
+    branch = 'main',
+    token,
+    filePath,
+    content,
+    commitMessage,
+    onToast,
+  } = options;
+
+  if (!token || !owner || !repo || !filePath) {
+    const errMsg = 'GitHub 동기화 필수 정보가 누락되었습니다.';
+    if (onToast) onToast(errMsg, 'warn');
+    return { success: false, error: errMsg };
+  }
+
+  const cleanToken = token.trim();
+  const cleanPath = filePath.replace(/^\/+/, '');
+
+  try {
+    // 1. Fetch current file SHA via GET /repos/{owner}/{repo}/contents/{path}
+    let existingSha: string | undefined = undefined;
+    try {
+      const getRes = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/contents/${cleanPath}?ref=${encodeURIComponent(branch)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${cleanToken}`,
+            Accept: 'application/vnd.github.v3+json',
+          },
+        }
+      );
+
+      if (getRes.ok) {
+        const fileData = await getRes.json();
+        existingSha = fileData.sha;
+      } else if (getRes.status === 404) {
+        existingSha = undefined;
+      } else {
+        console.warn(`[syncDocumentToGithub] Checking file SHA returned HTTP ${getRes.status}`);
+      }
+    } catch (checkErr) {
+      console.warn('[syncDocumentToGithub] Error checking existing SHA:', checkErr);
+    }
+
+    // 2. Commit and push changes via PUT /repos/{owner}/{repo}/contents/{path}
+    const base64Content = utf8ToBase64(content);
+    const isNewFile = !existingSha;
+    const filename = cleanPath.split('/').pop() || cleanPath;
+
+    let message: string;
+    if (commitMessage && commitMessage.trim()) {
+      message = commitMessage
+        .replace(/\$\{filename\}/g, filename)
+        .replace(/\{filename\}/g, filename)
+        .replace(/\$\{time\}/g, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+        .trim();
+    } else {
+      message = generateConventionalCommitMessage(filename, isNewFile);
+    }
+
+    const putBody: Record<string, any> = {
+      message,
+      content: base64Content,
+      branch,
+    };
+    if (existingSha) {
+      putBody.sha = existingSha;
+    }
+
+    const putRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/contents/${cleanPath}`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${cleanToken}`,
+          Accept: 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(putBody),
+      }
+    );
+
+    // 3. Graceful 409 Conflict Handling (Safe Fork):
+    if (putRes.status === 409) {
+      let remoteContent: string | undefined = undefined;
+      let remoteSha: string | undefined = undefined;
+      try {
+        const remoteRes = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/contents/${cleanPath}?ref=${encodeURIComponent(branch)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${cleanToken}`,
+              Accept: 'application/vnd.github.v3+json',
+            },
+          }
+        );
+        if (remoteRes.ok) {
+          const remoteData = await remoteRes.json();
+          remoteSha = remoteData.sha;
+          if (remoteData.content) {
+            remoteContent = base64ToUtf8(remoteData.content);
+          }
+        }
+      } catch (remoteFetchErr) {
+        console.warn('[syncDocumentToGithub] Error fetching remote content during 409 conflict:', remoteFetchErr);
+      }
+
+      const baseFileName = filename.replace(/\.[^/.]+$/, '');
+      const conflictFileName = `${baseFileName}_conflict_${Date.now()}.md`;
+      const conflictMsg = '원격 저장소에 더 최신 문서가 존재하여 충돌 사본이 생성되었습니다.';
+
+      if (onToast) onToast(conflictMsg, 'warn');
+
+      return {
+        success: false,
+        conflict: true,
+        conflictFileName,
+        remoteContent,
+        sha: remoteSha,
+        error: conflictMsg,
+      };
+    }
+
+    if (!putRes.ok) {
+      const errorData = await putRes.json().catch(() => ({}));
+      const errorMsg = errorData.message || `HTTP ${putRes.status}`;
+      if (onToast) onToast(`GitHub 푸시 실패: ${errorMsg}`, 'error');
+      return { success: false, error: errorMsg };
+    }
+
+    const resData = await putRes.json();
+    const newSha = resData.content?.sha;
+
+    if (onToast) {
+      onToast(`GitHub 저장소에 '${cleanPath}' 파일이 동기화되었습니다.`, 'success');
+    }
+
+    return {
+      success: true,
+      sha: newSha,
+    };
+  } catch (err: any) {
+    const errorMsg = err?.message || '네트워크 연결 오류';
+    if (onToast) onToast(`GitHub 동기화 오류: ${errorMsg}`, 'error');
+    return { success: false, error: errorMsg };
+  }
+}
+
+/**
+ * Single-Document Push Engine alias for syncDocumentToGithub
+ */
+export const syncDocToGithub = syncDocumentToGithub;
+
+/**
+ * Pulls existing Markdown documents from a GitHub repository branch into the workspace.
+ */
+export async function pullDocumentsFromGithub(
+  options: PullDocumentsFromGithubOptions
+): Promise<PullDocumentsResult> {
+  const { owner, repo, branch = 'main', token, onToast } = options;
+
+  if (!token || !owner || !repo) {
+    throw new Error('저장소 동기화에 필요한 토큰과 저장소 정보가 부족합니다.');
+  }
+
+  const cleanToken = token.trim();
+
+  try {
+    const treeRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`,
+      {
+        headers: {
+          Authorization: `Bearer ${cleanToken}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      }
+    );
+
+    if (!treeRes.ok) {
+      throw new Error(`저장소 파일 트리를 가져올 수 없습니다 (HTTP ${treeRes.status})`);
+    }
+
+    const treeData = await treeRes.json();
+    const tree = treeData.tree || [];
+
+    const mdBlobs = tree.filter(
+      (item: any) =>
+        item.type === 'blob' &&
+        typeof item.path === 'string' &&
+        (item.path.toLowerCase().endsWith('.md') || item.path.toLowerCase().endsWith('.markdown')) &&
+        !item.path.startsWith('.') &&
+        !item.path.includes('node_modules/')
+    );
+
+    if (mdBlobs.length === 0) {
+      return { files: {}, fileFolders: {}, count: 0 };
+    }
+
+    const pulledFiles: Record<string, string> = {};
+    const pulledFolders: Record<string, string> = {};
+    const rootFolder = `${owner}/${repo}`;
+
+    const BATCH_SIZE = 5;
+    for (let i = 0; i < mdBlobs.length; i += BATCH_SIZE) {
+      const batch = mdBlobs.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        batch.map(async (item: any) => {
+          try {
+            const blobRes = await fetch(item.url, {
+              headers: {
+                Authorization: `Bearer ${cleanToken}`,
+                Accept: 'application/vnd.github.v3+json',
+              },
+            });
+            if (blobRes.ok) {
+              const blobData = await blobRes.json();
+              if (blobData.encoding === 'base64' && blobData.content) {
+                const text = base64ToUtf8(blobData.content);
+                pulledFiles[item.path] = text;
+                pulledFolders[item.path] = rootFolder;
+              }
+            }
+          } catch (fetchErr) {
+            console.warn(`[pullDocumentsFromGithub] Failed to fetch blob for ${item.path}:`, fetchErr);
+          }
+        })
+      );
+    }
+
+    return {
+      files: pulledFiles,
+      fileFolders: pulledFolders,
+      count: Object.keys(pulledFiles).length,
+    };
+  } catch (err: any) {
+    console.error('Error pulling documents from GitHub:', err);
+    if (onToast) {
+      onToast(`GitHub 문서 동기화 실패: ${err?.message || '네트워크 오류'}`, 'error');
+    }
+    throw err;
+  }
+}
+
+// ---------------------------------------------------------
+// 6. WorkspaceStorageService Class & Lazy Singleton Getter
+// ---------------------------------------------------------
+
+export class WorkspaceStorageService {
+  setMemoryDirectoryHandle = setMemoryDirectoryHandle;
+  getMemoryDirectoryHandle = getMemoryDirectoryHandle;
+  saveVaultToIndexedDB = saveVaultToIndexedDB;
+  loadVaultFromIndexedDB = loadVaultFromIndexedDB;
+  listIndexedDBVaults = listIndexedDBVaults;
+  clearVaultIndexedDB = clearVaultIndexedDB;
+  isFileSystemAccessSupported = isFileSystemAccessSupported;
+  pickLocalDirectory = pickLocalDirectory;
+  saveFileToLocalDirectory = saveFileToLocalDirectory;
+  deleteFileFromLocalDirectory = deleteFileFromLocalDirectory;
+  renameFileInLocalDirectory = renameFileInLocalDirectory;
+  rescanLocalDirectory = rescanLocalDirectory;
+  purgeGuestSession = purgeGuestSession;
+  sanitizeGithubRepo = sanitizeGithubRepo;
+  generateConventionalCommitMessage = generateConventionalCommitMessage;
+  syncDocToGithub = syncDocToGithub;
+  syncDocumentToGithub = syncDocumentToGithub;
+  pullDocumentsFromGithub = pullDocumentsFromGithub;
+}
+
+let instance: WorkspaceStorageService | null = null;
+
+export const getWorkspaceStorageService = (): WorkspaceStorageService => {
+  if (!instance) {
+    instance = new WorkspaceStorageService();
+  }
+  return instance;
+};
+
+// Lazy proxy object for any legacy code expecting `workspaceStorageService.<method>`
+// without evaluating top-level instances prematurely at module load time.
+export const workspaceStorageService = new Proxy({} as WorkspaceStorageService, {
+  get(_target, prop: string | symbol) {
+    const realInstance = getWorkspaceStorageService();
+    const value = (realInstance as any)[prop];
+    if (typeof value === 'function') {
+      return value.bind(realInstance);
+    }
+    return value;
+  },
+});
+
+

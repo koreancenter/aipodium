@@ -224,7 +224,7 @@ export const TableGridPicker: React.FC<TableGridPickerProps> = ({
               onInsertTable(customRows, customCols);
               onClose();
             }}
-            className="px-2.5 py-1 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-md text-[0.6875rem] font-semibold transition flex items-center gap-1 cursor-pointer shadow-xs whitespace-nowrap"
+            className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-[0.6875rem] font-medium transition flex items-center gap-1 cursor-pointer shadow-xs whitespace-nowrap"
           >
             <span>생성</span>
             <Plus className="w-3 h-3" />

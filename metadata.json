@@ -1,6 +1,6 @@
 {
-  "name": "Remix aipodium",
-  "description": "Imported from GitHub: koreancenter/aipodium",
+  "name": "AI Podium",
+  "description": "외부 유출 걱정 없는 안전한 환경에서 흩어진 자료를 하나의 명확한 기준 문서로 통합하세요.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

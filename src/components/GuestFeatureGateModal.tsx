@@ -73,13 +73,13 @@ export const GuestFeatureGateModal: React.FC<GuestFeatureGateModalProps> = ({
             <div className="w-14 h-14 rounded-md bg-[#09090b] border border-[#222226] flex items-center justify-center shadow-lg">
               {renderIcon()}
             </div>
-            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-sm bg-[#6366f1] text-white flex items-center justify-center font-bold text-xs shadow-md">
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-sm bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-md">
               <Lock className="w-3 h-3 text-white" />
             </div>
           </div>
 
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm bg-[#6366f1]/10 border border-[#6366f1]/30 text-[#818cf8] text-[0.6875rem] font-medium">
-            <Sparkles className="w-3 h-3 text-[#6366f1]" />
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-[0.6875rem] font-medium">
+            <Sparkles className="w-3 h-3 text-indigo-400" />
             <span>클라우드 전용 기능</span>
           </div>
 
@@ -130,7 +130,7 @@ export const GuestFeatureGateModal: React.FC<GuestFeatureGateModalProps> = ({
               onClose();
               onUpgrade();
             }}
-            className="w-full sm:w-1/2 h-9 flex items-center justify-center gap-1.5 rounded-md bg-[#6366f1] hover:bg-[#4f46e5] text-white text-xs font-bold transition shadow-md shadow-indigo-950/40 cursor-pointer"
+            className="w-full sm:w-1/2 h-9 flex items-center justify-center gap-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-md shadow-indigo-950/40 cursor-pointer"
           >
             <span>계정 로그인 / 생성</span>
             <ArrowRight className="w-3.5 h-3.5 text-white" />

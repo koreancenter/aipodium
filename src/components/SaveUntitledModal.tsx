@@ -183,7 +183,7 @@ export const SaveUntitledModal: React.FC<SaveUntitledModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 rounded-md text-xs font-medium bg-[#6366f1] hover:bg-[#4f46e5] text-white transition shadow-xs cursor-pointer"
+              className="px-4 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-xs cursor-pointer"
             >
               문서 저장
             </button>

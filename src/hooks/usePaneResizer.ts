@@ -12,7 +12,7 @@ export function isTabletLandscape(): boolean {
 }
 
 /**
- * @deprecated Deprecated in favor of the fixed Golden Ratio layout (Left: 340px, Right: 240px, Center: flex-1).
+ * @deprecated Deprecated in favor of the fixed Golden Ratio layout (Left: 510px, Right: 240px, Center: flex-1).
  * Main layout now uses CSS fixed widths and pure collapsible show/hide transitions without mouse drag handles.
  */
 export function usePaneResizer(mainContainerRef: RefObject<HTMLElement | null>) {

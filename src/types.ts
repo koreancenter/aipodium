@@ -112,3 +112,114 @@ export const DEFAULT_AI_ROLE_MODELS: AiRoleModels = {
   ssot: 'gemini-2.5-pro',
   critic: 'gemini-2.5-pro'
 };
+
+// ==========================================
+// Decoupled Storage, Security & Auth Types
+// ==========================================
+
+export interface EncryptedApiKeyPayload {
+  ciphertext: string;
+  iv: string;
+  salt: string;
+  hasUserSecret?: boolean;
+  version?: number;
+  createdAt?: string;
+}
+
+export type WorkspaceStorageType = 'local' | 'remote' | 'indexeddb' | 'gdrive' | 'github';
+
+export interface ActiveWorkspace {
+  id: string;
+  name: string;
+  type: WorkspaceStorageType;
+  path?: string;
+  status: 'connected' | 'offline' | 'syncing';
+  lastSynced?: string;
+  fileCount: number;
+  remoteUrl?: string;
+  remoteToken?: string;
+  vaultId?: string;
+  isReadOnly?: boolean;
+  gdriveFolderId?: string;
+  gdriveFolderName?: string;
+  githubRepo?: string;
+  githubOwner?: string;
+  githubBranch?: string;
+}
+
+export interface StoredVaultItem {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  fileCount: number;
+}
+
+export interface PurgeGuestSessionOptions {
+  resetToSampleWorkspace?: boolean;
+  onClearKeys?: () => void;
+  onClearStorage?: () => Promise<void> | void;
+}
+
+export interface SyncDocumentToGithubOptions {
+  owner: string;
+  repo: string;
+  branch?: string;
+  token: string;
+  filePath: string;
+  content: string;
+  commitMessage?: string;
+  onToast?: (message: string, type?: 'success' | 'info' | 'warn' | 'error') => void;
+}
+
+export interface SyncDocumentToGithubResult {
+  success: boolean;
+  sha?: string;
+  conflict?: boolean;
+  conflictFileName?: string;
+  remoteContent?: string;
+  error?: string;
+}
+
+export interface PullDocumentsFromGithubOptions {
+  owner: string;
+  repo: string;
+  branch?: string;
+  token: string;
+  onToast?: (message: string, type?: 'success' | 'info' | 'warn' | 'error') => void;
+}
+
+export interface PullDocumentsResult {
+  files: Record<string, string>;
+  fileFolders: Record<string, string>;
+  count: number;
+}
+
+export interface ExecuteAiOptions {
+  vendor?: string;
+  userSecret?: string;
+}
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  provider: 'google' | 'github' | 'apikey' | 'guest';
+  role?: string;
+  apiKeyMasked?: string;
+  githubRepo?: string;
+  createdAt: string;
+  isGuest?: boolean;
+}
+
+export interface GithubConfig {
+  token: string;
+  repo: string; // e.g. "owner/repo"
+  owner?: string;
+  branch: string;
+  pullOnConnect?: boolean;
+  autoCommit?: boolean;
+  useCustomCommitMessage?: boolean;
+  customCommitMessage?: string;
+}

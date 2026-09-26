@@ -10,39 +10,29 @@ export default defineConfig(() => {
     base: '/', 
     plugins: [react(), tailwindcss()],
     resolve: {
-      alias: {
-        '@': path.resolve(__dirname, '.'),
-      },
+      alias: [
+        { find: /^@tiptap\/pm$/, replacement: path.resolve(__dirname, 'src/shims/tiptap-pm.ts') },
+        { find: '@', replacement: path.resolve(__dirname, '.') },
+      ],
     },
     build: {
       target: 'es2020',
-      minify: 'esbuild',
+      minify: 'esbuild' as const,
       cssMinify: true,
       sourcemap: true,
       chunkSizeWarningLimit: 1500,
       rollupOptions: {
         output: {
-          manualChunks(id) {
-            if (id.includes('node_modules')) {
-              if (id.includes('xlsx') || id.includes('mammoth') || id.includes('jszip') || id.includes('turndown')) {
-                return 'vendor-office';
-              }
-              if (id.includes('pdfjs-dist') || id.includes('tesseract.js')) {
-                return 'vendor-pdf-ocr';
-              }
-              if (id.includes('katex')) {
-                return 'vendor-katex';
-              }
-              if (id.includes('react') || id.includes('motion') || id.includes('lucide-react')) {
-                return 'vendor-framework';
-              }
-            }
+          manualChunks: {
+            'vendor-webllm': ['@mlc-ai/web-llm'],
+            'vendor-editor': ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/pm'],
+            'vendor-parsers': ['katex', 'mammoth', 'xlsx', 'turndown'],
           },
         },
       },
     },
     server: {
-      allowedHosts: true,
+      allowedHosts: true as const,
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',

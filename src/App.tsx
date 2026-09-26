@@ -5,7 +5,6 @@ import { SAMPLE_PDF_DATA_URL } from './data/samplePdfData';
 import { motion, AnimatePresence } from 'motion/react';
 import { googleDriveService, GoogleUserProfile, DriveFolderInfo } from './services/googleDriveService';
 import { GoogleDrivePickerModal } from './components/GoogleDrivePickerModal';
-import { RemoteWorkspaceModal, RemoteConfig } from './components/RemoteWorkspaceModal';
 import { PreferencesModal, UserPreferences, DEFAULT_PREFERENCES, AiInferenceParameters, DEFAULT_AI_PARAMETERS, applyThemeToDocument, PromptTemplate } from './components/PreferencesModal';
 import { PromptLibraryModal, DEFAULT_SYSTEM_PROMPTS } from './components/PromptLibraryModal';
 import { GoogleAccountModal } from './components/GoogleAccountModal';
@@ -23,7 +22,16 @@ import {
   saveVaultToIndexedDB,
   getMemoryDirectoryHandle,
   rescanLocalDirectory,
+  syncDocumentToGithub,
+  syncDocToGithub,
+  pullDocumentsFromGithub,
+  purgeGuestSession,
 } from './services/workspaceStorageService';
+import {
+  saveEncryptedGithubPat,
+  loadEncryptedGithubPat,
+  removeEncryptedGithubPat,
+} from './utils/securityCrypto';
 import {
   RecursiveFolderTree,
   TreeDirectoryNode,
@@ -100,7 +108,6 @@ import {
   clearSensitiveClipboard,
   hasMasterPinConfigured,
   purgeGuestWorkspaceData,
-  purgeGuestSession
 } from './utils/securityCrypto';
 import { clearAiDecryptedKeyMemory } from './services/aiEngineCore';
 import {
@@ -242,7 +249,7 @@ export default function App() {
     isGuest,
     onTimeout: async () => {
       if (isGuest || !hasPin) {
-        await purgeGuestWorkspaceData();
+        await purgeGuestWorkspaceData(() => purgeGuestSession({ resetToSampleWorkspace: false }));
         if (typeof window !== 'undefined') {
           window.location.reload();
         }
@@ -827,9 +834,11 @@ export default function App() {
 
   // Google Auth & SSOT Workspace State
   const [googleUser, setGoogleUser] = useState<GoogleUserProfile | null>(() => googleDriveService.getUserProfile());
-  const [workspaceRootType, setWorkspaceRootType] = useState<'local' | 'gdrive' | 'remote' | 'github'>(() => {
+  const [workspaceRootType, setWorkspaceRootType] = useState<'local' | 'gdrive' | 'github'>(() => {
     try {
-      return (localStorage.getItem('aipodium_workspace_root_type') as any) || 'local';
+      const saved = localStorage.getItem('aipodium_workspace_root_type');
+      if (saved === 'gdrive' || saved === 'github') return saved;
+      return 'local';
     } catch {
       return 'local';
     }
@@ -838,15 +847,6 @@ export default function App() {
   const [isGdrivePickerOpen, setIsGdrivePickerOpen] = useState<boolean>(false);
   const [gdrivePickerTab, setGdrivePickerTab] = useState<'open' | 'save' | 'folders'>('open');
   const [isGoogleAccountModalOpen, setIsGoogleAccountModalOpen] = useState<boolean>(false);
-  const [remoteConfig, setRemoteConfig] = useState<RemoteConfig | null>(() => {
-    try {
-      const saved = localStorage.getItem('aipodium_remote_workspace_config');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [isRemoteModalOpen, setIsRemoteModalOpen] = useState<boolean>(false);
   const [isGithubModalOpen, setIsGithubModalOpen] = useState<boolean>(false);
 
   // GitHub & Google Drive: Independent on-demand integration, runs directly via user PAT / OAuth
@@ -862,11 +862,6 @@ export default function App() {
   const handleOpenGoogleDrive = useCallback((tab: 'open' | 'save' | 'folders' = 'open') => {
     setGdrivePickerTab(tab);
     setIsGdrivePickerOpen(true);
-  }, []);
-
-  // Remote SSH & Enterprise Server: Independent on-demand integration
-  const handleOpenRemoteSSH = useCallback(() => {
-    setIsRemoteModalOpen(true);
   }, []);
   
   // SSOT Generator Modal State
@@ -896,6 +891,41 @@ export default function App() {
       return null;
     }
   });
+
+  // Restore encrypted GitHub PAT from localStorage under aipodium_github_pat_enc
+  useEffect(() => {
+    async function restoreGithubSession() {
+      try {
+        const encryptedPat = localStorage.getItem('aipodium_github_pat_enc');
+        const safeMetaStr = localStorage.getItem('aipodium_github_meta');
+        if (encryptedPat && safeMetaStr) {
+          const decryptedToken = await loadEncryptedGithubPat();
+          const meta = JSON.parse(safeMetaStr);
+          if (decryptedToken && meta.repo) {
+            const restoredConfig: GithubConfig = {
+              token: decryptedToken,
+              repo: meta.repo,
+              owner: meta.owner,
+              branch: meta.branch || 'main',
+              useCustomCommitMessage: meta.useCustomCommitMessage,
+              customCommitMessage: meta.customCommitMessage,
+            };
+            setGithubConfig(restoredConfig);
+            sessionStorage.setItem('aipodium_github_config', JSON.stringify(restoredConfig));
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to restore encrypted GitHub PAT:', err);
+      }
+    }
+    restoreGithubSession();
+  }, []);
+
+  // GitHub Auto-Push debouncing & status indicators
+  const [githubSyncStatus, setGithubSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'conflict' | 'error'>('idle');
+  const autoPushTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastPushedContentRef = useRef<Record<string, string>>({});
+  const isPushingGithubRef = useRef(false);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -969,8 +999,6 @@ export default function App() {
     }
     if (newWorkspace.type === 'local') {
       setWorkspaceRootType('local');
-    } else if (newWorkspace.type === 'remote') {
-      setWorkspaceRootType('remote');
     } else if (newWorkspace.type === 'gdrive') {
       setWorkspaceRootType('gdrive');
     } else if (newWorkspace.type === 'github') {
@@ -1012,12 +1040,28 @@ export default function App() {
           setIsGoogleAccountModalOpen(true);
         }
       } else if (activeWorkspace.type === 'github') {
-        if (githubConfig?.token && githubConfig?.owner && githubConfig?.repo) {
-          showToast(`🐙 GitHub '${activeWorkspace.name}' 저장소 최신 상태 확인 완료`, 'success');
+        if (githubConfig?.token && githubConfig?.repo) {
+          const parts = githubConfig.repo.split('/');
+          const owner = githubConfig.owner || parts[0];
+          const repoName = parts.length > 1 ? parts.slice(1).join('/') : githubConfig.repo;
+          showToast(`🐙 GitHub '${activeWorkspace.name}' 저장소 동기화 중...`, 'info');
+          const pullResult = await pullDocumentsFromGithub({
+            owner,
+            repo: repoName,
+            branch: githubConfig.branch || 'main',
+            token: githubConfig.token,
+          });
+          if (pullResult && Object.keys(pullResult.files).length > 0) {
+            setFiles((prev) => ({ ...prev, ...pullResult.files }));
+            setFileFolders((prev) => ({ ...prev, ...pullResult.fileFolders }));
+            showToast(`🐙 GitHub 저장소에서 ${pullResult.count}개 문서를 동기화했습니다.`, 'success');
+          } else {
+            showToast(`🐙 GitHub '${activeWorkspace.name}' 저장소 최신 상태 확인 완료`, 'success');
+          }
           setActiveWorkspace((prev) => ({
             ...prev,
             lastSynced: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-            fileCount: Object.keys(files).length,
+            fileCount: Object.keys({ ...files, ...(pullResult?.files || {}) }).length,
           }));
         } else {
           showToast('⚠️ GitHub 연동 설정을 확인해주세요.', 'warn');
@@ -4172,6 +4216,180 @@ export default function App() {
     []
   );
 
+  // Single-Document Push Engine & Graceful 409 Safe Fork Conflict Handler
+  const handleSyncDocToGithub = useCallback(
+    async (
+      targetFile: string,
+      contentToPush: string,
+      options?: { isAutoPush?: boolean; showSuccessToast?: boolean }
+    ) => {
+      if (!githubConfig?.token || !githubConfig?.repo || !targetFile) return;
+
+      const isUntitledOrInitial =
+        untitledDocs[targetFile] !== undefined ||
+        targetFile.startsWith('Untitled-') ||
+        /^새 프로젝트(\s*\d*)?\.md$/i.test(targetFile) ||
+        targetFile === '새 문서.md' ||
+        targetFile.toLowerCase().endsWith('.pdf');
+
+      if (isUntitledOrInitial) return;
+
+      const parts = githubConfig.repo.split('/');
+      const owner = githubConfig.owner || parts[0];
+      const repoName = parts.length > 1 ? parts.slice(1).join('/') : githubConfig.repo;
+      const cleanBranch = githubConfig.branch || 'main';
+
+      const commitMsg =
+        githubConfig.useCustomCommitMessage && githubConfig.customCommitMessage
+          ? githubConfig.customCommitMessage.replace(/\${filename}/g, targetFile).replace(/\{filename\}/g, targetFile)
+          : undefined;
+
+      setGithubSyncStatus('syncing');
+      isPushingGithubRef.current = true;
+
+      try {
+        const res = await syncDocToGithub({
+          owner,
+          repo: repoName,
+          branch: cleanBranch,
+          token: githubConfig.token,
+          filePath: targetFile,
+          content: contentToPush,
+          commitMessage: commitMsg,
+        });
+
+        if (res.success) {
+          lastPushedContentRef.current[targetFile] = contentToPush;
+          setGithubSyncStatus('synced');
+          if (options?.showSuccessToast) {
+            showToast(`GitHub 저장소에 '${targetFile}' 파일이 동기화되었습니다.`, 'success');
+          }
+        } else if (res.conflict) {
+          // Graceful 409 Conflict Handling (Safe Fork):
+          // 1. Create a local conflict backup file in active folder: ${baseFileName}_conflict_${Date.now()}.md
+          const filename = targetFile.replace(/^\/+/, '').split('/').pop() || targetFile;
+          const baseFileName = filename.replace(/\.[^/.]+$/, '');
+          const conflictFileName = res.conflictFileName || `${baseFileName}_conflict_${Date.now()}.md`;
+          const activeFolder = fileFolders[targetFile] || activeSession?.title || 'docs';
+
+          const userEdits = contentToPush;
+          const remoteHeadContent = res.remoteContent;
+
+          // Preserve user edits safely in the conflict copy
+          setFiles((prevFiles) => {
+            const updated = { ...prevFiles, [conflictFileName]: userEdits };
+            if (remoteHeadContent !== undefined) {
+              updated[targetFile] = remoteHeadContent;
+            }
+            return updated;
+          });
+
+          setFileFolders((prevFolders) => ({
+            ...prevFolders,
+            [conflictFileName]: activeFolder,
+          }));
+
+          // Fetch remote content and update the current file tab to match remote head
+          if (remoteHeadContent !== undefined) {
+            if (currentActiveFile === targetFile) {
+              setEditorContent(remoteHeadContent);
+            }
+            setSessions((prev) =>
+              prev.map((s) =>
+                s.id === activeSessionId && s.fileName === targetFile
+                  ? { ...s, editorContent: remoteHeadContent }
+                  : s
+              )
+            );
+          }
+
+          // Persist conflict copy & remote head to local filesystem / IndexedDB if active
+          const dirHandle = getMemoryDirectoryHandle();
+          if (activeWorkspace.type === 'local' && dirHandle) {
+            saveFileToLocalDirectory(dirHandle, conflictFileName, userEdits).catch(console.error);
+            if (remoteHeadContent !== undefined) {
+              saveFileToLocalDirectory(dirHandle, targetFile, remoteHeadContent).catch(console.error);
+            }
+          } else if (activeWorkspace.type === 'indexeddb') {
+            setFiles((currentLatest) => {
+              saveVaultToIndexedDB(
+                activeWorkspace.vaultId || activeWorkspace.id,
+                currentLatest,
+                { ...fileFolders, [conflictFileName]: activeFolder },
+                activeWorkspace.name
+              ).catch(console.error);
+              return currentLatest;
+            });
+          }
+
+          // Clean, non-intrusive toast warning
+          showToast('원격 저장소에 더 최신 문서가 존재하여 충돌 사본이 생성되었습니다.', 'warn');
+          setGithubSyncStatus('conflict');
+          setTimeout(() => {
+            setGithubSyncStatus('idle');
+          }, 4000);
+        } else {
+          setGithubSyncStatus('error');
+          setTimeout(() => {
+            setGithubSyncStatus('idle');
+          }, 4000);
+          if (options?.showSuccessToast) {
+            showToast(res.error || 'GitHub 동기화에 실패했습니다.', 'error');
+          }
+        }
+      } catch (err: any) {
+        console.error('Error in GitHub sync:', err);
+        setGithubSyncStatus('error');
+        setTimeout(() => {
+          setGithubSyncStatus('idle');
+        }, 4000);
+      } finally {
+        isPushingGithubRef.current = false;
+      }
+    },
+    [githubConfig, untitledDocs, fileFolders, activeSession, currentActiveFile, activeSessionId, activeWorkspace, showToast]
+  );
+
+  // Debounced GitHub Auto-Push: 3000ms after user typing stops
+  useEffect(() => {
+    if (!githubConfig?.token || !githubConfig?.repo || !currentActiveFile) return;
+
+    // Check if untitled / placeholder / pdf
+    const isUntitled =
+      untitledDocs[currentActiveFile] !== undefined ||
+      currentActiveFile.startsWith('Untitled-') ||
+      /^새 프로젝트(\s*\d*)?\.md$/i.test(currentActiveFile) ||
+      currentActiveFile === '새 문서.md' ||
+      currentActiveFile.toLowerCase().endsWith('.pdf');
+
+    if (isUntitled) return;
+
+    // Initialize lastPushedContentRef if unset for this file
+    if (lastPushedContentRef.current[currentActiveFile] === undefined) {
+      lastPushedContentRef.current[currentActiveFile] = files[currentActiveFile] ?? editorContent;
+      return;
+    }
+
+    // Only debounce auto-push if editor content has actually changed
+    if (editorContent === lastPushedContentRef.current[currentActiveFile]) {
+      return;
+    }
+
+    if (autoPushTimerRef.current) {
+      clearTimeout(autoPushTimerRef.current);
+    }
+
+    autoPushTimerRef.current = setTimeout(() => {
+      handleSyncDocToGithub(currentActiveFile, editorContent, { isAutoPush: true });
+    }, 3000);
+
+    return () => {
+      if (autoPushTimerRef.current) {
+        clearTimeout(autoPushTimerRef.current);
+      }
+    };
+  }, [editorContent, currentActiveFile, githubConfig, untitledDocs, files, handleSyncDocToGithub]);
+
   // Save Document: if untitled or placeholder, open Save modal; otherwise save to physical file & sync storage
   const handleSaveDocument = useCallback(() => {
     if (!currentActiveFile) return;
@@ -4232,11 +4450,27 @@ export default function App() {
         ).catch(console.error);
       }
 
+      // Cancel any pending auto-push debounce timer & push immediately
+      if (autoPushTimerRef.current) {
+        clearTimeout(autoPushTimerRef.current);
+      }
+      if (githubConfig?.token && githubConfig?.repo) {
+        handleSyncDocToGithub(currentActiveFile, editorContent, { isAutoPush: false, showSuccessToast: false });
+      }
+
       showToast(`💾 '${currentActiveFile}' 저장되었습니다.`);
     } else {
-      showToast(`✨ 이미 최신 상태입니다.`, 'info');
+      // If already matching local state, still allow pushing to GitHub if connected
+      if (githubConfig?.token && githubConfig?.repo) {
+        if (autoPushTimerRef.current) {
+          clearTimeout(autoPushTimerRef.current);
+        }
+        handleSyncDocToGithub(currentActiveFile, editorContent, { isAutoPush: false, showSuccessToast: true });
+      } else {
+        showToast(`✨ 이미 최신 상태입니다.`, 'info');
+      }
     }
-  }, [currentActiveFile, editorContent, activeSessionId, files, activeWorkspace, fileFolders, untitledDocs]);
+  }, [currentActiveFile, editorContent, activeSessionId, files, activeWorkspace, fileFolders, untitledDocs, githubConfig, handleSyncDocToGithub]);
 
   // Confirm Save Untitled Modal handler
   const handleConfirmSaveUntitled = (newFileName: string, targetFolder: string) => {
@@ -4309,6 +4543,14 @@ export default function App() {
         updatedFolders,
         activeWorkspace.name
       ).catch(console.error);
+    }
+
+    // Sync to GitHub if connected
+    if (githubConfig?.token && githubConfig?.repo) {
+      if (autoPushTimerRef.current) {
+        clearTimeout(autoPushTimerRef.current);
+      }
+      handleSyncDocToGithub(newFileName, contentToSave, { isAutoPush: false, showSuccessToast: false });
     }
 
     showToast(`💾 '${newFileName}' 파일이 [${targetFolder}] 폴더에 저장되었습니다.`);
@@ -7630,11 +7872,11 @@ ${projectEvents
               </button>
 
               {activeMenu === 'file' && (
-                <div className="absolute left-0 top-full mt-1.5 w-52 bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute left-0 top-full mt-1.5 w-52 bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-zinc-300 z-50 animate-in fade-in zoom-in-95 duration-100">
                   <button
                     type="button"
                     onClick={() => { handleCreateNewSession(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer group"
                   >
                     <span>새 프로젝트</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Alt+N</span>
@@ -7643,7 +7885,7 @@ ${projectEvents
                   <button
                     type="button"
                     onClick={() => { handleCreateNewFile(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer group"
                   >
                     <span>새 마크다운 노트</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Ctrl+N</span>
@@ -7652,7 +7894,7 @@ ${projectEvents
                   <button
                     type="button"
                     onClick={() => { openFileInputRef.current?.click(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer group"
                   >
                     <span>로컬 파일 불러오기...</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Ctrl+O</span>
@@ -7661,7 +7903,7 @@ ${projectEvents
                   <button
                     type="button"
                     onClick={() => { docFileInputRef.current?.click(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer group"
                   >
                     <span>오피스 / PDF 문서 변환...</span>
                     <span className="text-[11px] text-zinc-500 font-mono">PDF/DOCX</span>
@@ -7670,7 +7912,7 @@ ${projectEvents
                   <button
                     type="button"
                     onClick={() => { handleSaveDocument(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer group"
                   >
                     <span>저장</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Ctrl+S</span>
@@ -7679,12 +7921,12 @@ ${projectEvents
                   <button
                     type="button"
                     onClick={() => { handleSaveAsFile(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer group"
                   >
                     <span>다른 이름으로 저장...</span>
                   </button>
 
-                  <div className="my-1 border-t border-white/[0.06]" />
+                  <div className="my-1 border-t border-white/[0.08]" />
 
                   {/* 내보내기 (Export As) Sub-menu */}
                   <div
@@ -7700,25 +7942,25 @@ ${projectEvents
                         setActiveSubmenu(next ? 'export' : null);
                         setIsExportSubmenuOpen(next);
                       }}
-                      className={`w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
+                      className={`w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
                         activeSubmenu === 'export' || isExportSubmenuOpen
-                          ? 'bg-white/[0.08] text-white font-medium'
-                          : 'hover:bg-white/[0.08] hover:text-white'
+                          ? 'bg-white/[0.06] text-zinc-100 font-medium'
+                          : 'hover:bg-white/[0.06] hover:text-zinc-100'
                       }`}
                     >
                       <span>내보내기</span>
-                      <div className={`flex items-center gap-1 text-[11px] ${activeSubmenu === 'export' || isExportSubmenuOpen ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`}>
+                      <div className={`flex items-center gap-1 text-[11px] ${activeSubmenu === 'export' || isExportSubmenuOpen ? 'text-zinc-100' : 'text-zinc-500 group-hover:text-zinc-200'}`}>
                         <ChevronRight className="w-3.5 h-3.5 shrink-0" />
                       </div>
                     </button>
 
                     {(activeSubmenu === 'export' || isExportSubmenuOpen) && (
                       <div className="absolute left-full top-0 pl-1.5 -ml-1 w-52 z-50 animate-in fade-in zoom-in-95 duration-100">
-                        <div className="bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200">
+                        <div className="bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-zinc-300">
                           <button
                             type="button"
                             onClick={() => { handleExportPdf(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                            className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
+                            className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer group"
                           >
                             <span>인쇄 및 PDF 출력</span>
                             <span className="text-[11px] text-zinc-500 font-mono">Ctrl+P</span>
@@ -7726,7 +7968,7 @@ ${projectEvents
                           <button
                             type="button"
                             onClick={() => { handleExportDocx(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                            className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
+                            className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer group"
                           >
                             <span>DOCX 문서 내보내기</span>
                             <span className="text-[11px] text-zinc-500 font-mono">DOCX</span>
@@ -7734,7 +7976,7 @@ ${projectEvents
                           <button
                             type="button"
                             onClick={() => { handleExportPptx(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                            className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
+                            className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer group"
                           >
                             <span>PPTX 슬라이드 내보내기</span>
                             <span className="text-[11px] text-zinc-500 font-mono">PPTX</span>
@@ -7742,7 +7984,7 @@ ${projectEvents
                           <button
                             type="button"
                             onClick={() => { handleExportCsv(); setActiveMenu(null); setIsExportSubmenuOpen(false); setActiveSubmenu(null); }}
-                            className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer group"
+                            className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer group"
                           >
                             <span>CSV 데이터 내보내기</span>
                             <span className="text-[11px] text-zinc-500 font-mono">CSV</span>
@@ -7752,15 +7994,15 @@ ${projectEvents
                     )}
                   </div>
 
-                  <div className="my-1 border-t border-white/[0.06]" />
+                  <div className="my-1 border-t border-white/[0.08]" />
 
                   <button
                     type="button"
                     onClick={() => { setIsWorkspaceModalOpen(true); setActiveMenu(null); setIsExportSubmenuOpen(false); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>프로젝트 폴더 연결 / 관리...</span>
-                    <span className="text-[0.5625rem] bg-[#09090b] text-emerald-300 px-1 rounded-sm border border-[#222226]/40 font-mono uppercase">{activeWorkspace.type}</span>
+                    <span className="text-[10px] bg-white/[0.06] text-zinc-400 px-1.5 py-0.5 rounded border border-white/[0.08] font-mono uppercase">{activeWorkspace.type}</span>
                   </button>
 
                   <button
@@ -7770,24 +8012,24 @@ ${projectEvents
                       setActiveMenu(null);
                       setIsExportSubmenuOpen(false);
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span className="whitespace-nowrap">구글 드라이브...</span>
-                    <span className="text-[0.5625rem] bg-[#09090b] text-indigo-300 px-1.5 py-0.5 rounded-sm border border-[#222226]/40 font-mono shrink-0 whitespace-nowrap">
+                    <span className="text-[10px] bg-white/[0.06] text-zinc-400 px-1.5 py-0.5 rounded border border-white/[0.08] font-mono shrink-0 whitespace-nowrap">
                       {googleUser ? '연동' : '단독'}
                     </span>
                   </button>
 
-                  <div className="my-1 border-t border-white/[0.06]" />
+                  <div className="my-1 border-t border-white/[0.08]" />
 
                   <button
                     type="button"
                     onClick={() => { setIsTrashOpen(true); setActiveMenu(null); setIsExportSubmenuOpen(false); }}
-                    className="w-full text-left text-xs text-rose-300 px-3 py-2 rounded-lg hover:bg-rose-950/60 hover:text-rose-200 flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-rose-300 px-2.5 py-1.5 rounded-md hover:bg-rose-950/40 hover:text-rose-200 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>휴지통 열기</span>
                     {trashSessions.length > 0 && (
-                      <span className="bg-rose-600 text-white text-[0.5625rem] px-1.5 py-0.5 rounded-sm font-medium font-mono">
+                      <span className="bg-rose-800/80 text-rose-100 text-[10px] px-1.5 py-0.5 rounded border border-rose-700/40 font-mono">
                         {trashSessions.length}
                       </span>
                     )}
@@ -7820,12 +8062,12 @@ ${projectEvents
               </button>
 
               {activeMenu === 'edit' && (
-                <div className="absolute left-0 top-full mt-1.5 w-52 bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute left-0 top-full mt-1.5 w-52 bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-zinc-300 z-50 animate-in fade-in zoom-in-95 duration-100">
                   <button
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { document.execCommand('undo'); showToast('실행 취소'); setActiveMenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>실행 취소</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Ctrl+Z</span>
@@ -7834,19 +8076,19 @@ ${projectEvents
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { document.execCommand('redo'); showToast('다시 실행'); setActiveMenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>다시 실행</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Ctrl+Y</span>
                   </button>
 
-                  <div className="my-1 border-t border-white/[0.06]" />
+                  <div className="my-1 border-t border-white/[0.08]" />
 
                   <button
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { handleCopyToClipboard(); setActiveMenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>전체 복사</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Ctrl+C</span>
@@ -7855,7 +8097,7 @@ ${projectEvents
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { document.execCommand('cut'); showToast('잘라내기 완료'); setActiveMenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>잘라내기</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Ctrl+X</span>
@@ -7864,7 +8106,7 @@ ${projectEvents
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { showToast('💡 에디터나 대화창에서 Ctrl+V 키로 붙여넣으세요.'); setActiveMenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>붙여넣기</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Ctrl+V</span>
@@ -7876,7 +8118,7 @@ ${projectEvents
                       handleFormatDocument();
                       setActiveMenu(null);
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>문서 서식 자동 정리</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Shift+Alt+F</span>
@@ -7895,8 +8137,8 @@ ${projectEvents
                         e.stopPropagation();
                         setActiveSubmenu(activeSubmenu === 'inject-prompts' ? null : 'inject-prompts');
                       }}
-                      className={`w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer ${
-                        activeSubmenu === 'inject-prompts' ? 'bg-white/[0.08] text-white font-medium' : 'hover:bg-white/[0.08] hover:text-white'
+                      className={`w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer ${
+                        activeSubmenu === 'inject-prompts' ? 'bg-white/[0.06] text-zinc-100 font-medium' : 'hover:bg-white/[0.06] hover:text-zinc-100'
                       }`}
                     >
                       <span>프롬프트 주입</span>
@@ -7905,8 +8147,8 @@ ${projectEvents
 
                     {activeSubmenu === 'inject-prompts' && (
                       <div className="absolute left-full top-0 pl-1.5 -ml-1 w-64 z-50 animate-in fade-in zoom-in-95 duration-100">
-                        <div className="bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200">
-                          <div className="px-2.5 py-1 text-[0.5625rem] font-medium text-slate-400 uppercase tracking-wider flex items-center justify-between border-b border-white/[0.06] mb-1">
+                        <div className="bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-zinc-300">
+                          <div className="px-2.5 py-1 text-[0.5625rem] font-medium text-zinc-400 uppercase tracking-wider flex items-center justify-between border-b border-white/[0.08] mb-1">
                             <span>프롬프트 목록</span>
                             <span className="text-[0.5625rem] text-indigo-400 font-medium">1클릭 주입</span>
                           </div>
@@ -7916,14 +8158,14 @@ ${projectEvents
                                 key={p.id}
                                 type="button"
                                 onClick={() => handleInstantInjectPrompt(p)}
-                                className="w-full text-left text-xs text-zinc-200 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-start gap-1.5 transition cursor-pointer group"
+                                className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-start gap-1.5 transition cursor-pointer group"
                                 title={p.description || p.title}
                               >
-                                <span className="text-zinc-500 group-hover:text-white text-[0.625rem] shrink-0 mt-0.5">▶</span>
+                                <span className="text-zinc-500 group-hover:text-zinc-200 text-[0.625rem] shrink-0 mt-0.5">▶</span>
                                 <div className="flex-1 min-w-0">
                                   <div className="font-medium truncate">{p.title}</div>
                                   {p.description && (
-                                    <div className="text-[11px] text-zinc-500 group-hover:text-zinc-300 truncate">
+                                    <div className="text-[11px] text-zinc-500 group-hover:text-zinc-400 truncate">
                                       {p.description}
                                     </div>
                                   )}
@@ -7932,7 +8174,7 @@ ${projectEvents
                             ))}
                           </div>
 
-                          <div className="my-1 border-t border-white/[0.06]" />
+                          <div className="my-1 border-t border-white/[0.08]" />
 
                           <button
                             type="button"
@@ -7941,7 +8183,7 @@ ${projectEvents
                               setActiveMenu(null);
                               setActiveSubmenu(null);
                             }}
-                            className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer font-medium"
+                            className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer font-medium"
                           >
                             <span>프롬프트 관리...</span>
                             <span className="text-[11px] text-zinc-500 font-mono">Alt+P</span>
@@ -7951,7 +8193,7 @@ ${projectEvents
                     )}
                   </div>
 
-                  <div className="my-1 border-t border-white/[0.06]" />
+                  <div className="my-1 border-t border-white/[0.08]" />
 
                   <button
                     type="button"
@@ -7962,7 +8204,7 @@ ${projectEvents
                       showToast('탐색기 파일 검색 창에 포커스되었습니다.');
                       setActiveMenu(null);
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>찾기 및 검색</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Ctrl+F</span>
@@ -7978,7 +8220,7 @@ ${projectEvents
                       }
                       setActiveMenu(null);
                     }}
-                    className="w-full text-left text-xs text-rose-300 px-3 py-2 rounded-lg hover:bg-rose-950/60 hover:text-rose-200 flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-rose-300 px-2.5 py-1.5 rounded-md hover:bg-rose-950/40 hover:text-rose-200 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>대화 내역 초기화</span>
                     <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
@@ -7987,7 +8229,7 @@ ${projectEvents
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { handleDeleteFile(currentActiveFile); setActiveMenu(null); }}
-                    className="w-full text-left text-xs text-rose-300 px-3 py-2 rounded-lg hover:bg-rose-950/60 hover:text-rose-200 flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-rose-300 px-2.5 py-1.5 rounded-md hover:bg-rose-950/40 hover:text-rose-200 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>현재 파일 삭제</span>
                   </button>
@@ -8019,13 +8261,13 @@ ${projectEvents
               </button>
 
               {activeMenu === 'view' && (
-                <div className="absolute left-0 top-full mt-1.5 w-52 bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="px-3 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">사이드바 토글</div>
+                <div className="absolute left-0 top-full mt-1.5 w-52 bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-zinc-300 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="px-2.5 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">사이드바 토글</div>
                   <button
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { setIsSection1Collapsed(!isSection1Collapsed); setActiveMenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>좌측 AI 대화 패널</span>
                     <span className="text-[11px] text-zinc-500 font-mono">{isSection1Collapsed ? '열기' : '숨김'}</span>
@@ -8034,7 +8276,7 @@ ${projectEvents
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { setIsSection3Collapsed(!isSection3Collapsed); setActiveMenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>우측 탐색기 패널</span>
                     <span className="text-[11px] text-zinc-500 font-mono">{isSection3Collapsed ? '열기' : '숨김'}</span>
@@ -8043,7 +8285,7 @@ ${projectEvents
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { setIsSection1Collapsed(true); setIsSection3Collapsed(true); showToast('🎯 집중 모드 (모든 사이드바 숨김)'); setActiveMenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>집중 모드 (사이드바 숨김)</span>
                   </button>
@@ -8051,7 +8293,7 @@ ${projectEvents
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { applyDefaultPanelsForCurrentDevice(); showToast('패널 레이아웃이 복원되었습니다.'); setActiveMenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>전체 패널 복원</span>
                   </button>
@@ -8059,14 +8301,14 @@ ${projectEvents
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
                     onClick={() => { setIsTocOpen(!isTocOpen); setActiveMenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>제목 목차 보기</span>
                     <span className="text-[11px] text-zinc-500 font-mono">{isTocOpen ? '숨김' : '표시'}</span>
                   </button>
 
-                  <div className="my-1 border-t border-white/[0.06]" />
-                  <div className="px-3 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">에디터 모드 전환</div>
+                  <div className="my-1 border-t border-white/[0.08]" />
+                  <div className="px-2.5 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">에디터 모드 전환</div>
                   <button
                     type="button"
                     onMouseEnter={() => setActiveSubmenu(null)}
@@ -8077,10 +8319,10 @@ ${projectEvents
                       );
                       setActiveMenu(null);
                     }}
-                    className={`w-full text-left text-xs px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer ${
+                    className={`w-full text-left text-xs px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer ${
                       editorTab === 'wysiwyg'
-                        ? 'bg-white/[0.08] text-white font-medium'
-                        : 'text-zinc-200 hover:bg-white/[0.08] hover:text-white'
+                        ? 'bg-white/[0.06] text-zinc-100 font-medium'
+                        : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
                     }`}
                   >
                     <span>서식 모드</span>
@@ -8096,18 +8338,18 @@ ${projectEvents
                       );
                       setActiveMenu(null);
                     }}
-                    className={`w-full text-left text-xs px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer ${
+                    className={`w-full text-left text-xs px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer ${
                       editorTab === 'edit'
-                        ? 'bg-white/[0.08] text-white font-medium'
-                        : 'text-zinc-200 hover:bg-white/[0.08] hover:text-white'
+                        ? 'bg-white/[0.06] text-zinc-100 font-medium'
+                        : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
                     }`}
                   >
                     <span>마크다운 소스</span>
                     {editorTab === 'edit' && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
                   </button>
 
-                  <div className="my-1 border-t border-white/[0.06]" />
-                  <div className="px-3 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider flex items-center justify-between">
+                  <div className="my-1 border-t border-white/[0.08]" />
+                  <div className="px-2.5 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider flex items-center justify-between">
                     <span>에디터 폰트 크기</span>
                     <span className="font-mono text-indigo-400">{editorFontSize}px</span>
                   </div>
@@ -8118,7 +8360,7 @@ ${projectEvents
                       handleEditorZoomIn();
                       setActiveMenu(null);
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>확대</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Ctrl + +</span>
@@ -8130,7 +8372,7 @@ ${projectEvents
                       handleEditorZoomOut();
                       setActiveMenu(null);
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>축소</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Ctrl + -</span>
@@ -8142,14 +8384,14 @@ ${projectEvents
                       handleEditorZoomReset();
                       setActiveMenu(null);
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>기본 크기 복원</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Ctrl + 0</span>
                   </button>
 
-                  <div className="my-1 border-t border-white/[0.06]" />
-                  <div className="px-3 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">인터페이스 스타일</div>
+                  <div className="my-1 border-t border-white/[0.08]" />
+                  <div className="px-2.5 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">인터페이스 스타일</div>
 
                   {/* 글꼴 크기 서브메뉴 */}
                   <div
@@ -8165,12 +8407,12 @@ ${projectEvents
                         e.stopPropagation();
                         setActiveSubmenu(activeSubmenu === 'font-size' ? null : 'font-size');
                       }}
-                      className={`w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
-                        activeSubmenu === 'font-size' ? 'bg-white/[0.08] text-white font-medium' : 'hover:bg-white/[0.08] hover:text-white'
+                      className={`w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
+                        activeSubmenu === 'font-size' ? 'bg-white/[0.06] text-zinc-100 font-medium' : 'hover:bg-white/[0.06] hover:text-zinc-100'
                       }`}
                     >
                       <span>글꼴 크기</span>
-                      <div className={`flex items-center gap-1 text-[11px] ${activeSubmenu === 'font-size' ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`}>
+                      <div className={`flex items-center gap-1 text-[11px] ${activeSubmenu === 'font-size' ? 'text-zinc-100' : 'text-zinc-500 group-hover:text-zinc-200'}`}>
                         <span>
                           {preferences.fontSize === 'sm' ? '작게' : preferences.fontSize === 'lg' ? '크게' : preferences.fontSize === 'xl' ? '아주 크게' : '보통'}
                         </span>
@@ -8179,7 +8421,7 @@ ${projectEvents
                     </button>
                     {activeSubmenu === 'font-size' && (
                       <div className="absolute left-full top-0 pl-1.5 -ml-1 w-36 z-50 animate-in fade-in zoom-in-95 duration-100">
-                        <div className="bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200">
+                        <div className="bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-zinc-300">
                           {[
                             { id: 'sm', label: '작게 (14px)' },
                             { id: 'md', label: '보통 (16px)' },
@@ -8190,10 +8432,10 @@ ${projectEvents
                               key={item.id}
                               type="button"
                               onClick={() => handleQuickFontSize(item.id as any)}
-                              className={`w-full text-left text-xs px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
+                              className={`w-full text-left text-xs px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
                                 (preferences.fontSize || 'md') === item.id
-                                  ? 'bg-white/[0.08] text-white font-medium'
-                                  : 'text-zinc-200 hover:bg-white/[0.08] hover:text-white'
+                                  ? 'bg-white/[0.06] text-zinc-100 font-medium'
+                                  : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
                               }`}
                             >
                               <span>{item.label}</span>
@@ -8219,19 +8461,19 @@ ${projectEvents
                         e.stopPropagation();
                         setActiveSubmenu(activeSubmenu === 'compactness' ? null : 'compactness');
                       }}
-                      className={`w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
-                        activeSubmenu === 'compactness' ? 'bg-white/[0.08] text-white font-medium' : 'hover:bg-white/[0.08] hover:text-white'
+                      className={`w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
+                        activeSubmenu === 'compactness' ? 'bg-white/[0.06] text-zinc-100 font-medium' : 'hover:bg-white/[0.06] hover:text-zinc-100'
                       }`}
                     >
                       <span>레이아웃 밀도</span>
-                      <div className={`flex items-center gap-1 text-[11px] ${activeSubmenu === 'compactness' ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`}>
+                      <div className={`flex items-center gap-1 text-[11px] ${activeSubmenu === 'compactness' ? 'text-zinc-100' : 'text-zinc-500 group-hover:text-zinc-200'}`}>
                         <span>{preferences.compactness === 'dense' ? '조밀하게' : '여유롭게'}</span>
                         <ChevronRight className="w-3.5 h-3.5 shrink-0" />
                       </div>
                     </button>
                     {activeSubmenu === 'compactness' && (
                       <div className="absolute left-full top-0 pl-1.5 -ml-1 w-32 z-50 animate-in fade-in zoom-in-95 duration-100">
-                        <div className="bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200">
+                        <div className="bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-zinc-300">
                           {[
                             { id: 'dense', label: '조밀하게' },
                             { id: 'spacious', label: '여유롭게' },
@@ -8240,10 +8482,10 @@ ${projectEvents
                               key={item.id}
                               type="button"
                               onClick={() => handleQuickCompactness(item.id as any)}
-                              className={`w-full text-left text-xs px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
+                              className={`w-full text-left text-xs px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
                                 (preferences.compactness || 'spacious') === item.id
-                                  ? 'bg-white/[0.08] text-white font-medium'
-                                  : 'text-zinc-200 hover:bg-white/[0.08] hover:text-white'
+                                  ? 'bg-white/[0.06] text-zinc-100 font-medium'
+                                  : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
                               }`}
                             >
                               <span>{item.label}</span>
@@ -8254,8 +8496,6 @@ ${projectEvents
                       </div>
                     )}
                   </div>
-
-
                 </div>
               )}
             </div>
@@ -8284,7 +8524,7 @@ ${projectEvents
               </button>
 
               {activeMenu === 'ssot' && (
-                <div className="absolute left-0 top-full mt-1.5 w-60 bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute left-0 top-full mt-1.5 w-60 bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-zinc-300 z-50 animate-in fade-in zoom-in-95 duration-100">
                   {/* 기준 문서 생성기 */}
                   <button
                     type="button"
@@ -8294,13 +8534,13 @@ ${projectEvents
                       setActiveMenu(null);
                       setActiveSubmenu(null);
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>기준 문서 생성기...</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Alt+C</span>
                   </button>
 
-                  <div className="my-1 border-t border-white/[0.06]" />
+                  <div className="my-1 border-t border-white/[0.08]" />
 
                   {/* 문서 정합성 감사 */}
                   <button
@@ -8311,7 +8551,7 @@ ${projectEvents
                       setActiveMenu(null);
                       setActiveSubmenu(null);
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>문서 정합성 감사</span>
                     <span className="text-[11px] text-zinc-500 font-mono">{ssotAuditSummary.score}%</span>
@@ -8326,7 +8566,7 @@ ${projectEvents
                       setActiveMenu(null);
                       setActiveSubmenu(null);
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>다관점 비평위원회</span>
                     <span className="text-[11px] text-zinc-500 font-mono">{councilSummary.overallScore}점</span>
@@ -8359,19 +8599,7 @@ ${projectEvents
               </button>
 
               {activeMenu === 'pdf' && (
-                <div className="absolute left-0 top-full mt-1.5 w-56 bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
-                  {/* Current Active File Header */}
-                  <div className="px-3 py-1.5 border-b border-white/[0.06] mb-1 flex items-center justify-between">
-                    <span className="font-medium text-[11px] truncate text-zinc-300">
-                      {currentActiveFile.toLowerCase().endsWith('.pdf') ? currentActiveFile : '활성 PDF 문서 없음'}
-                    </span>
-                    {currentActiveFile.toLowerCase().endsWith('.pdf') && (
-                      <span className="text-[10px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded border border-rose-500/30 uppercase font-mono">
-                        PDF
-                      </span>
-                    )}
-                  </div>
-
+                <div className="absolute left-0 top-full mt-1.5 w-56 bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-zinc-300 z-50 animate-in fade-in zoom-in-95 duration-100">
                   {/* Extraction & Parsing Group */}
                   <button
                     type="button"
@@ -8380,7 +8608,7 @@ ${projectEvents
                       setActiveMenu(null);
                       pdfViewerRef.current?.extractToMarkdown();
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none group"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none group"
                   >
                     <span>마크다운 추출 실행</span>
                     <span className="text-[11px] text-zinc-500 group-hover:text-zinc-300">즉시 변환</span>
@@ -8393,7 +8621,7 @@ ${projectEvents
                       setActiveMenu(null);
                       pdfViewerRef.current?.clearCacheAndReparse();
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none group"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none group"
                   >
                     <span>캐시 초기화 및 재파싱</span>
                     <span className="text-[11px] text-zinc-500 group-hover:text-zinc-300">캐시 삭제</span>
@@ -8406,12 +8634,12 @@ ${projectEvents
                       setActiveMenu(null);
                       pdfViewerRef.current?.openReducerModal();
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none group"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none group"
                   >
                     <span>PDF 최적화 및 경량화...</span>
                   </button>
 
-                  <div className="my-1 border-t border-white/[0.06]" />
+                  <div className="my-1 border-t border-white/[0.08]" />
 
                   {/* View Controls */}
                   <button
@@ -8421,7 +8649,7 @@ ${projectEvents
                       setActiveMenu(null);
                       pdfViewerRef.current?.toggleSplitView();
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
                   >
                     <span>단일 뷰 및 분할 편집 전환</span>
                   </button>
@@ -8433,7 +8661,7 @@ ${projectEvents
                       setActiveMenu(null);
                       pdfViewerRef.current?.fitWidth();
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
                   >
                     <span>너비 맞춤</span>
                   </button>
@@ -8445,12 +8673,12 @@ ${projectEvents
                       setActiveMenu(null);
                       pdfViewerRef.current?.rotate();
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
                   >
                     <span>시계 방향 90도 회전</span>
                   </button>
 
-                  <div className="my-1 border-t border-white/[0.06]" />
+                  <div className="my-1 border-t border-white/[0.08]" />
 
                   {/* File Actions */}
                   <button
@@ -8463,7 +8691,7 @@ ${projectEvents
                         docFileInputRef.current?.click();
                       }
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>새 PDF 파일 열기...</span>
                   </button>
@@ -8475,7 +8703,7 @@ ${projectEvents
                       setActiveMenu(null);
                       pdfViewerRef.current?.downloadPdf();
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
                   >
                     <span>현재 PDF 다운로드</span>
                   </button>
@@ -8487,13 +8715,13 @@ ${projectEvents
                         setActiveMenu(null);
                         handleOpenFile('sample_document.pdf');
                       }}
-                      className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                      className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                     >
                       <span>샘플 PDF 열기</span>
                     </button>
                   )}
 
-                  <div className="my-1 border-t border-white/[0.06]" />
+                  <div className="my-1 border-t border-white/[0.08]" />
 
                   {/* Engine Settings */}
                   <button
@@ -8503,7 +8731,7 @@ ${projectEvents
                       setIsPreferencesModalOpen(true);
                       setActiveMenu(null);
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>PDF 파서 및 AI 엔진 설정...</span>
                   </button>
@@ -8535,7 +8763,7 @@ ${projectEvents
               </button>
 
               {activeMenu === 'settings' && (
-                <div className="absolute left-0 top-full mt-1.5 w-56 bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute left-0 top-full mt-1.5 w-56 bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-zinc-300 z-50 animate-in fade-in zoom-in-95 duration-100">
                   {/* 0. 역할별 AI 모델명 지정 */}
                   <button
                     type="button"
@@ -8545,7 +8773,7 @@ ${projectEvents
                       setActiveMenu(null);
                       setActiveSubmenu(null);
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer mb-0.5"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer mb-0.5"
                   >
                     <span>역할별 AI 모델명 지정...</span>
                     <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30">
@@ -8553,7 +8781,7 @@ ${projectEvents
                     </span>
                   </button>
 
-                  <div className="my-1 border-t border-white/[0.06]" />
+                  <div className="my-1 border-t border-white/[0.08]" />
 
                   {/* 1. 대화 AI 모델 서브메뉴 */}
                   <div
@@ -8569,20 +8797,20 @@ ${projectEvents
                         e.stopPropagation();
                         setActiveSubmenu(activeSubmenu === 'ai-model' ? null : 'ai-model');
                       }}
-                      className={`w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
-                        activeSubmenu === 'ai-model' ? 'bg-white/[0.08] text-white font-medium' : 'hover:bg-white/[0.08] hover:text-white'
+                      className={`w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
+                        activeSubmenu === 'ai-model' ? 'bg-white/[0.06] text-zinc-100 font-medium' : 'hover:bg-white/[0.06] hover:text-zinc-100'
                       }`}
                     >
                       <span>대화 AI 모델</span>
-                      <div className={`flex items-center gap-1 text-[11px] ${activeSubmenu === 'ai-model' ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`}>
+                      <div className={`flex items-center gap-1 text-[11px] ${activeSubmenu === 'ai-model' ? 'text-zinc-100' : 'text-zinc-500 group-hover:text-zinc-200'}`}>
                         <span className="truncate max-w-[80px]">{currentModelName}</span>
                         <ChevronRight className="w-3.5 h-3.5 shrink-0" />
                       </div>
                     </button>
                     {activeSubmenu === 'ai-model' && (
                       <div className="absolute left-full top-0 pl-1.5 -ml-1 w-56 z-50 animate-in fade-in zoom-in-95 duration-100">
-                        <div className="bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 max-h-72 overflow-y-auto">
-                          <div className="px-3 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+                        <div className="bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-zinc-300 max-h-72 overflow-y-auto">
+                          <div className="px-2.5 py-1 text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
                             {provider.startsWith('local') ? '로컬 AI 모델' : 'AI 모델 선택'}
                           </div>
                           {sidebarModels.map((m) => (
@@ -8590,10 +8818,10 @@ ${projectEvents
                               key={m.id}
                               type="button"
                               onClick={() => handleQuickDefaultModel(m.id, m.name)}
-                              className={`w-full text-left text-xs px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
+                              className={`w-full text-left text-xs px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
                                 (preferences.defaultModel || selectedModel) === m.id
-                                  ? 'bg-white/[0.08] text-white font-medium'
-                                  : 'text-zinc-200 hover:bg-white/[0.08] hover:text-white'
+                                  ? 'bg-white/[0.06] text-zinc-100 font-medium'
+                                  : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
                               }`}
                             >
                               <span className="truncate">{m.name}</span>
@@ -8621,19 +8849,19 @@ ${projectEvents
                         e.stopPropagation();
                         setActiveSubmenu(activeSubmenu === 'ghost-writer' ? null : 'ghost-writer');
                       }}
-                      className={`w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
-                        activeSubmenu === 'ghost-writer' ? 'bg-white/[0.08] text-white font-medium' : 'hover:bg-white/[0.08] hover:text-white'
+                      className={`w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
+                        activeSubmenu === 'ghost-writer' ? 'bg-white/[0.06] text-zinc-100 font-medium' : 'hover:bg-white/[0.06] hover:text-zinc-100'
                       }`}
                     >
                       <span>고스트 라이터</span>
-                      <div className={`flex items-center gap-1 text-[11px] ${activeSubmenu === 'ghost-writer' ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`}>
+                      <div className={`flex items-center gap-1 text-[11px] ${activeSubmenu === 'ghost-writer' ? 'text-zinc-100' : 'text-zinc-500 group-hover:text-zinc-200'}`}>
                         <span>{currentGhostLabel}</span>
                         <ChevronRight className="w-3.5 h-3.5 shrink-0" />
                       </div>
                     </button>
                     {activeSubmenu === 'ghost-writer' && (
                       <div className="absolute left-full top-0 pl-1.5 -ml-1 w-52 z-50 animate-in fade-in zoom-in-95 duration-100">
-                        <div className="bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200">
+                        <div className="bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-zinc-300">
                           {/* 1클릭 프리셋 버튼 목록 */}
                           <div className="space-y-0.5">
                             {[
@@ -8647,10 +8875,10 @@ ${projectEvents
                                 key={item.id}
                                 type="button"
                                 onClick={() => handleQuickGhostWriter(item.id as GhostWriterLevel)}
-                                className={`w-full text-left text-xs px-3 py-2 rounded-lg flex items-center justify-between transition cursor-pointer group ${
+                                className={`w-full text-left text-xs px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer group ${
                                   (preferences.ghostWriterLevel || ghostWriterLevel) === item.id
-                                    ? 'bg-white/[0.08] text-white font-medium'
-                                    : 'text-zinc-200 hover:bg-white/[0.08] hover:text-white'
+                                    ? 'bg-white/[0.06] text-zinc-100 font-medium'
+                                    : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
                                 }`}
                               >
                                 <div className="flex items-center gap-1.5">
@@ -8658,7 +8886,7 @@ ${projectEvents
                                   <span className={`text-[11px] ${
                                     (preferences.ghostWriterLevel || ghostWriterLevel) === item.id
                                       ? 'text-indigo-200'
-                                      : 'text-zinc-500 group-hover:text-zinc-300'
+                                      : 'text-zinc-500 group-hover:text-zinc-400'
                                   }`}>
                                     {item.desc}
                                   </span>
@@ -8674,7 +8902,7 @@ ${projectEvents
                     )}
                   </div>
 
-                  <div className="my-1 border-t border-white/[0.06]" />
+                  <div className="my-1 border-t border-white/[0.08]" />
 
                   {/* 3. 저장소 및 백업 관리 */}
                   <button
@@ -8686,10 +8914,10 @@ ${projectEvents
                       setActiveMenu(null);
                       setActiveSubmenu(null);
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>저장소 및 백업 관리...</span>
-                    <span className="text-[10px] bg-black/40 text-emerald-400 px-1.5 py-0.5 rounded border border-white/[0.08] font-mono">로컬 저장소</span>
+                    <span className="text-[10px] bg-white/[0.06] text-emerald-400 px-1.5 py-0.5 rounded border border-white/[0.08] font-mono">로컬 저장소</span>
                   </button>
 
                   {/* 4. 워크스페이스 잠금 */}
@@ -8702,7 +8930,7 @@ ${projectEvents
                       lockNow();
                       showToast('🔒 워크스페이스가 잠겼습니다.', 'info');
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>워크스페이스 잠금</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Ctrl+L</span>
@@ -8718,7 +8946,7 @@ ${projectEvents
                       setActiveMenu(null);
                       setActiveSubmenu(null);
                     }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>전체 환경설정</span>
                     <span className="text-[11px] text-zinc-500 font-mono">Alt+,</span>
@@ -8751,11 +8979,11 @@ ${projectEvents
               </button>
 
               {activeMenu === 'help' && (
-                <div className="absolute left-0 top-full mt-1.5 w-52 bg-[#1c1c22]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-slate-200 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute left-0 top-full mt-1.5 w-52 bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-zinc-300 z-50 animate-in fade-in zoom-in-95 duration-100">
                   <button
                     type="button"
                     onClick={() => { setIsShortcutsModalOpen(true); setActiveMenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>단축키 가이드</span>
                     <span className="text-[11px] text-zinc-500 font-mono">F1</span>
@@ -8763,7 +8991,7 @@ ${projectEvents
                   <button
                     type="button"
                     onClick={() => { setIsAboutModalOpen(true); setActiveMenu(null); }}
-                    className="w-full text-left text-xs text-zinc-200 px-3 py-2 rounded-lg hover:bg-white/[0.08] hover:text-white flex items-center justify-between transition cursor-pointer"
+                    className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
                   >
                     <span>AI Podium 정보</span>
                   </button>
@@ -8929,15 +9157,15 @@ ${projectEvents
           />
         )}
 
-        {/* ==================== LEFT PANE: AI Chat Area (Fixed 340px) ==================== */}
+        {/* ==================== LEFT PANE: AI Chat Area (Fixed 510px) ==================== */}
         <section
           className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 transition-all duration-200 ease-in-out z-40 lg:z-10 ${
             isLeftPanelVisible
-              ? 'w-[320px] sm:w-[340px] lg:w-[340px] opacity-100 pointer-events-auto border-r border-[#222226] fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/80 lg:shadow-none'
+              ? 'w-[320px] sm:w-[510px] lg:w-[510px] opacity-100 pointer-events-auto border-r border-[#222226] fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/80 lg:shadow-none'
               : 'w-0 opacity-0 pointer-events-none overflow-hidden border-r-0'
           }`}
         >
-          <div className="w-[320px] sm:w-[340px] lg:w-[340px] h-full flex flex-col min-h-0 overflow-hidden">
+          <div className="w-[320px] sm:w-[510px] lg:w-[510px] h-full flex flex-col min-h-0 overflow-hidden">
             {/* Header */}
             <div className="bg-[#0f0f12] border-b border-[#222226] px-2.5 h-8 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0">
@@ -9671,7 +9899,7 @@ ${projectEvents
                                   type="button"
                                   onClick={() => handleGenerateGhostText()}
                                   disabled={isGhostLoading}
-                                  className="mt-0.5 px-2 py-0.5 rounded-xs bg-[#6366f1] hover:bg-[#5457e5] disabled:opacity-50 text-white text-[0.625rem] font-medium flex items-center gap-1 transition cursor-pointer disabled:cursor-not-allowed"
+                                  className="mt-0.5 px-2 py-0.5 rounded-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-[0.625rem] font-medium flex items-center gap-1 transition cursor-pointer disabled:cursor-not-allowed"
                                 >
                                   <Ghost className="w-2.5 h-2.5" />
                                   <span>지금 Ghost Text 생성</span>
@@ -10120,7 +10348,7 @@ ${projectEvents
                             onClick={handleSaveDocument}
                             className={`h-6 w-6 min-w-[24px] px-0 rounded-xs transition flex items-center justify-center relative font-mono cursor-pointer select-none shrink-0 ${
                               isCurrentFileDirty
-                                ? 'bg-[#6366f1] text-white hover:bg-[#4f46e5] font-semibold'
+                                ? 'bg-indigo-600 text-white hover:bg-indigo-500 font-medium'
                                 : 'text-slate-300 hover:bg-[#18181b] hover:text-white'
                             }`}
                             title="문서 저장"
@@ -10327,12 +10555,12 @@ ${projectEvents
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => setShowTablePicker(!showTablePicker)}
                                 className={`h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
-                                  showTablePicker ? 'bg-[#6366f1] text-white' : 'text-slate-300'
+                                  showTablePicker ? 'bg-indigo-600 text-white' : 'text-slate-300'
                                 }`}
                                 title="표 삽입"
                                 aria-label="표 삽입"
                               >
-                                <TableIcon className={`w-3.5 h-3.5 ${showTablePicker ? 'text-white' : 'text-[#6366f1]'}`} />
+                                <TableIcon className={`w-3.5 h-3.5 ${showTablePicker ? 'text-white' : 'text-indigo-400'}`} />
                               </button>
 
                               {showTablePicker && (
@@ -10355,12 +10583,12 @@ ${projectEvents
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => setShowMarkdownHelp(!showMarkdownHelp)}
                                 className={`h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
-                                  showMarkdownHelp ? 'bg-[#6366f1] text-white' : 'text-slate-300'
+                                  showMarkdownHelp ? 'bg-indigo-600 text-white' : 'text-slate-300'
                                 }`}
                                 title="마크다운 문법 및 단축키 안내"
                                 aria-label="마크다운 문법 & 단축키 가이드"
                               >
-                                <HelpCircle className={`w-3.5 h-3.5 shrink-0 ${showMarkdownHelp ? 'text-white' : 'text-[#818cf8]'}`} />
+                                <HelpCircle className={`w-3.5 h-3.5 shrink-0 ${showMarkdownHelp ? 'text-white' : 'text-indigo-300'}`} />
                               </button>
 
                               {showMarkdownHelp && (
@@ -10386,15 +10614,15 @@ ${projectEvents
                               }}
                               className={`h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center relative cursor-pointer select-none shrink-0 ${
                                 isTocOpen
-                                  ? 'bg-[#6366f1] text-white font-semibold'
+                                  ? 'bg-indigo-600 text-white font-medium'
                                   : 'text-slate-300'
                               }`}
                               title="문서 목차 보기"
                               aria-label="문서 목차 보기"
                             >
-                              <ListTree className={`w-3.5 h-3.5 ${isTocOpen ? 'text-white' : 'text-[#6366f1]'}`} />
+                              <ListTree className={`w-3.5 h-3.5 ${isTocOpen ? 'text-white' : 'text-indigo-400'}`} />
                               {getTocItems(editorContent).length > 0 && (
-                                <span className="absolute -top-1 -right-1 bg-[#6366f1] text-white text-[0.5rem] px-1 rounded-full font-mono scale-90">
+                                <span className="absolute -top-1 -right-1 bg-indigo-600 text-white text-[0.5rem] px-1 rounded-full font-mono scale-90">
                                   {getTocItems(editorContent).length}
                                 </span>
                               )}
@@ -10444,7 +10672,7 @@ ${projectEvents
                       type="button"
                       disabled={pdfViewerState?.isExtracting}
                       onClick={() => pdfViewerRef.current?.extractToMarkdown()}
-                      className="h-7 px-3 rounded-md bg-[#6366f1] hover:bg-[#5254e0] active:bg-[#4345c9] text-white text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-50"
+                      className="h-7 px-3 rounded-md bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-50"
                       title="마크다운 추출 실행"
                     >
                       {pdfViewerState?.isExtracting ? (
@@ -10464,8 +10692,8 @@ ${projectEvents
                         onClick={() => setIsPdfSettingsOpen((prev) => !prev)}
                         className={`w-7 h-7 rounded-md border flex items-center justify-center transition cursor-pointer ${
                           isPdfSettingsOpen
-                            ? 'bg-[#18181b] text-white border-[#6366f1]'
-                            : 'bg-[#09090b] text-zinc-300 border-[#222226] hover:text-white hover:bg-[#18181b]'
+                            ? 'bg-white/[0.08] text-white border-indigo-500/50'
+                            : 'bg-[#09090b] text-zinc-300 border-white/[0.08] hover:text-white hover:bg-white/[0.06]'
                         }`}
                         title="PDF 및 추출 설정"
                         aria-label="PDF 및 추출 설정"
@@ -10475,21 +10703,21 @@ ${projectEvents
 
                       {/* Settings Popover Dropdown */}
                       {isPdfSettingsOpen && (
-                        <div className="absolute right-0 top-full mt-1.5 w-64 bg-[#121214] border border-[#222226] rounded-lg shadow-2xl p-2.5 z-50 text-xs text-zinc-200 select-none">
-                          <div className="text-[11px] font-semibold text-zinc-400 mb-2 px-1">
+                        <div className="absolute right-0 top-full mt-1.5 w-64 bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl p-2 z-50 text-xs text-zinc-300 select-none">
+                          <div className="text-[11px] font-medium text-zinc-400 mb-2 px-1">
                             추출 설정
                           </div>
 
                           {/* Scope Selection */}
                           <div className="flex items-center justify-between gap-2 p-1.5 rounded-md hover:bg-white/[0.04]">
                             <span className="text-zinc-300">추출 범위</span>
-                            <div className="flex bg-[#09090b] border border-[#222226] rounded-md p-0.5">
+                            <div className="flex bg-[#09090b] border border-white/[0.08] rounded-md p-0.5">
                               <button
                                 type="button"
                                 onClick={() => pdfViewerRef.current?.setScope('current')}
                                 className={`px-2 py-0.5 rounded text-[11px] font-medium transition cursor-pointer ${
                                   pdfViewerState?.extractScope === 'current'
-                                    ? 'bg-[#6366f1] text-white'
+                                    ? 'bg-indigo-600 text-white'
                                     : 'text-zinc-400 hover:text-white'
                                 }`}
                               >
@@ -10500,7 +10728,7 @@ ${projectEvents
                                 onClick={() => pdfViewerRef.current?.setScope('all')}
                                 className={`px-2 py-0.5 rounded text-[11px] font-medium transition cursor-pointer ${
                                   pdfViewerState?.extractScope === 'all'
-                                    ? 'bg-[#6366f1] text-white'
+                                    ? 'bg-indigo-600 text-white'
                                     : 'text-zinc-400 hover:text-white'
                                 }`}
                               >
@@ -10525,8 +10753,8 @@ ${projectEvents
                                   onClick={() => pdfViewerRef.current?.setEngine(engine.id as any)}
                                   className={`px-2 py-1.5 rounded-md text-[11px] text-left transition cursor-pointer border ${
                                     pdfViewerState?.extractEngine === engine.id
-                                      ? 'bg-indigo-950/60 text-indigo-300 border-indigo-500/50 font-medium'
-                                      : 'bg-[#09090b] text-zinc-400 border-[#222226] hover:text-white'
+                                      ? 'bg-white/[0.08] text-indigo-300 border-indigo-500/50 font-medium'
+                                      : 'bg-[#09090b] text-zinc-400 border-white/[0.08] hover:text-white hover:bg-white/[0.06]'
                                   }`}
                                 >
                                   {engine.name}
@@ -10535,7 +10763,7 @@ ${projectEvents
                             </div>
                           </div>
 
-                          <div className="my-2 border-t border-[#222226]" />
+                          <div className="my-2 border-t border-white/[0.08]" />
 
                           {/* View & Tool Actions */}
                           <button
@@ -10543,7 +10771,7 @@ ${projectEvents
                             onClick={() => {
                               pdfViewerRef.current?.toggleSplitView();
                             }}
-                            className="w-full text-left px-2 py-1.5 rounded-md hover:bg-white/[0.06] flex items-center justify-between text-zinc-300 hover:text-white transition cursor-pointer"
+                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] flex items-center justify-between text-zinc-300 hover:text-white transition cursor-pointer"
                           >
                             <span>분할 편집 화면 전환</span>
                             <span className="text-[10px] text-zinc-500">{pdfViewerState?.isSplitView ? '분할 모드' : '단일 뷰'}</span>
@@ -10555,7 +10783,7 @@ ${projectEvents
                               setIsPdfSettingsOpen(false);
                               pdfViewerRef.current?.clearCacheAndReparse();
                             }}
-                            className="w-full text-left px-2 py-1.5 rounded-md hover:bg-white/[0.06] text-zinc-300 hover:text-white transition cursor-pointer"
+                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] text-zinc-300 hover:text-white transition cursor-pointer"
                           >
                             캐시 초기화 및 재파싱
                           </button>
@@ -10566,7 +10794,7 @@ ${projectEvents
                               setIsPdfSettingsOpen(false);
                               pdfViewerRef.current?.openReducerModal();
                             }}
-                            className="w-full text-left px-2 py-1.5 rounded-md hover:bg-white/[0.06] text-zinc-300 hover:text-white transition cursor-pointer"
+                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] text-zinc-300 hover:text-white transition cursor-pointer"
                           >
                             PDF 최적화 및 용량 줄이기...
                           </button>
@@ -10577,7 +10805,7 @@ ${projectEvents
                               setIsPdfSettingsOpen(false);
                               pdfViewerRef.current?.openFilePicker();
                             }}
-                            className="w-full text-left px-2 py-1.5 rounded-md hover:bg-white/[0.06] text-zinc-300 hover:text-white transition cursor-pointer"
+                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] text-zinc-300 hover:text-white transition cursor-pointer"
                           >
                             다른 PDF 파일 열기...
                           </button>
@@ -10626,7 +10854,7 @@ ${projectEvents
                     setHasUnreadAiChanges(false);
                     if (editorRef.current) editorRef.current.focus();
                   }}
-                  className="bg-[#6366f1] hover:bg-[#4f46e5] active:bg-[#4338ca] text-white text-[0.625rem] font-semibold px-2.5 py-0.5 rounded-xs transition flex items-center gap-1 shrink-0 ml-2 cursor-pointer"
+                  className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-[0.625rem] font-medium px-2.5 py-0.5 rounded-xs transition flex items-center gap-1 shrink-0 ml-2 cursor-pointer"
                 >
                   <span>확인</span>
                   <Check className="w-3 h-3" />
@@ -11265,6 +11493,34 @@ ${projectEvents
           <span className="text-slate-600 hidden sm:inline">|</span>
           <span className="uppercase">{activeWorkspace.type}</span>
           <span className="text-slate-600">|</span>
+          {githubConfig?.token && githubConfig?.repo && (
+            <>
+              <div className="flex items-center gap-1.5 text-[0.625rem]">
+                {githubSyncStatus === 'syncing' ? (
+                  <span className="inline-flex items-center gap-1.5 text-indigo-300">
+                    <span className="w-1 h-1 rounded-full bg-indigo-400 animate-pulse" />
+                    <span>동기화 중...</span>
+                  </span>
+                ) : githubSyncStatus === 'synced' ? (
+                  <span className="inline-flex items-center gap-1.5 text-zinc-300">
+                    <span className="w-1 h-1 rounded-full bg-emerald-400" />
+                    <span>GitHub 동기화 완료</span>
+                  </span>
+                ) : githubSyncStatus === 'conflict' ? (
+                  <span className="inline-flex items-center gap-1.5 text-amber-300">
+                    <span className="w-1 h-1 rounded-full bg-amber-400" />
+                    <span>충돌 사본 생성됨</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-zinc-400">
+                    <span className="w-1 h-1 rounded-full bg-zinc-500" />
+                    <span>GitHub 연동됨</span>
+                  </span>
+                )}
+              </div>
+              <span className="text-slate-600">|</span>
+            </>
+          )}
           <span className="text-slate-300 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/80 shadow-[0_0_5px_rgba(52,211,153,0.4)]" />
             연결됨
@@ -11275,41 +11531,33 @@ ${projectEvents
       {/* Delete Confirmation Warning Modal */}
       {deleteConfirmSession && (
         <div className="fixed inset-0 bg-[#09090b]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#121214] border border-[#222226] rounded-xs max-w-md w-full p-5 space-y-4 animate-in fade-in zoom-in duration-150">
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 bg-rose-950/80 border border-rose-800/80 text-rose-400 rounded-xs shrink-0">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div className="space-y-1 min-w-0 flex-1">
-                <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                  <span>프로젝트 삭제 경고</span>
-                  <span className="text-xs font-mono font-normal text-rose-400 bg-rose-950/60 border border-rose-800/60 px-2 py-0.5 rounded-xs">
-                    주의
-                  </span>
-                </h3>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  '<span className="font-semibold text-amber-300">{deleteConfirmSession.title}</span>' 프로젝트를 삭제하시겠습니까?
-                </p>
-                <p className="text-[0.6875rem] text-slate-400 leading-normal pt-1">
-                  프로젝트를 삭제하면 좌측 대화, 중앙 메모, 우측 폴더 연동 항목이 모두 휴지통으로 이동합니다. 휴지통에서 언제든지 복구할 수 있습니다.
-                </p>
-              </div>
+          <div className="bg-[#121214] border border-[#222226] rounded-md max-w-md w-full p-5 space-y-4 animate-in fade-in zoom-in duration-150">
+            <div className="space-y-1.5 min-w-0">
+              <h3 className="text-sm font-semibold text-zinc-100">
+                프로젝트 삭제 경고
+              </h3>
+              <p className="text-xs text-zinc-200 leading-relaxed">
+                '<span className="font-medium text-amber-200">{deleteConfirmSession.title}</span>' 프로젝트를 삭제하시겠습니까?
+              </p>
+              <p className="text-[0.6875rem] text-zinc-400 leading-relaxed pt-0.5">
+                프로젝트를 삭제하면 좌측 대화, 중앙 메모, 우측 폴더 연동 항목이 모두 휴지통으로 이동합니다. 휴지통에서 언제든지 복구할 수 있습니다.
+              </p>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#222226]">
               <button
                 type="button"
                 onClick={() => setDeleteConfirmSession(null)}
-                className="px-3 py-1.5 rounded-xs bg-[#121214] hover:bg-[#18181b] text-slate-300 text-xs font-medium transition cursor-pointer border border-[#222226]"
+                className="px-3 py-1.5 rounded-md bg-[#121214] hover:bg-white/[0.06] text-zinc-300 text-xs font-medium transition cursor-pointer border border-[#222226]"
               >
                 취소
               </button>
               <button
                 type="button"
                 onClick={executeDeleteSession}
-                className="px-3.5 py-1.5 rounded-xs bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium transition flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-md bg-rose-800/80 hover:bg-rose-700/80 text-rose-100 border border-rose-700/40 text-xs font-medium transition flex items-center gap-1.5 cursor-pointer shadow-sm"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-3.5 h-3.5 text-rose-200" />
                 <span>휴지통으로 이동</span>
               </button>
             </div>
@@ -11377,7 +11625,7 @@ ${projectEvents
                       <button
                         type="button"
                         onClick={() => handleRestoreSession(session.id)}
-                        className="px-2.5 py-1 rounded-xs bg-emerald-700 hover:bg-[#6366f1] border border-emerald-600 text-white text-xs font-medium transition flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 py-1 rounded-xs bg-emerald-700 hover:bg-emerald-600 border border-emerald-600 text-white text-xs font-medium transition flex items-center gap-1 cursor-pointer"
                         title="프로젝트, 대화, 메모, 폴더 복구"
                       >
                         <RotateCcw className="w-3 h-3" />
@@ -11472,7 +11720,7 @@ ${projectEvents
               <button
                 type="button"
                 onClick={() => setIsShortcutsModalOpen(false)}
-                className="px-4 py-1.5 rounded-md text-xs font-medium bg-[#6366f1] hover:bg-[#4f46e5] text-white transition cursor-pointer shadow-xs glow-accent-subtle"
+                className="px-4 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition cursor-pointer shadow-xs"
               >
                 닫기
               </button>
@@ -11541,9 +11789,9 @@ ${projectEvents
               <button
                 type="button"
                 onClick={executeDeleteFile}
-                className="px-4 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5"
+                className="px-4 py-1.5 bg-rose-800/80 hover:bg-rose-700/80 text-rose-100 border border-rose-700/40 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5 shadow-sm"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-3.5 h-3.5 text-rose-200" />
                 삭제
               </button>
             </div>
@@ -11566,19 +11814,19 @@ ${projectEvents
 
             <div className="space-y-1 pt-1">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-[#6366f1] flex items-center justify-center text-white shadow-xs">
+                <div className="w-6 h-6 rounded-md bg-indigo-600 flex items-center justify-center text-white shadow-xs">
                   <Brain className="w-4 h-4 text-white" />
                 </div>
                 <h2 className="text-base font-bold text-white">About AI Podium</h2>
               </div>
-              <p className="text-xs text-[#6366f1] font-mono">v2.5 Professional Multi-AI Workstation</p>
+              <p className="text-xs text-indigo-400 font-mono">v2.5 Professional Multi-AI Workstation</p>
             </div>
 
             <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
               <p>
                 AI Podium은 지능형 Multi-AI 평가 라우팅, 실시간 마크다운 노트 및 목차 네비게이터, 프로젝트-메모-폴더 연동 시스템, 차세대 다중 포맷 내보내기 엔진을 제공하는 통합 워크스테이션입니다.
               </p>
-              <div className="bg-[#09090b]/80 p-3 rounded-md border border-[#222226] text-[0.6875rem] space-y-1 font-mono text-slate-300">
+              <div className="bg-[#09090b]/80 p-3 rounded-md border border-white/[0.08] text-[0.6875rem] space-y-1 font-mono text-slate-300">
                 <div className="text-indigo-300 font-semibold mb-1">Architecture Features:</div>
                 <div>• Deep Charcoal & Electric Purple Living SSOT Workspace</div>
                 <div>• Unified Multi-Tab Document Bar</div>
@@ -11591,7 +11839,7 @@ ${projectEvents
               <button
                 type="button"
                 onClick={() => setIsAboutModalOpen(false)}
-                className="px-4 py-1.5 rounded-md text-xs font-medium bg-[#6366f1] hover:bg-[#4f46e5] text-white transition cursor-pointer shadow-xs glow-accent-subtle"
+                className="px-4 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition cursor-pointer shadow-xs"
               >
                 닫기
               </button>
@@ -11603,11 +11851,11 @@ ${projectEvents
       {/* Event Manager Modal */}
       {isEventManagerOpen && (
         <div className="fixed inset-0 z-50 bg-[#09090b]/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#121214]/95 backdrop-blur-xl border border-[#222226] rounded-xl max-w-2xl w-full p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-100 max-h-[90vh] flex flex-col">
+          <div className="bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-2xl w-full p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-100 max-h-[90vh] flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-[#222226] pb-3">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
               <div className="flex items-center gap-2">
-                <CalendarDays className="w-5 h-5 text-[#6366f1]" />
+                <CalendarDays className="w-5 h-5 text-indigo-400" />
                 <div>
                   <h3 className="font-bold text-slate-100 text-sm">프로젝트 일정 및 마일스톤 관리</h3>
                   <p className="text-[0.6875rem] text-slate-400">
@@ -11618,7 +11866,7 @@ ${projectEvents
               <button
                 type="button"
                 onClick={() => setIsEventManagerOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-[#18181b] transition cursor-pointer"
+                className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-white/[0.06] transition cursor-pointer"
                 title="닫기"
               >
                 <X className="w-4 h-4" />
@@ -11626,13 +11874,13 @@ ${projectEvents
             </div>
 
             {/* Quick Actions Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 bg-[#09090b]/80 p-2 rounded-md border border-[#222226]">
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-[#09090b]/80 p-2 rounded-md border border-white/[0.08]">
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => handleExtractEventsWithAi(activeSession?.title)}
                   disabled={isExtractingEvents}
-                  className="px-2.5 py-1.5 rounded-md bg-[#6366f1] hover:bg-[#4f46e5] disabled:opacity-50 text-white text-xs font-medium transition flex items-center gap-1.5 shadow-xs glow-accent-subtle"
+                  className="px-2.5 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-medium transition flex items-center gap-1.5 shadow-xs"
                 >
                   {isExtractingEvents ? (
                     <RotateCw className="w-3.5 h-3.5 animate-spin" />
@@ -11718,7 +11966,7 @@ ${projectEvents
                 <button
                   type="button"
                   onClick={handleAddProjectEvent}
-                  className="px-3 py-1.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-md text-xs font-semibold transition flex items-center gap-1 shrink-0 glow-accent-subtle"
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-xs font-semibold transition flex items-center gap-1 shrink-0 shadow-xs"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>추가</span>
@@ -11727,7 +11975,7 @@ ${projectEvents
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex items-center justify-between text-xs border-b border-[#222226] pb-1">
+            <div className="flex items-center justify-between text-xs border-b border-white/[0.08] pb-1">
               <div className="flex items-center gap-1">
                 {(['all', 'milestone', 'task', 'meeting', 'deadline'] as const).map((filterKey) => (
                   <button
@@ -11736,8 +11984,8 @@ ${projectEvents
                     onClick={() => setEventFilter(filterKey)}
                     className={`px-2.5 py-1 rounded-md text-[0.6875rem] font-medium transition ${
                       eventFilter === filterKey
-                        ? 'bg-[#6366f1] text-white font-semibold glow-accent-subtle'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-[#121214]'
+                        ? 'bg-indigo-600 text-white font-medium shadow-xs'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.06]'
                     }`}
                   >
                     {filterKey === 'all' && `전체 (${projectEvents.length})`}
@@ -11898,37 +12146,6 @@ ${projectEvents
         onToast={showToast}
       />
 
-      {/* Remote SSH Workspace Modal */}
-      <RemoteWorkspaceModal
-        isOpen={isRemoteModalOpen}
-        onClose={() => setIsRemoteModalOpen(false)}
-        currentConfig={remoteConfig}
-        currentUser={currentUser}
-        onOpenAccountModal={() => {
-          setIsRemoteModalOpen(false);
-          setIsGoogleAccountModalOpen(true);
-        }}
-        onDisconnect={() => {
-          setRemoteConfig(null);
-          try {
-            localStorage.removeItem('aipodium_remote_workspace_config');
-          } catch {}
-          setWorkspaceRootType('local');
-          localStorage.setItem('aipodium_workspace_root_type', 'local');
-          setIsRemoteModalOpen(false);
-          showToast('원격 서버 연결이 해제되었습니다.', 'info');
-        }}
-        onSaveConfig={(cfg) => {
-          setRemoteConfig(cfg);
-          try {
-            localStorage.setItem('aipodium_remote_workspace_config', JSON.stringify(cfg));
-          } catch {}
-          setWorkspaceRootType('remote');
-          localStorage.setItem('aipodium_workspace_root_type', 'remote');
-        }}
-        onToast={showToast}
-      />
-
       {/* Create New Markdown File Modal (Standard VS Code Style) */}
       {isNewFileModalOpen && (
         <div
@@ -11936,13 +12153,13 @@ ${projectEvents
           onClick={() => setIsNewFileModalOpen(false)}
         >
           <div
-            className="relative bg-[#121214]/95 backdrop-blur-xl border border-[#222226] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-5 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans"
+            className="relative bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-5 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setIsNewFileModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-1.5 rounded-md hover:bg-[#18181b] transition cursor-pointer"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-1.5 rounded-md hover:bg-white/[0.06] transition cursor-pointer"
               title="닫기"
             >
               <X className="w-4 h-4" />
@@ -11956,7 +12173,7 @@ ${projectEvents
             <form onSubmit={handleConfirmCreateNewFile} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs text-slate-300 flex items-center gap-1.5 font-medium">
-                  <FileText className="w-3.5 h-3.5 text-[#6366f1]" />
+                  <FileText className="w-3.5 h-3.5 text-indigo-400" />
                   <span>문서 파일명</span>
                 </label>
                 <input
@@ -11965,7 +12182,7 @@ ${projectEvents
                   value={newFileNameInput}
                   onChange={(e) => setNewFileNameInput(e.target.value)}
                   placeholder="예: design_specs.md, meeting_notes.md"
-                  className="w-full bg-[#09090b] border border-[#222226] rounded-md px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1]/50 transition placeholder-slate-400"
+                  className="w-full bg-[#09090b] border border-white/[0.08] rounded-md px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition placeholder-slate-400"
                   autoFocus
                 />
               </div>
@@ -11978,7 +12195,7 @@ ${projectEvents
                 <select
                   value={newFileFolderTarget}
                   onChange={(e) => setNewFileFolderTarget(e.target.value)}
-                  className="w-full bg-[#09090b] border border-[#222226] rounded-md px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1]/50 transition font-sans cursor-pointer"
+                  className="w-full bg-[#09090b] border border-white/[0.08] rounded-md px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition font-sans cursor-pointer"
                 >
                   {sessions.map((s) => (
                     <option key={s.id} value={s.title} className="bg-[#121214] text-slate-200">
@@ -11991,17 +12208,17 @@ ${projectEvents
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#222226]">
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-white/[0.08]">
                 <button
                   type="button"
                   onClick={() => setIsNewFileModalOpen(false)}
-                  className="px-3.5 py-1.5 rounded-md text-xs text-slate-300 hover:text-white bg-[#121214] hover:bg-[#18181b] transition cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-md text-xs text-slate-300 hover:text-white bg-[#121214] hover:bg-white/[0.06] transition cursor-pointer"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded-md text-xs font-medium bg-[#6366f1] hover:bg-[#4f46e5] text-white transition shadow-xs cursor-pointer glow-accent-subtle"
+                  className="px-4 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-xs cursor-pointer"
                 >
                   문서 생성
                 </button>
@@ -12017,6 +12234,8 @@ ${projectEvents
         onClose={() => setIsGithubModalOpen(false)}
         initialConfig={githubConfig}
         currentUser={currentUser}
+        currentActiveFile={currentActiveFile}
+        editorContent={editorContent}
         onOpenAccountModal={() => {
           setIsGithubModalOpen(false);
           setIsGoogleAccountModalOpen(true);
@@ -12027,25 +12246,58 @@ ${projectEvents
             sessionStorage.removeItem('aipodium_github_config');
             localStorage.removeItem('aipodium_github_config');
             localStorage.removeItem('aipodium_github_meta');
+            removeEncryptedGithubPat();
           } catch {}
           setWorkspaceRootType('local');
           localStorage.setItem('aipodium_workspace_root_type', 'local');
           setIsGithubModalOpen(false);
           showToast('GitHub 저장소 연결이 해제되었습니다.', 'info');
         }}
-        onSave={(config) => {
+        onSave={async (config, pulledData) => {
           setGithubConfig(config);
           try {
             sessionStorage.setItem('aipodium_github_config', JSON.stringify(config));
             // Keep persistent storage clean of raw access tokens
             localStorage.removeItem('aipodium_github_config');
-            const safeMeta = { repo: config.repo, branch: config.branch, owner: config.owner };
+            const safeMeta = {
+              repo: config.repo,
+              branch: config.branch,
+              owner: config.owner,
+              useCustomCommitMessage: config.useCustomCommitMessage,
+              customCommitMessage: config.customCommitMessage,
+            };
             localStorage.setItem('aipodium_github_meta', JSON.stringify(safeMeta));
+            await saveEncryptedGithubPat(config.token);
           } catch {}
           setWorkspaceRootType('github');
           localStorage.setItem('aipodium_workspace_root_type', 'github');
+
+          setActiveWorkspace({
+            id: `github-${config.repo}`,
+            name: config.repo,
+            type: 'github',
+            status: 'connected',
+            fileCount: pulledData?.count || Object.keys(files).length,
+            lastSynced: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+            githubRepo: config.repo,
+            githubOwner: config.owner,
+            githubBranch: config.branch,
+          });
+
+          if (pulledData && pulledData.count > 0) {
+            setFiles((prev) => ({ ...prev, ...pulledData.files }));
+            setFileFolders((prev) => ({ ...prev, ...pulledData.fileFolders }));
+            const firstFile = Object.keys(pulledData.files)[0];
+            if (firstFile) {
+              setCurrentActiveFile(firstFile);
+              setFileName(firstFile);
+              setEditorContent(pulledData.files[firstFile]);
+            }
+            showToast(`🐙 GitHub 저장소(${config.repo})에서 ${pulledData.count}개 문서를 불러와 워크스페이스를 활성화했습니다!`, 'success');
+          } else {
+            showToast(`✅ GitHub 저장소(${config.repo}) 워크스페이스 활성화 완료!`);
+          }
           setIsGithubModalOpen(false);
-          showToast(`✅ GitHub 저장소(${config.repo}) 워크스페이스 활성화 완료!`);
         }}
       />
 
@@ -12144,10 +12396,6 @@ ${projectEvents
         onOpenGoogleDrive={() => {
           handleOpenGoogleDrive('open');
         }}
-        remoteConfig={remoteConfig}
-        onOpenRemoteSSH={() => {
-          handleOpenRemoteSSH();
-        }}
         githubConfig={githubConfig}
         onOpenGithub={() => {
           handleOpenGithubModal();
@@ -12217,7 +12465,6 @@ ${projectEvents
         onOpenSSOTGenerator={() => setIsSSOTGeneratorModalOpen(true)}
         googleUser={googleUser}
         githubConfig={githubConfig}
-        remoteConfig={remoteConfig}
         onOpenSettings={(tab) => {
           setIsWorkspaceModalOpen(false);
           setPreferencesInitialTab(tab || 'integrations');

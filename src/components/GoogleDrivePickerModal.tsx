@@ -14,17 +14,18 @@ import {
   Download,
   Upload,
   ExternalLink,
-  ShieldCheck,
   LogOut,
   AlertCircle,
   FileCode,
 } from 'lucide-react';
 import {
   googleDriveService,
+  ensureGoogleScriptsLoaded,
   DriveItem,
   DriveFolderInfo,
   GoogleUserProfile,
 } from '../services/googleDriveService';
+import { convertDocumentToMarkdown } from '../services/documentConverterService';
 
 export interface GoogleDrivePickerModalProps {
   isOpen: boolean;
@@ -81,6 +82,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
   // Loading & auth status
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const [missingConfigWarning, setMissingConfigWarning] = useState<string | null>(null);
   const [authStatus, setAuthStatus] = useState<'connected' | 'expired' | 'disconnected'>(
     googleDriveService.getTokenStatus()
   );
@@ -93,6 +95,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
       setActiveTab(initialTab);
       setSaveFileName(currentEditorFileName || 'document.md');
       setSaveFormat(currentEditorFileName?.endsWith('.html') ? 'html' : 'markdown');
+      setMissingConfigWarning(null);
       refreshAuthAndData();
     }
   }, [isOpen, initialTab, currentEditorFileName]);
@@ -134,22 +137,241 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
     }
   }, [filterType]);
 
-  const handleOnDemandConnect = async () => {
+  /**
+   * File Ingestion Pipeline:
+   * Downloads content via ?alt=media with Authorization Bearer header,
+   * converts via documentConverterService, and inserts into active workspace.
+   */
+  const handleFileIngestion = async (
+    fileId: string,
+    fileName: string,
+    mimeType?: string,
+    tokenOverride?: string
+  ) => {
+    setIsLoading(true);
+    try {
+      const token = tokenOverride || googleDriveService.getAccessToken();
+      if (!token) {
+        throw new Error('Google Drive 인증 토큰이 유효하지 않습니다.');
+      }
+
+      onToast(`'${fileName}' 문서를 가져오는 중입니다...`, 'info');
+
+      let fileBlob: Blob;
+
+      // Special handling for Google Docs format
+      if (mimeType === 'application/vnd.google-apps.document') {
+        const exportRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/plain`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (exportRes.ok) {
+          const text = await exportRes.text();
+          fileBlob = new Blob([text], { type: 'text/plain' });
+        } else {
+          const mediaRes = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (!mediaRes.ok) throw new Error(`Google Drive 파일 다운로드 실패 (HTTP ${mediaRes.status})`);
+          fileBlob = await mediaRes.blob();
+        }
+      } else {
+        const mediaRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!mediaRes.ok) {
+          throw new Error(`Google Drive 파일 다운로드 실패 (HTTP ${mediaRes.status})`);
+        }
+        fileBlob = await mediaRes.blob();
+      }
+
+      const fileObj = new File([fileBlob], fileName, {
+        type: mimeType || fileBlob.type || 'application/octet-stream',
+      });
+
+      const conversion = await convertDocumentToMarkdown(fileObj);
+      const finalName = conversion.suggestedFileName || (fileName.endsWith('.md') ? fileName : `${fileName}.md`);
+      const finalMarkdown = conversion.markdown;
+
+      if (onOpenFile) {
+        onOpenFile(finalName, finalMarkdown);
+      }
+
+      onToast(`✨ '${finalName}' 문서를 작업 공간에 성공적으로 불러왔습니다.`, 'success');
+      onClose();
+    } catch (e: any) {
+      console.error('File ingestion failed:', e);
+      onToast(`문서 변환 실패: ${e?.message || '파일을 불러올 수 없습니다.'}`, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Builds and displays the official Google Picker dialog
+   */
+  const createAndShowPicker = (accessToken: string) => {
+    const google = (window as any).google;
+    if (!google?.picker) {
+      onToast('Google Picker API가 준비되지 않았습니다.', 'error');
+      return;
+    }
+
+    try {
+      const docsView = new google.picker.DocsView(google.picker.ViewId.DOCS)
+        .setIncludeFolders(true)
+        .setMode(google.picker.DocsViewMode.LIST);
+
+      const pickerBuilder = new google.picker.PickerBuilder()
+        .addView(docsView)
+        .setOAuthToken(accessToken)
+        .setLocale('ko')
+        .setTitle('구글 드라이브 문서 선택')
+        .setCallback(async (data: any) => {
+          if (data.action === google.picker.Action.PICKED) {
+            const doc = data.docs?.[0];
+            if (doc) {
+              await handleFileIngestion(doc.id, doc.name, doc.mimeType, accessToken);
+            }
+          }
+        });
+
+      const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+      if (apiKey) {
+        pickerBuilder.setDeveloperKey(apiKey);
+      }
+
+      const picker = pickerBuilder.build();
+      picker.setVisible(true);
+    } catch (err: any) {
+      console.error('Failed to create Google Picker:', err);
+      onToast(`피커 생성 오류: ${err?.message || '대화창을 열 수 없습니다.'}`, 'error');
+    }
+  };
+
+  /**
+   * Launch Google Picker on demand with robust GIS OAuth flow
+   */
+  const openGooglePicker = async (existingToken?: string) => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      const warningMsg = 'Google Cloud Client ID가 설정되지 않았습니다. .env 환경변수를 확인하세요.';
+      setMissingConfigWarning(warningMsg);
+      onToast(warningMsg, 'warn');
+      return;
+    }
+    setMissingConfigWarning(null);
+
     setIsConnecting(true);
     try {
-      if (onSignIn) {
+      await ensureGoogleScriptsLoaded();
+      const google = (window as any).google;
+
+      const validToken =
+        existingToken ||
+        (googleDriveService.hasValidToken() ? googleDriveService.getAccessToken() : null);
+
+      if (validToken) {
+        createAndShowPicker(validToken);
+        setIsConnecting(false);
+        return;
+      }
+
+      if (!google?.accounts?.oauth2) {
+        throw new Error('Google Identity Services(GIS) 스크립트를 로드할 수 없습니다.');
+      }
+
+      const tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'https://www.googleapis.com/auth/drive.readonly',
+        callback: async (response: any) => {
+          if (response.error) {
+            console.error('Google Auth Error:', response);
+            onToast(`인증 오류: ${response.error_description || response.error}`, 'error');
+            setIsConnecting(false);
+            return;
+          }
+          if (response.access_token) {
+            googleDriveService.setToken(response.access_token, response.expires_in || 3599);
+            setAuthStatus('connected');
+            try {
+              const profile = await googleDriveService.fetchUserProfile();
+              setCurrentUserProfile(profile);
+            } catch (e) {}
+            createAndShowPicker(response.access_token);
+          }
+          setIsConnecting(false);
+        },
+      });
+
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    } catch (err: any) {
+      console.error('Google Picker initialization failed:', err);
+      onToast(`Google 연결 오류: ${err?.message || '스크립트 로드 실패'}`, 'error');
+      setIsConnecting(false);
+    }
+  };
+
+  const handleOnDemandConnect = async () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      const warningMsg = 'Google Cloud Client ID가 설정되지 않았습니다. .env 환경변수를 확인하세요.';
+      setMissingConfigWarning(warningMsg);
+      onToast(warningMsg, 'warn');
+      return;
+    }
+    setMissingConfigWarning(null);
+
+    setIsConnecting(true);
+    try {
+      await ensureGoogleScriptsLoaded();
+      const google = (window as any).google;
+
+      if (google?.accounts?.oauth2) {
+        const tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'https://www.googleapis.com/auth/drive.readonly',
+          callback: async (response: any) => {
+            if (response.error) {
+              console.error('Google Auth Error:', response);
+              onToast(`Google 인증 오류: ${response.error_description || response.error}`, 'error');
+              setIsConnecting(false);
+              return;
+            }
+            if (response.access_token) {
+              googleDriveService.setToken(response.access_token, response.expires_in || 3599);
+              setAuthStatus('connected');
+              try {
+                const profile = await googleDriveService.fetchUserProfile();
+                setCurrentUserProfile(profile);
+              } catch (e) {}
+              onToast('✨ 구글 드라이브 연동이 완료되었습니다!', 'success');
+              await Promise.all([loadFolders(), loadFiles()]);
+              createAndShowPicker(response.access_token);
+            }
+            setIsConnecting(false);
+          },
+        });
+
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+      } else if (onSignIn) {
         await onSignIn();
+        setAuthStatus('connected');
+        await Promise.all([loadFolders(), loadFiles()]);
+        setIsConnecting(false);
       } else {
         const { profile } = await googleDriveService.signIn();
         setCurrentUserProfile(profile);
+        setAuthStatus('connected');
+        onToast('✨ 구글 드라이브 연동이 완료되었습니다!', 'success');
+        await Promise.all([loadFolders(), loadFiles()]);
+        setIsConnecting(false);
       }
-      setAuthStatus('connected');
-      onToast('✨ 구글 드라이브 연동이 완료되었습니다!', 'success');
-      await Promise.all([loadFolders(), loadFiles()]);
     } catch (e: any) {
       console.error('Google Drive On-Demand Connect failed:', e);
       onToast(`연동 오류: ${e.message || '인증에 실패했습니다.'}`, 'error');
-    } finally {
       setIsConnecting(false);
     }
   };
@@ -174,20 +396,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const content = await googleDriveService.readFile(selectedFile.id);
-      if (onOpenFile) {
-        onOpenFile(selectedFile.name, content);
-      }
-      onToast(`📥 '${selectedFile.name}' 파일을 에디터로 불러왔습니다.`, 'success');
-      onClose();
-    } catch (e: any) {
-      console.error('Failed to import file:', e);
-      onToast('파일을 불러오는 중 오류가 발생했습니다.', 'error');
-    } finally {
-      setIsLoading(false);
-    }
+    await handleFileIngestion(selectedFile.id, selectedFile.name, selectedFile.mimeType);
   };
 
   // Save current editor content to Drive
@@ -296,14 +505,20 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
               <div className="w-7 h-7 rounded bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center">
                 <HardDrive className="w-4 h-4 text-indigo-400" />
               </div>
-              <h2 className="text-sm font-medium text-slate-200 tracking-tight flex items-center gap-2">
+              <h2 className="text-sm font-medium text-zinc-200 tracking-tight flex items-center gap-2">
                 구글 드라이브 파일 탐색기
-                <span className="badge-success text-[10px] font-medium px-2 py-0.5 rounded">
-                  전용 파일 보안 모드
-                </span>
+                {authStatus === 'connected' ? (
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    연결됨
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-white/5 text-zinc-400 border border-white/10">
+                    미연동
+                  </span>
+                )}
               </h2>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-zinc-400">
               계정 로그인 여부와 무관하게 구글 드라이브 파일을 안전하게 열고 저장합니다.
             </p>
           </div>
@@ -311,16 +526,16 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
           <div className="flex items-center gap-2">
             {authStatus === 'connected' && (
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#09090b] border border-[#222226] text-xs">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#09090b] border border-white/10 text-xs">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-slate-300 font-medium truncate max-w-[140px]">
+                  <span className="text-zinc-300 font-medium truncate max-w-[140px]">
                     {currentUserProfile?.name || currentUserProfile?.email || '연동됨'}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={handleDisconnect}
-                  className="btn-secondary text-xs text-rose-400 hover:text-rose-300 border-rose-900/50 hover:bg-rose-950/40"
+                  className="px-2.5 py-1 rounded text-xs font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 transition-colors cursor-pointer inline-flex items-center gap-1.5"
                   title="구글 드라이브 연동 해제"
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -332,7 +547,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-200 p-1.5 rounded hover:bg-[#18181b] transition cursor-pointer"
+              className="text-zinc-400 hover:text-zinc-200 p-1.5 rounded hover:bg-white/5 transition cursor-pointer"
               title="닫기"
             >
               <X className="w-4 h-4" />
@@ -341,88 +556,102 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
         </div>
 
         {/* Tab Navigation - Flat IDE Tab Style */}
-        <div className="flex items-center justify-between border-b border-[#222226] shrink-0 text-xs">
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setActiveTab('open')}
-              className={`px-3.5 py-2 font-medium flex items-center gap-1.5 transition cursor-pointer border-b-2 -mb-[1px] ${
-                activeTab === 'open'
-                  ? 'border-indigo-500 text-indigo-300 bg-[#09090b]/50'
-                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#09090b]/25'
-              }`}
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>파일 불러오기</span>
-            </button>
+        {authStatus === 'connected' && (
+          <div className="flex items-center justify-between border-b border-[#222226] shrink-0 text-xs">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('open')}
+                className={`px-3.5 py-2 font-medium flex items-center gap-1.5 transition cursor-pointer border-b-2 -mb-[1px] ${
+                  activeTab === 'open'
+                    ? 'border-indigo-500 text-indigo-300 bg-[#09090b]/50'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-[#09090b]/25'
+                }`}
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>파일 불러오기</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab('save')}
-              className={`px-3.5 py-2 font-medium flex items-center gap-1.5 transition cursor-pointer border-b-2 -mb-[1px] ${
-                activeTab === 'save'
-                  ? 'border-indigo-500 text-indigo-300 bg-[#09090b]/50'
-                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#09090b]/25'
-              }`}
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>드라이브에 저장</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('save')}
+                className={`px-3.5 py-2 font-medium flex items-center gap-1.5 transition cursor-pointer border-b-2 -mb-[1px] ${
+                  activeTab === 'save'
+                    ? 'border-indigo-500 text-indigo-300 bg-[#09090b]/50'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-[#09090b]/25'
+                }`}
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>드라이브에 저장</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab('folders')}
-              className={`px-3.5 py-2 font-medium flex items-center gap-1.5 transition cursor-pointer border-b-2 -mb-[1px] ${
-                activeTab === 'folders'
-                  ? 'border-indigo-500 text-indigo-300 bg-[#09090b]/50'
-                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-[#09090b]/25'
-              }`}
-            >
-              <FolderOpen className="w-3.5 h-3.5" />
-              <span>기본 폴더 설정</span>
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('folders')}
+                className={`px-3.5 py-2 font-medium flex items-center gap-1.5 transition cursor-pointer border-b-2 -mb-[1px] ${
+                  activeTab === 'folders'
+                    ? 'border-indigo-500 text-indigo-300 bg-[#09090b]/50'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-[#09090b]/25'
+                }`}
+              >
+                <FolderOpen className="w-3.5 h-3.5" />
+                <span>기본 폴더 설정</span>
+              </button>
+            </div>
 
-          {authStatus === 'connected' && (
             <button
               type="button"
               onClick={() => {
                 loadFolders();
                 loadFiles();
               }}
-              className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-[#18181b] transition cursor-pointer"
+              className="p-1.5 text-zinc-400 hover:text-white rounded hover:bg-white/5 transition cursor-pointer"
               title="새로고침"
             >
               <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-indigo-400' : ''}`} />
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Security Info Indicator (1줄 컴팩트 안내) */}
-        <div className="bg-[#09090b] border border-[#222226] rounded px-3 py-1.5 text-xs flex items-center gap-2 shrink-0">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-          <span className="text-[11px] text-slate-300">
-            <span className="text-emerald-400 font-medium">최소 권한 원칙:</span> 본 앱에서 열거나 생성한 전용 파일에만 안전하게 접근합니다.
-          </span>
-        </div>
+        {/* Missing Config Warning Indicator */}
+        {missingConfigWarning && (
+          <div
+            id="google-drive-missing-config-warning"
+            className="bg-amber-950/40 border border-amber-800/60 rounded px-3 py-2 text-xs flex items-center justify-between text-amber-200 shrink-0 animate-in fade-in duration-100"
+          >
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>{missingConfigWarning}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setMissingConfigWarning(null)}
+              className="text-amber-400 hover:text-amber-200 p-0.5 rounded cursor-pointer"
+              title="닫기"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* BODY AREA: Unified Disconnected Hero State OR Connected Tab Viewports */}
         {authStatus !== 'connected' ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#09090b] border border-[#222226] rounded-lg my-auto space-y-4 animate-in fade-in duration-150">
-            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-              <HardDrive className="w-6 h-6" />
+          <div className="flex-1 flex flex-col items-center justify-center py-12 px-4 text-center space-y-4 animate-in fade-in duration-150">
+            <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-zinc-400">
+              <HardDrive className="w-6 h-6 text-zinc-300" />
             </div>
-            <div className="space-y-1.5 max-w-md">
-              <h3 className="text-sm font-medium text-slate-200">구글 드라이브 연동이 필요합니다</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+            <div className="space-y-1.5 max-w-sm">
+              <h3 className="text-sm font-medium text-zinc-200">구글 드라이브 연동이 필요합니다</h3>
+              <p className="text-xs text-zinc-400 leading-relaxed">
                 클라우드에 저장된 마크다운 및 HTML 문서를 즉시 불러오거나 현재 작성 중인 문서를 드라이브에 안전하게 보관할 수 있습니다.
               </p>
             </div>
             <button
               type="button"
+              id="google-drive-connect-btn"
               onClick={handleOnDemandConnect}
               disabled={isConnecting}
-              className="btn-primary text-xs px-4 py-2"
+              className="px-4 py-2 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center gap-2 cursor-pointer"
             >
               <HardDrive className="w-4 h-4" />
               <span>{isConnecting ? '연동 진행 중...' : '구글 드라이브 연결하기'}</span>
@@ -433,7 +662,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
             {/* TAB 1: FILE IMPORT */}
             {activeTab === 'open' && (
               <div className="flex-1 flex flex-col min-h-0 space-y-3">
-                {/* Filter and Search */}
+                {/* Filter, Search & Google Picker Launch */}
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="flex items-center gap-1 bg-[#09090b] p-0.5 rounded border border-[#222226] text-xs">
                     <button
@@ -477,6 +706,18 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                       className="w-full bg-[#09090b] border border-[#222226] rounded px-2.5 py-1 pl-8 text-xs font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-400 transition"
                     />
                   </div>
+
+                  <button
+                    type="button"
+                    id="google-picker-launch-btn"
+                    onClick={() => openGooglePicker()}
+                    disabled={isConnecting}
+                    className="btn-secondary text-xs flex items-center gap-1.5 px-3 py-1 bg-[#18181b] border-indigo-500/40 hover:border-indigo-400 text-indigo-300 shrink-0"
+                    title="구글 공식 피커 대화창 열기"
+                  >
+                    <HardDrive className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>구글 피커로 파일 선택</span>
+                  </button>
                 </div>
 
                 {/* File List */}

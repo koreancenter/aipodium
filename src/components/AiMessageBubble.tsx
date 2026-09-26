@@ -215,8 +215,8 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xs text-xs font-medium transition cursor-pointer shadow-xs active:scale-[0.98] ${
                   btn.actionType === 'insert-editor'
-                    ? 'bg-[#6366f1] hover:bg-[#4f46e5] text-white border border-[#6366f1]'
-                    : 'bg-[#121214] hover:bg-[#18181b] border border-[#222226] hover:border-[#6366f1] text-indigo-300 hover:text-white'
+                    ? 'bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500'
+                    : 'bg-[#121214] hover:bg-[#18181b] border border-white/[0.08] hover:border-indigo-500/50 text-indigo-300 hover:text-white'
                 }`}
               >
                 {btn.actionType === 'open-settings-ai' ? (

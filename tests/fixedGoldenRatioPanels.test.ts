@@ -87,11 +87,11 @@ test('Fixed Golden Ratio Panels: Responsive fallback on Mobile/Tablet (< 1024px)
   assert.equal(resolveRightPanelVisible(), false, 'Right panel should collapse by default on screen < 1024px');
 });
 
-test('Fixed Golden Ratio Panels: Enforced fixed width constants match 340px and 240px', () => {
+test('Fixed Golden Ratio Panels: Enforced fixed width constants match 510px and 240px', () => {
   // Constants specification verification
-  const LEFT_PANEL_WIDTH_PX = 340;
+  const LEFT_PANEL_WIDTH_PX = 510;
   const RIGHT_PANEL_WIDTH_PX = 240;
 
-  assert.equal(LEFT_PANEL_WIDTH_PX, 340, 'Left panel fixed width must be 340px');
+  assert.equal(LEFT_PANEL_WIDTH_PX, 510, 'Left panel fixed width must be 510px');
   assert.equal(RIGHT_PANEL_WIDTH_PX, 240, 'Right panel fixed width must be 240px');
 });

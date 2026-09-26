@@ -26,7 +26,6 @@ import {
 } from '../services/workspaceStorageService';
 import { googleDriveService } from '../services/googleDriveService';
 import { convertDocumentToMarkdown } from '../services/documentConverterService';
-import type { RemoteConfig } from './RemoteWorkspaceModal';
 import type { GithubConfig } from './GithubIntegrationModal';
 
 export interface RecentWorkspaceItem {
@@ -61,7 +60,6 @@ interface WorkspaceConnectionModalProps {
   onImportDocumentFiles?: (files: File[]) => void;
   googleUser?: any;
   githubConfig?: GithubConfig | null;
-  remoteConfig?: RemoteConfig | null;
   onOpenSettings?: (tab?: any) => void;
 }
 
@@ -102,7 +100,6 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
   onToast,
   onOpenFileContent,
   onImportDocumentFiles,
-  remoteConfig,
   onOpenSettings,
 }) => {
   const [showRemoteOptions, setShowRemoteOptions] = useState<boolean>(false);
@@ -367,8 +364,8 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
     }
   };
 
-  // Connect to Google Drive / SSH / Vault
-  const handleConnectOption = async (option: 'gdrive' | 'ssh' | 'vault') => {
+  // Connect to Google Drive / Vault
+  const handleConnectOption = async (option: 'gdrive' | 'vault') => {
     if (option === 'gdrive') {
       let status = googleDriveService.getTokenStatus();
       if (status !== 'connected') {
@@ -399,33 +396,6 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
       });
       onSelectWorkspace(newWs);
       onToast(`☁️ Google Drive로 연결되었습니다.`, 'success');
-      onClose();
-    } else if (option === 'ssh') {
-      if (!remoteConfig?.host) {
-        onToast('환경설정에서 Remote SSH 서버를 먼저 설정해주세요.', 'warn');
-        if (onOpenSettings) onOpenSettings('integrations');
-        onClose();
-        return;
-      }
-      const sshPath = `ssh://${remoteConfig.username || 'user'}@${remoteConfig.host}:${remoteConfig.remotePath || '~/workspace'}`;
-      const newWs: ActiveWorkspace = {
-        id: `ssh-${Date.now()}`,
-        name: remoteConfig.host,
-        type: 'remote',
-        path: sshPath,
-        status: 'connected',
-        lastSynced: '방금',
-        fileCount: Object.keys(currentFiles).length,
-      };
-      saveRecentItem({
-        id: newWs.id,
-        name: remoteConfig.host,
-        path: `~/Remote/${remoteConfig.host}`,
-        type: 'remote',
-        timestamp: Date.now(),
-      });
-      onSelectWorkspace(newWs);
-      onToast(`🌐 Remote SSH '${remoteConfig.host}'로 연결되었습니다.`, 'success');
       onClose();
     } else if (option === 'vault') {
       if (savedVaults.length > 0) {
@@ -604,7 +574,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
           <button
             type="button"
             onClick={handleOpenFolder}
-            className="w-full bg-[#6366f1] hover:bg-[#5254e0] text-white py-2.5 px-4 rounded-md font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 px-4 rounded-md font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
           >
             <FolderOpen className="w-4 h-4 shrink-0" />
             <span>내 PC 폴더 열기...</span>
@@ -734,7 +704,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
           </button>
 
           {showRemoteOptions && (
-            <div className="pt-2 grid grid-cols-3 gap-1.5 animate-in fade-in duration-100">
+            <div className="pt-2 grid grid-cols-2 gap-1.5 animate-in fade-in duration-100">
               <button
                 type="button"
                 onClick={() => handleConnectOption('gdrive')}
@@ -742,15 +712,6 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
               >
                 <Cloud className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="text-[0.6875rem]">Google Drive</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleConnectOption('ssh')}
-                className="py-1.5 px-2 rounded bg-[#09090b] hover:bg-[#121214] border border-[#222226]/60 flex items-center justify-center gap-1.5 text-slate-300 hover:text-white text-xs transition cursor-pointer"
-              >
-                <Server className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="text-[0.6875rem]">Remote SSH</span>
               </button>
 
               <button

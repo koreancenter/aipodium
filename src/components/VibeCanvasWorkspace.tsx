@@ -505,7 +505,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
           <button
             type="button"
             onClick={handleSave}
-            className="px-3.5 py-1.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-lg font-semibold text-xs transition flex items-center gap-1.5 shadow-lg shadow-indigo-600/30 cursor-pointer group shrink-0"
+            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold text-xs transition flex items-center gap-1.5 shadow-md cursor-pointer group shrink-0"
             title="현재 작성된 문서를 프로젝트 폴더에 SSOT 마스터로 확정 저장 (Ctrl+S)"
           >
             <Save className="w-3.5 h-3.5 group-hover:scale-110 transition-transform text-amber-300" />
