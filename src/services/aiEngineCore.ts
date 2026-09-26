@@ -13,6 +13,57 @@ import { clearDeviceSecretMemory } from '../utils/securityCrypto';
 import type { ExecuteAiOptions } from '../types';
 export type { ExecuteAiOptions };
 
+export type AiEngineChoice = 'cloud' | 'ollama' | 'webllm';
+
+export interface AiEngineConfig {
+  engineType: AiEngineChoice;
+  selectedVendor?: string;
+  apiKey?: string;
+  ollamaEndpoint?: string;
+  modelId?: string;
+}
+
+const AI_ENGINE_CONFIG_KEY = 'aipodium_ai_engine_preference';
+
+let activeEngineConfig: AiEngineConfig = {
+  engineType: 'cloud',
+  selectedVendor: 'gemini',
+};
+
+if (typeof window !== 'undefined') {
+  try {
+    const saved = localStorage.getItem(AI_ENGINE_CONFIG_KEY);
+    if (saved) {
+      activeEngineConfig = { ...activeEngineConfig, ...JSON.parse(saved) };
+    }
+  } catch {}
+}
+
+/**
+ * Saves and updates the active AI engine preference.
+ */
+export function saveAiEnginePreference(config: Partial<AiEngineConfig>): void {
+  activeEngineConfig = {
+    ...activeEngineConfig,
+    ...config,
+  };
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(AI_ENGINE_CONFIG_KEY, JSON.stringify(activeEngineConfig));
+      window.dispatchEvent(
+        new CustomEvent('aipodium:engine_preference_changed', { detail: activeEngineConfig })
+      );
+    } catch {}
+  }
+}
+
+/**
+ * Retrieves the current AI engine preference.
+ */
+export function getAiEnginePreference(): AiEngineConfig {
+  return { ...activeEngineConfig };
+}
+
 // Module-closure isolated variables - NEVER accessible outside this file scope
 let inFlightEphemeralKey: string | null = null;
 let activeUserSecret: string | null = null;

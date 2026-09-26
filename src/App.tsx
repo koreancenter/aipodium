@@ -26,6 +26,9 @@ import {
   syncDocToGithub,
   pullDocumentsFromGithub,
   purgeGuestSession,
+  workspaceStorageService,
+  createProject,
+  generateProjectTitleFromPrompt,
 } from './services/workspaceStorageService';
 import {
   saveEncryptedGithubPat,
@@ -57,10 +60,12 @@ import { MarkdownHelpPopover } from './components/MarkdownHelpPopover';
 import { TiptapWysiwygEditorRef } from './components/TiptapWysiwygEditor';
 import { generateEmptyTable } from './utils/markdownTableHelper';
 import { SSOTDriftAuditor } from './components/SSOTDriftAuditor';
+import { FreeformDrawingOverlay } from './components/FreeformDrawingOverlay';
 import { analyzeSSOTDriftLocally } from './utils/ssotDriftEngine';
 import { CouncilOfCriticsModal } from './components/CouncilOfCriticsModal';
 import { GhostDiffModal } from './components/GhostDiffModal';
 import { AiRoleAssignmentModal } from './components/AiRoleAssignmentModal';
+import { AiEngineOnboardingModal } from './components/AiEngineOnboardingModal';
 import { InlineModelSelector } from './components/InlineModelSelector';
 import { LinkAttachmentInput } from './components/LinkAttachmentInput';
 import { AiMessageBubble } from './components/AiMessageBubble';
@@ -146,6 +151,7 @@ import {
   CheckSquare,
   Minus,
   Table as TableIcon,
+  PenTool,
   Pencil,
   GripVertical,
   Copy,
@@ -199,6 +205,27 @@ import {
   PanelRightOpen
 } from 'lucide-react';
 
+// Safe persistent storage accessor
+const storage = {
+  get: (key: string): string | null => {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  set: (key: string, value: string): void => {
+    try {
+      localStorage.setItem(key, value);
+    } catch {}
+  },
+  remove: (key: string): void => {
+    try {
+      localStorage.removeItem(key);
+    } catch {}
+  }
+};
+
 export default function App() {
   // Toast Notification State & Helper (initialized early for all dependent callbacks)
   const { toast, showToast, closeToast } = useToast();
@@ -234,6 +261,12 @@ export default function App() {
   const isGuest = auth.isGuest || !hasPin || currentUser?.provider === 'guest' || currentUser?.isGuest === true;
 
   const [isLocked, setIsLocked] = useState<boolean>(() => preferences.security?.lockOnStartup !== false);
+
+  // First-Login AI Engine Onboarding Modal State
+  const [isEngineOnboardingOpen, setIsEngineOnboardingOpen] = useState<boolean>(() => {
+    const shouldShowOnboarding = !storage.get('aipodium_engine_onboarding_done') && !storage.get('aipodium_engine_dont_show');
+    return shouldShowOnboarding;
+  });
 
   const handleWipeInMemoryDataOnLockRef = useRef<(() => Promise<void>) | null>(null);
 
@@ -666,20 +699,15 @@ export default function App() {
       fileName: 'tech_notes.md',
       editorTab: 'wysiwyg',
       editorContent: `# 기술 노트\n\nAI 지식 비서와 함께 작성하는 문서입니다.`,
-      messages: [
-        {
-          id: 'welcome-1',
-          sender: 'ai',
-          timestamp: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-          model: 'AI 지식 비서',
-          text: `안녕하세요! **AI 지식 비서**입니다.\n\nAI Podium에 오신 것을 환영합니다! 별도의 API 키 등록이나 로컬 AI 연결 없이도 에디터와 기본 기능을 즉시 체험하실 수 있습니다. 원하시는 안내를 아래 버튼에서 선택해 보세요.`,
-          showOnboardingChips: true,
-        }
-      ]
+      messages: []
     }
   ]);
   const [activeSessionId, setActiveSessionId] = useState<string>('session-default');
-  const [isChatHistoryOpen, setIsChatHistoryOpen] = useState<boolean>(true);
+  const activeProjectId = activeSessionId;
+  const setActiveProjectId = setActiveSessionId;
+  const [isProjectListOpen, setIsProjectListOpen] = useState<boolean>(true);
+  const isChatHistoryOpen = isProjectListOpen;
+  const setIsChatHistoryOpen = setIsProjectListOpen;
   const [isChatHistoryPinned] = useState<boolean>(true);
   const [isLinkInputOpen, setIsLinkInputOpen] = useState<boolean>(false);
 
@@ -980,14 +1008,7 @@ export default function App() {
           id: `session-local-${Date.now()}`,
           title: projectName,
           createdAt: '방금',
-          messages: [
-            {
-              id: `msg-init-${Date.now()}`,
-              sender: 'ai',
-              text: `📂 로컬 프로젝트 **${projectName}** 폴더가 연결되었습니다. (${Object.keys(loadedFiles).length}개 문서)`,
-              timestamp: '방금',
-            },
-          ],
+          messages: [],
           fileName: targetFileName,
           editorContent: loadedFiles[targetFileName] || `# ${projectName}\n\n로컬 프로젝트 문서입니다.`,
           editorTab: 'wysiwyg',
@@ -1109,18 +1130,18 @@ export default function App() {
   }, []);
 
   const [chatInput, setChatInput] = useState<string>('');
-  const [chatInputHeight, setChatInputHeight] = useState<number>(44);
+  const [chatInputHeight, setChatInputHeight] = useState<number>(53);
   const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
   const [chatAttachments, setChatAttachments] = useState<ChatAttachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const mentionDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Auto-growing textarea logic: dynamically expands between 44px and 220px, scrollable beyond
+  // Auto-growing textarea logic: dynamically expands between 53px and 264px, scrollable beyond
   const adjustChatInputHeight = () => {
     if (chatInputRef.current) {
       chatInputRef.current.style.height = 'auto';
-      const nextHeight = Math.min(Math.max(chatInputRef.current.scrollHeight, 44), 220);
+      const nextHeight = Math.min(Math.max(chatInputRef.current.scrollHeight, 53), 264);
       chatInputRef.current.style.height = `${nextHeight}px`;
       setChatInputHeight(nextHeight);
     }
@@ -1128,9 +1149,9 @@ export default function App() {
 
   const resetChatInputHeight = () => {
     if (chatInputRef.current) {
-      chatInputRef.current.style.height = '44px';
+      chatInputRef.current.style.height = '53px';
     }
-    setChatInputHeight(44);
+    setChatInputHeight(53);
   };
 
   useEffect(() => {
@@ -1274,6 +1295,7 @@ export default function App() {
   const helpButtonRef = useRef<HTMLButtonElement | null>(null);
   const [isAiCleaning, setIsAiCleaning] = useState<boolean>(false);
   const [isEditorToolbarDrawerOpen, setIsEditorToolbarDrawerOpen] = useState<boolean>(false);
+  const [isDrawingOverlayOpen, setIsDrawingOverlayOpen] = useState<boolean>(false);
 
   // Editor Font Size State (12px ~ 22px, Default 12px - matches chat window)
   const [editorFontSize, setEditorFontSize] = useState<number>(() => {
@@ -2488,7 +2510,10 @@ export default function App() {
 
         // 3. Open Tabs
         if (savedOpenTabs && Array.isArray(savedOpenTabs)) {
-          const cleanedTabs = savedOpenTabs.filter((t) => !isLegacySampleFile(t) && resolvedFiles[t]);
+          let cleanedTabs = savedOpenTabs.filter((t) => !isLegacySampleFile(t) && resolvedFiles[t]);
+          if (cleanedTabs.includes('welcome.md') && cleanedTabs.includes('ai_guide.md')) {
+            cleanedTabs = cleanedTabs.filter((t) => t !== 'ai_guide.md');
+          }
           setOpenTabs(cleanedTabs.length > 0 ? cleanedTabs : ['tech_notes.md']);
         }
 
@@ -2500,16 +2525,7 @@ export default function App() {
           fileName: 'tech_notes.md',
           editorTab: 'wysiwyg',
           editorContent: resolvedFiles['tech_notes.md'] || `# 기술 노트\n\nAI 지식 비서와 함께 작성하는 문서입니다.`,
-          messages: [
-            {
-              id: 'welcome-1',
-              sender: 'ai',
-              timestamp: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-              model: 'AI 지식 비서',
-              text: `안녕하세요! **AI 지식 비서**입니다.\n\nAI Podium에 오신 것을 환영합니다! 별도의 API 키 등록이나 로컬 AI 연결 없이도 에디터와 기본 기능을 즉시 체험하실 수 있습니다. 원하시는 안내를 아래 버튼에서 선택해 보세요.`,
-              showOnboardingChips: true,
-            }
-          ]
+          messages: []
         };
 
         let cleanedSessions: ChatSession[] = [];
@@ -2865,16 +2881,7 @@ export default function App() {
             fileName: 'tech_notes.md',
             editorTab: 'wysiwyg',
             editorContent: `# 기술 노트\n\nAI 지식 비서와 함께 작성하는 문서입니다.`,
-            messages: [
-              {
-                id: 'welcome-1',
-                sender: 'ai',
-                timestamp: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-                model: 'AI 지식 비서',
-                text: `안녕하세요! **AI 지식 비서**입니다.\n\nAI Podium에 오신 것을 환영합니다! 별도의 API 키 등록이나 로컬 AI 연결 없이도 에디터와 기본 기능을 즉시 체험하실 수 있습니다. 원하시는 안내를 아래 버튼에서 선택해 보세요.`,
-                showOnboardingChips: true,
-              }
-            ]
+            messages: []
           }
         ]);
       }
@@ -2885,7 +2892,10 @@ export default function App() {
         setActiveSessionId(safeActiveSessId);
       }
       if (loadedOpenTabs && Array.isArray(loadedOpenTabs)) {
-        const safeTabs = loadedOpenTabs.filter((t) => t !== 'rest_graphql_comparison.md' && t !== 'redis_caching_guide.md');
+        let safeTabs = loadedOpenTabs.filter((t) => t !== 'rest_graphql_comparison.md' && t !== 'redis_caching_guide.md');
+        if (safeTabs.includes('welcome.md') && safeTabs.includes('ai_guide.md')) {
+          safeTabs = safeTabs.filter((t) => t !== 'ai_guide.md');
+        }
         setOpenTabs(safeTabs.length > 0 ? safeTabs : ['tech_notes.md']);
       }
 
@@ -3383,7 +3393,7 @@ export default function App() {
     setFileName(name);
     setCurrentActiveFile(name);
     setEditorContent(initialContent);
-    setEditorTab('edit');
+    setEditorTab('wysiwyg');
     setIsNewFileModalOpen(false);
 
     // Physical Local Directory / Storage sync
@@ -3513,7 +3523,7 @@ export default function App() {
         setFileName(fname);
         setCurrentActiveFile(fname);
         setEditorContent(text);
-        setEditorTab('edit');
+        setEditorTab(fname.endsWith('.html') ? 'preview' : 'wysiwyg');
         if (!openTabs.includes(fname)) {
           setOpenTabs((prev) => [...prev, fname]);
         }
@@ -3541,7 +3551,7 @@ export default function App() {
         setFileName(targetName);
         setCurrentActiveFile(targetName);
         setEditorContent(result.markdown);
-        setEditorTab('edit');
+        setEditorTab('wysiwyg');
         if (!openTabs.includes(targetName)) {
           setOpenTabs((prev) => [...prev, targetName]);
         }
@@ -3602,7 +3612,7 @@ export default function App() {
       setFileName(finalName);
       setCurrentActiveFile(finalName);
       setEditorContent(markdown);
-      setEditorTab('edit');
+      setEditorTab('wysiwyg');
       if (!openTabs.includes(finalName)) {
         setOpenTabs((prev) => [...prev, finalName]);
       }
@@ -4128,7 +4138,7 @@ export default function App() {
       setFileName(nextActive);
       const targetContent = files[nextActive] !== undefined ? files[nextActive] : (untitledDocs[nextActive] || '');
       setEditorContent(targetContent);
-      setEditorTab(nextActive.endsWith('.html') ? 'preview' : 'edit');
+      setEditorTab(nextActive.endsWith('.html') ? 'preview' : 'wysiwyg');
     }
   }, [files, untitledDocs, openTabs, currentActiveFile, isLocked]);
 
@@ -4160,7 +4170,7 @@ export default function App() {
             setCurrentActiveFile(nextActive);
             setFileName(nextActive);
             setEditorContent(targetContent);
-            setEditorTab(nextActive.endsWith('.html') ? 'preview' : 'edit');
+            setEditorTab(nextActive.endsWith('.html') ? 'preview' : 'wysiwyg');
           } else {
             // If all tabs closed, create a fresh Untitled-1 in-memory tab
             const fallback = 'Untitled-1';
@@ -4857,6 +4867,27 @@ export default function App() {
     }
   }, [editorTab]);
 
+  // Insert drawn memo directly into current editor document
+  const handleInsertDrawingToEditor = useCallback(
+    (dataUrl: string) => {
+      const markdownImage = `\n\n![자유 형식 메모](${dataUrl})\n\n`;
+      if (editorTab === 'wysiwyg' && tiptapEditorRef.current) {
+        tiptapEditorRef.current.insertFormattedMarkdown(markdownImage, '자유 형식 메모');
+      } else {
+        const textarea = editorRef.current;
+        if (textarea) {
+          const start = textarea.selectionStart ?? editorContent.length;
+          const end = textarea.selectionEnd ?? editorContent.length;
+          const nextVal = editorContent.slice(0, start) + markdownImage + editorContent.slice(end);
+          handleEditorChange(nextVal);
+        } else {
+          handleEditorChange(editorContent ? editorContent + markdownImage : markdownImage);
+        }
+      }
+    },
+    [editorTab, editorContent, handleEditorChange]
+  );
+
   // Insert snippet from Markdown Help Popover
   const handleInsertSnippet = useCallback(
     (snippet: string) => {
@@ -5537,15 +5568,7 @@ export default function App() {
       fileName: newDocTabName,
       editorContent: initialContent,
       editorTab: 'wysiwyg',
-      messages: [
-        {
-          id: `welcome-${Date.now()}`,
-          sender: 'ai',
-          timestamp: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-          model: selectedModel,
-          text: `# [${projectTitle}] 새로운 프로젝트가 준비되었습니다\n\n질문하고 싶은 기술 개념이나 아키텍처 항목을 입력해 주세요! 중앙 에디터, 우측 폴더, 좌측 프로젝트가 실시간 연동됩니다.`
-        }
-      ]
+      messages: []
     };
 
     setSessions((prev) => [newSession, ...prev]);
@@ -5553,7 +5576,7 @@ export default function App() {
     setFileName(newDocTabName);
     setCurrentActiveFile(newDocTabName);
     setEditorContent(initialContent);
-    setEditorTab('edit');
+    setEditorTab('wysiwyg');
 
     // Keep draft in-memory in untitledDocs until user explicitly saves
     setUntitledDocs((prev) => ({
@@ -6758,11 +6781,11 @@ ${projectEvents
         const mdName = fname.replace(/\.pdf$/i, '.md');
         const pairedMd = pdfMarkdownMap[fname] ?? files[mdName] ?? '';
         setEditorContent(pairedMd);
-        setEditorTab('edit');
+        setEditorTab('wysiwyg');
         setIsSection1Collapsed(true);
       } else {
         setEditorContent(targetContent);
-        setEditorTab(fname.endsWith('.html') ? 'preview' : 'edit');
+        setEditorTab(fname.endsWith('.html') ? 'preview' : 'wysiwyg');
       }
       showToast(`📂 '${fname}' 탭이 열렸습니다.`);
     }
@@ -6917,10 +6940,11 @@ ${projectEvents
       translatedText?: string;
       ghostWriterLevel?: string;
     },
-    attachedFiles?: ChatAttachment[]
+    attachedFiles?: ChatAttachment[],
+    overrideSessionId?: string
   ) => {
     const filesToAttach = attachedFiles || (chatAttachments.length > 0 ? [...chatAttachments] : []);
-    const targetSessionId = activeSessionId;
+    const targetSessionId = overrideSessionId || activeSessionId;
     const userTimestamp = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     const userMsg: ChatMessage = {
       id: `msg-user-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -7134,7 +7158,7 @@ ${projectEvents
   };
 
   // Handle send message logic
-  const handleSendMessage = (
+  const handleSendMessage = async (
     overrideText?: string,
     meta?: {
       originalText?: string;
@@ -7167,12 +7191,6 @@ ${projectEvents
       finalPrompt = `${finalPrompt}\n\n[Reference Context]:\n${contextBlock}`;
     }
 
-    // Route to Onboarding Interactive Guide Bot for guest users without API keys or Ollama
-    if (isOnboardingMode) {
-      executeOnboardingSimulation(userMessageText, undefined, meta, attachedFiles);
-      return;
-    }
-
     const userTimestamp = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     const userMsg: ChatMessage = {
       id: `msg-user-${Date.now()}`,
@@ -7185,7 +7203,55 @@ ${projectEvents
       ghostWriterLevel: meta?.ghostWriterLevel,
     };
 
-    const targetSessionId = activeSessionId;
+    let targetSessionId = activeSessionId;
+
+    // Check if the current workspace is in a fresh/unbound session (e.g. !activeProjectId or a new session)
+    const currentActiveSession = sessions.find((s) => s.id === activeSessionId) || sessions[0];
+    const isFreshSession =
+      !activeProjectId ||
+      !currentActiveSession ||
+      currentActiveSession.id === 'session-default' ||
+      !currentActiveSession.messages ||
+      currentActiveSession.messages.length === 0 ||
+      !currentActiveSession.messages.some((m) => m.sender === 'user');
+
+    if (isFreshSession) {
+      // 1. Auto-generate a concise project title from the first prompt text (strip punctuation, truncate to 20 chars)
+      const rawFirstText = userMessageText || attachedFiles[0]?.name || '새 프로젝트';
+      const autoTitle = generateProjectTitleFromPrompt(rawFirstText);
+
+      // 2. Create and persist a new project record into IndexedDB (workspaceStorageService.createProject(title))
+      const newProject = await workspaceStorageService.createProject(autoTitle, {
+        fileName: currentActiveSession?.fileName || 'tech_notes.md',
+        editorContent: currentActiveSession?.editorContent,
+        editorTab: currentActiveSession?.editorTab || 'wysiwyg',
+        messages: [userMsg],
+      });
+
+      // 3. Assign the new projectId to the active session and bind the current conversation messages
+      targetSessionId = newProject.id;
+      setActiveSessionId(newProject.id);
+
+      // 4. Update the project list state so the new project immediately reflects in the sidebar
+      setSessions((prev) => {
+        const remaining = prev.filter(
+          (s) => s.id !== 'session-default' && s.id !== activeSessionId && s.id !== newProject.id
+        );
+        return [{ ...newProject, messages: [] }, ...remaining];
+      });
+
+      // Smooth Drawer Auto-Collapse: Automatically collapse the left Project List panel
+      setIsProjectListOpen(false);
+    }
+
+    // Route to Onboarding Interactive Guide Bot for guest users without API keys or Ollama
+    if (isOnboardingMode) {
+      executeOnboardingSimulation(userMessageText, undefined, meta, attachedFiles, targetSessionId);
+      setChatInput('');
+      resetChatInputHeight();
+      setChatAttachments([]);
+      return;
+    }
 
     const customInstruction = preferences.aiPersona?.systemInstruction?.trim();
     const formattingDirectives = `\n\n[출력 서식 엄격 준수 규칙]:\n1. 이모지 및 아이콘 사용 절대 금지: 제목, 목록, 본문 어디에도 이모지(📌, 📋, 💡, 🚀, 🤖, ✅, 📝, 🎯, 📊, ⚡ 등)나 장식용 아이콘을 일절 넣지 마세요. 사용자가 문서로 바로 가져가므로 순수 텍스트로만 작성해야 합니다.\n2. 단일 폰트 크기 및 볼드체 제목: 글자 크기를 키우는 H1, H2, H3 등의 큰 헤딩 서식을 쓰지 마시고, 제목은 볼드체(**제목**)로만 작성하세요.`;
@@ -7802,15 +7868,21 @@ ${projectEvents
           if (user.provider === 'guest' && !localStorage.getItem('aipodium_guest_init_v2')) {
             setFiles(GUEST_SAMPLE_FILES);
             setFileFolders(GUEST_SAMPLE_FOLDERS);
-            setCurrentActiveFile('welcome.md');
-            setFileName('welcome.md');
-            setEditorContent(GUEST_SAMPLE_FILES['welcome.md']);
-            setOpenTabs(['welcome.md', 'ai_guide.md']);
+            setCurrentActiveFile('tech_notes.md');
+            setFileName('tech_notes.md');
+            setEditorContent(GUEST_SAMPLE_FILES['tech_notes.md']);
+            setOpenTabs(['tech_notes.md']);
+            setEditorTab('wysiwyg');
             localStorage.setItem('notebooklm_files', JSON.stringify(GUEST_SAMPLE_FILES));
             localStorage.setItem('notebooklm_file_folders', JSON.stringify(GUEST_SAMPLE_FOLDERS));
-            localStorage.setItem('notebooklm_active_file', 'welcome.md');
-            localStorage.setItem('notebooklm_editor_content', GUEST_SAMPLE_FILES['welcome.md']);
+            localStorage.setItem('notebooklm_active_file', 'tech_notes.md');
+            localStorage.setItem('notebooklm_open_tabs', JSON.stringify(['tech_notes.md']));
+            localStorage.setItem('notebooklm_editor_content', GUEST_SAMPLE_FILES['tech_notes.md']);
             localStorage.setItem('aipodium_guest_init_v2', 'true');
+          }
+          const shouldShowOnboarding = !storage.get('aipodium_engine_onboarding_done') && !storage.get('aipodium_engine_dont_show');
+          if (shouldShowOnboarding) {
+            setIsEngineOnboardingOpen(true);
           }
           showToast(
             user.provider === 'guest'
@@ -7836,8 +7908,31 @@ ${projectEvents
         className="h-11 bg-[#111114] border-b border-white/[0.08] px-3 flex items-center justify-between z-50 shrink-0"
       >
         <div className="flex items-center gap-2">
+          {/* Project List Sidebar Toggle Icon (PanelLeft) */}
+          <button
+            id="top-sidebar-toggle-btn"
+            type="button"
+            onClick={() => {
+              if (!isLeftPanelVisible) {
+                toggleLeftPanel(true);
+                setIsProjectListOpen(true);
+              } else {
+                setIsProjectListOpen((prev) => !prev);
+              }
+            }}
+            className={`p-1.5 rounded-md transition cursor-pointer flex items-center justify-center ${
+              isLeftPanelVisible && isProjectListOpen
+                ? 'bg-white/[0.08] text-indigo-400'
+                : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06]'
+            }`}
+            title={isLeftPanelVisible && isProjectListOpen ? '프로젝트 목록 접기' : '프로젝트 목록 열기'}
+            aria-label="프로젝트 목록 토글"
+          >
+            <PanelLeft className="w-4 h-4" />
+          </button>
+
           {/* Logo / App Name */}
-          <div className="flex items-center font-bold tracking-tight text-white cursor-pointer" onClick={() => showToast('AI Podium (SSOT 마크다운 플랫폼)')}>
+          <div className="flex items-center font-bold tracking-tight text-white cursor-pointer" onClick={() => showToast('AI Podium')}>
             <span className="text-xs font-bold text-slate-100 font-mono tracking-normal">
               AI Podium
             </span>
@@ -9171,15 +9266,15 @@ ${projectEvents
               <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0">
                 <button
                   type="button"
-                  onClick={() => setIsChatHistoryOpen(!isChatHistoryOpen)}
+                  onClick={() => setIsProjectListOpen(!isProjectListOpen)}
                   className={`p-1 rounded-xs transition flex items-center gap-1.5 border shrink-0 cursor-pointer ${
-                    isChatHistoryOpen
+                    isProjectListOpen
                       ? 'bg-[#18181b] text-[#6366f1] border-[#6366f1]/40'
                       : 'bg-[#121214] text-slate-300 hover:text-white border-[#222226] hover:bg-[#18181b]'
                   }`}
-                  title="프로젝트 목록 열기/닫기"
+                  title={isProjectListOpen ? '프로젝트 목록 접기' : '프로젝트 목록 열기'}
                 >
-                  <History className="w-3 h-3 text-[#6366f1]" />
+                  <PanelLeft className="w-3 h-3 text-[#6366f1]" />
                   <span className="bg-[#09090b] text-indigo-300 text-[0.625rem] px-1 py-0.2 rounded-xs font-mono border border-[#222226]">
                     {sessions.length}
                   </span>
@@ -9237,10 +9332,11 @@ ${projectEvents
           {/* Left Pane Body: Split Chat History Sidebar + Active Chat Area */}
           <div className="flex-1 flex overflow-hidden relative">
 
-            {/* Chat History & AI Model Selection Sidebar Panel */}
+            {/* Chat History & Project List Sidebar Panel */}
             <div
+              id="project-list-panel"
               className={`bg-[#121214] border-r border-[#222226] flex flex-col shrink-0 transition-all duration-300 ease-in-out transform z-10 ${
-                isChatHistoryOpen
+                isProjectListOpen
                   ? 'w-52 sm:w-60 opacity-100 translate-x-0'
                   : 'w-0 opacity-0 -translate-x-full overflow-hidden border-r-0 pointer-events-none'
               }`}
@@ -9266,7 +9362,7 @@ ${projectEvents
                     {/* [<<] Collapse Slide Button */}
                     <button
                       type="button"
-                      onClick={() => setIsChatHistoryOpen(false)}
+                      onClick={() => setIsProjectListOpen(false)}
                       className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-white transition flex items-center justify-center shrink-0 cursor-pointer"
                       title="프로젝트 목록 접기"
                     >
@@ -9474,10 +9570,10 @@ ${projectEvents
             </div>
 
             {/* Slide-open tab button when panel is tucked away */}
-            {!isChatHistoryOpen && (
+            {!isProjectListOpen && (
               <button
                 type="button"
-                onClick={() => setIsChatHistoryOpen(true)}
+                onClick={() => setIsProjectListOpen(true)}
                 className="absolute left-0 top-12 z-20 bg-[#121214] hover:bg-[#18181b] text-[#6366f1] py-2 px-1 rounded-r-xs border border-l-0 border-[#222226] transition flex items-center gap-1 text-[0.625rem] font-mono group cursor-pointer"
                 title="프로젝트 목록 펼치기"
               >
@@ -9498,8 +9594,8 @@ ${projectEvents
                     transition={{ duration: 0.15, ease: 'easeOut' }}
                     className="space-y-3 select-text max-w-3xl mx-auto w-full"
                   >
-                    {/* 채팅 본문 상단 인라인 배너: '안녕하세요! AI 지식 비서입니다' 환영 메시지 바로 위 */}
-                    {((isOnboardingMode && !isWebLlmBannerDismissed) || webllmProgress.isLoading || webllmProgress.isReady) && (
+                    {/* Active WebLLM progress banner if downloading */}
+                    {webllmProgress.isLoading && (
                       <WebLlmBanner
                         isSupported={webllmProgress.isSupported}
                         isLoading={webllmProgress.isLoading}
@@ -9521,7 +9617,20 @@ ${projectEvents
                       />
                     )}
 
-                    {messages.map((msg) =>
+                    {messages.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center min-h-[360px] h-full text-center px-4 py-16 select-none">
+                        <div className="w-10 h-10 rounded-full bg-white/5 border border-white/5 flex items-center justify-center mb-3 text-indigo-400">
+                          <Sparkles className="w-5 h-5" />
+                        </div>
+                        <p className="text-sm font-medium text-zinc-300">
+                          AI 어시스턴트와 대화를 시작하거나 프롬프트를 입력하세요
+                        </p>
+                        <p className="text-xs text-zinc-500 mt-1.5 max-w-xs leading-relaxed">
+                          질문, 문서 요약, 코드 생성 및 번역 작업을 지원합니다
+                        </p>
+                      </div>
+                    ) : (
+                      messages.map((msg) =>
                       msg.sender === 'ai' ? (
                         <AiMessageBubble
                           key={msg.id}
@@ -9612,7 +9721,7 @@ ${projectEvents
                           </div>
                         </div>
                       )
-                    )}
+                    ))}
 
                     {isAiLoading && !messages.some((m) => m.isStreaming) && (
                       <div className="flex gap-2.5 items-center py-1 bg-transparent border-0 select-none">
@@ -9825,9 +9934,9 @@ ${projectEvents
                 {ghostWriterLevel !== 'off' ? (
                   <div className="flex flex-col">
                     {/* Dual Pane Layout (Left: Korean Prompt / Right: Ghost Practice) */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[#222226] bg-[#0c0c0e]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/[0.08] bg-transparent">
                       {/* Left: Native Korean Prompt Input */}
-                      <div className="flex flex-col p-2 relative">
+                      <div className="flex flex-col px-3 py-2.5 relative bg-transparent">
                         <textarea
                           id="chat-input"
                           ref={chatInputRef}
@@ -9860,19 +9969,19 @@ ${projectEvents
                             handleChatInputKeyDown(e);
                           }}
                           placeholder="한국어로 입력 (예: REST API vs GraphQL)... Enter로 영작 생성"
-                          className="w-full bg-[#09090b] p-2 text-xs text-slate-100 placeholder:text-slate-400 rounded-xs border border-[#222226] focus:border-[#6366f1] resize-none min-h-[44px] max-h-[220px] overflow-y-auto outline-none font-sans leading-relaxed transition"
+                          className="w-full bg-transparent p-0 text-[0.625rem] text-slate-100 placeholder:text-slate-400 placeholder:text-[0.625rem] border-0 focus:ring-0 focus:outline-none resize-none min-h-[53px] max-h-[264px] overflow-y-auto outline-none font-sans leading-relaxed transition"
                         />
                       </div>
 
                       {/* Right: Ghost Writer Interactive Practice Pane */}
-                      <div className="flex flex-col p-2 relative bg-[#0c0c0e]">
+                      <div className="flex flex-col px-3 py-2.5 relative bg-transparent">
                         {/* Interactive Ghost Text Canvas / Overlay Textarea */}
                         <div
                           style={{ height: `${chatInputHeight}px` }}
-                          className="relative w-full rounded-xs border border-[#222226] bg-[#09090b] overflow-hidden focus-within:border-emerald-500/80 transition"
+                          className="relative w-full bg-transparent border-0 overflow-hidden"
                         >
                           {/* Background Layer: Ghost Template (Guide / Blank / Full Answer) */}
-                          <div className="absolute inset-0 p-2 text-xs font-mono leading-relaxed select-none pointer-events-none whitespace-pre-wrap break-words overflow-y-auto">
+                          <div className="absolute inset-0 p-0 text-[0.625rem] font-mono leading-relaxed select-none pointer-events-none whitespace-pre-wrap break-words overflow-y-auto">
                             {isGhostLoading ? (
                               <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-slate-400 gap-2">
                                 <Sparkles className="w-4 h-4 text-[#6366f1] animate-spin" />
@@ -9888,12 +9997,12 @@ ${projectEvents
                               </div>
                             ) : chatInput.trim() ? (
                               <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-slate-400 gap-1.5 pointer-events-auto">
-                                <div className="flex items-center gap-1.5 text-emerald-300 text-[0.6875rem] font-medium">
+                                <div className="flex items-center gap-1.5 text-emerald-300 text-[0.625rem] font-medium">
                                   <Sparkles className="w-3.5 h-3.5 text-[#6366f1] animate-pulse" />
                                   <span>한국어 입력 완료 대기 중</span>
                                 </div>
                                 <p className="text-[0.625rem] text-slate-400 font-sans leading-relaxed">
-                                  <kbd className="px-1 py-0.5 rounded-xs bg-[#09090b] border border-[#222226] text-teal-200 font-mono text-[0.5625rem]">Enter</kbd> 키 또는 상단 <span className="text-emerald-300 font-medium">[영작 생성]</span> 버튼을 누르면 고스트 텍스트가 생성됩니다.
+                                  <kbd className="px-1 py-0.5 rounded-xs bg-[#18181b] border border-[#27272a] text-teal-200 font-mono text-[0.5625rem]">Enter</kbd> 키 또는 상단 <span className="text-emerald-300 font-medium">[영작 생성]</span> 버튼을 누르면 고스트 텍스트가 생성됩니다.
                                 </p>
                                 <button
                                   type="button"
@@ -9923,7 +10032,7 @@ ${projectEvents
                               onChange={handleGhostUserInputChange}
                               onKeyDown={handleGhostInputKeyDown}
                               placeholder=""
-                              className="absolute inset-0 w-full h-full p-2 text-xs font-mono leading-relaxed bg-transparent text-emerald-100 placeholder:text-transparent outline-none resize-none z-10 selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)]"
+                              className="absolute inset-0 w-full h-full p-0 text-[0.625rem] font-mono leading-relaxed bg-transparent text-emerald-100 placeholder:text-transparent outline-none border-0 resize-none z-10 selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)]"
                               spellCheck={false}
                               autoFocus
                             />
@@ -9946,7 +10055,7 @@ ${projectEvents
                     onPaste={handlePaste}
                     onKeyDown={handleChatInputKeyDown}
                     placeholder="질문 또는 요청 입력, '@'로 워크스페이스 폴더 및 문서 참조..."
-                    className="w-full bg-transparent p-2.5 text-xs text-slate-100 placeholder:text-slate-400 resize-none min-h-[44px] max-h-[220px] overflow-y-auto outline-none font-sans leading-relaxed"
+                    className="w-full bg-transparent px-3 py-2.5 text-xs text-slate-100 placeholder:text-slate-400 resize-none min-h-[53px] max-h-[264px] overflow-y-auto outline-none font-sans leading-relaxed"
                   />
                 )}
 
@@ -10194,6 +10303,22 @@ ${projectEvents
                       </button>
                     )}
 
+
+                    {/* Freeform Memo (자유 형식 메모) Quick Toggle Button */}
+                    <button
+                      id="editor-freeform-memo-toggle"
+                      type="button"
+                      onClick={() => setIsDrawingOverlayOpen((prev) => !prev)}
+                      className={`p-1 rounded-xs border transition flex items-center justify-center cursor-pointer select-none ${
+                        isDrawingOverlayOpen
+                          ? 'bg-[#18181b] text-indigo-400 border-[#6366f1]'
+                          : 'bg-[#09090b] text-slate-400 border-[#222226] hover:text-white hover:bg-[#18181b]'
+                      }`}
+                      title={isDrawingOverlayOpen ? '자유 형식 메모 닫기' : '자유 형식 메모'}
+                      aria-label="자유 형식 메모"
+                    >
+                      <PenTool className="w-3 h-3" />
+                    </button>
 
                     {/* Focus Mode (문서 집중 모드) Quick Toggle Button */}
                     <button
@@ -10452,6 +10577,23 @@ ${projectEvents
                               aria-label="이미지 추가"
                             >
                               <ImageIcon className="w-3.5 h-3.5 text-slate-300" />
+                            </button>
+                            <button
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setIsDrawingOverlayOpen((prev) => !prev);
+                                setIsEditorToolbarDrawerOpen(false);
+                              }}
+                              className={`h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
+                                isDrawingOverlayOpen
+                                  ? 'bg-indigo-600 text-white font-medium'
+                                  : 'text-slate-300'
+                              }`}
+                              title="자유 형식 메모"
+                              aria-label="자유 형식 메모"
+                            >
+                              <PenTool className="w-3.5 h-3.5 text-indigo-400" />
                             </button>
 
                             {/* Divider */}
@@ -10907,6 +11049,14 @@ ${projectEvents
                       />
                     )}
 
+                    {/* Freeform Drawing Canvas Overlay */}
+                    <FreeformDrawingOverlay
+                      isOpen={isDrawingOverlayOpen}
+                      onClose={() => setIsDrawingOverlayOpen(false)}
+                      onInsertImageToEditor={handleInsertDrawingToEditor}
+                      onToast={showToast}
+                    />
+
                     {/* Table of Contents Floating Sidebar / Drawer Overlay */}
                     {isTocOpen && (
                       <div className="absolute top-0 right-0 bottom-0 w-64 bg-[#0f0f12] border-l border-[#222226] z-20 flex flex-col transition-all">
@@ -11007,27 +11157,10 @@ ${projectEvents
             
             {/* Integrated Sleek 1-Line File Explorer Header Toolbar */}
             {/* Explorer Header */}
-            <div className="flex items-center h-8 px-2.5 gap-2 bg-[#0f0f12] border-b border-[#222226] shrink-0 text-slate-300 select-none">
-              {/* 1. Integrated Search Input */}
-              <div className="relative flex-1 min-w-[60px] flex items-center">
-                <Search className="w-3 h-3 text-slate-400 absolute left-2 pointer-events-none" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="파일 검색..."
-                  className="w-full bg-[#09090b] hover:bg-[#09090b] text-slate-200 placeholder-slate-400 text-xs pl-6 pr-5 py-0.5 rounded-xs border border-[#222226] focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1]/40 focus:outline-none transition font-sans"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-1.5 text-slate-400 hover:text-slate-200 cursor-pointer"
-                    title="검색어 초기화"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
+            <div className="flex items-center justify-between h-8 px-2.5 bg-[#0f0f12] border-b border-[#222226] shrink-0 text-slate-300 select-none">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0">
+                <Folder className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
+                <span className="truncate font-medium text-slate-200 text-xs">탐색기</span>
               </div>
 
               {/* 3. Action Button Group (Right) */}
@@ -11140,6 +11273,10 @@ ${projectEvents
               // Find files belonging to this folder or matching the memo file name (excluding system directories)
               const folderFiles = Object.keys(files).filter((f) => {
                 if (f.startsWith('01_SSOT_Sources/') || f.startsWith('02_Studio_Outputs/') || f.startsWith('.podium/')) {
+                  return false;
+                }
+                // Guide files belong to the dedicated "가이드 & 도움말" section
+                if (f === 'welcome.md' || f === 'ai_guide.md' || fileFolders[f] === '가이드 & 도움말') {
                   return false;
                 }
                 // 1. Explicitly assigned to this session folder
@@ -11371,6 +11508,83 @@ ${projectEvents
               );
             })}
 
+            {/* Dedicated "가이드 & 도움말" Reference Section */}
+            {(() => {
+              const guideFiles = Object.keys(files).filter(
+                (f) => f === 'welcome.md' || f === 'ai_guide.md' || fileFolders[f] === '가이드 & 도움말'
+              );
+              if (guideFiles.length === 0) return null;
+              const isHelpSectionOpen = openFolders['가이드 & 도움말'] ?? true;
+              const guideTree = buildFileTreeFromPaths(guideFiles, '가이드 & 도움말');
+
+              return (
+                <div className="mt-2 pt-2 border-t border-[#222226]">
+                  <div
+                    id="tree-item-section:guide-help"
+                    onClick={() => {
+                      setOpenFolders((prev) => ({
+                        ...prev,
+                        '가이드 & 도움말': !isHelpSectionOpen,
+                      }));
+                    }}
+                    className="flex items-center justify-between px-2 h-7 cursor-pointer group transition-colors rounded-xs text-slate-300 hover:bg-white/5 hover:text-slate-100 select-none"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                      {isHelpSectionOpen ? (
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      ) : (
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      )}
+                      {isHelpSectionOpen ? (
+                        <FolderOpen className="w-4 h-4 text-indigo-400 shrink-0" />
+                      ) : (
+                        <Folder className="w-4 h-4 text-indigo-400/80 shrink-0" />
+                      )}
+                      <span className="truncate text-xs font-medium text-slate-200 group-hover:text-white">
+                        가이드 & 도움말
+                      </span>
+                    </div>
+                    <span className="text-[0.625rem] text-slate-400 font-mono">
+                      {guideFiles.length}
+                    </span>
+                  </div>
+
+                  {isHelpSectionOpen && (
+                    <div className="relative pl-5 before:absolute before:left-3 before:top-0 before:bottom-1 before:w-[1px] before:bg-[#222226] py-0.5">
+                      <RecursiveFolderTree
+                        node={guideTree}
+                        level={0}
+                        sessionTitle="가이드 & 도움말"
+                        currentActiveFile={currentActiveFile}
+                        isCurrentFileDirty={isCurrentFileDirty}
+                        draggedType={draggedType}
+                        draggedId={draggedId}
+                        searchQuery={searchQuery}
+                        focusedTreeItemId={focusedTreeItemId}
+                        editingTreeItemId={editingTreeTarget?.id}
+                        openFolders={openFolders}
+                        onToggleFolder={(folderKey) =>
+                          setOpenFolders((prev) => ({
+                            ...prev,
+                            [folderKey]: !(prev[folderKey] ?? true),
+                          }))
+                        }
+                        onSetFocusedItem={(id) => {
+                          setFocusedTreeItemId(id);
+                          fileTreeRef.current?.focus({ preventScroll: true });
+                        }}
+                        onOpenFile={handleOpenFile}
+                        onRenameFile={handleRenameFile}
+                        onDeleteFile={handleDeleteFile}
+                        onDragStart={handleFileDragStart}
+                        onDragEnd={handleDragEnd}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Any loose/unassigned files outside registered projects */}
             {(() => {
               const allProjectTitles = new Set(sessions.map((s) => s.title));
@@ -11383,6 +11597,10 @@ ${projectEvents
                   f.startsWith('02_Studio_Outputs/') ||
                   f.startsWith('.podium/')
                 ) {
+                  return false;
+                }
+                // Guide files belong to the dedicated "가이드 & 도움말" section
+                if (f === 'welcome.md' || f === 'ai_guide.md' || fileFolders[f] === '가이드 & 도움말') {
                   return false;
                 }
                 if (allSessionMemoFiles.has(f)) {
@@ -12552,6 +12770,33 @@ ${projectEvents
           }}
         />
       )}
+
+      {/* First-Login AI Engine Selection Onboarding Modal */}
+      <AiEngineOnboardingModal
+        isOpen={isEngineOnboardingOpen}
+        onClose={() => setIsEngineOnboardingOpen(false)}
+        initialApiKey={cloudApiKey}
+        onComplete={(engine, key) => {
+          if (engine === 'cloud') {
+            setProvider('cloud');
+            if (key) {
+              setCloudApiKey(key);
+              authService.saveEncryptedApiKey(key).catch(() => {});
+            }
+            setSelectedModel('gemini-2.5-flash');
+            setRoleModels((prev) => ({ ...prev, chat: 'gemini-2.5-flash' }));
+            showToast('✓ 클라우드 API 엔진이 설정되었습니다.');
+          } else if (engine === 'ollama') {
+            setProvider('local-pc');
+            showToast('✓ 로컬 AI (Ollama) 엔진이 설정되었습니다.');
+          } else if (engine === 'webllm') {
+            setProvider('local-pc');
+            setSelectedModel(WEB_LLM_MODEL_ID);
+            setRoleModels((prev) => ({ ...prev, chat: WEB_LLM_MODEL_ID }));
+            showToast('✓ 브라우저 내장 (WebLLM) 엔진이 설정되었습니다.');
+          }
+        }}
+      />
 
       {/* Visual Toast Notification Popup */}
       <Toast toast={toast} onClose={closeToast} />
