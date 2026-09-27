@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Zap, ChevronDown, Search, SlidersHorizontal } from 'lucide-react';
+import { Zap, ChevronDown, Search, SlidersHorizontal, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { fetchOllamaTags } from '../config/models.config';
 
 export interface ModelOptionItem {
   id: string;
@@ -9,7 +10,9 @@ export interface ModelOptionItem {
   group: 'cloud' | 'local';
 }
 
-interface InlineModelSelectorProps {
+export const DEFAULT_LOCAL_TAGS = ['qwen2.5:latest', 'llama3.2:latest', 'deepseek-r1:latest'];
+
+export interface InlineModelSelectorProps {
   selectedModel: string;
   onSelectModel: (modelId: string) => void;
   selectedMultiModels: string[];
@@ -19,6 +22,11 @@ interface InlineModelSelectorProps {
   availableChatModels: ModelOptionItem[];
   onOpenRoleModal?: () => void;
   onShowToast?: (msg: string, type?: 'info' | 'success' | 'warn' | 'error') => void;
+  provider?: 'cloud' | 'local-pc' | 'local-server';
+  onSelectProvider?: (provider: 'cloud' | 'local-pc' | 'local-server') => void;
+  onRefreshOllama?: () => Promise<any> | void;
+  localEndpoint?: string;
+  onSelectDefaultLocalTag?: (tag: string) => void;
 }
 
 const DEFAULT_PINNED_MODELS = ['gemini-2.5-flash'];
@@ -33,9 +41,16 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
   availableChatModels,
   onOpenRoleModal,
   onShowToast,
+  provider = 'cloud',
+  onSelectProvider,
+  onRefreshOllama,
+  localEndpoint = 'http://localhost:11434',
+  onSelectDefaultLocalTag,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTab, setSelectedTab] = useState<'all' | 'cloud' | 'local'>('all');
+  const [isRefetching, setIsRefetching] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -252,6 +267,108 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     }
   };
 
+  // Re-fetch tags from local Ollama endpoint (/api/tags or http://localhost:11434/api/tags)
+  const handleRefetchTags = async () => {
+    setIsRefetching(true);
+    try {
+      if (onRefreshOllama) {
+        await onRefreshOllama();
+      } else {
+        const ep = (localEndpoint || 'http://localhost:11434').trim().replace(/\/+$/, '');
+        const tags = await fetchOllamaTags(ep);
+        if (tags && tags.length > 0) {
+          onShowToast?.(`✓ 로컬 Ollama 모델 ${tags.length}개가 감지되었습니다.`, 'success');
+        } else {
+          onShowToast?.('⚠️ 감지된 로컬 모델이 없습니다. 기본 태그를 확인하세요.', 'info');
+        }
+      }
+    } catch {
+      onShowToast?.('태그 확인 중 오류가 발생했습니다.', 'error');
+    } finally {
+      setIsRefetching(false);
+    }
+  };
+
+  // Switch to Local AI (Ollama) tab & trigger immediate tag re-fetch
+  const handleSelectLocalAiTab = async () => {
+    setSelectedTab('local');
+    if (onSelectProvider) {
+      onSelectProvider('local-pc');
+    }
+    await handleRefetchTags();
+  };
+
+  // Handle selecting one of the default fallback tags
+  const handleSelectDefaultTag = (tag: string) => {
+    if (onSelectDefaultLocalTag) {
+      onSelectDefaultLocalTag(tag);
+    }
+    if (onSelectProvider) {
+      onSelectProvider('local-pc');
+    }
+    if (mode === 'single') {
+      onSelectModel(tag);
+      onSelectMultiModels([tag]);
+    } else {
+      handleModelToggle(tag);
+    }
+    onShowToast?.(`'${tag}' 로컬 모델이 선택되었습니다.`, 'success');
+  };
+
+  // Detected local Ollama models (excluding browser WebLLM)
+  const detectedOllamaModels = useMemo(() => {
+    return availableChatModels.filter(
+      (m) => m.group === 'local' && m.id !== 'Qwen2.5-0.5B-Instruct'
+    );
+  }, [availableChatModels]);
+
+  // Render fallback prompt with refresh button & default tags
+  const renderFallbackLocalAiPrompt = () => (
+    <div className="p-3 my-1.5 rounded-lg bg-[#09090b] border border-white/[0.08] text-xs space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-zinc-400 text-[11px] leading-snug">
+          감지된 로컬 모델이 없습니다.
+        </span>
+        <button
+          type="button"
+          disabled={isRefetching}
+          onClick={handleRefetchTags}
+          className="px-2 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] flex items-center gap-1.5 transition cursor-pointer shrink-0 font-medium"
+        >
+          <RotateCcw className={`w-3 h-3 ${isRefetching ? 'animate-spin' : ''}`} />
+          <span>다시 확인 / 새로고침</span>
+        </button>
+      </div>
+
+      <div className="pt-2 border-t border-white/[0.06]">
+        <div className="text-[10px] text-zinc-400 mb-1.5 font-medium">
+          사용 가능한 기본 태그:
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {DEFAULT_LOCAL_TAGS.map((tag) => {
+            const checked = isChecked(tag);
+            return (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => handleSelectDefaultTag(tag)}
+                className={`px-2 py-1 rounded text-[11px] font-mono border transition cursor-pointer flex items-center gap-1.5 ${
+                  checked
+                    ? 'bg-indigo-600/30 border-indigo-500 text-indigo-200 font-medium'
+                    : 'bg-white/[0.03] border-white/10 text-zinc-300 hover:bg-white/[0.08] hover:text-white'
+                }`}
+                title={`'${tag}' 모델 선택`}
+              >
+                <span>{tag}</span>
+                {checked && <span className="text-[10px] text-indigo-400">✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
   // Render flat VS Code-style QuickPick row
   // [Checkbox] [Model Name] ... [Pin (📌/☆)]
   function renderModelRow(m: ModelOptionItem) {
@@ -402,26 +519,123 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
               )}
             </div>
 
-            {/* Scrollable Model Lists (Clean flat layout, edge-to-edge rows, no box-in-box) */}
-            <div className="overflow-y-auto max-h-72 p-1.5 custom-scrollbar bg-transparent">
-              {/* Pinned favorites first */}
-              {pinnedList.map((m) => renderModelRow(m))}
+            {/* Category Filter Tabs: 전체 / 클라우드 / 로컬 AI (Ollama) */}
+            <div className="flex items-center border-b border-white/[0.08] px-2 bg-[#09090b]/30 select-none">
+              <button
+                type="button"
+                onClick={() => setSelectedTab('all')}
+                className={`px-2.5 py-1.5 text-xs transition cursor-pointer border-b-2 ${
+                  selectedTab === 'all'
+                    ? 'border-indigo-500 text-white font-medium'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                전체
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedTab('cloud')}
+                className={`px-2.5 py-1.5 text-xs transition cursor-pointer border-b-2 ${
+                  selectedTab === 'cloud'
+                    ? 'border-indigo-500 text-white font-medium'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                클라우드
+              </button>
+              <button
+                type="button"
+                onClick={handleSelectLocalAiTab}
+                className={`px-2.5 py-1.5 text-xs transition cursor-pointer border-b-2 flex items-center gap-1.5 ${
+                  selectedTab === 'local'
+                    ? 'border-indigo-500 text-white font-medium'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                }`}
+                title="로컬 AI (Ollama) 선택 및 태그 새로고침"
+              >
+                <span>로컬 AI (Ollama)</span>
+                <RotateCcw className={`w-2.5 h-2.5 text-indigo-400 ${isRefetching ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
 
-              {/* Subtle divider between pinned and remaining models if both exist */}
-              {pinnedList.length > 0 && (remainingCloudList.length > 0 || remainingLocalList.length > 0) && (
-                <div className="h-px bg-white/[0.08] my-1" />
+            {/* Scrollable Model Lists */}
+            <div className="overflow-y-auto max-h-72 p-1.5 custom-scrollbar bg-transparent">
+              {/* TAB: LOCAL ONLY */}
+              {selectedTab === 'local' && (
+                <>
+                  {pinnedList.filter((m) => m.group === 'local').map((m) => renderModelRow(m))}
+                  {remainingLocalList.map((m) => renderModelRow(m))}
+                  {detectedOllamaModels.length === 0 && renderFallbackLocalAiPrompt()}
+                  {detectedOllamaModels.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-white/[0.06] flex items-center justify-between px-2">
+                      <span className="text-[10px] text-zinc-500 font-mono">
+                        {detectedOllamaModels.length}개 로컬 모델 감지됨
+                      </span>
+                      <button
+                        type="button"
+                        disabled={isRefetching}
+                        onClick={handleRefetchTags}
+                        className="text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+                      >
+                        <RotateCcw className={`w-2.5 h-2.5 ${isRefetching ? 'animate-spin' : ''}`} />
+                        <span>다시 확인 / 새로고침</span>
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
 
-              {/* Remaining Cloud Models */}
-              {remainingCloudList.map((m) => renderModelRow(m))}
+              {/* TAB: CLOUD ONLY */}
+              {selectedTab === 'cloud' && (
+                <>
+                  {pinnedList.filter((m) => m.group === 'cloud').map((m) => renderModelRow(m))}
+                  {remainingCloudList.map((m) => renderModelRow(m))}
+                  {filteredModels.filter((m) => m.group === 'cloud').length === 0 && (
+                    <div className="py-6 text-center text-zinc-500 text-xs font-normal">
+                      검색된 클라우드 모델이 없습니다.
+                    </div>
+                  )}
+                </>
+              )}
 
-              {/* Remaining Local Models */}
-              {remainingLocalList.map((m) => renderModelRow(m))}
+              {/* TAB: ALL */}
+              {selectedTab === 'all' && (
+                <>
+                  {/* Pinned favorites first */}
+                  {pinnedList.map((m) => renderModelRow(m))}
 
-              {filteredModels.length === 0 && (
-                <div className="py-6 text-center text-zinc-500 text-xs font-normal">
-                  검색 결과가 없습니다.
-                </div>
+                  {pinnedList.length > 0 && (remainingCloudList.length > 0 || remainingLocalList.length > 0) && (
+                    <div className="h-px bg-white/[0.08] my-1" />
+                  )}
+
+                  {/* Remaining Cloud Models */}
+                  {remainingCloudList.map((m) => renderModelRow(m))}
+
+                  {/* Local Models / Fallback Section */}
+                  {remainingLocalList.length > 0 && (
+                    <div className="mt-1 pt-1 border-t border-white/[0.06]">
+                      <div className="px-2 py-0.5 text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
+                        로컬 AI (Ollama)
+                      </div>
+                      {remainingLocalList.map((m) => renderModelRow(m))}
+                    </div>
+                  )}
+
+                  {detectedOllamaModels.length === 0 && (
+                    <div className="mt-1">
+                      <div className="px-2 py-0.5 text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
+                        로컬 AI (Ollama)
+                      </div>
+                      {renderFallbackLocalAiPrompt()}
+                    </div>
+                  )}
+
+                  {filteredModels.length === 0 && (
+                    <div className="py-6 text-center text-zinc-500 text-xs font-normal">
+                      검색 결과가 없습니다.
+                    </div>
+                  )}
+                </>
               )}
             </div>
 

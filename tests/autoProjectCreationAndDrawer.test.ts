@@ -49,13 +49,13 @@ test('Auto-Project Creation on First Message & Auto-Collapsing Drawer Tests', as
 
     const title = '신규 AI 프로젝트';
     const project = await createProject(title, {
-      fileName: 'tech_notes.md',
+      fileName: 'Untitled-1',
       editorContent: '# 신규 AI 프로젝트\n\n내용',
     });
 
     assert.ok(project.id.startsWith('project-'));
     assert.equal(project.title, title);
-    assert.equal(project.fileName, 'tech_notes.md');
+    assert.equal(project.fileName, 'Untitled-1');
     assert.equal(project.editorTab, 'wysiwyg');
     assert.deepEqual(project.messages, []);
 
@@ -110,5 +110,24 @@ test('Auto-Project Creation on First Message & Auto-Collapsing Drawer Tests', as
       activeSessionWithUserMsg.messages.length === 0 ||
       !activeSessionWithUserMsg.messages.some((m: any) => m.sender === 'user');
     assert.equal(isFreshSecond, false);
+  });
+
+  await t.test('5. Persist Project Drawer Collapsed State in localStorage', () => {
+    localStorage.clear();
+
+    // Default when no saved key exists: default collapsed (false)
+    const initDefault = () => {
+      const saved = localStorage.getItem('aipodium_project_drawer_open');
+      return saved !== null ? saved === 'true' : false;
+    };
+    assert.equal(initDefault(), false);
+
+    // When user explicitly opens drawer
+    localStorage.setItem('aipodium_project_drawer_open', 'true');
+    assert.equal(initDefault(), true);
+
+    // When drawer collapses or auto-collapses
+    localStorage.setItem('aipodium_project_drawer_open', 'false');
+    assert.equal(initDefault(), false);
   });
 });

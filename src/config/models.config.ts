@@ -101,16 +101,30 @@ export const CLOUD_MODEL_OPTIONS = [
 export async function fetchOllamaTags(endpoint = 'http://localhost:11434'): Promise<ModelItem[]> {
   const cleanEndpoint = endpoint.trim().replace(/\/+$/, '');
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 2500);
+  const timer = setTimeout(() => controller.abort(), 3000);
 
   try {
-    const res = await fetch(`${cleanEndpoint}/api/tags`, {
-      method: 'GET',
-      signal: controller.signal,
-    });
+    let res: Response | null = null;
+    try {
+      res = await fetch(`${cleanEndpoint}/api/tags`, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+    } catch {
+      // Fallback to server-side proxy /api/tags
+      try {
+        res = await fetch(`/api/tags?endpoint=${encodeURIComponent(cleanEndpoint)}`, {
+          method: 'GET',
+          signal: controller.signal,
+        });
+      } catch {
+        res = null;
+      }
+    }
+
     clearTimeout(timer);
 
-    if (!res.ok) {
+    if (!res || !res.ok) {
       return [];
     }
 

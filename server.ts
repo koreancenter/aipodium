@@ -838,6 +838,32 @@ ${docText}
   });
 
   // API route for Ollama Proxy Tags (Fetch Installed Models)
+  app.get("/api/tags", async (req, res) => {
+    try {
+      const endpoint = String(req.query.endpoint || 'http://localhost:11434').trim().replace(/\/+$/, '');
+      const targetUrl = `${endpoint}/api/tags`;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4000);
+
+      const forwardRes = await fetch(targetUrl, {
+        method: 'GET',
+        signal: controller.signal
+      });
+
+      clearTimeout(timeout);
+
+      if (!forwardRes.ok) {
+        return res.status(forwardRes.status).json({ models: [] });
+      }
+
+      const data = await forwardRes.json();
+      res.json(data);
+    } catch {
+      res.json({ models: [] });
+    }
+  });
+
   app.post("/api/ollama/proxy-tags", async (req, res) => {
     try {
       const { endpoint = 'http://localhost:11434' } = req.body;

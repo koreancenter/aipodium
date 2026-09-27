@@ -491,7 +491,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
             <span className="text-base font-semibold tracking-tight text-zinc-100">
               {t.brandName}
             </span>
-            <span className="px-1.5 py-0.5 rounded-sm text-[11px] font-normal bg-white/5 text-zinc-400 border border-white/10">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-white/5">
               {t.betaTag}
             </span>
           </div>

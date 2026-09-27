@@ -86,14 +86,12 @@ OLLAMA_ORIGINS="*" ollama serve
 `;
 
 export const GUEST_SAMPLE_FILES: Record<string, string> = {
-  'tech_notes.md': `# 기술 노트\n\nAI 지식 비서와 함께 작성하는 문서입니다.\n\n## 시작하기\nAI 어시스턴트와 대화하며 필요한 내용을 정리하고 에디터에 기록해 보세요.`,
   'welcome.md': GUEST_WELCOME_DOC,
   'ai_guide.md': GUEST_AI_GUIDE_DOC,
   'AI_Architecture_Whitepaper.pdf': SAMPLE_PDF_DATA_URL,
 };
 
 export const GUEST_SAMPLE_FOLDERS: Record<string, string> = {
-  'tech_notes.md': 'AI 지식 비서',
   'welcome.md': '가이드 & 도움말',
   'ai_guide.md': '가이드 & 도움말',
   'AI_Architecture_Whitepaper.pdf': '문서 라이브러리',

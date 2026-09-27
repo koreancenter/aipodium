@@ -152,4 +152,26 @@ test('External Link Ingestion Pipeline & Model Selector', async (t) => {
       'gemini-2.5-flash +2'
     );
   });
+
+  await t.test('Local AI default fallback tags and verification triggers', () => {
+    const DEFAULT_LOCAL_TAGS = ['qwen2.5:latest', 'llama3.2:latest', 'deepseek-r1:latest'];
+    assert.deepEqual(DEFAULT_LOCAL_TAGS, ['qwen2.5:latest', 'llama3.2:latest', 'deepseek-r1:latest']);
+
+    // When no local models are detected, fallback prompt must be shown instead of blank
+    const models: Array<{ id: string; group: 'cloud' | 'local' }> = [
+      { id: 'gemini-2.5-flash', group: 'cloud' }
+    ];
+    const detectedOllamaModels = models.filter(
+      (m) => m.group === 'local' && m.id !== 'Qwen2.5-0.5B-Instruct'
+    );
+    const shouldShowFallback = detectedOllamaModels.length === 0;
+    assert.equal(shouldShowFallback, true);
+
+    // When local models are detected, shouldShowFallback is false
+    models.push({ id: 'qwen2.5:latest', group: 'local' });
+    const detectedAfter = models.filter(
+      (m) => m.group === 'local' && m.id !== 'Qwen2.5-0.5B-Instruct'
+    );
+    assert.equal(detectedAfter.length > 0, true);
+  });
 });

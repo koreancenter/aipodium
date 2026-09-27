@@ -13,7 +13,8 @@ test('Workspace Landing State & Guide Organization', async (t) => {
     assert.equal(GUEST_SAMPLE_FOLDERS['ai_guide.md'], '가이드 & 도움말');
     assert.ok(GUEST_SAMPLE_FILES['welcome.md']);
     assert.ok(GUEST_SAMPLE_FILES['ai_guide.md']);
-    assert.ok(GUEST_SAMPLE_FILES['tech_notes.md']);
+    assert.equal(GUEST_SAMPLE_FILES['tech_notes.md'], undefined);
+    assert.equal(GUEST_SAMPLE_FOLDERS['tech_notes.md'], undefined);
   });
 
   await t.test('Sample docs use standard markdown headings rather than raw asterisks for top headings', () => {

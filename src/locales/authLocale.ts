@@ -87,7 +87,7 @@ export interface AuthStrings {
 export const AUTH_TRANSLATIONS: Record<AuthLang, AuthStrings> = {
   KR: {
     brandName: 'AI Podium',
-    betaTag: '베타',
+    betaTag: 'v0.0.8',
     subtitle: '통합 지식 관리 워크스페이스',
     heroTitle: '내가 지휘하는 AI 오케스트라',
     heroDesc: '외부 유출 걱정 없는 안전한 환경에서 흩어진 자료를 하나의 명확한 기준 문서로 통합하세요.',
@@ -170,7 +170,7 @@ export const AUTH_TRANSLATIONS: Record<AuthLang, AuthStrings> = {
   },
   ENG: {
     brandName: 'AI Podium',
-    betaTag: 'Beta',
+    betaTag: 'v0.0.8',
     subtitle: 'Unified Knowledge Workspace',
     heroTitle: 'Your AI Orchestra, Conducted by You',
     heroDesc: 'Consolidate scattered information into a single clear source of truth in a secure environment with zero external leakage.',
