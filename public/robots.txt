@@ -1,0 +1,8 @@
+# Google Lighthouse & Web Crawler Configuration
+# https://developers.google.com/search/docs/crawling-indexing/robots/intro
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://aipodium.net/sitemap.xml

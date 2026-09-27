@@ -1,0 +1,17 @@
+{
+  "name": "AI Podium",
+  "short_name": "AI Podium",
+  "description": "대학생, 교수 및 연구자를 위한 프라이빗 로컬 우선 지식 워크스페이스 및 연구 종합 플랫폼",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121318",
+  "theme_color": "#1e202b",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "64x64 128x128 256x256 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
