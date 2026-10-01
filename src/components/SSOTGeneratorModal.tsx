@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { convertDocumentToMarkdown } from '../services/documentConverterService';
 import { DEFAULT_FALLBACK_MODELS } from '../config/models.config';
+import { WEB_LLM_MODEL_ID } from '../utils/webllmService';
 
 export interface SSOTGeneratorConfig {
   selectedFolder: string;
@@ -21,7 +22,10 @@ export interface SSOTGeneratorConfig {
   templateDoc?: string;
   templateMarkdownContent?: string;
   model?: string;
-  provider?: string;
+  provider?: 'cloud' | 'local-pc' | 'webllm' | string;
+  apiKey?: string;
+  apiKeys?: Record<string, string>;
+  ollamaEndpoint?: string;
   sourceContent?: string;
   chatContext?: string;
 }
@@ -60,13 +64,37 @@ export interface SSOTGeneratorModalProps {
   onGenerate: (config: SSOTGeneratorConfig) => void;
   availableModels?: ModelOption[];
   currentModel?: string;
+  selectedModel?: string;
   currentProvider?: string;
+  provider?: 'cloud' | 'local-pc' | 'webllm';
+  apiKeys?: Record<string, string>;
+  ollamaEndpoint?: string;
   onModelChange?: (modelId: string) => void;
   files?: Record<string, string>;
   editorContent?: string;
   sessions?: GenericChatSession[];
   activeSessionId?: string;
   onToast?: (message: string, type?: 'info' | 'success' | 'warn' | 'warning' | 'error') => void;
+}
+
+export function resolveSSOTProvider(params: {
+  selectedModelId: string;
+  modelOptions?: ModelOption[];
+  activeProvider?: 'cloud' | 'local-pc' | 'webllm' | string;
+}): 'cloud' | 'local-pc' | 'webllm' {
+  const { selectedModelId, modelOptions = [], activeProvider = 'cloud' } = params;
+  const selectedModelObj = modelOptions.find((m) => m.id === selectedModelId);
+
+  if (selectedModelId === WEB_LLM_MODEL_ID || selectedModelObj?.id === WEB_LLM_MODEL_ID) {
+    return 'webllm';
+  }
+  if (selectedModelObj?.group === 'local') {
+    return 'local-pc';
+  }
+  if (activeProvider === 'local-pc' || activeProvider === 'webllm') {
+    return activeProvider;
+  }
+  return 'cloud';
 }
 
 export function resolveSSOTSourceContext(params: {
@@ -142,7 +170,11 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
   onGenerate,
   availableModels,
   currentModel,
+  selectedModel,
   currentProvider,
+  provider,
+  apiKeys = {},
+  ollamaEndpoint,
   onModelChange,
   files = {},
   editorContent = '',
@@ -150,6 +182,9 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
   activeSessionId = '',
   onToast
 }) => {
+  const activeSelectedModel = selectedModel || currentModel;
+  const activeProvider = provider || (currentProvider as ('cloud' | 'local-pc' | 'webllm')) || 'cloud';
+
   const [selectedFolder, setSelectedFolder] = useState<string>('');
   const [docBaseName, setDocBaseName] = useState<string>('프로젝트_마스터문서');
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
@@ -164,7 +199,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // AI Model Selection State
-  const [selectedModelId, setSelectedModelId] = useState<string>(() => currentModel || DEFAULT_MODEL_ID);
+  const [selectedModelId, setSelectedModelId] = useState<string>(() => activeSelectedModel || DEFAULT_MODEL_ID);
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState<boolean>(false);
   const modelDropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -222,15 +257,15 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
       // Default Prompt
       setCustomPrompt('선택된 소스 문서들의 핵심 내용을 종합하여 프로젝트의 명확한 기준이 되는 마스터 문서로 작성해 줘.');
 
-      // Bind initial model: currentModel or active role model or fallback
-      const initialModel = currentModel || (modelOptions[0]?.id) || DEFAULT_MODEL_ID;
+      // Bind initial model: activeSelectedModel or active role model or fallback
+      const initialModel = activeSelectedModel || (modelOptions[0]?.id) || DEFAULT_MODEL_ID;
       setSelectedModelId(initialModel);
 
       setIsFolderDropdownOpen(false);
       setIsModelDropdownOpen(false);
       setShowMentionPopup(false);
     }
-  }, [isOpen, initialFolder, availableFolders, filesByFolder, currentModel]);
+  }, [isOpen, initialFolder, availableFolders, filesByFolder, activeSelectedModel]);
 
   // Handle template file upload and client-side conversion
   const handleTemplateFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -412,10 +447,12 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
     const cleanBase = docBaseName.trim().replace(/\.md$/i, '') || '프로젝트_마스터문서';
     const finalTitle = `${cleanBase}.md`;
 
-    const selectedModelObj = modelOptions.find((m) => m.id === selectedModelId);
-    const resolvedProvider = selectedModelObj?.group === 'local'
-      ? (currentProvider && currentProvider.startsWith('local') ? currentProvider : 'local-pc')
-      : 'cloud';
+    // Dynamically resolve provider based on selected model and active provider context
+    const resolvedProvider = resolveSSOTProvider({
+      selectedModelId,
+      modelOptions,
+      activeProvider
+    });
 
     onGenerate({
       selectedFolder: selectedFolder || 'Main Project',
@@ -427,6 +464,9 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
       templateMarkdownContent: templateMarkdownContent.trim() || undefined,
       model: selectedModelId,
       provider: resolvedProvider,
+      apiKey: resolvedProvider === 'cloud' ? (apiKeys[selectedModelId] || apiKeys.gemini || '') : undefined,
+      apiKeys,
+      ollamaEndpoint: ollamaEndpoint || 'http://localhost:11434',
       sourceContent,
       chatContext
     });

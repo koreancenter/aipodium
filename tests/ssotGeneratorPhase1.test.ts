@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveSSOTSourceContext } from '../src/components/SSOTGeneratorModal';
+import { resolveSSOTSourceContext, resolveSSOTProvider } from '../src/components/SSOTGeneratorModal';
+import { WEB_LLM_MODEL_ID } from '../src/utils/webllmService';
 
 test('1. SSOT Generator Empty Session: falls back to active editorContent when selectedFiles is empty', () => {
   const result = resolveSSOTSourceContext({
@@ -118,3 +119,47 @@ test('5. SSOT Generator: prioritizes selectedFiles when selected files exist in 
   assert.ok(!result.sourceContent.includes('### Active Editor Content:'));
   assert.ok(result.chatContext.includes('Assistant chat'));
 });
+
+test('6. resolveSSOTProvider: routes to webllm when model is WEB_LLM_MODEL_ID or activeProvider is webllm', () => {
+  const p1 = resolveSSOTProvider({
+    selectedModelId: WEB_LLM_MODEL_ID,
+    activeProvider: 'cloud'
+  });
+  assert.equal(p1, 'webllm');
+
+  const p2 = resolveSSOTProvider({
+    selectedModelId: 'custom-model',
+    activeProvider: 'webllm'
+  });
+  assert.equal(p2, 'webllm');
+});
+
+test('7. resolveSSOTProvider: routes to local-pc for local Ollama models without requiring Gemini key', () => {
+  const p1 = resolveSSOTProvider({
+    selectedModelId: 'llama3.2:latest',
+    modelOptions: [
+      { id: 'llama3.2:latest', name: 'Llama 3.2', group: 'local' }
+    ],
+    activeProvider: 'cloud'
+  });
+  assert.equal(p1, 'local-pc');
+
+  const p2 = resolveSSOTProvider({
+    selectedModelId: 'unknown-local',
+    modelOptions: [],
+    activeProvider: 'local-pc'
+  });
+  assert.equal(p2, 'local-pc');
+});
+
+test('8. resolveSSOTProvider: routes to cloud for cloud models', () => {
+  const p = resolveSSOTProvider({
+    selectedModelId: 'gemini-2.5-flash',
+    modelOptions: [
+      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', group: 'cloud' }
+    ],
+    activeProvider: 'cloud'
+  });
+  assert.equal(p, 'cloud');
+});
+

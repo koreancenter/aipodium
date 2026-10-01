@@ -6093,6 +6093,11 @@ ${sourceTextsCombined}
             finalContent = accumulated;
           }
         } else {
+          const endpointToUse = config.ollamaEndpoint || ((targetProvider === 'local-pc' || targetProvider === 'local-server') ? localEndpointAddress : undefined);
+          const apiKeyToUse = targetProvider === 'cloud'
+            ? (config.apiKey || (config.apiKeys ? config.apiKeys[ssotModel] || config.apiKeys.gemini : undefined) || getApiKeyForModel(ssotModel) || cloudApiKey)
+            : undefined;
+
           const res = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -6100,8 +6105,8 @@ ${sourceTextsCombined}
               message: prompt,
               model: ssotModel,
               provider: targetProvider,
-              apiKey: targetProvider === 'cloud' ? (getApiKeyForModel(ssotModel) || cloudApiKey) : undefined,
-              endpoint: (targetProvider === 'local-pc' || targetProvider === 'local-server') ? localEndpointAddress : undefined,
+              apiKey: apiKeyToUse,
+              endpoint: endpointToUse,
               parameters: aiParameters,
               googleSearchGrounding: preferences.googleSearchGrounding ?? false,
               history: []
@@ -11747,10 +11752,14 @@ ${projectEvents
         availableTemplates={Object.keys(files).filter(f => f.endsWith('.md') && !f.startsWith('.podium/'))}
         availableModels={availableChatModels}
         currentModel={selectedModel}
+        selectedModel={selectedModel}
+        provider={selectedModel === WEB_LLM_MODEL_ID ? 'webllm' : (provider === 'local-pc' || provider === 'local-server' ? 'local-pc' : 'cloud')}
+        currentProvider={provider}
+        apiKeys={apiKeys}
+        ollamaEndpoint={localEndpointAddress || 'http://localhost:11434'}
         onModelChange={(modelId) => {
           handleQuickDefaultModel(modelId, getModelDisplayName(modelId));
         }}
-        currentProvider={provider}
         files={files}
         editorContent={editorContent}
         sessions={sessions}
