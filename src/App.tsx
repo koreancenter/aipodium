@@ -45,6 +45,10 @@ import {
   RenameTarget,
 } from './components/RecursiveFolderTree';
 import {
+  FileTreeContextMenu,
+  FileTreeContextMenuTarget,
+} from './components/FileTreeContextMenu';
+import {
   saveHybridStorage,
   getDbItem,
   clearDb,
@@ -116,7 +120,7 @@ import {
   hasMasterPinConfigured,
   purgeGuestWorkspaceData,
 } from './utils/securityCrypto';
-import { clearAiDecryptedKeyMemory } from './services/aiEngineCore';
+import { clearAiDecryptedKeyMemory, verifyGeminiApiKeyDetailed } from './services/aiEngineCore';
 import {
   Brain,
   Cpu,
@@ -800,6 +804,37 @@ export default function App() {
   const [newFileFolderTarget, setNewFileFolderTarget] = useState<string>('');
   const newFileInputRef = useRef<HTMLInputElement>(null);
 
+  // File Tree Right-Click Context Menu State
+  const [fileTreeContextMenu, setFileTreeContextMenu] = useState<{
+    isOpen: boolean;
+    x: number;
+    y: number;
+    target: FileTreeContextMenuTarget | null;
+  }>({
+    isOpen: false,
+    x: 0,
+    y: 0,
+    target: null,
+  });
+
+  const handleOpenFileTreeContextMenu = (
+    e: React.MouseEvent,
+    target: FileTreeContextMenuTarget
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFileTreeContextMenu({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+      target,
+    });
+  };
+
+  const handleCloseFileTreeContextMenu = () => {
+    setFileTreeContextMenu((prev) => ({ ...prev, isOpen: false }));
+  };
+
   useEffect(() => {
     if (isNewFileModalOpen) {
       setTimeout(() => {
@@ -1449,6 +1484,7 @@ export default function App() {
   const [trashSessions, setTrashSessions] = useState<ChatSession[]>([]);
   const [deleteConfirmSession, setDeleteConfirmSession] = useState<ChatSession | null>(null);
   const [deleteConfirmFile, setDeleteConfirmFile] = useState<string | null>(null);
+  const [deleteConfirmFolder, setDeleteConfirmFolder] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [isTrashOpen, setIsTrashOpen] = useState<boolean>(false);
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
@@ -3363,7 +3399,10 @@ export default function App() {
   };
 
   // Create New File Modal / Handler
-  const handleCreateNewFile = () => {
+  const handleCreateNewFile = (targetFolderOrEvent?: string | React.MouseEvent) => {
+    const targetFolder = typeof targetFolderOrEvent === 'string' ? targetFolderOrEvent : undefined;
+    const defaultFolder = targetFolder || activeSession?.title || 'docs';
+    setNewFileFolderTarget(defaultFolder);
     setIsNewFileModalOpen(true);
     setNewFileNameInput('');
   };
@@ -3381,9 +3420,10 @@ export default function App() {
       showToast(`'${name}' 파일이 이미 존재합니다.`, 'warn');
       return;
     }
+    const targetFolder = newFileFolderTarget || activeSession?.title || 'docs';
     const initialContent = `# ${name.replace(/\.[^/.]+$/, '')}\n\n새로운 마크다운 문서입니다.`;
     const updatedFiles = { ...files, [name]: initialContent };
-    const updatedFolders = { ...fileFolders, [name]: activeSession?.title || 'docs' };
+    const updatedFolders = { ...fileFolders, [name]: targetFolder };
     setFiles(updatedFiles);
     setFileFolders(updatedFolders);
     setFileName(name);
@@ -3391,6 +3431,9 @@ export default function App() {
     setEditorContent(initialContent);
     setEditorTab('wysiwyg');
     setIsNewFileModalOpen(false);
+
+    // Ensure target folder is expanded in tree
+    setOpenFolders((prev) => ({ ...prev, [targetFolder]: true }));
 
     // Physical Local Directory / Storage sync
     const dirHandle = getMemoryDirectoryHandle();
@@ -3406,6 +3449,56 @@ export default function App() {
     }
 
     showToast(`📄 '${name}' 새 파일이 생성되었습니다.`);
+  };
+
+  // Context Menu Action Dispatchers
+  const handleContextMenuNewFile = (targetFolder?: string) => {
+    handleCreateNewFile(targetFolder);
+  };
+
+  const handleContextMenuNewFolder = () => {
+    handleCreateNewSession();
+  };
+
+  const handleContextMenuRename = (target: {
+    id: string;
+    type: 'file' | 'folder' | 'session';
+    name: string;
+    path: string;
+    sessionId?: string;
+  }) => {
+    setFocusedTreeItemId(target.id);
+    setEditingTreeTarget(target);
+  };
+
+  const handleContextMenuDelete = (target: {
+    type: 'file' | 'folder' | 'session';
+    path: string;
+    name: string;
+    sessionId?: string;
+  }) => {
+    if (target.type === 'file') {
+      handleDeleteFile(target.path);
+    } else if (target.type === 'folder') {
+      handleDeleteFolder(target.path);
+    } else if (target.type === 'session') {
+      if (target.sessionId) {
+        requestDeleteSession(target.sessionId);
+      }
+    }
+  };
+
+  const handleContextMenuCopyPath = async (path: string) => {
+    try {
+      await navigator.clipboard.writeText(path);
+      showToast(`✓ 파일 경로 복사됨: ${path}`, 'success');
+    } catch {
+      showToast(`경로: ${path}`, 'info');
+    }
+  };
+
+  const handleContextMenuSSOT = (sessionTitle: string) => {
+    handleOpenSSOTGeneratorModal(sessionTitle);
   };
 
   // Save As File Handler
@@ -3786,13 +3879,15 @@ export default function App() {
       (f) => f === folderPath || f.startsWith(`${folderPath}/`)
     );
     if (matchingFiles.length === 0) return;
-    if (
-      !window.confirm(
-        `'${folderPath}' 폴더 및 하위 파일(${matchingFiles.length}개)을 삭제하시겠습니까?`
-      )
-    ) {
-      return;
-    }
+    setDeleteConfirmFolder(folderPath);
+  };
+
+  const executeDeleteFolder = () => {
+    if (!deleteConfirmFolder) return;
+    const folderPath = deleteConfirmFolder;
+    const matchingFiles = Object.keys(files).filter(
+      (f) => f === folderPath || f.startsWith(`${folderPath}/`)
+    );
 
     setFiles((prev) => {
       const updated = { ...prev };
@@ -3814,6 +3909,7 @@ export default function App() {
       }
     }
 
+    setDeleteConfirmFolder(null);
     showToast(`🗑️ 폴더 및 하위 ${matchingFiles.length}개 파일이 삭제되었습니다.`);
   };
 
@@ -5399,9 +5495,54 @@ export default function App() {
       const isLocal = vendor === 'local' || (!vendor && provider !== 'cloud');
       if (!isLocal) {
         const activeVendor = (vendor && vendor !== 'local') ? vendor : (getVendorForModel(selectedModel) || 'gemini');
-        const activeKey = (typeof keyOrEp === 'string' && keyOrEp.trim())
-          ? keyOrEp.trim()
+        const rawKey = (typeof keyOrEp === 'string' && keyOrEp.trim())
+          ? keyOrEp
           : (apiKeys[activeVendor] || (activeVendor === 'gemini' ? cloudApiKey : ''));
+        const activeKey = (rawKey || '').trim();
+
+        if (activeVendor === 'gemini') {
+          if (!activeKey) {
+            setIsVerified(false);
+            showToast('⚠️ Gemini API 키를 입력해주세요.', 'warn');
+            return;
+          }
+
+          const isFormatValid = activeKey.startsWith('AIza') && activeKey.length > 20;
+          if (!isFormatValid) {
+            setIsVerified(false);
+            const errDetail = 'HTTP 400 Invalid Argument: API 키 형식이 올바르지 않습니다 (AIza로 시작하는 20자 이상).';
+            console.error('[Gemini Key Validation]', errDetail);
+            showToast(`⚠️ API 검증 실패: ${errDetail}`, 'error');
+            return;
+          }
+
+          const diag = await verifyGeminiApiKeyDetailed(activeKey);
+          if (diag.valid) {
+            setIsVerified(true);
+            showToast('✓ GOOGLE GEMINI (gemini-2.5-flash) API 연결 및 키 검증 성공!', 'success');
+
+            // Dynamically fetch and register provider active models
+            try {
+              const models = await fetchProviderActiveModels(activeVendor, activeKey);
+              if (models && models.length > 0) {
+                const simplified = models.map((m) => ({ id: m.id, name: m.name }));
+                setDynamicProviderModels((prev) => ({
+                  ...prev,
+                  [activeVendor]: simplified
+                }));
+              }
+            } catch (err) {
+              console.warn('동적 모델 목록 갱신 실패:', err);
+            }
+            return;
+          } else {
+            setIsVerified(false);
+            const errDetail = diag.errorMessage || (diag.statusCode ? `HTTP ${diag.statusCode}` : '인증 오류');
+            console.error(`Gemini verification error: ${errDetail}`);
+            showToast(`⚠️ API 검증 실패: ${errDetail}`, 'error');
+            return;
+          }
+        }
 
         const res = await fetch('/api/verify', {
           method: 'POST',
@@ -5432,7 +5573,7 @@ export default function App() {
           }
         } else {
           setIsVerified(false);
-          showToast(`⚠️ API 검증 실패: ${data.error || '인증 오류'}`, 'error');
+          showToast(`⚠️ API 검증 실패: ${data.error || `HTTP ${res.status} 인증 오류`}`, 'error');
         }
       } else {
         const cleanEndpoint = ((typeof keyOrEp === 'string' && keyOrEp.trim()) ? keyOrEp : (localEndpointAddress || 'http://localhost:11434')).trim().replace(/\/+$/, '');
@@ -10164,6 +10305,16 @@ ${projectEvents
             ref={fileTreeRef}
             tabIndex={0}
             onKeyDown={handleTreeKeyDown}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              handleOpenFileTreeContextMenu(e, {
+                type: 'root',
+                path: activeSession?.title || 'docs',
+                name: activeSession?.title || '프로젝트 탐색기',
+                sessionId: activeSession?.id,
+                folder: activeSession?.title || 'docs',
+              });
+            }}
             className="flex-1 overflow-y-auto py-1 text-xs select-none bg-transparent custom-scrollbar focus:outline-none"
           >
             {searchQuery.trim() &&
@@ -10259,8 +10410,13 @@ ${projectEvents
                       }
                     }}
                     onContextMenu={(e) => {
-                      e.preventDefault();
-                      handleOpenSSOTGeneratorModal(session.title);
+                      handleOpenFileTreeContextMenu(e, {
+                        type: 'session',
+                        path: session.title,
+                        name: session.title,
+                        sessionId: session.id,
+                        folder: session.title,
+                      });
                     }}
                     className={`flex items-center justify-between px-2 h-7 cursor-pointer group transition-colors rounded-xs ${
                       focusedTreeItemId === `session:${session.id}`
@@ -10413,6 +10569,7 @@ ${projectEvents
                                 onDeleteFile={handleDeleteFile}
                                 onDragStart={handleFileDragStart}
                                 onDragEnd={handleDragEnd}
+                                onContextMenu={handleOpenFileTreeContextMenu}
                               />
                             </div>
                           );
@@ -10442,6 +10599,14 @@ ${projectEvents
                         ...prev,
                         '가이드 & 도움말': !isHelpSectionOpen,
                       }));
+                    }}
+                    onContextMenu={(e) => {
+                      handleOpenFileTreeContextMenu(e, {
+                        type: 'folder',
+                        path: '가이드 & 도움말',
+                        name: '가이드 & 도움말',
+                        folder: '가이드 & 도움말',
+                      });
                     }}
                     className="flex items-center justify-between px-2 h-7 cursor-pointer group transition-colors rounded-xs text-slate-300 hover:bg-white/5 hover:text-slate-100 select-none"
                   >
@@ -10489,11 +10654,16 @@ ${projectEvents
                           setFocusedTreeItemId(id);
                           fileTreeRef.current?.focus({ preventScroll: true });
                         }}
+                        onStartRename={(target) => setEditingTreeTarget(target)}
+                        onCommitRename={handleCommitRename}
+                        onCancelRename={() => setEditingTreeTarget(null)}
+                        onDeleteFolder={handleDeleteFolder}
                         onOpenFile={handleOpenFile}
                         onRenameFile={handleRenameFile}
                         onDeleteFile={handleDeleteFile}
                         onDragStart={handleFileDragStart}
                         onDragEnd={handleDragEnd}
+                        onContextMenu={handleOpenFileTreeContextMenu}
                       />
                     </div>
                   )}
@@ -10535,7 +10705,17 @@ ${projectEvents
 
               return (
                 <div className="mt-2 pt-2 border-t border-[#222226]">
-                  <div className="px-3 py-1 text-[0.625rem] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <div
+                    onContextMenu={(e) => {
+                      handleOpenFileTreeContextMenu(e, {
+                        type: 'folder',
+                        path: '기타 파일',
+                        name: '기타 파일',
+                        folder: '기타 파일',
+                      });
+                    }}
+                    className="px-3 py-1 text-[0.625rem] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 cursor-pointer hover:text-slate-200"
+                  >
                     <Folder className="w-3.5 h-3.5 text-slate-400" />
                     <span>기타 파일 ({unassignedFiles.length})</span>
                   </div>
@@ -10571,6 +10751,7 @@ ${projectEvents
                       onDeleteFile={handleDeleteFile}
                       onDragStart={handleFileDragStart}
                       onDragEnd={handleDragEnd}
+                      onContextMenu={handleOpenFileTreeContextMenu}
                     />
                   </div>
                 </div>
@@ -10923,6 +11104,42 @@ ${projectEvents
               <button
                 type="button"
                 onClick={executeDeleteFile}
+                className="px-4 py-1.5 bg-rose-800/80 hover:bg-rose-700/80 text-rose-100 border border-rose-700/40 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-200" />
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Folder Confirmation Modal */}
+      {deleteConfirmFolder !== null && (
+        <div className="fixed inset-0 z-[60] bg-[#09090b]/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="relative bg-[#121214]/95 backdrop-blur-xl border border-[#222226] rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans">
+            <div className="space-y-2 pt-1">
+              <h2 className="text-base font-semibold text-rose-300">폴더 삭제 확인</h2>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                <span className="font-mono text-[#6366f1] bg-[#09090b] px-1.5 py-0.5 rounded-sm border border-[#222226]">
+                  {deleteConfirmFolder}
+                </span> 폴더 및 포함된 모든 문서를 정말 삭제하시겠습니까?
+              </p>
+              <p className="text-[0.6875rem] text-slate-400">
+                이 작업은 되돌릴 수 없으며 워크스페이스에서 즉시 제거됩니다.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2.5 pt-3">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmFolder(null)}
+                className="px-3.5 py-1.5 rounded-md text-xs text-slate-300 hover:text-white bg-[#121214] hover:bg-[#18181b] transition cursor-pointer"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={executeDeleteFolder}
                 className="px-4 py-1.5 bg-rose-800/80 hover:bg-rose-700/80 text-rose-100 border border-rose-700/40 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5 shadow-sm"
               >
                 <Trash2 className="w-3.5 h-3.5 text-rose-200" />
@@ -11719,6 +11936,21 @@ ${projectEvents
             showToast('✓ 브라우저 내장 (WebLLM) 엔진이 설정되었습니다.');
           }
         }}
+      />
+
+      {/* File Tree Context Menu (Right Click) */}
+      <FileTreeContextMenu
+        isOpen={fileTreeContextMenu.isOpen}
+        x={fileTreeContextMenu.x}
+        y={fileTreeContextMenu.y}
+        target={fileTreeContextMenu.target}
+        onClose={handleCloseFileTreeContextMenu}
+        onNewFile={handleContextMenuNewFile}
+        onNewFolder={handleContextMenuNewFolder}
+        onRename={handleContextMenuRename}
+        onDelete={handleContextMenuDelete}
+        onCopyPath={handleContextMenuCopyPath}
+        onOpenSSOTGenerator={handleContextMenuSSOT}
       />
 
       {/* Visual Toast Notification Popup */}

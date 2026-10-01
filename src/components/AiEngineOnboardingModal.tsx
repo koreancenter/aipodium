@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Server, Cpu, Check } from 'lucide-react';
-import { saveAiEnginePreference, AiEngineChoice } from '../services/aiEngineCore';
+import {
+  saveAiEnginePreference,
+  AiEngineChoice,
+  verifyGeminiApiKey,
+  verifyGeminiApiKeyDetailed
+} from '../services/aiEngineCore';
 
 export interface AiEngineOnboardingModalProps {
   isOpen: boolean;
@@ -31,8 +36,52 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
   const [dontShowAgain, setDontShowAgain] = useState<boolean>(false);
   const [isPingingOllama, setIsPingingOllama] = useState<boolean>(false);
   const [pingResult, setPingResult] = useState<'success' | 'failed' | null>(null);
+  const [isVerifyingCloudKey, setIsVerifyingCloudKey] = useState<boolean>(false);
+  const [cloudKeyResult, setCloudKeyResult] = useState<'success' | 'failed' | null>(null);
+  const [cloudKeyError, setCloudKeyError] = useState<string>('');
 
   if (!isOpen) return null;
+
+  const handleVerifyCloudKey = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const rawKey = apiKey;
+    const sanitizedKey = rawKey.trim();
+    if (!sanitizedKey) {
+      setCloudKeyResult('failed');
+      setCloudKeyError('API 키를 입력해주세요.');
+      return;
+    }
+
+    const isFormatValid = sanitizedKey.startsWith('AIza') && sanitizedKey.length > 20;
+    if (!isFormatValid) {
+      const errorMsg = 'HTTP 400 Invalid Argument (AIza로 시작하는 20자 이상의 유효한 키여야 합니다)';
+      console.error('[Gemini Key Validation]', errorMsg);
+      setCloudKeyResult('failed');
+      setCloudKeyError(errorMsg);
+      return;
+    }
+
+    setIsVerifyingCloudKey(true);
+    setCloudKeyResult(null);
+    setCloudKeyError('');
+    try {
+      const diag = await verifyGeminiApiKeyDetailed(sanitizedKey);
+      if (diag.valid) {
+        setCloudKeyResult('success');
+      } else {
+        const errorMsg = diag.errorMessage || (diag.statusCode ? `HTTP ${diag.statusCode}` : 'API 키 검증 실패');
+        console.error('Gemini Key verification failed:', errorMsg);
+        setCloudKeyResult('failed');
+        setCloudKeyError(errorMsg);
+      }
+    } catch (err: any) {
+      console.error('Gemini Key verification failed:', err);
+      setCloudKeyResult('failed');
+      setCloudKeyError(`네트워크 오류: ${err?.message || '연결 실패'}`);
+    } finally {
+      setIsVerifyingCloudKey(false);
+    }
+  };
 
   const handlePingOllama = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -55,11 +104,14 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
   };
 
   const handleSubmit = () => {
+    const rawKey = apiKey;
+    const sanitizedKey = rawKey.trim();
+
     // 1. Save engine preference to aiEngineCore configuration
     saveAiEnginePreference({
       engineType: selectedOption,
       selectedVendor: selectedOption === 'cloud' ? 'gemini' : undefined,
-      apiKey: selectedOption === 'cloud' && apiKey.trim() ? apiKey.trim() : undefined,
+      apiKey: selectedOption === 'cloud' && sanitizedKey ? sanitizedKey : undefined,
       ollamaEndpoint: selectedOption === 'ollama' ? 'http://localhost:11434' : undefined
     });
 
@@ -79,7 +131,7 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
 
     // 4. Inform parent component
     if (onComplete) {
-      onComplete(selectedOption, apiKey.trim());
+      onComplete(selectedOption, sanitizedKey);
     }
 
     // 5. Smoothly close modal
@@ -218,13 +270,49 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
             {/* Dedicated Fixed Height Configuration Slot */}
             <div className="min-h-[56px] h-[56px] flex items-center mb-4">
               {selectedOption === 'cloud' && (
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Google Gemini API 키 입력 (선택)"
-                  className="w-full bg-[#18181b] border border-white/10 rounded-md px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-indigo-500/60"
-                />
+                <div className="flex gap-2 w-full">
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => {
+                      setApiKey(e.target.value);
+                      if (cloudKeyResult) {
+                        setCloudKeyResult(null);
+                        setCloudKeyError('');
+                      }
+                    }}
+                    placeholder="Google Gemini API 키 입력 (선택)"
+                    className="w-full bg-[#18181b] border border-white/10 rounded-md px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-indigo-500/60"
+                  />
+                  {apiKey.trim() && (
+                    <button
+                      type="button"
+                      onClick={handleVerifyCloudKey}
+                      disabled={isVerifyingCloudKey}
+                      className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-zinc-300 transition shrink-0 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                      title={cloudKeyError || undefined}
+                    >
+                      {isVerifyingCloudKey ? (
+                        <>
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                          <span>확인 중</span>
+                        </>
+                      ) : cloudKeyResult === 'success' ? (
+                        <>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          <span className="text-emerald-400">연결 성공</span>
+                        </>
+                      ) : cloudKeyResult === 'failed' ? (
+                        <>
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                          <span className="text-rose-400" title={cloudKeyError}>연결 실패</span>
+                        </>
+                      ) : (
+                        <span>연결 확인</span>
+                      )}
+                    </button>
+                  )}
+                </div>
               )}
 
               {selectedOption === 'ollama' && (

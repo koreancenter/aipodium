@@ -167,12 +167,13 @@ async function startServer() {
 
       // Gemini Provider Verification
       let effectiveApiKey = process.env.GEMINI_API_KEY || '';
-      if (trimmedKey && /^[A-Za-z0-9_\-]{20,128}$/.test(trimmedKey)) {
-        effectiveApiKey = trimmedKey;
+      const sanitizedKey = trimmedKey.trim();
+      if (sanitizedKey && ((sanitizedKey.startsWith('AIza') && sanitizedKey.length > 20) || /^[A-Za-z0-9_\-]{20,128}$/.test(sanitizedKey))) {
+        effectiveApiKey = sanitizedKey;
       }
 
       if (!effectiveApiKey) {
-        return res.status(400).json({ valid: false, error: 'GEMINI_API_KEY is not set. Please provide an API key in settings.' });
+        return res.status(400).json({ valid: false, error: 'HTTP 400 Invalid Argument: GEMINI_API_KEY가 입력되지 않았습니다. 설정에서 API 키를 입력하세요.' });
       }
 
       const ai = new GoogleGenAI({
@@ -181,26 +182,32 @@ async function startServer() {
       });
 
       const testRes = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+        model: 'gemini-2.5-flash',
         contents: 'ping'
       });
 
       if (testRes && testRes.text) {
-        return res.json({ valid: true, model: 'gemini-3.8-flash', vendor: 'gemini' });
+        return res.json({ valid: true, model: 'gemini-2.5-flash', vendor: 'gemini' });
       } else {
-        return res.status(502).json({ valid: false, error: 'No response received from model endpoint.' });
+        return res.status(502).json({ valid: false, error: 'HTTP 502 Bad Gateway: 모델 엔드포인트로부터 응답을 수신하지 못했습니다.' });
       }
     } catch (err: any) {
       const statusCode = err?.status || err?.statusCode || 401;
-      let msg = 'API key validation failed.';
-      if (statusCode === 401 || statusCode === 403) {
-        msg = 'Invalid or unauthorized Gemini API key.';
+      let msg = '';
+      if (statusCode === 400) {
+        msg = 'HTTP 400 Invalid Argument (잘못된 요청 또는 키 형식 오류)';
+      } else if (statusCode === 401 || statusCode === 403) {
+        msg = 'HTTP 403 API Key Not Enabled / Unauthorized (API 키 미활성화 또는 권한 없음)';
       } else if (statusCode === 429) {
-        msg = 'API rate limit or quota exceeded.';
+        msg = 'HTTP 429 Quota Exceeded (API 호출 한도 초과)';
+      } else {
+        msg = `HTTP ${statusCode} ${err?.message || 'API 키 검증 실패'}`;
       }
+      console.error(`[Gemini Verify Endpoint Error] HTTP ${statusCode}:`, err?.message || msg);
       return res.status(statusCode >= 400 && statusCode < 600 ? statusCode : 401).json({
         valid: false,
-        error: msg
+        error: msg,
+        statusCode
       });
     }
   });

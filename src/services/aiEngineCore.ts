@@ -147,33 +147,167 @@ export async function executeAiRequest<T>(
 }
 
 /**
+ * Convenience helper to verify a Google Gemini API key against standard endpoints.
+ * First tries the models list endpoint, and falls back to a lightweight gemini-2.5-flash
+ * check with the x-goog-api-key header if query param fails or triggers CORS issues.
+ */
+export async function verifyGeminiApiKey(apiKey: string): Promise<boolean> {
+  const key = apiKey.trim();
+  if (!key) return false;
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (res.ok) {
+      return true;
+    }
+
+    // Fallback check with header if query param fails CORS
+    const fallbackRes = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash', {
+      method: 'GET',
+      headers: {
+        'x-goog-api-key': key
+      }
+    });
+
+    return fallbackRes.ok;
+  } catch (err) {
+    console.error('Gemini Key verification failed:', err);
+    return false;
+  }
+}
+
+export interface GeminiVerificationDiagnostics {
+  valid: boolean;
+  statusCode?: number;
+  statusText?: string;
+  errorMessage?: string;
+}
+
+/**
+ * Verifies a Google Gemini API key with detailed HTTP diagnostics and relaxed formatting checks.
+ */
+export async function verifyGeminiApiKeyDetailed(rawKey: string): Promise<GeminiVerificationDiagnostics> {
+  const sanitizedKey = rawKey.trim();
+  if (!sanitizedKey) {
+    return { valid: false, errorMessage: 'API 키가 입력되지 않았습니다.' };
+  }
+
+  // Relaxed client-side check: basic prefix and minimum length
+  const isFormatValid = sanitizedKey.startsWith('AIza') && sanitizedKey.length > 20;
+  if (!isFormatValid) {
+    const errorMsg = 'HTTP 400 Invalid Argument: API 키 형식이 올바르지 않습니다 (AIza로 시작하는 20자 이상의 키여야 합니다).';
+    console.error('[Gemini Key Validation]', errorMsg);
+    return {
+      valid: false,
+      statusCode: 400,
+      statusText: 'Bad Request',
+      errorMessage: errorMsg
+    };
+  }
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${sanitizedKey}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (res.ok) {
+      return { valid: true, statusCode: res.status };
+    }
+
+    // Fallback check with header if query param fails CORS
+    const fallbackRes = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash', {
+      method: 'GET',
+      headers: {
+        'x-goog-api-key': sanitizedKey
+      }
+    });
+
+    if (fallbackRes.ok) {
+      return { valid: true, statusCode: fallbackRes.status };
+    }
+
+    // Determine failed response
+    const failedRes = res.status !== 200 && res.status !== 0 ? res : fallbackRes;
+    const statusCode = failedRes.status;
+
+    let apiDetail = '';
+    try {
+      const errData = await failedRes.json();
+      if (errData?.error?.message) {
+        apiDetail = errData.error.message;
+      }
+    } catch {
+      // not JSON or body already read
+    }
+
+    let statusDesc = '';
+    if (statusCode === 400) {
+      statusDesc = 'HTTP 400 Invalid Argument (잘못된 요청 또는 키 형식)';
+    } else if (statusCode === 403) {
+      statusDesc = 'HTTP 403 API Key Not Enabled / Permission Denied (API 키 미활성화 또는 권한 없음)';
+    } else if (statusCode === 429) {
+      statusDesc = 'HTTP 429 Quota Exceeded (호출 한도 초과)';
+    } else {
+      statusDesc = `HTTP ${statusCode} ${failedRes.statusText || '검증 실패'}`;
+    }
+
+    const fullDiag = apiDetail ? `${statusDesc} - ${apiDetail}` : statusDesc;
+    console.error(`Gemini Key verification failed [HTTP ${statusCode}]:`, fullDiag);
+
+    return {
+      valid: false,
+      statusCode,
+      statusText: failedRes.statusText,
+      errorMessage: fullDiag
+    };
+  } catch (err: any) {
+    console.error('Gemini Key verification failed:', err);
+    return {
+      valid: false,
+      errorMessage: `네트워크 연결 오류: ${err?.message || '호스트에 연결할 수 없습니다.'}`
+    };
+  }
+}
+
+/**
  * Convenience helper to verify an API key against vendor endpoints
  */
 export async function verifyApiKeyWithAiEngine(
   vendor: string,
   testKey?: string
-): Promise<{ success: boolean; message?: string }> {
+): Promise<{ success: boolean; message?: string; statusCode?: number }> {
   return executeAiRequest(
     async (decryptedKey) => {
-      const keyToTest = testKey?.trim() || decryptedKey;
-      if (!keyToTest) {
+      const rawKey = testKey !== undefined ? testKey : decryptedKey;
+      const sanitizedKey = (rawKey || '').trim();
+      if (!sanitizedKey) {
         return { success: false, message: 'API 키가 입력되지 않았습니다.' };
       }
 
       try {
         if (vendor === 'gemini') {
-          const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(keyToTest)}`,
-            { method: 'GET' }
-          );
-          if (res.ok) {
+          const diag = await verifyGeminiApiKeyDetailed(sanitizedKey);
+          if (diag.valid) {
             return { success: true, message: 'Google Gemini API 키가 유효합니다.' };
           }
-          return { success: false, message: `유효성 검증 실패 (HTTP ${res.status})` };
+          return {
+            success: false,
+            statusCode: diag.statusCode,
+            message: `유효성 검증 실패: ${diag.errorMessage || (diag.statusCode ? `HTTP ${diag.statusCode}` : '인증 실패')}`
+          };
         }
         return { success: true, message: `${vendor} API 키 형식이 등록되었습니다.` };
       } catch (err: any) {
-        return { success: false, message: err.message || '네트워크 오류가 발생했습니다.' };
+        return { success: false, message: err?.message || '네트워크 오류가 발생했습니다.' };
       }
     },
     { vendor }
