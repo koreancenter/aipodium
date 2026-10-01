@@ -168,7 +168,6 @@ import {
   ListTree,
   History,
   ChevronsLeft,
-  ChevronsRight,
   Clock,
   Paperclip,
   Image as ImageIcon,
@@ -203,7 +202,6 @@ import {
   Maximize2,
   Upload,
   Loader2,
-  PanelLeft,
   PanelLeftClose,
   PanelLeftOpen,
   PanelRight,
@@ -8237,75 +8235,6 @@ ${projectEvents
 
       </header>
 
-      {/* COLLAPSED SECTIONS RESTORE CONTROL BAR */}
-      {(isSection1Collapsed || isSection2Collapsed || isSection3Collapsed) && (
-        <div className="flex items-center justify-between bg-[#09090b]/90 backdrop-blur-md border-b border-[#222226] px-3 py-1.5 text-xs shrink-0 z-30 shadow-xs">
-          <div className="flex items-center gap-2">
-            {(isSection1Collapsed || isSection2Collapsed) && (
-              <span className="text-[0.6875rem] font-semibold text-slate-300 flex items-center gap-1">
-                <ChevronsRight className="w-3.5 h-3.5 text-[#6366f1]" />
-                <span>접힌 섹션 펼치기:</span>
-              </span>
-            )}
-            {isSection1Collapsed && (
-              <button
-                type="button"
-                onClick={() => setIsSection1Collapsed(false)}
-                className="p-1 px-2 rounded-xs bg-[#121214] hover:bg-[#18181b] text-indigo-400 hover:text-white border border-[#222226] transition flex items-center gap-1.5 active:scale-95 cursor-pointer text-[0.6875rem]"
-                title="좌측 AI 대화 패널 펼치기"
-              >
-                <Bot className="w-3.5 h-3.5 text-indigo-400" />
-                <span>AI 대화</span>
-              </button>
-            )}
-            {isSection2Collapsed && (
-              <button
-                type="button"
-                onClick={() => setIsSection2Collapsed(false)}
-                className="p-1 px-2 rounded-xs bg-[#121214] hover:bg-[#18181b] text-indigo-400 hover:text-white border border-[#222226] transition flex items-center gap-1.5 active:scale-95 cursor-pointer text-[0.6875rem]"
-                title="중앙 에디터 패널 펼치기"
-              >
-                <FileText className="w-3.5 h-3.5 text-indigo-400" />
-                <span>중앙 에디터</span>
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 ml-auto">
-            {isSection1Collapsed && isSection3Collapsed && (
-              <div className="flex items-center gap-2 mr-1">
-                <span className="text-[0.625rem] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-xs border border-indigo-500/20 font-medium flex items-center gap-1">
-                  <span>🎯 문서 집중 모드 활성화 중</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsSection1Collapsed(false);
-                    setIsSection3Collapsed(false);
-                    showToast('기본 패널 레이아웃이 복원되었습니다.');
-                  }}
-                  className="p-1 px-2 rounded-xs bg-[#121214] hover:bg-[#18181b] text-slate-300 hover:text-white border border-[#222226] transition flex items-center gap-1 active:scale-95 cursor-pointer text-[0.6875rem]"
-                  title="모든 패널 복원"
-                >
-                  <span>전체 패널 복원</span>
-                </button>
-              </div>
-            )}
-            {isSection3Collapsed && (
-              <button
-                type="button"
-                onClick={() => setIsSection3Collapsed(false)}
-                className="p-1 rounded-xs hover:bg-[#18181b] hover:text-white text-slate-400 border border-[#222226] transition flex items-center justify-center cursor-pointer shrink-0"
-                title="우측 파일 탐색기 패널 펼치기"
-                aria-label="우측 파일 탐색기 패널 펼치기"
-              >
-                <PanelRightOpen className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* MAIN AREA: 3-PANE FIXED GOLDEN RATIO LAYOUT WITH COLLAPSIBLE SIDEBARS */}
       <main ref={mainContainerRef} className="flex-1 flex items-stretch h-full min-h-0 overflow-hidden relative w-full">
 
@@ -8330,39 +8259,21 @@ ${projectEvents
             {/* Header */}
             <div className="bg-[#0f0f12] border-b border-[#222226] px-2.5 h-8 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0">
-                <button
-                  type="button"
-                  onClick={() => setIsProjectListOpen(!isProjectListOpen)}
-                  className={`p-1 rounded-xs transition flex items-center gap-1.5 border shrink-0 cursor-pointer ${
-                    isProjectListOpen
-                      ? 'bg-[#18181b] text-[#6366f1] border-[#6366f1]/40'
-                      : 'bg-[#121214] text-slate-300 hover:text-white border-[#222226] hover:bg-[#18181b]'
-                  }`}
-                  title={isProjectListOpen ? '프로젝트 목록 접기' : '프로젝트 목록 열기'}
-                >
-                  <PanelLeft className="w-3 h-3 text-[#6366f1]" />
-                  <span className="bg-[#09090b] text-indigo-300 text-[0.625rem] px-1 py-0.2 rounded-xs font-mono border border-[#222226]">
-                    {sessions.length}
+                <Bot className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
+                <span className="truncate max-w-[120px] sm:max-w-[180px] font-medium text-slate-200 text-xs" title={activeSession?.title}>
+                  {selectedModel === WEB_LLM_MODEL_ID
+                    ? '브라우저 로컬 AI'
+                    : (isOnboardingMode ? 'AI 지식 비서 · 온보딩' : (activeSession?.title || 'AI 프로젝트'))}
+                </span>
+                {selectedModel === WEB_LLM_MODEL_ID ? (
+                  <span className="text-[0.5625rem] px-1.5 py-0.2 rounded-xs bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-medium shrink-0">
+                    WebGPU Qwen2.5
                   </span>
-                </button>
-
-                <div className="flex items-center gap-1.5 pl-1 border-l border-[#222226] min-w-0">
-                  <Bot className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                  <span className="truncate max-w-[120px] sm:max-w-[180px] font-medium text-slate-200 text-xs" title={activeSession?.title}>
-                    {selectedModel === WEB_LLM_MODEL_ID
-                      ? '브라우저 로컬 AI'
-                      : (isOnboardingMode ? 'AI 지식 비서 · 온보딩' : (activeSession?.title || 'AI 프로젝트'))}
+                ) : isOnboardingMode ? (
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-white/5 shrink-0">
+                    가이드 v0.0.8
                   </span>
-                  {selectedModel === WEB_LLM_MODEL_ID ? (
-                    <span className="text-[0.5625rem] px-1.5 py-0.2 rounded-xs bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-medium shrink-0">
-                      WebGPU Qwen2.5
-                    </span>
-                  ) : isOnboardingMode ? (
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-white/5 shrink-0">
-                      가이드 v0.0.8
-                    </span>
-                  ) : null}
-                </div>
+                ) : null}
               </div>
 
               <div className="flex items-center gap-1 shrink-0">
@@ -9458,6 +9369,19 @@ ${projectEvents
                         <ChevronDown className="w-2.5 h-2.5 shrink-0" />
                       )}
                     </button>
+
+                    {/* Right Panel Quick Toggle when collapsed */}
+                    {!isRightPanelVisible && (
+                      <button
+                        type="button"
+                        onClick={() => toggleRightPanel(true)}
+                        className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-indigo-400 border border-[#222226] transition flex items-center justify-center shrink-0 cursor-pointer ml-0.5"
+                        title="우측 파일 탐색기 패널 펼치기"
+                        aria-label="우측 파일 탐색기 패널 펼치기"
+                      >
+                        <PanelRightOpen className="w-3.5 h-3.5" />
+                      </button>
+                    )}
 
                     {/* Sliding Drop-down Vertical Toolbar Drawer */}
                     <AnimatePresence>
