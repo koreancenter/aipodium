@@ -16,12 +16,12 @@
 ### [Phase 1] 긴급 버그 수정 및 안정화 (Stabilization)
 *목표: 작업 흐름을 차단하는 기준문서(SSOT) 생성 오류와 엔진 연동 오류 해결*
 
-- [ ] **1.1. SSOT 생성기 빈 세션 대응 (`src/components/SSOTGeneratorModal.tsx`)**
+- [x] **1.1. SSOT 생성기 빈 세션 대응 (`src/components/SSOTGeneratorModal.tsx`)**
   - 탐색기에 저장된 `.md` 파일이 없는 초기 상태(`availableFiles.length === 0`)에서도 에디터 현재 본문(`editorContent`) 및 대화 내역을 참조하여 생성 허용
   - `activeSessionId` 불일치 시 `sessions[0]`로 안전하게 폴백되도록 세션 식별 가드레일 보강
-- [ ] **1.2. SSOT 생성 엔진 분기 연동**
+- [x] **1.2. SSOT 생성 엔진 분기 연동**
   - 하드코딩된 외부 엔드포인트 호출을 제거하고, 활성화된 엔진(`provider`: Cloud, Ollama, WebLLM) 컨텍스트를 주입받아 동작하도록 수정
-- [ ] **1.3. 온보딩 모달 및 엔진 가동 버그 최종 검증**
+- [x] **1.3. 온보딩 모달 및 엔진 가동 버그 최종 검증**
   - `aipodium_engine_dont_show !== 'true'` 기준 단일화 유지
   - Ollama 엔드포인트 Ping 테스트 및 WebLLM 가중치 로딩 누락 방지
 
@@ -74,8 +74,9 @@
 ## 📈 작업 체크리스트 진행 현황
 | 단계 | 세부 작업 | 상태 | 담당 모듈 |
 | :--- | :--- | :---: | :--- |
-| **Phase 1** | SSOT 생성 빈 세션 오류 디버깅 | 대기 | `SSOTGeneratorModal.tsx` |
-| **Phase 1** | SSOT 엔진 컨텍스트 연동 | 대기 | `SSOTGeneratorModal.tsx`, `App.tsx` |
+| **Phase 1** | SSOT 생성 빈 세션 오류 디버깅 | 완료 | `SSOTGeneratorModal.tsx` |
+| **Phase 1** | SSOT 엔진 컨텍스트 연동 | 완료 | `SSOTGeneratorModal.tsx`, `App.tsx` |
+| **Phase 1** | 온보딩 모달 및 엔진 가동 검증 | 완료 | `AiEngineOnboardingModal.tsx`, `aiEngineCore.ts` |
 | **Phase 2** | AI 통신 어댑터 코어 분리 | 대기 | `src/services/ai/` |
 | **Phase 2** | 에디터 통합 모듈화 (`UnifiedEditor`) | 대기 | `src/components/editor/` |
 | **Phase 3** | App.tsx 패널 분리 (Chat / Explorer) | 대기 | `App.tsx` |

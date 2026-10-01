@@ -6009,12 +6009,34 @@ export default function App() {
     const targetFolder = config.selectedFolder;
     const timeStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
 
-    // Gather text from selected source files
+    // Gather text from selected source files or fallback to sourceContent / editorContent & chatContext
     let sourceTextsCombined = '';
     if (config.selectedFiles && config.selectedFiles.length > 0) {
       sourceTextsCombined = config.selectedFiles
         .map((fn) => `### 📄 [참조 소스 파일] ${fn}\n\n${files[fn] || ''}`)
         .join('\n\n---\n\n');
+    } else if (config.sourceContent && config.sourceContent.trim()) {
+      sourceTextsCombined = config.sourceContent.trim();
+    } else if (editorContent && editorContent.trim().length > 0) {
+      sourceTextsCombined = `### Active Editor Content:\n${editorContent.trim()}`;
+    }
+
+    const activeSession = sessions.find((s) => s.id === activeSessionId) || sessions[0];
+    const chatContext = config.chatContext || activeSession?.messages
+      ?.filter((m) => m.sender === 'ai' || (m as any).role === 'assistant')
+      ?.map((m) => m.text || (m as any).content || '')
+      ?.filter(Boolean)
+      ?.join('\n\n') || '';
+
+    if (!sourceTextsCombined.trim() && !chatContext.trim()) {
+      showToast('⚠️ 분석할 에디터 내용이나 대화 내역이 없습니다.', 'warn');
+      return;
+    }
+
+    if (chatContext.trim()) {
+      sourceTextsCombined = sourceTextsCombined
+        ? `${sourceTextsCombined}\n\n### 💬 [대화 컨텍스트]\n${chatContext.trim()}`
+        : `### 💬 [대화 컨텍스트]\n${chatContext.trim()}`;
     }
 
     if (config.autoGenerateWithAi && sourceTextsCombined.trim()) {
@@ -6052,27 +6074,46 @@ ${sourceTextsCombined}
 
         const ssotModel = config.model || selectedModel || roleModels.ssot || roleModels.architect || DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-2.5-flash';
         const targetProvider = config.provider || (availableChatModels.find(m => m.id === ssotModel)?.group === 'local' ? (provider.startsWith('local') ? provider : 'local-pc') : 'cloud');
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: prompt,
-            model: ssotModel,
-            provider: targetProvider,
-            apiKey: targetProvider === 'cloud' ? (getApiKeyForModel(ssotModel) || cloudApiKey) : undefined,
-            endpoint: (targetProvider === 'local-pc' || targetProvider === 'local-server') ? localEndpointAddress : undefined,
-            parameters: aiParameters,
-            googleSearchGrounding: preferences.googleSearchGrounding ?? false,
-            history: []
-          })
-        });
 
         let finalContent = getFallbackDoc();
-        if (res.ok) {
-          const data = await res.json();
-          const generatedMarkdown = data.reply || data.text || '';
-          if (generatedMarkdown.trim()) {
-            finalContent = generatedMarkdown;
+
+        if (ssotModel === WEB_LLM_MODEL_ID || targetProvider === 'webllm') {
+          let accumulated = '';
+          await streamWebLLMCompletion(
+            [
+              { role: 'system', content: '당신은 단일 진실 공급원(SSOT) 기준 문서를 작성하는 전문 수석 테크니컬 라이터입니다.' },
+              { role: 'user', content: prompt }
+            ],
+            (delta: string) => {
+              accumulated += delta;
+            },
+            0.4
+          );
+          if (accumulated.trim()) {
+            finalContent = accumulated;
+          }
+        } else {
+          const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: prompt,
+              model: ssotModel,
+              provider: targetProvider,
+              apiKey: targetProvider === 'cloud' ? (getApiKeyForModel(ssotModel) || cloudApiKey) : undefined,
+              endpoint: (targetProvider === 'local-pc' || targetProvider === 'local-server') ? localEndpointAddress : undefined,
+              parameters: aiParameters,
+              googleSearchGrounding: preferences.googleSearchGrounding ?? false,
+              history: []
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const generatedMarkdown = data.reply || data.text || '';
+            if (generatedMarkdown.trim()) {
+              finalContent = generatedMarkdown;
+            }
           }
         }
 
@@ -11710,6 +11751,11 @@ ${projectEvents
           handleQuickDefaultModel(modelId, getModelDisplayName(modelId));
         }}
         currentProvider={provider}
+        files={files}
+        editorContent={editorContent}
+        sessions={sessions}
+        activeSessionId={activeSessionId}
+        onToast={showToast}
         onGenerate={(config) => {
           setIsSSOTGeneratorModalOpen(false);
           handleGenerateSSOTDocument(config);

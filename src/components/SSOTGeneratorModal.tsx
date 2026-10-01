@@ -22,6 +22,8 @@ export interface SSOTGeneratorConfig {
   templateMarkdownContent?: string;
   model?: string;
   provider?: string;
+  sourceContent?: string;
+  chatContext?: string;
 }
 
 export type VibeCanvasConfig = SSOTGeneratorConfig;
@@ -31,6 +33,21 @@ export interface ModelOption {
   name: string;
   desc?: string;
   group: 'cloud' | 'local';
+}
+
+export interface GenericChatMessage {
+  role?: string;
+  sender?: string;
+  content?: string;
+  text?: string;
+  [key: string]: any;
+}
+
+export interface GenericChatSession {
+  id: string;
+  title?: string;
+  messages?: GenericChatMessage[];
+  [key: string]: any;
 }
 
 export interface SSOTGeneratorModalProps {
@@ -45,6 +62,48 @@ export interface SSOTGeneratorModalProps {
   currentModel?: string;
   currentProvider?: string;
   onModelChange?: (modelId: string) => void;
+  files?: Record<string, string>;
+  editorContent?: string;
+  sessions?: GenericChatSession[];
+  activeSessionId?: string;
+  onToast?: (message: string, type?: 'info' | 'success' | 'warn' | 'warning' | 'error') => void;
+}
+
+export function resolveSSOTSourceContext(params: {
+  selectedFiles?: string[];
+  availableFiles?: string[];
+  files?: Record<string, string>;
+  editorContent?: string;
+  sessions?: GenericChatSession[];
+  activeSessionId?: string;
+}): { sourceContent: string; chatContext: string; isValid: boolean; errorMessage?: string } {
+  const selectedFiles = params.selectedFiles || [];
+  const files = params.files || {};
+  const editorContent = params.editorContent || '';
+  const sessions = params.sessions || [];
+  const activeSessionId = params.activeSessionId;
+
+  let sourceContent = '';
+  if (selectedFiles.length > 0) {
+    sourceContent = selectedFiles.map((fn) => `### File: ${fn}\n${files[fn] || ''}`).join('\n\n');
+  } else if (editorContent && editorContent.trim().length > 0) {
+    sourceContent = `### Active Editor Content:\n${editorContent.trim()}`;
+  }
+
+  const activeSession = sessions.find((s) => s.id === activeSessionId) || sessions[0];
+  const chatContext = activeSession?.messages
+    ?.filter((m) => m.role === 'assistant' || m.sender === 'ai')
+    ?.map((m) => m.content || m.text || '')
+    ?.filter(Boolean)
+    ?.join('\n\n') || '';
+
+  const isValid = Boolean(sourceContent.trim() || chatContext.trim());
+  return {
+    sourceContent,
+    chatContext,
+    isValid,
+    errorMessage: isValid ? undefined : '⚠️ 분석할 에디터 내용이나 대화 내역이 없습니다.'
+  };
 }
 
 interface MentionItem {
@@ -84,7 +143,12 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
   availableModels,
   currentModel,
   currentProvider,
-  onModelChange
+  onModelChange,
+  files = {},
+  editorContent = '',
+  sessions = [],
+  activeSessionId = '',
+  onToast
 }) => {
   const [selectedFolder, setSelectedFolder] = useState<string>('');
   const [docBaseName, setDocBaseName] = useState<string>('프로젝트_마스터문서');
@@ -243,6 +307,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
   };
 
   const currentFolderFiles = selectedFolder && filesByFolder[selectedFolder] ? filesByFolder[selectedFolder] : [];
+  const availableFiles = currentFolderFiles;
 
   const fileMentions: MentionItem[] = currentFolderFiles.map((f) => ({
     id: f,
@@ -319,9 +384,31 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
     }
   };
 
-    const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const finalFiles = selectedFiles.length > 0 ? selectedFiles : currentFolderFiles;
+  const handleGenerate = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    let sourceContent = '';
+    if (selectedFiles.length > 0) {
+      sourceContent = selectedFiles.map((fn) => `### File: ${fn}\n${files[fn] || ''}`).join('\n\n');
+    } else if (editorContent && editorContent.trim().length > 0) {
+      sourceContent = `### Active Editor Content:\n${editorContent.trim()}`;
+    }
+
+    const activeSession = sessions.find((s) => s.id === activeSessionId) || sessions[0];
+    const chatContext = activeSession?.messages
+      ?.filter((m) => m.role === 'assistant' || m.sender === 'ai')
+      ?.map((m) => m.content || m.text || '')
+      ?.filter(Boolean)
+      ?.join('\n\n') || '';
+
+    if (!sourceContent.trim() && !chatContext.trim()) {
+      if (onToast) {
+        onToast('⚠️ 분석할 에디터 내용이나 대화 내역이 없습니다.', 'warn');
+      }
+      return;
+    }
+
+    const finalFiles = selectedFiles.length > 0 ? selectedFiles : availableFiles;
     const cleanBase = docBaseName.trim().replace(/\.md$/i, '') || '프로젝트_마스터문서';
     const finalTitle = `${cleanBase}.md`;
 
@@ -339,9 +426,13 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
       instruction: customPrompt.trim(),
       templateMarkdownContent: templateMarkdownContent.trim() || undefined,
       model: selectedModelId,
-      provider: resolvedProvider
+      provider: resolvedProvider,
+      sourceContent,
+      chatContext
     });
   };
+
+  const handleSubmit = handleGenerate;
 
   if (!isOpen) return null;
 
