@@ -154,7 +154,7 @@ test('AiEngineOnboardingModal UI conforms to DESIGN.md v2.1 flat design principl
   );
 
   // 1. Container specifies required locked boundary flat styling
-  assert.match(modalContent, /max-w-md w-full bg-\[#121214\] border border-white\/10 rounded-xl p-5 shadow-2xl flex flex-col justify-between/);
+  assert.match(modalContent, /max-w-md w-full bg-\[#121214\] border border-white\/10 rounded-xl p-5 shadow-2xl flex flex-col justify-between min-h-\[440px\]/);
 
   // 2. Selectable rows use subtle border styling
   assert.match(modalContent, /p-3 rounded-lg border cursor-pointer/);

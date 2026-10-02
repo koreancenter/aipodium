@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { OptimizedEditor } from './components/OptimizedEditor';
+import { UnifiedEditor } from './components/editor';
 import { PdfViewer, PdfViewerHandle, PdfViewerState } from './components/PdfViewer';
 import { SAMPLE_PDF_DATA_URL } from './data/samplePdfData';
 import { motion, AnimatePresence } from 'motion/react';
@@ -121,6 +121,7 @@ import {
   purgeGuestWorkspaceData,
 } from './utils/securityCrypto';
 import { clearAiDecryptedKeyMemory, verifyGeminiApiKeyDetailed } from './services/aiEngineCore';
+import { aiClient } from './services/ai';
 import {
   Brain,
   Cpu,
@@ -5505,15 +5506,6 @@ export default function App() {
             return;
           }
 
-          const isFormatValid = activeKey.startsWith('AIza') && activeKey.length > 20;
-          if (!isFormatValid) {
-            setIsVerified(false);
-            const errDetail = 'HTTP 400 Invalid Argument: API 키 형식이 올바르지 않습니다 (AIza로 시작하는 20자 이상).';
-            console.error('[Gemini Key Validation]', errDetail);
-            showToast(`⚠️ API 검증 실패: ${errDetail}`, 'error');
-            return;
-          }
-
           const diag = await verifyGeminiApiKeyDetailed(activeKey);
           if (diag.valid) {
             setIsVerified(true);
@@ -7661,189 +7653,65 @@ ${projectEvents
       };
 
       try {
-        if (modelKey === WEB_LLM_MODEL_ID) {
-          // Browser-native WebGPU WebLLM streaming execution
-          if (!getLoadedWebLLMEngine()) {
-            if (webllmProgress.isLoading) {
-              pushChunk('브라우저 WebLLM 엔진을 초기화하는 중입니다. 완료 후 답변이 이어집니다...\n\n');
-              let waitCount = 0;
-              while (!getLoadedWebLLMEngine() && waitCount < 120) {
-                await new Promise((r) => setTimeout(r, 500));
-                waitCount++;
-              }
-            } else {
-              await handleStartWebLlmDownload();
+        const effectiveProvider = (modelKey === WEB_LLM_MODEL_ID)
+          ? 'webllm'
+          : (provider === 'local-pc' || provider === 'local-server')
+          ? 'local-pc'
+          : 'cloud';
+
+        // Pre-initialization check for WebLLM engine
+        if (effectiveProvider === 'webllm' && !getLoadedWebLLMEngine()) {
+          if (webllmProgress.isLoading) {
+            pushChunk('브라우저 WebLLM 엔진을 초기화하는 중입니다. 완료 후 답변이 이어집니다...\n\n');
+            let waitCount = 0;
+            while (!getLoadedWebLLMEngine() && waitCount < 120) {
+              await new Promise((r) => setTimeout(r, 500));
+              waitCount++;
             }
-          }
-
-          const fullSystem = sysInstruction
-            ? `${sysInstruction}\n\n[Editor Context]\n${editorContent || ''}`
-            : (editorContent ? `[Editor Context]\n${editorContent}` : undefined);
-
-          const messagesForWebLlm = [
-            ...(fullSystem ? [{ role: 'system' as const, content: fullSystem }] : []),
-            { role: 'user' as const, content: finalPrompt }
-          ];
-
-          await streamWebLLMCompletion(
-            messagesForWebLlm,
-            (delta: string) => {
-              pushChunk(delta);
-            },
-            0.35
-          );
-          finishStream();
-        } else if (provider === 'local-pc' || provider === 'local-server') {
-          // Local Ollama streaming execution
-          const cleanEndpoint = (localEndpointAddress || 'http://localhost:11434').trim().replace(/\/+$/, '');
-          const fullSystem = sysInstruction
-            ? `${sysInstruction}\n\n[Editor Context]\n${editorContent || ''}`
-            : (editorContent ? `[Editor Context]\n${editorContent}` : undefined);
-
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-          const res = await fetch(`${cleanEndpoint}/api/chat`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal: controller.signal,
-            body: JSON.stringify({
-              model: modelKey,
-              messages: [
-                ...(fullSystem ? [{ role: 'system', content: fullSystem }] : []),
-                { role: 'user', content: finalPrompt }
-              ],
-              stream: true,
-              options: {
-                temperature: aiParameters?.temperature,
-                top_p: aiParameters?.topP,
-                num_predict: aiParameters?.maxTokens
-              }
-            })
-          });
-          clearTimeout(timeoutId);
-
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.error || `HTTP ${res.status}`);
-          }
-
-          if (res.body) {
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split('\n');
-              buffer = lines.pop() || '';
-
-              for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed) continue;
-                try {
-                  const parsed = JSON.parse(trimmed);
-                  const piece = parsed?.message?.content || parsed?.response;
-                  if (piece) pushChunk(piece);
-                } catch {}
-              }
-            }
-
-            if (buffer.trim()) {
-              try {
-                const parsed = JSON.parse(buffer.trim());
-                const piece = parsed?.message?.content || parsed?.response;
-                if (piece) pushChunk(piece);
-              } catch {}
-            }
-          }
-          finishStream();
-        } else {
-          // Cloud Provider (Server API with SSE streaming support)
-          const targetApiKey = getApiKeyForModel(modelKey) || cloudApiKey;
-          const res = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'text/event-stream, application/json'
-            },
-            body: JSON.stringify({
-              message: finalPrompt,
-              editorContent: editorContent,
-              model: modelKey,
-              parameters: aiParameters,
-              apiKey: targetApiKey || undefined,
-              systemInstruction: sysInstruction,
-              googleSearchGrounding: preferences.googleSearchGrounding ?? false,
-              stream: true
-            })
-          });
-
-          const isSSE = res.headers.get('content-type')?.includes('text/event-stream');
-
-          if (isSSE && res.body) {
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split('\n');
-              buffer = lines.pop() || '';
-
-              for (const line of lines) {
-                const trimmed = line.trim();
-                if (trimmed.startsWith('data: ')) {
-                  try {
-                    const parsed = JSON.parse(trimmed.slice(6));
-                    if (parsed.chunk) {
-                      pushChunk(parsed.chunk);
-                    }
-                    if (parsed.done) {
-                      finishStream({
-                        tokens: parsed.usage,
-                        groundingSources: parsed.groundingSources
-                      });
-                    }
-                    if (parsed.error) {
-                      pushChunk(`\n\n⚠️ ${parsed.error}`);
-                      finishStream();
-                    }
-                  } catch {}
-                }
-              }
-            }
-
-            if (buffer.trim().startsWith('data: ')) {
-              try {
-                const parsed = JSON.parse(buffer.trim().slice(6));
-                if (parsed.chunk) pushChunk(parsed.chunk);
-                if (parsed.done) {
-                  finishStream({ tokens: parsed.usage, groundingSources: parsed.groundingSources });
-                }
-              } catch {}
-            }
-            finishStream();
           } else {
-            // Non-SSE or fallback response
-            const data = await res.json();
-            if (!res.ok) {
-              const vendor = getVendorForModel(modelKey);
-              pushChunk(`💡 **AI 엔진 안내**: ${data.error || '응답을 생성할 수 없습니다.'}\n\n*설정([Ctrl+,])의 [AI 엔진 설정]에서 **${vendor.toUpperCase()} API 키**를 등록하거나, 상단 모드를 [Local PC (Ollama)]로 전환하여 사용할 수 있습니다.*`);
-              finishStream();
-            } else {
-              pushChunk(data.text || '');
-              finishStream({
-                tokens: data.usage,
-                groundingSources: data.groundingSources
-              });
-            }
+            await handleStartWebLlmDownload();
           }
         }
+
+        const targetApiKey = getApiKeyForModel(modelKey) || cloudApiKey;
+        const fullSystem = sysInstruction
+          ? `${sysInstruction}\n\n[Editor Context]\n${editorContent || ''}`
+          : (editorContent ? `[Editor Context]\n${editorContent}` : undefined);
+
+        const result = await aiClient.streamCompletion(effectiveProvider, {
+          model: modelKey,
+          messages: [
+            ...(fullSystem ? [{ role: 'system' as const, content: fullSystem }] : []),
+            { role: 'user' as const, content: finalPrompt },
+          ],
+          temperature: aiParameters?.temperature,
+          maxTokens: aiParameters?.maxTokens,
+          topP: aiParameters?.topP,
+          apiKey: targetApiKey || undefined,
+          endpoint: localEndpointAddress,
+          systemInstruction: sysInstruction,
+          editorContent: editorContent || undefined,
+          googleSearchGrounding: preferences.googleSearchGrounding ?? false,
+          onChunk: (delta: string) => {
+            pushChunk(delta);
+          },
+        });
+
+        finishStream({
+          tokens: result.usage
+            ? {
+                prompt: result.usage.promptTokens,
+                completion: result.usage.completionTokens,
+                total:
+                  result.usage.totalTokens ??
+                  result.usage.promptTokens + result.usage.completionTokens,
+              }
+            : undefined,
+          groundingSources: result.groundingSources?.map((g) => ({
+            title: g.title || '',
+            url: g.url || '',
+          })),
+        });
       } catch (e: any) {
         const isAbort = e?.name === 'AbortError';
         const isCors = e?.message?.includes('Failed to fetch') || e?.name === 'TypeError';
@@ -10074,9 +9942,18 @@ ${projectEvents
                         onViewerStateChange={setPdfViewerState}
                       />
                     ) : (
-                      <OptimizedEditor
+                      <UnifiedEditor
                         value={editorContent}
                         onChange={handleEditorChange}
+                        mode={editorTab}
+                        onModeChange={(newMode) => {
+                          const targetTab: 'wysiwyg' | 'edit' = newMode === 'wysiwyg' ? 'wysiwyg' : 'edit';
+                          setEditorTab(targetTab);
+                          setSessions((prev) =>
+                            prev.map((s) => (s.id === activeSessionId ? { ...s, editorTab: targetTab } : s))
+                          );
+                        }}
+                        onSave={() => handleSaveDocument()}
                         onFocus={() => {
                           lastActiveTextTargetRef.current = 'editor';
                           if (hasUnreadAiChanges) setHasUnreadAiChanges(false);
@@ -10084,19 +9961,13 @@ ${projectEvents
                         editorRef={editorRef}
                         tiptapRef={tiptapEditorRef}
                         placeholder="# 마크다운 노트&#10;&#10;AI 답변의 [에디터로 내용 전송] 또는 직접 작성..."
-                        editorTab={editorTab}
                         renderMarkdownToHtml={renderMarkdownToHtml}
                         fontSize={editorFontSize}
+                        isDrawingOpen={isDrawingOverlayOpen}
+                        onCloseDrawing={() => setIsDrawingOverlayOpen(false)}
+                        onToast={showToast}
                       />
                     )}
-
-                    {/* Freeform Drawing Canvas Overlay */}
-                    <FreeformDrawingOverlay
-                      isOpen={isDrawingOverlayOpen}
-                      onClose={() => setIsDrawingOverlayOpen(false)}
-                      onInsertImageToEditor={handleInsertDrawingToEditor}
-                      onToast={showToast}
-                    />
 
                     {/* Table of Contents Floating Sidebar / Drawer Overlay */}
                     {isTocOpen && (

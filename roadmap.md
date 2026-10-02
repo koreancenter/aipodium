@@ -30,14 +30,14 @@
 ### [Phase 2] 코어 엔진 계층 분리 및 모듈화 (Engine & Editor Modularization)
 *목표: UI 종속성이 0%인 순수 TypeScript AI SDK 구축 및 에디터 통합*
 
-- [ ] **2.1. 독립 AI 엔진 코어 분리 (`src/services/ai/`)**
+- [x] **2.1. 독립 AI 엔진 코어 분리 (`src/services/ai/`)**
   - `AiProviderAdapter` 공통 인터페이스 정의 (`stream`, `getModels`, `isAvailable`)
   - 프로바이더별 어댑터 클래스 격리:
     - `CloudAdapter.ts` (Gemini, OpenAI, Claude SSE 스트리밍 및 키 복호화)
     - `OllamaAdapter.ts` (로컬 11434 태그 탐색 및 통신)
     - `WebLlmAdapter.ts` (WebGPU 가중치 캐싱 및 웹워커 스트리밍)
   - 단일 진입점 클라이언트(`AiClient.ts`) 구현 및 `App.tsx` 내 통신 로직 대체
-- [ ] **2.2. 통합 에디터 컴포넌트화 (`<UnifiedEditor />`)**
+- [x] **2.2. 통합 에디터 컴포넌트화 (`<UnifiedEditor />`)**
   - `src/components/editor/UnifiedEditor.tsx`로 Tiptap 서식 모드와 마크다운 소스 편집기 단일화
   - 표 빌더(`TableGridPicker`), 플로팅 버블 메뉴(`Text/TableFloatingBubbleMenu`), 필기 오버레이(`FreeformDrawingOverlay`)를 에디터 내부로 캡슐화
   - 외부 인터페이스를 Controlled Component 규격(`value`, `onChange`, `mode`, `onSave`)으로 표준화
@@ -77,8 +77,8 @@
 | **Phase 1** | SSOT 생성 빈 세션 오류 디버깅 | 완료 | `SSOTGeneratorModal.tsx` |
 | **Phase 1** | SSOT 엔진 컨텍스트 연동 | 완료 | `SSOTGeneratorModal.tsx`, `App.tsx` |
 | **Phase 1** | 온보딩 모달 및 엔진 가동 검증 | 완료 | `AiEngineOnboardingModal.tsx`, `aiEngineCore.ts` |
-| **Phase 2** | AI 통신 어댑터 코어 분리 | 대기 | `src/services/ai/` |
-| **Phase 2** | 에디터 통합 모듈화 (`UnifiedEditor`) | 대기 | `src/components/editor/` |
+| **Phase 2** | AI 통신 어댑터 코어 분리 | 완료 | `src/services/ai/` |
+| **Phase 2** | 에디터 통합 모듈화 (`UnifiedEditor`) | 완료 | `src/components/editor/` |
 | **Phase 3** | App.tsx 패널 분리 (Chat / Explorer) | 대기 | `App.tsx` |
 | **Phase 4** | 인라인 AI 메시지 번역 기능 | 대기 | `AiMessageBubble.tsx`, `AiClient` |
 | **Phase 4** | 도메인 프로필 주입 체계 정의 | 대기 | `src/services/ai/profiles/` |

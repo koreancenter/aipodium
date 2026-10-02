@@ -43,9 +43,13 @@ if (typeof window !== 'undefined') {
  * Saves and updates the active AI engine preference.
  */
 export function saveAiEnginePreference(config: Partial<AiEngineConfig>): void {
+  const sanitizedConfig = { ...config };
+  if (typeof sanitizedConfig.apiKey === 'string') {
+    sanitizedConfig.apiKey = sanitizedConfig.apiKey.trim();
+  }
   activeEngineConfig = {
     ...activeEngineConfig,
-    ...config,
+    ...sanitizedConfig,
   };
   if (typeof window !== 'undefined') {
     try {
@@ -119,11 +123,11 @@ export async function getEphemeralDecryptedApiKey(
   }
 
   if (resolved) {
-    inFlightEphemeralKey = resolved;
+    inFlightEphemeralKey = resolved.trim();
     ephemeralKeyTimestamp = Date.now();
   }
 
-  return resolved;
+  return (resolved || '').trim();
 }
 
 /**
@@ -139,7 +143,7 @@ export async function executeAiRequest<T>(
 
   try {
     ephemeralKey = await getEphemeralDecryptedApiKey(vendor, options?.userSecret);
-    return await requestFn(ephemeralKey);
+    return await requestFn(ephemeralKey ? ephemeralKey.trim() : '');
   } finally {
     // Transient in-flight variable zeroing
     ephemeralKey = null;
@@ -151,8 +155,8 @@ export async function executeAiRequest<T>(
  * First tries the models list endpoint, and falls back to a lightweight gemini-2.5-flash
  * check with the x-goog-api-key header if query param fails or triggers CORS issues.
  */
-export async function verifyGeminiApiKey(apiKey: string): Promise<boolean> {
-  const key = apiKey.trim();
+export async function verifyGeminiApiKey(rawKey: string): Promise<boolean> {
+  const key = (rawKey || '').trim();
   if (!key) return false;
 
   try {
@@ -175,7 +179,39 @@ export async function verifyGeminiApiKey(apiKey: string): Promise<boolean> {
       }
     });
 
-    return fallbackRes.ok;
+    if (fallbackRes.ok) {
+      return true;
+    }
+
+    // Determine failed response for logging clear error diagnostics
+    const failedRes = res.status !== 200 && res.status !== 0 ? res : fallbackRes;
+    const statusCode = failedRes.status;
+
+    let apiDetail = '';
+    try {
+      const errData = await failedRes.json();
+      if (errData?.error?.message) {
+        apiDetail = errData.error.message;
+      }
+    } catch {
+      // not JSON or body already read
+    }
+
+    let statusDesc = '';
+    if (statusCode === 400) {
+      statusDesc = 'HTTP 400 Invalid Argument (잘못된 요청 또는 키 형식)';
+    } else if (statusCode === 403) {
+      statusDesc = 'HTTP 403 API Key Not Enabled / Permission Denied (API 키 미활성화 또는 권한 없음)';
+    } else if (statusCode === 429) {
+      statusDesc = 'HTTP 429 Quota Exceeded (호출 한도 초과)';
+    } else {
+      statusDesc = `HTTP ${statusCode} ${failedRes.statusText || '검증 실패'}`;
+    }
+
+    const fullDiag = apiDetail ? `${statusDesc} - ${apiDetail}` : statusDesc;
+    console.error(`Gemini Key verification failed [HTTP ${statusCode}]:`, fullDiag);
+
+    return false;
   } catch (err) {
     console.error('Gemini Key verification failed:', err);
     return false;
@@ -190,25 +226,12 @@ export interface GeminiVerificationDiagnostics {
 }
 
 /**
- * Verifies a Google Gemini API key with detailed HTTP diagnostics and relaxed formatting checks.
+ * Verifies a Google Gemini API key with detailed HTTP diagnostics without rigid client regex restrictions.
  */
 export async function verifyGeminiApiKeyDetailed(rawKey: string): Promise<GeminiVerificationDiagnostics> {
-  const sanitizedKey = rawKey.trim();
+  const sanitizedKey = (rawKey || '').trim();
   if (!sanitizedKey) {
     return { valid: false, errorMessage: 'API 키가 입력되지 않았습니다.' };
-  }
-
-  // Relaxed client-side check: basic prefix and minimum length
-  const isFormatValid = sanitizedKey.startsWith('AIza') && sanitizedKey.length > 20;
-  if (!isFormatValid) {
-    const errorMsg = 'HTTP 400 Invalid Argument: API 키 형식이 올바르지 않습니다 (AIza로 시작하는 20자 이상의 키여야 합니다).';
-    console.error('[Gemini Key Validation]', errorMsg);
-    return {
-      valid: false,
-      statusCode: 400,
-      statusText: 'Bad Request',
-      errorMessage: errorMsg
-    };
   }
 
   try {

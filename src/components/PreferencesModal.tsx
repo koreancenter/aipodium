@@ -717,14 +717,6 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
       }
 
       if (selectedVendor === 'gemini') {
-        const isFormatValid = sanitizedKey.startsWith('AIza') && sanitizedKey.length > 20;
-        if (!isFormatValid) {
-          const formatErrMsg = 'HTTP 400 Invalid Argument: API 키 형식이 올바르지 않습니다 (AIza로 시작하는 20자 이상의 유효한 키여야 합니다).';
-          console.error('[Gemini Key Validation]', formatErrMsg);
-          onToast(`⚠️ ${formatErrMsg}`, 'error');
-          return;
-        }
-
         try {
           const diag = await verifyGeminiApiKeyDetailed(sanitizedKey);
           if (!diag.valid) {

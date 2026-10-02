@@ -135,3 +135,47 @@ test('4. Surface Detailed Error Diagnostics: logs and displays actual HTTP statu
     globalThis.fetch = originalFetch;
   }
 });
+
+test('5. verifyGeminiApiKey: handles empty/whitespace keys and logs HTTP status codes on failure', async () => {
+  // Empty key checks
+  assert.equal(await verifyGeminiApiKey(''), false);
+  assert.equal(await verifyGeminiApiKey('   \n\t  '), false);
+
+  const originalFetch = globalThis.fetch;
+  const loggedErrors: string[] = [];
+  const originalError = console.error;
+
+  try {
+    console.error = (...args: any[]) => {
+      loggedErrors.push(args.join(' '));
+    };
+
+    // 403 response
+    globalThis.fetch = async () => {
+      return new Response(
+        JSON.stringify({ error: { code: 403, message: 'API key not valid or not enabled' } }),
+        { status: 403, statusText: 'Forbidden' }
+      );
+    };
+
+    const res403 = await verifyGeminiApiKey('  valid-key-with-spaces  \n');
+    assert.equal(res403, false);
+    assert.ok(loggedErrors.some(msg => msg.includes('HTTP 403')));
+
+    // 429 response
+    loggedErrors.length = 0;
+    globalThis.fetch = async () => {
+      return new Response(
+        JSON.stringify({ error: { code: 429, message: 'Rate limit exceeded' } }),
+        { status: 429, statusText: 'Too Many Requests' }
+      );
+    };
+
+    const res429 = await verifyGeminiApiKey('any-key-over-quota');
+    assert.equal(res429, false);
+    assert.ok(loggedErrors.some(msg => msg.includes('HTTP 429')));
+  } finally {
+    console.error = originalError;
+    globalThis.fetch = originalFetch;
+  }
+});

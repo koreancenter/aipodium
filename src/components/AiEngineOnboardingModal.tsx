@@ -52,15 +52,6 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
       return;
     }
 
-    const isFormatValid = sanitizedKey.startsWith('AIza') && sanitizedKey.length > 20;
-    if (!isFormatValid) {
-      const errorMsg = 'HTTP 400 Invalid Argument (AIza로 시작하는 20자 이상의 유효한 키여야 합니다)';
-      console.error('[Gemini Key Validation]', errorMsg);
-      setCloudKeyResult('failed');
-      setCloudKeyError(errorMsg);
-      return;
-    }
-
     setIsVerifyingCloudKey(true);
     setCloudKeyResult(null);
     setCloudKeyError('');
@@ -155,7 +146,7 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 6 }}
           transition={{ duration: 0.15, ease: 'easeOut' }}
-          className="max-w-md w-full bg-[#121214] border border-white/10 rounded-xl p-5 shadow-2xl flex flex-col justify-between text-left"
+          className="max-w-md w-full bg-[#121214] border border-white/10 rounded-xl p-5 shadow-2xl flex flex-col justify-between min-h-[440px] text-left"
         >
           <div>
             {/* Header */}
@@ -365,8 +356,9 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                     </div>
                   </div>
                 ) : (
-                  <div className="text-xs text-zinc-400 bg-white/[0.02] border border-white/5 rounded-md px-3 py-2 w-full">
-                    ✨ 별도 설정 없이 브라우저 WebGPU를 통해 기기에서 즉시 실행됩니다.
+                  <div className="text-xs text-zinc-400 bg-white/[0.02] border border-white/5 rounded-md px-3 py-2 w-full flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    <span className="truncate">✨ 별도 설정 없이 브라우저 WebGPU를 통해 기기에서 즉시 실행됩니다.</span>
                   </div>
                 )
               )}
