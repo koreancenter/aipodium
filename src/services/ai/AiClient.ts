@@ -64,6 +64,38 @@ export class AiClient {
     const adapter = this.getAdapter(provider);
     return adapter.isAvailable();
   }
+
+  /**
+   * Lightweight translation helper using the active AI provider adapter or cloud default.
+   */
+  async translateText(
+    text: string,
+    targetLanguage: string = 'ko',
+    provider: AiProviderType = 'cloud',
+    model?: string,
+    apiKey?: string
+  ): Promise<string> {
+    const isTargetKorean = targetLanguage.toLowerCase().startsWith('ko');
+    const systemPrompt = isTargetKorean
+      ? '당신은 전문 다국어 번역 비서입니다. 사용자가 제공하는 텍스트를 가장 자연스럽고 명확한 표준 한국어로 충실하게 직독직해 및 의역하여 번역하세요. 설명이나 부연 설명 없이 오직 번역된 본문만을 출력하세요.'
+      : `You are an expert translator. Translate the given text into fluent, natural ${targetLanguage}. Output only the translation without any explanations.`;
+
+    let resultText = '';
+    const res = await this.streamCompletion(provider, {
+      model: model || (provider === 'cloud' ? 'gemini-2.5-flash' : undefined),
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: text }
+      ],
+      temperature: 0.3,
+      apiKey,
+      onChunk: (chunk) => {
+        resultText += chunk;
+      }
+    });
+
+    return resultText.trim() || res.fullText.trim();
+  }
 }
 
 // Export singleton instance

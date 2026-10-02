@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Bot,
   Copy,
@@ -12,9 +12,13 @@ import {
   Globe,
   ExternalLink,
   Zap,
+  Languages,
+  RotateCw,
+  X,
 } from 'lucide-react';
 import { renderMarkdownToHtml, cleanAiContentText, sanitizeHtml } from '../utils/markdownParser';
 import type { ChatMessage } from '../types';
+import { aiClient } from '../services/ai';
 
 interface AiMessageBubbleProps {
   msg: ChatMessage;
@@ -24,6 +28,7 @@ interface AiMessageBubbleProps {
   onSendToEditor: (text: string) => void;
   onActionChipClick?: (chipType: 'gemini-key' | 'ollama-guide' | 'demo-knowledge') => void;
   onOpenSettings?: (tab?: 'ai-engine') => void;
+  onTranslate?: (msgId: string, text: string) => Promise<string> | void;
 }
 
 /**
@@ -76,9 +81,19 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
   onSendToEditor,
   onActionChipClick,
   onOpenSettings,
+  onTranslate,
 }) => {
   // Micro Fade-In transition: initial opacity-0 translate-y-1 -> rendered opacity-100 translate-y-0
   const [isMounted, setIsMounted] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
+  const [localTranslatedText, setLocalTranslatedText] = useState(msg.translatedText || '');
+
+  useEffect(() => {
+    if (msg.translatedText) {
+      setLocalTranslatedText(msg.translatedText);
+    }
+  }, [msg.translatedText]);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
@@ -89,10 +104,51 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
 
   const cleanedText = useMemo(() => cleanAiContentText(msg.text), [msg.text]);
 
+  const activeTranslation = localTranslatedText || msg.translatedText;
+
+  const handleToggleTranslation = useCallback(async () => {
+    if (showTranslation) {
+      setShowTranslation(false);
+      return;
+    }
+
+    if (activeTranslation) {
+      setShowTranslation(true);
+      return;
+    }
+
+    // Trigger translation
+    setIsTranslating(true);
+    try {
+      if (onTranslate) {
+        const res = await onTranslate(msg.id, cleanedText);
+        if (typeof res === 'string' && res.trim()) {
+          setLocalTranslatedText(res);
+          setShowTranslation(true);
+        }
+      } else {
+        const translated = await aiClient.translateText(cleanedText, 'ko');
+        if (translated) {
+          setLocalTranslatedText(translated);
+          setShowTranslation(true);
+        }
+      }
+    } catch (err) {
+      console.error('Translation error:', err);
+    } finally {
+      setIsTranslating(false);
+    }
+  }, [showTranslation, activeTranslation, onTranslate, msg.id, cleanedText]);
+
   // Memoized rendered markdown HTML for maximum streaming performance
   const renderedHtml = useMemo(() => {
     return renderAiMessageHtml(msg.text, msg.isStreaming);
   }, [msg.text, msg.isStreaming]);
+
+  const renderedTranslatedHtml = useMemo(() => {
+    if (!activeTranslation) return '';
+    return renderMarkdownToHtml(cleanAiContentText(activeTranslation), { isChat: true });
+  }, [activeTranslation]);
 
   return (
     <div
@@ -122,6 +178,30 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
           </span>
 
           <div className="flex items-center gap-1">
+            {/* Inline One-Click Translation button (Languages icon) */}
+            <button
+              type="button"
+              onClick={handleToggleTranslation}
+              disabled={msg.isStreaming || isTranslating}
+              className={`p-1 rounded-xs transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                showTranslation
+                  ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/50'
+                  : 'hover:bg-[#18181b] text-slate-400 hover:text-slate-200'
+              }`}
+              title={
+                showTranslation
+                  ? '한국어 번역본 접기'
+                  : activeTranslation
+                  ? '한국어 번역본 보기'
+                  : '한국어로 실시간 번역'
+              }
+            >
+              {isTranslating ? (
+                <RotateCw className="w-3 h-3 text-indigo-400 animate-spin" />
+              ) : (
+                <Languages className="w-3 h-3" />
+              )}
+            </button>
             {/* Copy button */}
             <button
               type="button"
@@ -162,6 +242,48 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
           }`}
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderedHtml) }}
         />
+
+        {/* Inline One-Click Translated Text View */}
+        {showTranslation && activeTranslation && (
+          <div className="mt-2 p-2.5 rounded-md bg-[#121216] border border-indigo-500/30 space-y-1.5 select-text shadow-sm">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-1 text-[0.6875rem]">
+              <div className="flex items-center gap-1.5 text-indigo-300 font-medium select-none">
+                <Languages className="w-3.5 h-3.5 text-indigo-400" />
+                <span>한국어 번역본</span>
+              </div>
+              <div className="flex items-center gap-1 text-[0.625rem] select-none">
+                <button
+                  type="button"
+                  onClick={() => onCopy(cleanAiContentText(activeTranslation))}
+                  className="px-1.5 py-0.5 rounded hover:bg-white/5 text-slate-400 hover:text-slate-200 transition cursor-pointer"
+                  title="번역본 복사"
+                >
+                  복사
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSendToEditor(cleanAiContentText(activeTranslation))}
+                  className="px-1.5 py-0.5 rounded hover:bg-white/5 text-indigo-300 hover:text-indigo-200 transition cursor-pointer font-medium"
+                  title="번역본 에디터로 전송"
+                >
+                  에디터 전송
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowTranslation(false)}
+                  className="p-0.5 rounded hover:bg-white/5 text-slate-400 hover:text-slate-200 transition cursor-pointer"
+                  title="번역본 닫기"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+            <div
+              className="markdown-chat-content font-sans text-xs leading-relaxed select-text cursor-text text-slate-200"
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(renderedTranslatedHtml) }}
+            />
+          </div>
+        )}
 
         {/* Initial Action Chips (온보딩 인터랙티브 칩) */}
         {msg.showOnboardingChips && onActionChipClick && (

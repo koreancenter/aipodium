@@ -51,7 +51,7 @@
   - 메시지 리스트 뷰 및 스크롤 제어 로직 캡슐화
   - 하단 프롬프트 바(`UniversalPromptInput`)의 바닥 밀착형(Bottom-Flush) 플랫 스타일 안착
   - 고스트 라이터 모드 시 한/영 양방향 높이 동기화(`Math.max`) 로직 내장
-- [ ] **3.2. 우측 워크스페이스 탐색기 분리 (`src/components/explorer/WorkspaceDrawer.tsx`)**
+- [x] **3.2. 우측 워크스페이스 탐색기 분리 (`src/components/explorer/WorkspaceDrawer.tsx`)**
   - 드로워 접힘/열림 상태의 `localStorage` 영구 보존 로직 통합
   - 트리 탐색 및 파일 생성/삭제 이벤트 격리
 
@@ -60,7 +60,7 @@
 ### [Phase 4] 신규 지능형 기능 탑재 (Feature Enhancement)
 *목표: 다국어 번역 편의성 제공 및 타 앱 이식용 프로필 체계 완성*
 
-- [ ] **4.1. AI 메시지 인라인 원클릭 번역 기능 구현**
+- [x] **4.1. AI 메시지 인라인 원클릭 번역 기능 구현**
   - `src/components/AiMessageBubble.tsx` 툴바에 번역 액션 버튼(`Languages` 아이콘) 추가
   - 분리된 `AiClient`의 경량 번역 호출 연동 및 메시지별 번역 상태(`translatedText`, 토글 뷰) 렌더링
 - [ ] **4.2. 도메인 프로필(Domain Profile) 체계 구축**
@@ -80,6 +80,6 @@
 | **Phase 2** | AI 통신 어댑터 코어 분리 | 완료 | `src/services/ai/` |
 | **Phase 2** | 에디터 통합 모듈화 (`UnifiedEditor`) | 완료 | `src/components/editor/` |
 | **Phase 3** | 대화 패널 분리 (`ChatPanel`) | 완료 | `src/components/chat/` |
-| **Phase 3** | 워크스페이스 탐색기 분리 (`WorkspaceDrawer`) | 대기 | `src/components/explorer/` |
-| **Phase 4** | 인라인 AI 메시지 번역 기능 | 대기 | `AiMessageBubble.tsx`, `AiClient` |
+| **Phase 3** | 워크스페이스 탐색기 분리 (`WorkspaceDrawer`) | 완료 | `src/components/explorer/` |
+| **Phase 4** | 인라인 AI 메시지 번역 기능 | 완료 | `AiMessageBubble.tsx`, `AiClient` |
 | **Phase 4** | 도메인 프로필 주입 체계 정의 | 대기 | `src/services/ai/profiles/` |

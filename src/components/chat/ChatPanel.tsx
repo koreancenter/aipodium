@@ -44,6 +44,7 @@ export interface ChatPanelProps {
   onDiff: (text: string, model?: string) => void;
   onActionChipClick?: (chipType: string) => void;
   onOpenSettings?: (tab?: string) => void;
+  onTranslate?: (msgId: string, text: string) => Promise<string> | void;
   onToast: (msg: string, type?: 'info' | 'warn' | 'error' | 'success') => void;
 
   // Mentions
@@ -115,6 +116,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   onDiff,
   onActionChipClick,
   onOpenSettings,
+  onTranslate,
   onToast,
   allMentionItems = [],
   renderFormattedMessageText = (t) => t,
@@ -259,6 +261,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                     onSendToEditor={(text) => onSendToEditor(text)}
                     onActionChipClick={(chipType) => onActionChipClick?.(chipType)}
                     onOpenSettings={(tab) => onOpenSettings?.(tab)}
+                    onTranslate={onTranslate}
                   />
                 ) : (
                   <div key={msg.id} className="flex gap-2.5 items-start select-text justify-end">
