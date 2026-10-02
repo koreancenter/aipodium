@@ -7357,6 +7357,64 @@ ${projectEvents
     }
   };
 
+  // Inline AI Message Translation Handler (Phase 4.1)
+  const handleTranslateMessage = useCallback(
+    async (messageId: string, content: string): Promise<string> => {
+      try {
+        const translationPrompt =
+          'Translate the following response into natural, fluent Korean. Preserve code blocks, technical terms, and markdown formatting exactly as is:\n\n' +
+          content;
+
+        let resultText = '';
+        const targetProvider =
+          (provider as string) === 'webllm'
+            ? 'webllm'
+            : provider === 'local-pc' || provider === 'local-server'
+            ? 'local-pc'
+            : 'cloud';
+
+        await aiClient.streamCompletion(targetProvider as any, {
+          model: provider === 'cloud' ? 'gemini-2.5-flash' : selectedModel,
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are an expert translator. Translate the text into natural, fluent Korean. Preserve code blocks, technical terms, and markdown formatting exactly as is. Output only the translated content without any conversational prefixes or meta explanations.',
+            },
+            {
+              role: 'user',
+              content: translationPrompt,
+            },
+          ],
+          temperature: 0.3,
+          apiKey: cloudApiKey || undefined,
+          ollamaEndpoint: localEndpointAddress || 'http://localhost:11434',
+          onChunk: (chunk) => {
+            resultText += chunk;
+          },
+        });
+
+        const finalResult = resultText.trim();
+        if (finalResult) {
+          setSessions((prev) =>
+            prev.map((s) => ({
+              ...s,
+              messages: s.messages.map((m) =>
+                m.id === messageId ? { ...m, translatedText: finalResult } : m
+              ),
+            }))
+          );
+        }
+        return finalResult;
+      } catch (err) {
+        console.error('Failed to translate message:', err);
+        showToast('⚠️ AI 메시지 번역 중 오류가 발생했습니다.', 'error');
+        return '';
+      }
+    },
+    [provider, selectedModel, cloudApiKey, localEndpointAddress, showToast]
+  );
+
   // Handle send message logic
   const handleSendMessage = async (
     overrideText?: string,
@@ -8503,6 +8561,7 @@ ${projectEvents
                 setPreferencesInitialTab((tab as any) || 'ai-engine');
                 setIsPreferencesModalOpen(true);
               }}
+              onTranslate={handleTranslateMessage}
               onToast={showToast}
               allMentionItems={allMentionItems}
               renderFormattedMessageText={renderFormattedMessageText}
