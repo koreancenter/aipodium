@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { UnifiedEditor } from './components/editor';
+import { ChatPanel } from './components/chat';
 import { PdfViewer, PdfViewerHandle, PdfViewerState } from './components/PdfViewer';
 import { SAMPLE_PDF_DATA_URL } from './data/samplePdfData';
 import { motion, AnimatePresence } from 'motion/react';
@@ -120,8 +121,11 @@ import {
   hasMasterPinConfigured,
   purgeGuestWorkspaceData,
 } from './utils/securityCrypto';
-import { clearAiDecryptedKeyMemory, verifyGeminiApiKeyDetailed } from './services/aiEngineCore';
-import { aiClient } from './services/ai';
+import {
+  aiClient,
+  clearAiDecryptedKeyMemory,
+  verifyGeminiApiKeyDetailed,
+} from './services/ai';
 import {
   Brain,
   Cpu,
@@ -8472,637 +8476,82 @@ ${projectEvents
               </button>
             )}
 
-            {/* Active Conversation Chat Area */}
-            <div className="flex-1 flex flex-col min-w-0 bg-transparent relative">
-              {/* Chat Messages */}
-              <div id="chat-messages" ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto p-3 select-text custom-scrollbar">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeSessionId}
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.15, ease: 'easeOut' }}
-                    className="space-y-3 select-text max-w-3xl mx-auto w-full"
-                  >
-                    {/* Active WebLLM progress banner if downloading */}
-                    {webllmProgress.isLoading && (
-                      <WebLlmBanner
-                        isSupported={webllmProgress.isSupported}
-                        isLoading={webllmProgress.isLoading}
-                        isReady={webllmProgress.isReady}
-                        progressText={webllmProgress.progressText}
-                        progressPercent={webllmProgress.progressPercent}
-                        onStartDownload={handleStartWebLlmDownload}
-                        onSelectModel={() => {
-                          setSelectedModel(WEB_LLM_MODEL_ID);
-                          setProvider('local-pc');
-                          showToast('✓ Qwen2.5-0.5B 브라우저 로컬 AI가 선택되었습니다.');
-                        }}
-                        onDismiss={() => {
-                          setIsWebLlmBannerDismissed(true);
-                          try {
-                            localStorage.setItem('aipodium_webllm_banner_dismissed', 'true');
-                          } catch {}
-                        }}
-                      />
-                    )}
-
-                    {messages.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center min-h-[360px] h-full text-center px-4 py-16 select-none">
-                        <div className="w-10 h-10 rounded-full bg-white/5 border border-white/5 flex items-center justify-center mb-3 text-indigo-400">
-                          <Sparkles className="w-5 h-5" />
-                        </div>
-                        <p className="text-sm font-medium text-zinc-300">
-                          AI 어시스턴트와 대화를 시작하거나 프롬프트를 입력하세요
-                        </p>
-                        <p className="text-xs text-zinc-500 mt-1.5 max-w-xs leading-relaxed">
-                          질문, 문서 요약, 코드 생성 및 번역 작업을 지원합니다
-                        </p>
-                      </div>
-                    ) : (
-                      messages.map((msg) =>
-                      msg.sender === 'ai' ? (
-                        <AiMessageBubble
-                          key={msg.id}
-                          msg={msg}
-                          selectedModel={selectedModel === WEB_LLM_MODEL_ID ? WEB_LLM_MODEL_DISPLAY_NAME : (isOnboardingMode ? 'AI 지식 비서' : selectedModel)}
-                          onCopy={(text) => {
-                            navigator.clipboard.writeText(text);
-                            showToast('✓ AI 답변 내용이 클립보드에 복사되었습니다.');
-                          }}
-                          onDiff={(text, model) => {
-                            setDiffModalData({
-                              isOpen: true,
-                              proposedContent: text,
-                              title: 'AI 응답과 현재 문서 시맨틱 Diff',
-                              sourceLabel: `${model || 'AI Assistant'} 제안본`,
-                            });
-                          }}
-                          onSendToEditor={(text) => handleSendToEditor(text)}
-                          onActionChipClick={(chipType) => handleOnboardingChipClick(chipType)}
-                          onOpenSettings={(tab) => {
-                            setPreferencesInitialTab(tab || 'ai-engine');
-                            setIsPreferencesModalOpen(true);
-                          }}
-                        />
-                      ) : (
-                        <div
-                          key={msg.id}
-                          className="flex gap-2.5 items-start select-text justify-end"
-                        >
-                          <div className="rounded-md p-3 text-xs leading-relaxed space-y-2 select-text cursor-text bg-[#18181f] border border-white/[0.08] text-slate-100 max-w-[85%]">
-                            {/* Attachment Rendering in Chat Bubble */}
-                            {msg.attachments && msg.attachments.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5 pt-0.5 border-b border-white/[0.06] pb-1.5 select-none">
-                                {msg.attachments.map((att) => (
-                                  <div key={att.id} className="rounded overflow-hidden border border-white/[0.06] bg-black/40 p-1 flex items-center gap-1.5 max-w-full">
-                                    {att.type === 'image' && att.url ? (
-                                      <img
-                                        src={att.url}
-                                        alt={att.name}
-                                        className="max-h-36 rounded border border-white/[0.06] object-cover"
-                                      />
-                                    ) : att.type === 'link' ? (
-                                      <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-slate-300 font-mono">
-                                        <Link2 className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                                        <span className="truncate max-w-[150px] font-medium">{att.name}</span>
-                                        <span className="text-[0.625rem] text-slate-400">({att.size})</span>
-                                      </div>
-                                    ) : (
-                                      <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-slate-300 font-mono">
-                                        <FileText className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                                        <span className="truncate max-w-[150px] font-medium">{att.name}</span>
-                                        <span className="text-[0.625rem] text-slate-400">({att.size})</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {msg.ghostWriterLevel && msg.ghostWriterLevel !== 'off' && (
-                              <div className="flex flex-col gap-1 pb-1.5 mb-1.5 border-b border-white/[0.06] select-none">
-                                <div className="flex items-center justify-between gap-2 text-[0.625rem]">
-                                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-200 bg-emerald-950/80 px-1.5 py-0.5 rounded text-[0.5625rem] border border-emerald-800/60">
-                                    <Ghost className="w-3 h-3 text-emerald-300" />
-                                    Ghost Writer {msg.ghostWriterLevel}%
-                                  </span>
-                                  <span className="text-[0.625rem] text-[#38bdf8] font-mono flex items-center gap-1">
-                                    <Globe className="w-3 h-3 text-[#0ea5e9]" />
-                                    영문 프롬프트
-                                  </span>
-                                </div>
-                                {msg.originalText && msg.originalText !== msg.text && (
-                                  <div className="text-[0.6875rem] text-slate-300 flex items-start gap-1 font-sans pt-0.5">
-                                    <span className="font-medium text-slate-400 shrink-0">🇰🇷 한국어 원문:</span>
-                                    <span className="italic text-slate-200">{msg.originalText}</span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            <div className="whitespace-pre-wrap font-sans space-y-1 select-text cursor-text selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)]">
-                              {renderFormattedMessageText(msg.text)}
-                            </div>
-                          </div>
-
-                          <div className="w-6 h-6 rounded-md bg-[#121214] border border-[#222226] flex items-center justify-center text-slate-200 text-xs shrink-0 mt-0.5 select-none shadow-xs">
-                            <User className="w-3.5 h-3.5" />
-                          </div>
-                        </div>
-                      )
-                    ))}
-
-                    {isAiLoading && !messages.some((m) => m.isStreaming) && (
-                      <div className="flex gap-2.5 items-center py-1 bg-transparent border-0 select-none">
-                        <div className="w-5 h-5 flex items-center justify-center text-indigo-400 text-xs shrink-0 select-none bg-transparent border-0">
-                          <Bot className="w-4 h-4 animate-pulse text-indigo-400" />
-                        </div>
-                        <div className="bg-transparent border-0 px-1 py-1 text-xs text-slate-400 flex items-center gap-2 font-sans shadow-none">
-                          <div className="flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></span>
-                          </div>
-                          <span className="text-slate-400 text-xs">
-                            {isOnboardingMode ? 'AI 지식 비서가 답변을 준비하고 있습니다...' : 'AI 모델이 응답을 준비하고 있습니다...'}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-
-              {/* Floating scroll to bottom pill */}
-              {isScrolledUp && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    isUserScrolledUpRef.current = false;
-                    setIsScrolledUp(false);
-                    scrollToChatBottom(true);
-                  }}
-                  className="absolute bottom-3 right-6 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#121214]/95 border border-[#222226] text-[0.6875rem] text-slate-300 hover:text-white shadow-lg hover:border-[#6366f1] transition-all cursor-pointer group select-none"
-                  title="최신 대화로 스크롤 이동"
-                >
-                  <ChevronDown className="w-3.5 h-3.5 text-[#6366f1] group-hover:translate-y-0.5 transition-transform" />
-                  <span>최신 대화로 이동</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Input Box Area - Minimalist Clean Layout */}
-          <div className="p-2.5 bg-[#09090b]/95 border-t border-[#222226] shrink-0">
-            {/* Hidden File Input */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              multiple
-              onChange={(e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                  processFiles(e.target.files);
-                  e.target.value = '';
-                }
+            {/* Active Conversation Chat Area via ChatPanel (Phase 3.1) */}
+            <ChatPanel
+              activeSessionId={activeSessionId}
+              messages={messages}
+              isAiLoading={isAiLoading}
+              chatInput={chatInput}
+              onChatInputChange={setChatInput}
+              chatAttachments={chatAttachments}
+              onRemoveAttachment={handleRemoveAttachment}
+              onAddAttachment={(att) => setChatAttachments((prev) => [...prev, att])}
+              onAddFiles={(files) => processFiles(files)}
+              onSendMessage={handleSendMessage}
+              onSendToEditor={handleSendToEditor}
+              onDiff={(text, model) => {
+                setDiffModalData({
+                  isOpen: true,
+                  proposedContent: text,
+                  title: 'AI 응답과 현재 문서 시맨틱 Diff',
+                  sourceLabel: `${model || 'AI Assistant'} 제안본`,
+                });
               }}
-              accept="image/*,.txt,.md,.markdown,.pdf,.docx,.xlsx,.xls,.csv,.pptx,.ppt,.json,.js,.ts,.py,.css,.html"
-              className="hidden"
+              onActionChipClick={handleOnboardingChipClick}
+              onOpenSettings={(tab) => {
+                setPreferencesInitialTab((tab as any) || 'ai-engine');
+                setIsPreferencesModalOpen(true);
+              }}
+              onToast={showToast}
+              allMentionItems={allMentionItems}
+              renderFormattedMessageText={renderFormattedMessageText}
+              selectedModel={selectedModel}
+              onSelectModel={setSelectedModel}
+              selectedMultiModels={selectedMultiModels}
+              onSelectMultiModels={setSelectedMultiModels}
+              mode={mode}
+              onModeChange={setMode}
+              availableChatModels={availableChatModels}
+              provider={provider}
+              onSelectProvider={setProvider}
+              onRefreshOllama={async () => {
+                await triggerFetchOllamaTags();
+              }}
+              localEndpointAddress={localEndpointAddress}
+              onSelectDefaultLocalTag={(tag) => {
+                setSelectedModel(tag);
+                setProvider('local-pc');
+              }}
+              onOpenRoleModal={() => setIsAiRoleModalOpen(true)}
+              isOnboardingMode={isOnboardingMode}
+              webllmProgress={webllmProgress}
+              onStartWebLlmDownload={handleStartWebLlmDownload}
+              isWebLlmBannerDismissed={isWebLlmBannerDismissed}
+              onDismissWebLlmBanner={() => {
+                setIsWebLlmBannerDismissed(true);
+                try {
+                  localStorage.setItem('aipodium_webllm_banner_dismissed', 'true');
+                } catch {}
+              }}
+              ghostWriterLevel={ghostWriterLevel}
+              ghostTargetEnglish={ghostTargetEnglish}
+              ghostTemplateText={ghostTemplateText}
+              ghostUserInput={ghostUserInput}
+              ghostShowFullAnswer={ghostShowFullAnswer}
+              isGhostLoading={isGhostLoading}
+              onGenerateGhostText={handleGenerateGhostText}
+              onGhostUserInputChange={setGhostUserInput}
+              onGhostInputKeyDown={handleGhostInputKeyDown}
+              onSendGhostMessage={handleSendGhostMessage}
+              onSetGhostTargetEnglish={setGhostTargetEnglish}
+              onSetGhostTemplateText={setGhostTemplateText}
+              onSetGhostUserInput={setGhostUserInput}
+              onSetGhostShowFullAnswer={setGhostShowFullAnswer}
+              chatInputRef={chatInputRef}
+              onInputFocus={() => {
+                lastActiveTextTargetRef.current = 'chat';
+              }}
             />
-
-            <form
-              id="chat-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                setShowMentionMenu(false);
-                handleSendMessage();
-              }}
-              className="space-y-1.5 max-w-3xl mx-auto w-full"
-            >
-              {/* Attached Files Preview Bar */}
-              {chatAttachments.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 p-1.5 bg-[#0c0c0e] border border-[#222226] rounded-xs max-h-28 overflow-y-auto custom-scrollbar">
-                  {chatAttachments.map((att) => (
-                    <div
-                      key={att.id}
-                      className="relative group bg-[#09090b] border border-[#222226] rounded-xs p-1 flex items-center gap-1.5 text-xs text-slate-200 shrink-0"
-                    >
-                      {att.isParsing ? (
-                        <RotateCw className="w-3.5 h-3.5 text-[#6366f1] animate-spin shrink-0" />
-                      ) : att.type === 'image' && att.url ? (
-                        <img src={att.url} alt={att.name} className="w-7 h-7 rounded object-cover border border-[#222226]" />
-                      ) : att.type === 'link' ? (
-                        <Link2 className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                      ) : (
-                        <FileText className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                      )}
-                      <div className="flex flex-col text-[0.625rem] pr-4">
-                        <span className="truncate max-w-[120px] font-medium text-slate-200">{att.name}</span>
-                        <span className="text-[0.5625rem] text-slate-400 font-mono">
-                          {att.isParsing ? '파싱 중...' : att.size}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveAttachment(att.id)}
-                        className="absolute top-1 right-1 p-0.5 rounded-full bg-[#18181b] hover:bg-rose-900/80 text-slate-300 hover:text-rose-200 transition cursor-pointer"
-                        title="첨부 파일 삭제"
-                      >
-                        <X className="w-2.5 h-2.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Textarea + Action Bar Container - Clean Seamless Unified Input Card */}
-              <div
-                className="relative flex flex-col bg-[#101014] border border-white/[0.08] focus-within:border-[#6366f1]/70 rounded-md transition"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                    processFiles(e.dataTransfer.files);
-                  }
-                }}
-              >
-                {/* Autocomplete / Reference Dropdown Menu for Workspace Folders & Files */}
-                <AnimatePresence>
-                  {showMentionMenu && (
-                    <motion.div
-                      ref={mentionDropdownRef}
-                      initial={{ opacity: 0, y: 6, scale: 0.99 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 4, scale: 0.99 }}
-                      transition={{ duration: 0.12 }}
-                      className="absolute bottom-full left-0 right-0 mb-2 bg-[#121214] border border-white/[0.08] rounded-md shadow-2xl z-50 overflow-hidden flex flex-col max-h-72"
-                    >
-                      {/* Filtered Item List */}
-                      <div
-                        ref={mentionListRef}
-                        className="overflow-y-auto p-1.5 space-y-0.5 text-xs select-none max-h-60 scroll-smooth bg-[#121214]"
-                      >
-                        {filteredMentionItems.length === 0 ? (
-                          <div className="py-6 text-center text-zinc-500 text-xs flex flex-col items-center gap-2">
-                            <Info className="w-4 h-4 text-zinc-500" />
-                            <span>'{mentionQuery}'에 해당하는 폴더 또는 파일이 없습니다.</span>
-                          </div>
-                        ) : (
-                          filteredMentionItems.map((item, index) => {
-                            const isSelected = index === mentionSelectedIndex;
-                            return (
-                              <div
-                                key={item.id}
-                                ref={(el) => {
-                                  mentionItemRefs.current[index] = el;
-                                }}
-                                onClick={() => handleSelectMention(item)}
-                                onMouseEnter={() => setMentionSelectedIndex(index)}
-                                className={`group flex items-center justify-between px-3 py-1.5 h-8 rounded-md cursor-pointer transition-colors ${
-                                  isSelected
-                                    ? 'bg-white/10 text-zinc-100'
-                                    : 'text-zinc-300 hover:bg-white/5'
-                                }`}
-                              >
-                                {/* Left: Monochrome Icon + Name */}
-                                <div className="flex items-center gap-2 min-w-0 flex-1 mr-3">
-                                  {item.type === 'folder' ? (
-                                    <Folder className="w-4 h-4 text-zinc-400 shrink-0" />
-                                  ) : (
-                                    <FileText className="w-4 h-4 text-zinc-400 shrink-0" />
-                                  )}
-                                  <span className="text-xs truncate font-medium">
-                                    {item.name}
-                                  </span>
-                                </div>
-
-                                {/* Right: Meta (File count / Size) + Select hint */}
-                                <div className="flex items-center gap-2.5 shrink-0">
-                                  <span className="text-xs text-zinc-500 font-mono">
-                                    {item.detail}
-                                  </span>
-                                  <span
-                                    className={`text-[0.6875rem] font-mono transition-opacity ${
-                                      isSelected
-                                        ? 'text-zinc-300 opacity-100'
-                                        : 'text-zinc-500 opacity-0 group-hover:opacity-100'
-                                    }`}
-                                  >
-                                    선택 ↵
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-
-                      {/* Footer Shortcut Navigation Guide */}
-                      <div className="flex items-center justify-between px-3 py-1.5 bg-[#121214] border-t border-[#222226] text-[0.6875rem] text-zinc-400">
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center gap-1">
-                            <kbd className="px-1 py-0.2 bg-[#18181b] rounded-xs text-[0.625rem] border border-[#27272a] text-zinc-300">↑</kbd>
-                            <kbd className="px-1 py-0.2 bg-[#18181b] rounded-xs text-[0.625rem] border border-[#27272a] text-zinc-300">↓</kbd>
-                            <span className="text-zinc-500 ml-0.5">이동</span>
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <kbd className="px-1.5 py-0.2 bg-[#18181b] rounded-xs text-[0.625rem] border border-[#27272a] text-zinc-300">Enter</kbd>
-                            <span className="text-zinc-600">/</span>
-                            <kbd className="px-1.5 py-0.2 bg-[#18181b] rounded-xs text-[0.625rem] border border-[#27272a] text-zinc-300">Tab</kbd>
-                            <span className="text-zinc-500 ml-0.5">참조 삽입</span>
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <kbd className="px-1.5 py-0.2 bg-[#18181b] rounded-xs text-[0.625rem] border border-[#27272a] text-zinc-300">Esc</kbd>
-                            <span className="text-zinc-500 ml-0.5">닫기</span>
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {ghostWriterLevel !== 'off' ? (
-                  <div className="flex flex-col">
-                    {/* Dual Pane Layout (Left: Korean Prompt / Right: Ghost Practice) */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/[0.08] bg-transparent">
-                      {/* Left: Native Korean Prompt Input */}
-                      <div className="flex flex-col px-3 py-2.5 relative bg-transparent">
-                        <textarea
-                          id="chat-input"
-                          ref={chatInputRef}
-                          style={{ height: `${chatInputHeight}px` }}
-                          value={chatInput}
-                          onFocus={() => {
-                            lastActiveTextTargetRef.current = 'chat';
-                          }}
-                          onInput={adjustChatInputHeight}
-                          onChange={(e) => {
-                            handleChatInputChange(e);
-                            if (ghostTargetEnglish || ghostTemplateText || ghostUserInput) {
-                              setGhostTargetEnglish('');
-                              setGhostTemplateText('');
-                              setGhostUserInput('');
-                              setGhostShowFullAnswer(false);
-                            }
-                          }}
-                          onPaste={handlePaste}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey)) {
-                              e.preventDefault();
-                              if (chatInput.trim()) {
-                                handleGenerateGhostText();
-                              } else {
-                                showToast('⚠️ 한국어 질문 또는 개념을 먼저 입력해주세요.');
-                              }
-                              return;
-                            }
-                            handleChatInputKeyDown(e);
-                          }}
-                          placeholder="한국어로 입력 (예: REST API vs GraphQL)... Enter로 영작 생성"
-                          className="w-full bg-transparent p-0 text-[0.625rem] text-slate-100 placeholder:text-slate-400 placeholder:text-[0.625rem] border-0 focus:ring-0 focus:outline-none resize-none min-h-[53px] max-h-[264px] overflow-y-auto outline-none font-sans leading-relaxed transition"
-                        />
-                      </div>
-
-                      {/* Right: Ghost Writer Interactive Practice Pane */}
-                      <div className="flex flex-col px-3 py-2.5 relative bg-transparent">
-                        {/* Interactive Ghost Text Canvas / Overlay Textarea */}
-                        <div
-                          style={{ height: `${chatInputHeight}px` }}
-                          className="relative w-full bg-transparent border-0 overflow-hidden"
-                        >
-                          {/* Background Layer: Ghost Template (Guide / Blank / Full Answer) */}
-                          <div className="absolute inset-0 p-0 text-[0.625rem] font-mono leading-relaxed select-none pointer-events-none whitespace-pre-wrap break-words overflow-y-auto">
-                            {isGhostLoading ? (
-                              <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-slate-400 gap-2">
-                                <Sparkles className="w-4 h-4 text-[#6366f1] animate-spin" />
-                                <span className="text-[0.625rem] text-emerald-300 font-medium animate-pulse">Ghost Text 생성 중...</span>
-                              </div>
-                            ) : ghostTargetEnglish ? (
-                              <div>
-                                {ghostShowFullAnswer || ghostWriterLevel === '100' ? (
-                                  <span className="text-[#6366f1] font-medium">{ghostTargetEnglish}</span>
-                                ) : (
-                                  <span className="text-teal-200/70">{ghostTemplateText}</span>
-                                )}
-                              </div>
-                            ) : chatInput.trim() ? (
-                              <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-slate-400 gap-1.5 pointer-events-auto">
-                                <div className="flex items-center gap-1.5 text-emerald-300 text-[0.625rem] font-medium">
-                                  <Sparkles className="w-3.5 h-3.5 text-[#6366f1] animate-pulse" />
-                                  <span>한국어 입력 완료 대기 중</span>
-                                </div>
-                                <p className="text-[0.625rem] text-slate-400 font-sans leading-relaxed">
-                                  <kbd className="px-1 py-0.5 rounded-xs bg-[#18181b] border border-[#27272a] text-teal-200 font-mono text-[0.5625rem]">Enter</kbd> 키 또는 상단 <span className="text-emerald-300 font-medium">[영작 생성]</span> 버튼을 누르면 고스트 텍스트가 생성됩니다.
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={() => handleGenerateGhostText()}
-                                  disabled={isGhostLoading}
-                                  className="mt-0.5 px-2 py-0.5 rounded-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-[0.625rem] font-medium flex items-center gap-1 transition cursor-pointer disabled:cursor-not-allowed"
-                                >
-                                  <Ghost className="w-2.5 h-2.5" />
-                                  <span>지금 Ghost Text 생성</span>
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-slate-400 gap-1">
-                                <Ghost className="w-4 h-4 text-slate-500 mb-0.5" />
-                                <p className="text-[0.625rem] text-slate-400 font-sans">
-                                  왼쪽에 한국어 프롬프트를 입력하면 여기에 영작 고스트 텍스트가 표시됩니다.
-                                </p>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Foreground Layer: User Real-Time Typing Textarea */}
-                          {ghostTargetEnglish && (
-                            <textarea
-                              ref={ghostInputRef}
-                              value={ghostUserInput}
-                              onChange={handleGhostUserInputChange}
-                              onKeyDown={handleGhostInputKeyDown}
-                              placeholder=""
-                              className="absolute inset-0 w-full h-full p-0 text-[0.625rem] font-mono leading-relaxed bg-transparent text-emerald-100 placeholder:text-transparent outline-none border-0 resize-none z-10 selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)]"
-                              spellCheck={false}
-                              autoFocus
-                            />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <textarea
-                    id="chat-input"
-                    ref={chatInputRef}
-                    style={{ height: `${chatInputHeight}px` }}
-                    value={chatInput}
-                    onFocus={() => {
-                      lastActiveTextTargetRef.current = 'chat';
-                    }}
-                    onInput={adjustChatInputHeight}
-                    onChange={handleChatInputChange}
-                    onPaste={handlePaste}
-                    onKeyDown={handleChatInputKeyDown}
-                    placeholder="질문 또는 요청 입력, '@'로 워크스페이스 폴더 및 문서 참조..."
-                    className="w-full bg-transparent px-3 py-2.5 text-xs text-slate-100 placeholder:text-slate-400 resize-none min-h-[53px] max-h-[264px] overflow-y-auto outline-none font-sans leading-relaxed"
-                  />
-                )}
-
-                {/* Bottom Input Action Bar - Clean Borderless Unified Layout */}
-                <div className="flex items-center justify-between px-2.5 pb-2 pt-0.5">
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="p-1 hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 rounded transition flex items-center justify-center cursor-pointer"
-                      title="이미지 또는 파일 첨부하기"
-                    >
-                      <Paperclip className="w-3.5 h-3.5" />
-                    </button>
-
-                    {/* 🔗 Add External Link Button */}
-                    <button
-                      type="button"
-                      onClick={() => setIsLinkInputOpen((prev) => !prev)}
-                      className={`p-1 hover:bg-white/[0.06] rounded transition flex items-center justify-center cursor-pointer ${
-                        isLinkInputOpen ? 'bg-white/[0.1] text-indigo-400' : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                      title="웹 링크 또는 GitHub URL 첨부"
-                    >
-                      <Link2 className="w-3.5 h-3.5" />
-                    </button>
-
-                    {/* @ Workspace Reference Trigger Button */}
-                    <button
-                      type="button"
-                      onClick={handleTriggerMention}
-                      className="p-1 hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 rounded transition flex items-center justify-center cursor-pointer"
-                      title="워크스페이스 폴더 및 파일 참조"
-                    >
-                      <AtSign className="w-3.5 h-3.5" />
-                    </button>
-
-                    {/* Inline VS-Code Style Model Selector & Routing Mode Toggle */}
-                    <div className="h-3.5 w-[1px] bg-white/[0.1] mx-0.5" />
-                    <InlineModelSelector
-                      selectedModel={selectedModel}
-                      onSelectModel={(m) => {
-                        setSelectedModel(m);
-                        setRoleModels((prev) => {
-                          const updated = { ...prev, chat: m };
-                          try {
-                            localStorage.setItem('aipodium_ai_role_models', JSON.stringify(updated));
-                          } catch {}
-                          return updated;
-                        });
-                      }}
-                      selectedMultiModels={selectedMultiModels}
-                      onSelectMultiModels={(list) => setSelectedMultiModels(list)}
-                      mode={mode}
-                      onModeChange={(newMode) => setMode(newMode)}
-                      availableChatModels={availableChatModels}
-                      onOpenRoleModal={() => setIsAiRoleModalOpen(true)}
-                      onShowToast={(msg, type) => showToast(msg, type)}
-                      provider={provider}
-                      onSelectProvider={handleProviderSelect}
-                      onRefreshOllama={async () => {
-                        await triggerFetchOllamaTags();
-                      }}
-                      localEndpoint={localEndpointAddress}
-                      onSelectDefaultLocalTag={(tag) => {
-                        setProvider('local-pc');
-                        setSelectedModel(tag);
-                        setDiscoveredLocalModels((prev) => {
-                          if (prev.some((m) => m.id === tag)) return prev;
-                          const next = [...prev, { id: tag, name: tag }];
-                          try {
-                            localStorage.setItem('aipodium_discovered_models', JSON.stringify(next));
-                          } catch {}
-                          return next;
-                        });
-                      }}
-                    />
-
-                    {/* Link Attachment Input Popover */}
-                    <LinkAttachmentInput
-                      isOpen={isLinkInputOpen}
-                      onClose={() => setIsLinkInputOpen(false)}
-                      onAddAttachment={handleAddOrUpdateAttachment}
-                      onShowToast={showToast}
-                    />
-
-                    {/* Ghost Writer Auto-Complete Button (Visible when GW is enabled in Preferences) */}
-                    {ghostWriterLevel !== 'off' && ghostTargetEnglish && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setGhostUserInput(ghostTargetEnglish);
-                          showToast('✨ 영작 자동 완성');
-                        }}
-                        className="px-1.5 py-0.5 rounded hover:bg-white/[0.06] text-indigo-400 hover:text-indigo-300 text-[0.625rem] font-mono flex items-center gap-1 transition cursor-pointer border border-white/[0.08]"
-                        title="정답 문장 자동 완성"
-                      >
-                        <Sparkles className="w-2.5 h-2.5 text-indigo-400" />
-                        <span>Tab 완성</span>
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1.5 ml-auto">
-                    {/* Secondary & Primary Send Buttons */}
-                    {ghostWriterLevel !== 'off' && (
-                      <button
-                        type="button"
-                        disabled={isAiLoading || chatAttachments.some((a) => a.isParsing) || (!chatInput.trim() && chatAttachments.length === 0)}
-                        onClick={() => {
-                          if (chatInput.trim() || chatAttachments.length > 0) {
-                            handleSendMessage(chatInput.trim(), {
-                              originalText: chatInput.trim(),
-                              ghostWriterLevel: 'off'
-                            });
-                          }
-                        }}
-                        className="hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed text-slate-400 hover:text-slate-200 h-6 w-6 flex items-center justify-center rounded transition cursor-pointer"
-                        title="한국어 원문으로 직접 전송"
-                      >
-                        <Languages className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-
-                    <button
-                      type="submit"
-                      disabled={isAiLoading || chatAttachments.some((a) => a.isParsing) || (!chatInput.trim() && chatAttachments.length === 0)}
-                      onClick={(e) => {
-                        if (ghostWriterLevel !== 'off') {
-                          e.preventDefault();
-                          handleSendGhostMessage();
-                        }
-                      }}
-                      className={`h-6 px-2.5 rounded transition flex items-center justify-center ${
-                        isAiLoading || chatAttachments.some((a) => a.isParsing) || (!chatInput.trim() && chatAttachments.length === 0)
-                          ? 'bg-zinc-800 text-zinc-500 border border-zinc-700/40 cursor-not-allowed'
-                          : 'bg-indigo-600/80 hover:bg-indigo-600 active:bg-indigo-700 text-white border border-indigo-500/40 cursor-pointer'
-                      }`}
-                      title={
-                        chatAttachments.some((a) => a.isParsing)
-                          ? '파일 분석 중...'
-                          : ghostWriterLevel !== 'off'
-                          ? '영작된 영어 프롬프트로 AI 전송'
-                          : '메시지 전송'
-                      }
-                    >
-                      {chatAttachments.some((a) => a.isParsing) ? (
-                        <RotateCw className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <Send className="w-3 h-3" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </form>
           </div>
 
         </div>

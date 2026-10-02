@@ -47,7 +47,7 @@
 ### [Phase 3] App.tsx 뷰 계층 구조화 (Layout Deconstruction)
 *목표: App.tsx를 순수 레이아웃 및 최상위 이벤트 오케스트레이터로 경량화*
 
-- [ ] **3.1. 좌측 대화 패널 분리 (`src/components/chat/ChatPanel.tsx`)**
+- [x] **3.1. 좌측 대화 패널 분리 (`src/components/chat/ChatPanel.tsx`)**
   - 메시지 리스트 뷰 및 스크롤 제어 로직 캡슐화
   - 하단 프롬프트 바(`UniversalPromptInput`)의 바닥 밀착형(Bottom-Flush) 플랫 스타일 안착
   - 고스트 라이터 모드 시 한/영 양방향 높이 동기화(`Math.max`) 로직 내장
@@ -79,6 +79,7 @@
 | **Phase 1** | 온보딩 모달 및 엔진 가동 검증 | 완료 | `AiEngineOnboardingModal.tsx`, `aiEngineCore.ts` |
 | **Phase 2** | AI 통신 어댑터 코어 분리 | 완료 | `src/services/ai/` |
 | **Phase 2** | 에디터 통합 모듈화 (`UnifiedEditor`) | 완료 | `src/components/editor/` |
-| **Phase 3** | App.tsx 패널 분리 (Chat / Explorer) | 대기 | `App.tsx` |
+| **Phase 3** | 대화 패널 분리 (`ChatPanel`) | 완료 | `src/components/chat/` |
+| **Phase 3** | 워크스페이스 탐색기 분리 (`WorkspaceDrawer`) | 대기 | `src/components/explorer/` |
 | **Phase 4** | 인라인 AI 메시지 번역 기능 | 대기 | `AiMessageBubble.tsx`, `AiClient` |
 | **Phase 4** | 도메인 프로필 주입 체계 정의 | 대기 | `src/services/ai/profiles/` |

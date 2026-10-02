@@ -9,7 +9,7 @@ import type {
   AiInferenceResult,
   AiChatMessage
 } from '../types';
-import { getEphemeralDecryptedApiKey } from '../../aiEngineCore';
+import { getEphemeralDecryptedApiKey } from '../utils';
 
 export class CloudAdapter implements AiProviderAdapter {
   async isAvailable(): Promise<boolean> {

@@ -6,7 +6,7 @@ import {
   AiEngineChoice,
   verifyGeminiApiKey,
   verifyGeminiApiKeyDetailed
-} from '../services/aiEngineCore';
+} from '../services/ai';
 
 export interface AiEngineOnboardingModalProps {
   isOpen: boolean;

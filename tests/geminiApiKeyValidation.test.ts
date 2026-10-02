@@ -4,7 +4,7 @@ import {
   verifyGeminiApiKey,
   verifyGeminiApiKeyDetailed,
   verifyApiKeyWithAiEngine
-} from '../src/services/aiEngineCore';
+} from '../src/services/ai';
 
 test('1. Sanitize Input (Trim Whitespace): handles leading/trailing spaces and newlines', async () => {
   const rawKeyWithWhitespace = '   AIzaSyAbc1234567890defGHIJKLMNopqrst   \n';

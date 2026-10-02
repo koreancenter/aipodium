@@ -46,7 +46,7 @@ import { HelpTooltip } from './HelpTooltip';
 import {
   verifyGeminiApiKey,
   verifyGeminiApiKeyDetailed
-} from '../services/aiEngineCore';
+} from '../services/ai';
 import {
   VENDOR_MODELS_MAP,
   CLOUD_MODEL_OPTIONS,

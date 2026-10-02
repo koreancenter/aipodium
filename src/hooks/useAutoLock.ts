@@ -7,7 +7,7 @@ import {
   hasMasterPinConfigured,
   purgeGuestWorkspaceData
 } from '../utils/securityCrypto';
-import { clearAiDecryptedKeyMemory } from '../services/aiEngineCore';
+import { clearAiDecryptedKeyMemory } from '../services/ai';
 
 export interface UseAutoLockOptions {
   /**

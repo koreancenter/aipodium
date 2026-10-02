@@ -407,7 +407,7 @@ test('In-Memory decryption and zeroing: aiEngineCore isolates keys to request sc
     executeAiRequest,
     getEphemeralDecryptedApiKey,
     clearAiDecryptedKeyMemory
-  } = await import('../src/services/aiEngineCore.ts');
+  } = await import('../src/services/ai/index.ts');
 
   const secretKey = 'AIzaSyEphemeralExecutionKey777';
   await authService.saveEncryptedApiKey(secretKey);
