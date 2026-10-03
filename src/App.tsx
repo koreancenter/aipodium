@@ -81,6 +81,14 @@ import { getOnboardingResponse } from './utils/onboardingBot';
 import { WebLlmBanner } from './components/WebLlmBanner';
 import { TopMenuBar } from './components/TopMenuBar';
 import {
+  calculateDefaultPanelWidths,
+  clampChatWidth,
+  clampExplorerWidth,
+  loadSavedPanelWidths,
+  savePanelWidths,
+  type PanelWidths,
+} from './utils/panelLayoutEngine';
+import {
   DEFAULT_FALLBACK_MODELS,
   RECOMMENDED_QUICK_MODELS,
   getModelDisplayName,
@@ -2240,6 +2248,92 @@ export default function App() {
   // Fixed Optimal Panels (Golden Ratio Layout) & Pure Collapsible State
   const mainContainerRef = useRef<HTMLElement>(null);
 
+  // Responsive Golden Ratio Panel Widths:
+  // - Ultra-wide (>= 1920px): Chat 28%, Editor 54%, Explorer 18%
+  // - Standard Laptop (1440px - 1600px): Chat 32%, Editor 48%, Explorer 20%
+  // - Clamps: Chat (280px ~ 520px), Explorer (200px ~ 420px)
+  // - Persisted in localStorage ('aipodium_panel_widths')
+  const [panelWidths, setPanelWidths] = useState<PanelWidths>(() => {
+    const saved = loadSavedPanelWidths();
+    if (saved) return saved;
+    const w = typeof window !== 'undefined' ? window.innerWidth : 1440;
+    return calculateDefaultPanelWidths(w);
+  });
+
+  const [activeResizer, setActiveResizer] = useState<'chat' | 'explorer' | null>(null);
+
+  // Smooth mouse drag resizer for Left Pane (ChatPanel <-> UnifiedEditor)
+  const handleLeftResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveResizer('chat');
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      moveEvent.preventDefault();
+      if (!mainContainerRef.current) return;
+      const mainRect = mainContainerRef.current.getBoundingClientRect();
+      const rawWidth = moveEvent.clientX - mainRect.left;
+      const clampedWidth = clampChatWidth(rawWidth);
+      setPanelWidths((prev) => {
+        if (prev.chat === clampedWidth) return prev;
+        return { ...prev, chat: clampedWidth };
+      });
+    };
+
+    const handleMouseUp = () => {
+      setActiveResizer(null);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      setPanelWidths((latest) => {
+        savePanelWidths(latest);
+        return latest;
+      });
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, []);
+
+  // Smooth mouse drag resizer for Right Pane (UnifiedEditor <-> WorkspaceDrawer)
+  const handleRightResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveResizer('explorer');
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      moveEvent.preventDefault();
+      if (!mainContainerRef.current) return;
+      const mainRect = mainContainerRef.current.getBoundingClientRect();
+      const rawWidth = mainRect.right - moveEvent.clientX;
+      const clampedWidth = clampExplorerWidth(rawWidth);
+      setPanelWidths((prev) => {
+        if (prev.explorer === clampedWidth) return prev;
+        return { ...prev, explorer: clampedWidth };
+      });
+    };
+
+    const handleMouseUp = () => {
+      setActiveResizer(null);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      setPanelWidths((latest) => {
+        savePanelWidths(latest);
+        return latest;
+      });
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, []);
+
   // Persist toggle states in localStorage:
   // aipodium_left_panel_visible: boolean
   // aipodium_right_panel_visible: boolean
@@ -2325,7 +2419,7 @@ export default function App() {
     setIsSection2Collapsed(false);
   }, []);
 
-  // Responsive fallback on mobile/tablet viewport resize
+  // Responsive fallback on mobile/tablet viewport resize and default golden ratio calculation
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1024) {
@@ -2333,10 +2427,33 @@ export default function App() {
         const savedRight = localStorage.getItem('aipodium_right_panel_visible');
         if (savedLeft === null) setIsLeftPanelVisible(false);
         if (savedRight === null) setIsRightPanelVisible(false);
+      } else {
+        const savedWidths = loadSavedPanelWidths();
+        if (!savedWidths) {
+          setPanelWidths(calculateDefaultPanelWidths(window.innerWidth));
+        }
       }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Lightweight Micro-Animation on Initial Load (runs strictly once upon initial mount)
+  const [hasInitialMounted, setHasInitialMounted] = useState<boolean>(false);
+  const [isInitialAnimating, setIsInitialAnimating] = useState<boolean>(true);
+
+  useEffect(() => {
+    const rAF = requestAnimationFrame(() => {
+      setHasInitialMounted(true);
+    });
+    const timer = setTimeout(() => {
+      setIsInitialAnimating(false);
+    }, 380);
+
+    return () => {
+      cancelAnimationFrame(rAF);
+      clearTimeout(timer);
+    };
   }, []);
 
   // Auto-collapse Section 1 (AI Chat) when a PDF tab is active to allocate wide space
@@ -8359,15 +8476,24 @@ ${projectEvents
           />
         )}
 
-        {/* ==================== LEFT PANE: AI Chat Area (Fixed 510px) ==================== */}
+        {/* ==================== LEFT PANE: AI Chat Area ==================== */}
         <section
-          className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 transition-all duration-200 ease-in-out z-40 lg:z-10 ${
+          style={isLeftPanelVisible ? { width: `${panelWidths.chat}px` } : undefined}
+          className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 ${
+            activeResizer === 'chat'
+              ? 'transition-none'
+              : isInitialAnimating
+              ? `transition-[opacity,transform] duration-200 ease-out delay-0 ${
+                  hasInitialMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
+                }`
+              : 'transition-all duration-200 ease-in-out'
+          } z-40 lg:z-10 ${
             isLeftPanelVisible
-              ? 'w-[320px] sm:w-[510px] lg:w-[510px] opacity-100 pointer-events-auto border-r border-[#222226] fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/80 lg:shadow-none'
+              ? 'opacity-100 pointer-events-auto border-r border-[#222226] fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/80 lg:shadow-none'
               : 'w-0 opacity-0 pointer-events-none overflow-hidden border-r-0'
           }`}
         >
-          <div className="w-[320px] sm:w-[510px] lg:w-[510px] h-full flex flex-col min-h-0 overflow-hidden">
+          <div style={{ width: `${panelWidths.chat}px` }} className="max-w-full h-full flex flex-col min-h-0 overflow-hidden">
             {/* Header */}
             <div className="bg-[#0f0f12] border-b border-[#222226] px-2 h-8 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0">
@@ -8746,11 +8872,29 @@ ${projectEvents
         </div>
         </section>
 
+        {/* ==================== RESIZE HANDLE: ChatPanel <-> UnifiedEditor ==================== */}
+        {isLeftPanelVisible && (
+          <div
+            id="chat-resizer-handle"
+            onMouseDown={handleLeftResizeStart}
+            className={`hidden lg:flex w-1 hover:w-1.5 -ml-0.5 z-30 cursor-col-resize items-center justify-center transition-all select-none group ${
+              activeResizer === 'chat' ? 'bg-[#6366f1] w-1.5' : 'hover:bg-[#6366f1] bg-transparent'
+            }`}
+            title="드래그하여 대화 패널 너비 조절 (280px ~ 520px)"
+          >
+            <div className="w-full h-full opacity-0 group-hover:opacity-100 bg-[#6366f1]/40" />
+          </div>
+        )}
+
         {/* ==================== CENTER PANE: Markdown Editor (Flex-1 Canvas) ==================== */}
         <section
           className={`h-full min-h-0 flex-1 min-w-0 flex flex-col bg-[#09090b] backdrop-blur-md overflow-hidden z-10 relative ${
-            isSection2Collapsed ? 'hidden' : ''
-          }`}
+            isInitialAnimating
+              ? `transition-[opacity,transform] duration-200 ease-out delay-[40ms] ${
+                  hasInitialMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
+                }`
+              : ''
+          } ${isSection2Collapsed ? 'hidden' : ''}`}
           onDragOver={(e) => {
             if (e.dataTransfer.types.includes('Files')) {
               e.preventDefault();
@@ -9674,8 +9818,31 @@ ${projectEvents
               </div>
         </section>
 
+        {/* ==================== RESIZE HANDLE: UnifiedEditor <-> WorkspaceDrawer ==================== */}
+        {isRightPanelVisible && (
+          <div
+            id="explorer-resizer-handle"
+            onMouseDown={handleRightResizeStart}
+            className={`hidden lg:flex w-1 hover:w-1.5 -mr-0.5 z-30 cursor-col-resize items-center justify-center transition-all select-none group ${
+              activeResizer === 'explorer' ? 'bg-[#6366f1] w-1.5' : 'hover:bg-[#6366f1] bg-transparent'
+            }`}
+            title="드래그하여 파일 탐색기 너비 조절 (200px ~ 420px)"
+          >
+            <div className="w-full h-full opacity-0 group-hover:opacity-100 bg-[#6366f1]/40" />
+          </div>
+        )}
+
         {/* ==================== RIGHT PANE: WorkspaceDrawer (Phase 3.2) ==================== */}
         <WorkspaceDrawer
+          width={panelWidths.explorer}
+          isResizing={activeResizer === 'explorer'}
+          className={
+            isInitialAnimating
+              ? `transition-[opacity,transform] duration-200 ease-out delay-[80ms] ${
+                  hasInitialMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
+                }`
+              : ''
+          }
           files={files}
           currentFile={currentActiveFile}
           onSelectFile={handleOpenFile}

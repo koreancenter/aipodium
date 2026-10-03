@@ -54,6 +54,8 @@ export interface WorkspaceDrawerProps {
   onOpenDriftModal?: () => void;
   isOpen: boolean;
   onToggleOpen: () => void;
+  width?: number;
+  isResizing?: boolean;
   className?: string;
 
   // Integrated Workspace State Props
@@ -89,6 +91,8 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
   onOpenDriftModal,
   isOpen,
   onToggleOpen,
+  width = 240,
+  isResizing = false,
   className = '',
   sessions = [],
   activeSessionId,
@@ -248,9 +252,12 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
 
       {/* Explorer Drawer Container */}
       <section
-        className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 transition-all duration-200 ease-in-out z-40 lg:z-10 ${
+        style={isOpen ? { width: `${width}px` } : undefined}
+        className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 ${
+          isResizing ? 'transition-none' : 'transition-all duration-200 ease-in-out'
+        } z-40 lg:z-10 ${
           isOpen
-            ? 'w-[240px] opacity-100 pointer-events-auto border-l border-[#222226] fixed lg:relative inset-y-0 right-0 shadow-2xl shadow-black/80 lg:shadow-none'
+            ? 'opacity-100 pointer-events-auto border-l border-[#222226] fixed lg:relative inset-y-0 right-0 shadow-2xl shadow-black/80 lg:shadow-none'
             : 'w-0 opacity-0 pointer-events-none overflow-hidden border-l-0'
         } ${className}`}
         onDragOver={(e) => {
@@ -266,7 +273,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
           }
         }}
       >
-        <div className="w-[240px] h-full flex flex-col min-h-0 overflow-hidden">
+        <div style={{ width: `${width}px` }} className="max-w-full h-full flex flex-col min-h-0 overflow-hidden">
           {/* Explorer Header Toolbar */}
           <div className="flex items-center justify-between h-8 px-2 bg-[#0f0f12] border-b border-[#222226] shrink-0 text-slate-300 select-none">
             <div className="flex items-center gap-1">
