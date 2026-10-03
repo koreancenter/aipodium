@@ -20,6 +20,7 @@ import { sanitizeHtml } from '../../utils/securitySanitizer';
 
 export interface TiptapWysiwygEditorRef {
   executeCommand: (formatType: string) => void;
+  getEditor: () => any;
   insertTable: (rows?: number, cols?: number) => void;
   insertFormattedMarkdown: (markdownText: string, metadataTitle?: string) => string;
   undo: () => void;
@@ -43,6 +44,19 @@ export interface TiptapWysiwygEditorProps {
   className?: string;
   fontSize?: number;
 }
+
+const getInitialContent = (md: string): string => {
+  if (!md || !md.trim()) return '';
+  const trimmed = md.trim();
+  if (
+    trimmed.startsWith('<!DOCTYPE') ||
+    trimmed.startsWith('<html') ||
+    (trimmed.startsWith('<div') && !trimmed.startsWith('<div class="markdown-body'))
+  ) {
+    return sanitizeHtml(trimmed);
+  }
+  return renderMarkdownToHtml(trimmed);
+};
 
 export const TiptapWysiwygEditor = memo(
   forwardRef<TiptapWysiwygEditorRef, TiptapWysiwygEditorProps>(
@@ -99,7 +113,7 @@ export const TiptapWysiwygEditor = memo(
             transformCopiedText: true
           })
         ],
-        content: value,
+        content: getInitialContent(value),
         editorProps: {
           attributes: {
             class: 'tiptap-prosemirror-body focus:outline-none min-h-[500px] leading-relaxed text-xs'
@@ -127,6 +141,7 @@ export const TiptapWysiwygEditor = memo(
       useImperativeHandle(
         ref,
         () => ({
+          getEditor: () => editor,
           executeCommand: (formatType: string) => {
             if (!editor) return;
             switch (formatType) {
@@ -146,24 +161,30 @@ export const TiptapWysiwygEditor = memo(
                 editor.chain().focus().toggleItalic().run();
                 break;
               case 'strike':
+              case 'strikethrough':
                 editor.chain().focus().toggleStrike().run();
                 break;
               case 'code':
                 editor.chain().focus().toggleCode().run();
                 break;
               case 'codeblock':
+              case 'codeBlock':
                 editor.chain().focus().toggleCodeBlock().run();
                 break;
               case 'bullet':
+              case 'bulletList':
                 editor.chain().focus().toggleBulletList().run();
                 break;
               case 'number':
+              case 'orderedList':
                 editor.chain().focus().toggleOrderedList().run();
                 break;
               case 'task':
+              case 'taskList':
                 editor.chain().focus().toggleTaskList().run();
                 break;
               case 'quote':
+              case 'blockquote':
                 editor.chain().focus().toggleBlockquote().run();
                 break;
               case 'rule':
@@ -267,8 +288,11 @@ export const TiptapWysiwygEditor = memo(
 
         try {
           const currentMd = (editor.storage as any).markdown?.getMarkdown() ?? '';
-          if (value !== currentMd) {
-            editor.commands.setContent(value, { emitUpdate: false });
+          const normValue = (value || '').trim();
+          const normCurrent = currentMd.trim();
+          if (normValue !== normCurrent) {
+            const parsedHtml = normValue ? getInitialContent(value) : '';
+            editor.commands.setContent(parsedHtml, { emitUpdate: false });
           }
         } catch (err) {
           console.error('Failed to set markdown content in Tiptap:', err);
@@ -304,6 +328,7 @@ export const TiptapWysiwygEditor = memo(
               </span>
               <button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor.chain().focus().addRowAfter().run()}
                 className="text-slate-300 hover:text-white px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer flex items-center gap-1"
                 title="아래에 행 추가"
@@ -313,6 +338,7 @@ export const TiptapWysiwygEditor = memo(
               </button>
               <button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor.chain().focus().addColumnAfter().run()}
                 className="text-slate-300 hover:text-white px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer flex items-center gap-1"
                 title="우측에 열 추가"
@@ -322,6 +348,7 @@ export const TiptapWysiwygEditor = memo(
               </button>
               <button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor.chain().focus().deleteRow().run()}
                 className="text-slate-400 hover:text-rose-400 px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer"
                 title="현재 행 삭제"
@@ -330,6 +357,7 @@ export const TiptapWysiwygEditor = memo(
               </button>
               <button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor.chain().focus().deleteColumn().run()}
                 className="text-slate-400 hover:text-rose-400 px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer"
                 title="현재 열 삭제"
@@ -339,6 +367,7 @@ export const TiptapWysiwygEditor = memo(
               <div className="h-3 w-px bg-white/[0.08] mx-0.5 shrink-0" />
               <button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor.chain().focus().deleteTable().run()}
                 className="text-rose-400 hover:text-rose-300 px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer flex items-center gap-1"
                 title="표 전체 삭제"

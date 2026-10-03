@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { UnifiedEditor } from './components/editor';
+import type { UnifiedEditorRef } from './components/editor';
 import { ChatPanel } from './components/chat';
 import { WorkspaceDrawer } from './components/explorer';
 import { PdfViewer, PdfViewerHandle, PdfViewerState } from './components/PdfViewer';
@@ -2478,6 +2479,7 @@ export default function App() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const tiptapEditorRef = useRef<TiptapWysiwygEditorRef>(null);
+  const unifiedEditorRef = useRef<UnifiedEditorRef>(null);
   const lastActiveTextTargetRef = useRef<'editor' | 'chat'>('chat');
 
   // Resolved list of prompt templates for top menu instant injection
@@ -4827,6 +4829,10 @@ export default function App() {
   // Smart Block & List Formatting (Heading, Bullet List, Numbered List, Task List, Quote, Code, etc.)
   const applyMarkdownBlockFormat = useCallback(
     (formatType: 'h1' | 'h2' | 'h3' | 'bullet' | 'number' | 'task' | 'quote' | 'rule' | 'link' | 'image' | 'bold' | 'italic' | 'code' | 'codeblock') => {
+      if (unifiedEditorRef.current?.applyFormat) {
+        unifiedEditorRef.current.applyFormat(formatType);
+        return;
+      }
       if (editorTab === 'wysiwyg' && tiptapEditorRef.current) {
         tiptapEditorRef.current.executeCommand(formatType);
         return;
@@ -9100,6 +9106,7 @@ ${projectEvents
                           {/* View Modes */}
                           <button
                             type="button"
+                            onMouseDown={(e) => e.preventDefault()}
                             onClick={() => {
                               setEditorTab('wysiwyg');
                               setSessions((prev) =>
@@ -9111,7 +9118,7 @@ ${projectEvents
                                 ? 'bg-[#18181b] text-indigo-400 font-medium'
                                 : 'text-slate-400 hover:text-white hover:bg-[#18181b]/60'
                             }`}
-                            title="서식 모드 (워드프로세서 방식)"
+                            title="서식 모드"
                             aria-label="서식 모드"
                           >
                             <FileText className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
@@ -9119,6 +9126,7 @@ ${projectEvents
 
                           <button
                             type="button"
+                            onMouseDown={(e) => e.preventDefault()}
                             onClick={() => {
                               setEditorTab('edit');
                               setSessions((prev) =>
@@ -9130,14 +9138,15 @@ ${projectEvents
                                 ? 'bg-[#18181b] text-white font-medium'
                                 : 'text-slate-400 hover:text-white hover:bg-[#18181b]/60'
                             }`}
-                            title="마크다운 소스 모드 (원본)"
-                            aria-label="마크다운 소스 모드"
+                            title="마크다운 모드"
+                            aria-label="마크다운 모드"
                           >
                             <Edit3 className="w-3.5 h-3.5 text-slate-200 shrink-0" />
                           </button>
 
                           <button
                             type="button"
+                            onMouseDown={(e) => e.preventDefault()}
                             onClick={() => {
                               setEditorTab('split');
                               setSessions((prev) =>
@@ -9149,7 +9158,7 @@ ${projectEvents
                                 ? 'bg-[#18181b] text-white font-medium'
                                 : 'text-slate-400 hover:text-white hover:bg-[#18181b]/60'
                             }`}
-                            title="실시간 분할 모드 (에디터 50% | 미리보기 50%)"
+                            title="실시간 분할 모드"
                             aria-label="실시간 분할 모드"
                           >
                             <BookOpen className="w-3.5 h-3.5 text-slate-200 shrink-0" />
@@ -9161,6 +9170,7 @@ ${projectEvents
                           {/* Save Document Button */}
                           <button
                             type="button"
+                            onMouseDown={(e) => e.preventDefault()}
                             onClick={handleSaveDocument}
                             className={`h-6 w-6 min-w-[24px] px-0 rounded-xs transition flex items-center justify-center relative font-mono cursor-pointer select-none shrink-0 ${
                               isCurrentFileDirty
@@ -9725,11 +9735,13 @@ ${projectEvents
                       />
                     ) : (
                       <UnifiedEditor
+                        ref={unifiedEditorRef}
                         value={editorContent}
                         onChange={handleEditorChange}
                         mode={editorTab}
                         onModeChange={(newMode) => {
-                          const targetTab: 'wysiwyg' | 'edit' = newMode === 'wysiwyg' ? 'wysiwyg' : 'edit';
+                          const targetTab: 'wysiwyg' | 'edit' | 'split' =
+                            newMode === 'wysiwyg' ? 'wysiwyg' : newMode === 'split' ? 'split' : 'edit';
                           setEditorTab(targetTab);
                           setSessions((prev) =>
                             prev.map((s) => (s.id === activeSessionId ? { ...s, editorTab: targetTab } : s))
