@@ -1176,18 +1176,20 @@ export default function App() {
   };
 
   const [chatInput, setChatInput] = useState<string>('');
-  const [chatInputHeight, setChatInputHeight] = useState<number>(53);
+  const [chatInputHeight, setChatInputHeight] = useState<number>(72);
   const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
   const [chatAttachments, setChatAttachments] = useState<ChatAttachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const mentionDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Auto-growing textarea logic: dynamically expands between 53px and 264px, scrollable beyond
+  // Auto-growing textarea logic: dynamically expands between 72px and 260px, scrollable beyond
   const adjustChatInputHeight = () => {
     if (chatInputRef.current) {
       chatInputRef.current.style.height = 'auto';
-      const nextHeight = Math.min(Math.max(chatInputRef.current.scrollHeight, 53), 264);
+      const leftScroll = chatInputRef.current.scrollHeight;
+      const rightScroll = 0;
+      const nextHeight = Math.min(Math.max(leftScroll, rightScroll, 88), 260);
       chatInputRef.current.style.height = `${nextHeight}px`;
       setChatInputHeight(nextHeight);
     }
@@ -1195,9 +1197,9 @@ export default function App() {
 
   const resetChatInputHeight = () => {
     if (chatInputRef.current) {
-      chatInputRef.current.style.height = '53px';
+      chatInputRef.current.style.height = '72px';
     }
-    setChatInputHeight(53);
+    setChatInputHeight(72);
   };
 
   useEffect(() => {

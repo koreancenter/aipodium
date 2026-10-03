@@ -137,48 +137,51 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
   const [mentionFilterType, setMentionFilterType] = useState<'all' | 'file' | 'folder'>('all');
 
   // Bidirectional Math.max height synchronization for dual-pane Ghost Writer
-  const [koreanHeight, setKoreanHeight] = useState<number>(53);
-  const [englishHeight, setEnglishHeight] = useState<number>(53);
+  const [koreanHeight, setKoreanHeight] = useState<number>(72);
+  const [englishHeight, setEnglishHeight] = useState<number>(72);
 
   const syncedHeight = useMemo(() => {
-    return Math.min(Math.max(koreanHeight, englishHeight, 53), 264);
+    return Math.min(Math.max(koreanHeight, englishHeight, 72), 260);
   }, [koreanHeight, englishHeight]);
 
-  const adjustHeights = useCallback(() => {
-    let kH = 53;
-    let eH = 53;
+  const adjustChatInputHeight = useCallback(() => {
+    let leftScroll = 72;
+    let rightScroll = 72;
 
     if (chatInputRef.current) {
       chatInputRef.current.style.height = 'auto';
-      kH = chatInputRef.current.scrollHeight;
+      leftScroll = chatInputRef.current.scrollHeight;
     }
     if (ghostInputRef.current) {
       ghostInputRef.current.style.height = 'auto';
-      eH = ghostInputRef.current.scrollHeight;
+      rightScroll = ghostInputRef.current.scrollHeight;
     }
 
-    setKoreanHeight(kH);
-    setEnglishHeight(eH);
+    setKoreanHeight(leftScroll);
+    setEnglishHeight(rightScroll);
 
-    const targetHeight = Math.min(Math.max(kH, eH, 53), 264);
+    const nextHeight = Math.min(Math.max(leftScroll, rightScroll, 88), 260);
     if (chatInputRef.current) {
-      chatInputRef.current.style.height = `${targetHeight}px`;
+      chatInputRef.current.style.height = `${nextHeight}px`;
     }
     if (ghostInputRef.current) {
-      ghostInputRef.current.style.height = `${targetHeight}px`;
+      ghostInputRef.current.style.height = `${nextHeight}px`;
     }
   }, [chatInputRef]);
 
+  // Maintain adjustHeights alias for JSX event handlers
+  const adjustHeights = adjustChatInputHeight;
+
   useEffect(() => {
     if (!chatInput) {
-      setKoreanHeight(53);
-      setEnglishHeight(53);
-      if (chatInputRef.current) chatInputRef.current.style.height = '53px';
-      if (ghostInputRef.current) ghostInputRef.current.style.height = '53px';
+      setKoreanHeight(72);
+      setEnglishHeight(72);
+      if (chatInputRef.current) chatInputRef.current.style.height = '72px';
+      if (ghostInputRef.current) ghostInputRef.current.style.height = '72px';
     } else {
-      adjustHeights();
+      adjustChatInputHeight();
     }
-  }, [chatInput, ghostUserInput, ghostTargetEnglish, adjustHeights, chatInputRef]);
+  }, [chatInput, ghostUserInput, ghostTargetEnglish, adjustChatInputHeight, chatInputRef]);
 
   // Mention menu outside click dismissal
   useEffect(() => {
@@ -503,7 +506,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                   handleChatInputKeyDown(e);
                 }}
                 placeholder="한국어로 입력 (예: REST API vs GraphQL)... Enter로 영작 생성"
-                className="w-full bg-transparent p-0 text-[0.625rem] text-slate-100 placeholder:text-slate-400 border-0 focus:ring-0 focus:outline-none resize-none min-h-[53px] max-h-[264px] overflow-y-auto outline-none font-sans leading-relaxed transition"
+                className="w-full bg-transparent p-0 text-[0.625rem] text-slate-100 placeholder:text-slate-400 border-0 focus:ring-0 focus:outline-none resize-none min-h-[72px] max-h-[260px] overflow-y-auto outline-none font-sans leading-relaxed transition"
               />
             </div>
 
@@ -581,7 +584,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
           onPaste={handlePaste}
           onKeyDown={handleChatInputKeyDown}
           placeholder="질문 또는 요청 입력, '@'로 워크스페이스 폴더 및 문서 참조..."
-          className="w-full bg-transparent px-3 py-2.5 text-xs text-slate-100 placeholder:text-slate-400 resize-none min-h-[53px] max-h-[264px] overflow-y-auto outline-none font-sans leading-relaxed border-0 focus:ring-0"
+          className="w-full bg-transparent px-3 py-2.5 text-xs text-slate-100 placeholder:text-slate-400 resize-none min-h-[72px] max-h-[260px] overflow-y-auto outline-none font-sans leading-relaxed border-0 focus:ring-0"
         />
       )}
 
