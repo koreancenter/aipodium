@@ -72,6 +72,8 @@ export interface WorkspaceDrawerProps {
   onOpenWorkspaceModal?: () => void;
   githubConfig?: GithubConfig;
   githubSyncStatus?: GitHubSyncStatus;
+  openFolders?: Record<string, boolean>;
+  onToggleFolder?: (folderKey: string) => void;
   docFileInputRef?: React.RefObject<HTMLInputElement | null>;
   onImportDocumentFiles?: (files: File[]) => void;
 }
@@ -103,6 +105,8 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
   onOpenWorkspaceModal,
   githubConfig,
   githubSyncStatus,
+  openFolders: externalOpenFolders,
+  onToggleFolder: onExternalToggleFolder,
   docFileInputRef,
   onImportDocumentFiles,
 }) => {
@@ -139,6 +143,33 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
       localStorage.setItem('aipodium_open_folders', JSON.stringify(openFolders));
     } catch {}
   }, [openFolders]);
+
+  // Auto-expand folder when currentFile is selected or created inside a folder
+  useEffect(() => {
+    let folderToOpen: string | null = null;
+    if (currentFile && currentFile.includes('/')) {
+      folderToOpen = currentFile.split('/')[0];
+    } else if (currentFile && fileFolders && fileFolders[currentFile]) {
+      folderToOpen = fileFolders[currentFile];
+    }
+    if (folderToOpen) {
+      setOpenFolders((prev) => {
+        if (prev[folderToOpen!] === true) return prev;
+        const next = { ...prev, [folderToOpen!]: true };
+        try {
+          localStorage.setItem('aipodium_open_folders', JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+    }
+  }, [currentFile, fileFolders]);
+
+  // Sync external openFolders if provided
+  useEffect(() => {
+    if (externalOpenFolders) {
+      setOpenFolders((prev) => ({ ...prev, ...externalOpenFolders }));
+    }
+  }, [externalOpenFolders]);
 
   const fileTreeRef = useRef<HTMLDivElement>(null);
   const [focusedTreeItemId, setFocusedTreeItemId] = useState<string | null>(null);

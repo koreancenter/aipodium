@@ -2546,10 +2546,7 @@ export default function App() {
 
         // 3. Open Tabs
         if (savedOpenTabs && Array.isArray(savedOpenTabs)) {
-          let cleanedTabs = savedOpenTabs.filter((t) => !isLegacySampleFile(t) && t !== 'tech_notes.md' && (resolvedFiles[t] || t.startsWith('Untitled-')));
-          if (cleanedTabs.includes('welcome.md') && cleanedTabs.includes('ai_guide.md')) {
-            cleanedTabs = cleanedTabs.filter((t) => t !== 'ai_guide.md');
-          }
+          let cleanedTabs = savedOpenTabs.filter((t) => !isLegacySampleFile(t) && t !== 'tech_notes.md' && t !== 'welcome.md' && t !== 'ai_guide.md' && (resolvedFiles[t] || t.startsWith('Untitled-')));
           setOpenTabs(cleanedTabs.length > 0 ? cleanedTabs : ['Untitled-1']);
         }
 
@@ -2568,7 +2565,7 @@ export default function App() {
         if (savedProjects && Array.isArray(savedProjects)) {
           cleanedSessions = savedProjects.filter(
             (s) => !isLegacySampleId(s.id) && !isLegacySampleTitle(s.title)
-          ).map((s) => s.fileName === 'tech_notes.md' ? { ...s, fileName: 'Untitled-1', editorContent: '' } : s);
+          ).map((s) => (s.fileName === 'tech_notes.md' || s.fileName === 'welcome.md' || s.fileName === 'ai_guide.md') ? { ...s, fileName: 'Untitled-1', editorContent: '' } : s);
         }
         if (cleanedSessions.length === 0) {
           cleanedSessions = [defaultSession];
@@ -2582,14 +2579,17 @@ export default function App() {
 
         const activeSess = cleanedSessions.find((s) => s.id === targetId) || cleanedSessions[0];
         if (activeSess) {
-          if (activeSess.fileName === 'tech_notes.md') {
+          if (activeSess.fileName === 'tech_notes.md' || activeSess.fileName === 'welcome.md' || activeSess.fileName === 'ai_guide.md') {
             activeSess.fileName = 'Untitled-1';
             activeSess.editorContent = '';
           }
-          const initialFileName = isLegacySampleFile(activeSess.fileName) ? 'Untitled-1' : (activeSess.fileName || 'Untitled-1');
-          const initialContent = activeSess.editorContent !== undefined
+          const isGuideOrLegacy = isLegacySampleFile(activeSess.fileName) || activeSess.fileName === 'welcome.md' || activeSess.fileName === 'ai_guide.md';
+          const initialFileName = isGuideOrLegacy ? 'Untitled-1' : (activeSess.fileName || 'Untitled-1');
+          const initialContent = isGuideOrLegacy
+            ? ''
+            : (activeSess.editorContent !== undefined
             ? activeSess.editorContent
-            : (resolvedFiles[initialFileName] || '');
+            : (resolvedFiles[initialFileName] || ''));
           // 앱 초기 시작 시 항상 서식 모드(워드프로세서)로 시작
           const initialTab: 'wysiwyg' | 'edit' | 'split' | 'preview' = 'wysiwyg';
 
@@ -2877,15 +2877,9 @@ export default function App() {
         delete loadedFiles['redis_caching_guide.md'];
         if (loadedFiles['welcome.md'] && (loadedFiles['welcome.md'].includes('🚀') || loadedFiles['welcome.md'].startsWith('# '))) {
           loadedFiles['welcome.md'] = GUEST_SAMPLE_FILES['welcome.md'];
-          if (loadedActiveFile === 'welcome.md' || !loadedActiveFile) {
-            loadedContent = GUEST_SAMPLE_FILES['welcome.md'];
-          }
         }
         if (loadedFiles['ai_guide.md'] && (loadedFiles['ai_guide.md'].includes('🤖') || loadedFiles['ai_guide.md'].startsWith('# '))) {
           loadedFiles['ai_guide.md'] = GUEST_SAMPLE_FILES['ai_guide.md'];
-          if (loadedActiveFile === 'ai_guide.md') {
-            loadedContent = GUEST_SAMPLE_FILES['ai_guide.md'];
-          }
         }
         delete loadedFiles['rest_graphql_comparison.md'];
         delete loadedFiles['redis_caching_guide.md'];
@@ -2903,20 +2897,19 @@ export default function App() {
         });
         setFileFolders(loadedFolders);
       }
-      if (loadedContent !== null) {
-        setEditorContent(loadedActiveFile === 'tech_notes.md' ? '' : loadedContent);
-      }
-      if (loadedActiveFile) {
-        const safeActiveFile = (loadedActiveFile === 'rest_graphql_comparison.md' || loadedActiveFile === 'redis_caching_guide.md' || loadedActiveFile === 'tech_notes.md')
-          ? 'Untitled-1'
-          : loadedActiveFile;
-        setCurrentActiveFile(safeActiveFile);
-        setFileName(safeActiveFile);
+      const isGuideOrLegacyActive = !loadedActiveFile || loadedActiveFile === 'welcome.md' || loadedActiveFile === 'ai_guide.md' || loadedActiveFile === 'rest_graphql_comparison.md' || loadedActiveFile === 'redis_caching_guide.md' || loadedActiveFile === 'tech_notes.md';
+      const safeActiveFile = isGuideOrLegacyActive ? 'Untitled-1' : loadedActiveFile;
+      setCurrentActiveFile(safeActiveFile);
+      setFileName(safeActiveFile);
+      if (safeActiveFile === 'Untitled-1') {
+        setEditorContent('');
+      } else if (loadedContent !== null) {
+        setEditorContent(loadedContent);
       }
       if (loadedSessions && Array.isArray(loadedSessions) && loadedSessions.length > 0) {
         const safeSessions = loadedSessions.filter(
           (s) => s.id !== 'session-rest-graphql' && s.id !== 'session-redis' && !s.title.includes('REST API') && !s.title.includes('Redis')
-        ).map((s) => s.fileName === 'tech_notes.md' ? { ...s, fileName: 'Untitled-1', editorContent: '' } : s);
+        ).map((s) => (s.fileName === 'tech_notes.md' || s.fileName === 'welcome.md' || s.fileName === 'ai_guide.md') ? { ...s, fileName: 'Untitled-1', editorContent: '' } : s);
         setSessions(safeSessions.length > 0 ? safeSessions : [
           {
             id: 'session-default',
@@ -2936,10 +2929,7 @@ export default function App() {
         setActiveSessionId(safeActiveSessId);
       }
       if (loadedOpenTabs && Array.isArray(loadedOpenTabs)) {
-        let safeTabs = loadedOpenTabs.filter((t) => t !== 'rest_graphql_comparison.md' && t !== 'redis_caching_guide.md' && t !== 'tech_notes.md');
-        if (safeTabs.includes('welcome.md') && safeTabs.includes('ai_guide.md')) {
-          safeTabs = safeTabs.filter((t) => t !== 'ai_guide.md');
-        }
+        let safeTabs = loadedOpenTabs.filter((t) => t !== 'rest_graphql_comparison.md' && t !== 'redis_caching_guide.md' && t !== 'tech_notes.md' && t !== 'welcome.md' && t !== 'ai_guide.md');
         setOpenTabs(safeTabs.length > 0 ? safeTabs : ['Untitled-1']);
       }
 
@@ -3200,24 +3190,65 @@ export default function App() {
     }
   }, [messages, isAiLoading, activeSessionId]);
 
-  // REQUIREMENT 4: [에디터로 보내기 ➔] Logic
+  // REQUIREMENT 4: [에디터로 보내기 ➔] Logic & Guide Protection Guard
   const handleSendToEditor = (msgText: string) => {
     const timestamp = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     const headerTitle = `AI 응답 수집 - ${timestamp}`;
 
-    if (editorTab === 'wysiwyg' && tiptapEditorRef.current) {
+    // Protect Guide Files from Being Overwritten by Chat Responses (Requirement 3)
+    const isGuideFile =
+      !currentActiveFile ||
+      currentActiveFile === 'welcome.md' ||
+      currentActiveFile === 'ai_guide.md' ||
+      currentActiveFile.startsWith('guide/') ||
+      fileFolders[currentActiveFile] === '가이드 & 도움말';
+
+    let targetFilePath = currentActiveFile;
+    const currentFolder = activeSession?.title || 'AI 지식 비서';
+
+    if (isGuideFile || currentActiveFile === 'Untitled-1') {
+      targetFilePath = `${currentFolder}/notes_${Date.now().toString().slice(-4)}.md`;
+
+      setOpenFolders((prev) => ({
+        ...prev,
+        [currentFolder]: true,
+      }));
+      try {
+        const saved = JSON.parse(localStorage.getItem('aipodium_open_folders') || '{}');
+        saved[currentFolder] = true;
+        localStorage.setItem('aipodium_open_folders', JSON.stringify(saved));
+      } catch {}
+
+      setFileFolders((prev) => ({
+        ...prev,
+        [targetFilePath]: currentFolder,
+      }));
+      setCurrentActiveFile(targetFilePath);
+      setFileName(targetFilePath);
+      setOpenTabs((prev) => {
+        const withoutGuides = prev.filter((t) => t !== 'welcome.md' && t !== 'ai_guide.md');
+        return [targetFilePath, ...withoutGuides];
+      });
+    }
+
+    const baseContent = (isGuideFile || currentActiveFile === 'Untitled-1')
+      ? `# ${currentFolder}\n\n`
+      : editorContent;
+
+    if (editorTab === 'wysiwyg' && tiptapEditorRef.current && !isGuideFile && currentActiveFile !== 'Untitled-1') {
       // 1. 서식 모드 (워드프로세서 방식): 서식 그대로 리치 텍스트 노드로 주입
       const syncedMd = tiptapEditorRef.current.insertFormattedMarkdown(msgText, headerTitle);
       const updated = syncedMd || (editorContent ? `${editorContent}\n\n---\n> [${headerTitle}]\n\n${msgText.trim()}\n` : `> [${headerTitle}]\n\n${msgText.trim()}\n`);
 
       setEditorContent(updated);
+      setFiles((prev) => ({ ...prev, [targetFilePath]: updated }));
       setSessions((prev) =>
         prev.map((s) =>
           s.id === activeSessionId
             ? {
                 ...s,
                 editorContent: updated,
-                fileName: currentActiveFile
+                fileName: targetFilePath
               }
             : s
         )
@@ -3226,35 +3257,14 @@ export default function App() {
       showToast('✓ AI 답변이 서식 모드(워드프로세서)에 서식 그대로 주입되었습니다.');
     } else {
       // 2. 마크다운 모드 (edit, split, preview): 마크다운 문법 원문으로 주입
-      const isDocEmpty = !editorContent.trim();
+      const isDocEmpty = !baseContent.trim();
       const formattedAppend = isDocEmpty
         ? `> [${headerTitle}]\n\n` + msgText.trim() + `\n`
         : `\n\n---\n> [${headerTitle}]\n\n` + msgText.trim() + `\n`;
 
-      const textarea = editorRef.current;
-      let updated: string;
-
-      if (textarea && typeof textarea.selectionStart === 'number' && document.activeElement === textarea) {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        updated = editorContent.slice(0, start) + formattedAppend + editorContent.slice(end);
-        setEditorContent(updated);
-        setTimeout(() => {
-          if (editorRef.current) {
-            const newCursor = start + formattedAppend.length;
-            editorRef.current.setSelectionRange(newCursor, newCursor);
-            editorRef.current.focus();
-          }
-        }, 30);
-      } else {
-        updated = editorContent ? editorContent + formattedAppend : formattedAppend.trimStart();
-        setEditorContent(updated);
-        setTimeout(() => {
-          if (editorRef.current) {
-            editorRef.current.scrollTop = editorRef.current.scrollHeight;
-          }
-        }, 30);
-      }
+      const updated = baseContent ? baseContent + formattedAppend : formattedAppend.trimStart();
+      setEditorContent(updated);
+      setFiles((prev) => ({ ...prev, [targetFilePath]: updated }));
 
       setSessions((prev) =>
         prev.map((s) =>
@@ -3262,18 +3272,18 @@ export default function App() {
             ? {
                 ...s,
                 editorContent: updated,
-                fileName: currentActiveFile
+                fileName: targetFilePath
               }
             : s
         )
       );
 
-      showToast('✓ AI 답변이 마크다운 모드에 마크다운 문법으로 주입되었습니다.');
+      showToast(`✓ AI 답변이 '${targetFilePath}' 문서에 성공적으로 수집되었습니다.`);
     }
 
     const fullTimeStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     setRecentAiChanges({
-      file: currentActiveFile,
+      file: targetFilePath,
       source: 'AI 대화 응답 수집',
       timestamp: fullTimeStr,
       preview: msgText.trim().slice(0, 65) + '...'
@@ -4214,10 +4224,13 @@ export default function App() {
     // 2. Filter openTabs to ensure they only contain valid existing files
     const sanitizedTabs = openTabs.filter((tab) => allValidFiles.has(tab));
 
-    // If all open tabs were invalid, fallback to the first available file
+    // If all open tabs were invalid, fallback to the first available non-guide file or blank workspace buffer
     let finalTabs = sanitizedTabs;
     if (sanitizedTabs.length === 0) {
-      const fallbackFile = validFileKeys[0] || validUntitledKeys[0] || 'welcome.md';
+      const nonGuideFiles = validFileKeys.filter(
+        (k) => k !== 'welcome.md' && k !== 'ai_guide.md' && !k.startsWith('guide/') && fileFolders[k] !== '가이드 & 도움말'
+      );
+      const fallbackFile = nonGuideFiles[0] || validUntitledKeys[0] || 'Untitled-1';
       finalTabs = [fallbackFile];
     }
 
@@ -7473,19 +7486,54 @@ ${projectEvents
       currentActiveSession.messages.length === 0 ||
       !currentActiveSession.messages.some((m) => m.sender === 'user');
 
+    let freshNewFilePath: string | null = null;
+
     if (isFreshSession) {
       // 1. Auto-generate a concise project title from the first prompt text (strip punctuation, truncate to 20 chars)
       const rawFirstText = userMessageText || attachedFiles[0]?.name || '새 프로젝트';
       const autoTitle = generateProjectTitleFromPrompt(rawFirstText);
+      const folderName = autoTitle;
+
+      // 1. Fix Auto-Created Project Folder File Routing:
+      // Do NOT write or append AI responses into the previously active file (welcome.md).
+      // Ensure a new document path is created inside that new folder:
+      const newFilePath = `${folderName}/notes_${Date.now().toString().slice(-4)}.md`;
+      freshNewFilePath = newFilePath;
+
+      // Set currentFile immediately to newFilePath
+      setFiles((prev) => ({
+        ...prev,
+        [newFilePath]: '',
+      }));
+      setFileFolders((prev) => ({
+        ...prev,
+        [newFilePath]: folderName,
+      }));
+      setCurrentActiveFile(newFilePath);
+      setFileName(newFilePath);
+      setEditorContent('');
+
+      // In the file tree, ensure the newly created folder is automatically expanded so the newly created document is visibly selected under it.
+      setOpenFolders((prev) => ({
+        ...prev,
+        [folderName]: true,
+      }));
+      try {
+        const saved = JSON.parse(localStorage.getItem('aipodium_open_folders') || '{}');
+        saved[folderName] = true;
+        localStorage.setItem('aipodium_open_folders', JSON.stringify(saved));
+      } catch {}
+
+      setOpenTabs((prev) => {
+        const withoutGuides = prev.filter((t) => t !== 'welcome.md' && t !== 'ai_guide.md');
+        return [newFilePath, ...withoutGuides.filter((t) => t !== newFilePath)];
+      });
 
       // 2. Create and persist a new project record into IndexedDB (workspaceStorageService.createProject(title))
-      const currentFileName = currentActiveSession?.fileName && currentActiveSession.fileName !== 'tech_notes.md'
-        ? currentActiveSession.fileName
-        : 'Untitled-1';
       const newProject = await workspaceStorageService.createProject(autoTitle, {
-        fileName: currentFileName,
-        editorContent: currentActiveSession?.editorContent !== undefined ? currentActiveSession.editorContent : '',
-        editorTab: currentActiveSession?.editorTab || 'wysiwyg',
+        fileName: newFilePath,
+        editorContent: '',
+        editorTab: 'wysiwyg',
         messages: [userMsg],
       });
 
@@ -7503,6 +7551,47 @@ ${projectEvents
 
       // Smooth Drawer Auto-Collapse: Automatically collapse the left Project List panel
       setIsProjectListOpen(false);
+    } else {
+      // 3. Protect Guide Files from Being Overwritten by Chat Responses (Requirement 3)
+      // If currentFile starts with guide/ or equals welcome.md / ai_guide.md, block automatic response appending to it.
+      // Force the creation of a new file inside the current project session folder instead.
+      const isGuideActive =
+        !currentActiveFile ||
+        currentActiveFile === 'welcome.md' ||
+        currentActiveFile === 'ai_guide.md' ||
+        currentActiveFile.startsWith('guide/') ||
+        fileFolders[currentActiveFile] === '가이드 & 도움말';
+
+      if (isGuideActive) {
+        const currentFolder = currentActiveSession?.title || 'AI 지식 비서';
+        const newFilePath = `${currentFolder}/notes_${Date.now().toString().slice(-4)}.md`;
+        freshNewFilePath = newFilePath;
+
+        setFiles((prev) => ({
+          ...prev,
+          [newFilePath]: '',
+        }));
+        setFileFolders((prev) => ({
+          ...prev,
+          [newFilePath]: currentFolder,
+        }));
+        setCurrentActiveFile(newFilePath);
+        setFileName(newFilePath);
+        setEditorContent('');
+        setOpenFolders((prev) => ({
+          ...prev,
+          [currentFolder]: true,
+        }));
+        try {
+          const saved = JSON.parse(localStorage.getItem('aipodium_open_folders') || '{}');
+          saved[currentFolder] = true;
+          localStorage.setItem('aipodium_open_folders', JSON.stringify(saved));
+        } catch {}
+        setOpenTabs((prev) => {
+          const withoutGuides = prev.filter((t) => t !== 'welcome.md' && t !== 'ai_guide.md');
+          return [newFilePath, ...withoutGuides.filter((t) => t !== newFilePath)];
+        });
+      }
     }
 
     // Route to Onboarding Interactive Guide Bot for guest users without API keys or Ollama
@@ -7691,6 +7780,25 @@ ${projectEvents
 
             if (!isUserScrolledUpRef.current && chatContainerRef.current) {
               chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+            }
+
+            if (freshNewFilePath) {
+              setFiles((prev) => ({
+                ...prev,
+                [freshNewFilePath!]: currentText,
+              }));
+              setEditorContent((prev) => (!prev.trim() ? currentText : prev));
+              setSessions((prev) =>
+                prev.map((s) =>
+                  s.id === targetSessionId
+                    ? {
+                        ...s,
+                        editorContent: currentText,
+                        fileName: freshNewFilePath!,
+                      }
+                    : s
+                )
+              );
             }
 
             completedStreams += 1;
@@ -8211,6 +8319,32 @@ ${projectEvents
         </div>
 
       </header>
+
+      {/* WebLLM Download Progress & Guide Banner when activeProvider === 'webllm' */}
+      {(selectedModel === WEB_LLM_MODEL_ID || webllmProgress.isLoading) && (!isWebLlmBannerDismissed || webllmProgress.isLoading) && (
+        <WebLlmBanner
+          isSupported={webllmProgress.isSupported ?? isWebGPUSupported()}
+          isLoading={webllmProgress.isLoading}
+          isModelLoading={webllmProgress.isLoading}
+          isReady={webllmProgress.isReady}
+          progressText={webllmProgress.progressText}
+          progressPercent={webllmProgress.progressPercent}
+          downloadProgress={webllmProgress.progressPercent}
+          memoryGuide="권장 메모리: 4GB 이상 · 가중치 캐싱 약 1.5GB"
+          onStartDownload={handleStartWebLlmDownload}
+          onSelectModel={() => {
+            setSelectedModel(WEB_LLM_MODEL_ID);
+            setRoleModels((prev) => ({ ...prev, chat: WEB_LLM_MODEL_ID }));
+            showToast('✓ 브라우저 로컬 AI가 기본 대화 모델로 적용되었습니다.');
+          }}
+          onDismiss={() => {
+            setIsWebLlmBannerDismissed(true);
+            try {
+              localStorage.setItem('aipodium_webllm_banner_dismissed', 'true');
+            } catch {}
+          }}
+        />
+      )}
 
       {/* MAIN AREA: 3-PANE FIXED GOLDEN RATIO LAYOUT WITH COLLAPSIBLE SIDEBARS */}
       <main ref={mainContainerRef} className="flex-1 flex items-stretch h-full min-h-0 overflow-hidden relative w-full">
@@ -9567,6 +9701,13 @@ ${projectEvents
           isCurrentFileDirty={isCurrentFileDirty}
           searchQuery={searchQuery}
           onSearchQueryChange={setSearchQuery}
+          openFolders={openFolders}
+          onToggleFolder={(folderKey) =>
+            setOpenFolders((prev) => ({
+              ...prev,
+              [folderKey]: !(prev[folderKey] ?? true),
+            }))
+          }
           googleUser={googleUser}
           onOpenGoogleDrive={handleOpenGoogleDrive}
           onOpenWorkspaceModal={() => setIsWorkspaceModalOpen(true)}
