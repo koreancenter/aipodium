@@ -21,6 +21,7 @@ import { OptimizedEditor } from './OptimizedEditor';
 import { FreeformDrawingOverlay } from './FreeformDrawingOverlay';
 import { TableGridPicker } from './TableGridPicker';
 import { TiptapWysiwygEditorRef } from './TiptapWysiwygEditor';
+import { renderMarkdownToHtml as defaultRenderMarkdownToHtml } from '../../utils/markdownParser';
 
 export interface UnifiedEditorRef {
   applyFormat: (action: string) => void;
@@ -47,6 +48,7 @@ export interface UnifiedEditorProps {
   editorRef?: React.RefObject<HTMLTextAreaElement | null>;
   tiptapRef?: React.Ref<TiptapWysiwygEditorRef>;
   ref?: React.Ref<UnifiedEditorRef>;
+  apiRef?: React.Ref<UnifiedEditorRef>;
   isDrawingOpen?: boolean;
   onCloseDrawing?: () => void;
   showTablePicker?: boolean;
@@ -57,31 +59,33 @@ export interface UnifiedEditorProps {
   className?: string;
 }
 
-export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
-  value,
-  onChange,
-  mode,
-  onModeChange,
-  readOnly = false,
-  fontSize = 14,
-  theme,
-  onSave,
-  onCursorActivity,
-  placeholder = '# 마크다운 노트\n\n내용을 작성하세요...',
-  renderMarkdownToHtml = (md) => md,
-  onFocus,
-  editorRef,
-  tiptapRef,
-  ref,
-  isDrawingOpen = false,
-  onCloseDrawing,
-  showTablePicker = false,
-  onCloseTablePicker,
-  tableAnchorRef,
-  onInsertTable,
-  onToast,
-  className = '',
-}) => {
+export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
+  const {
+    value,
+    onChange,
+    mode,
+    onModeChange,
+    readOnly = false,
+    fontSize = 14,
+    theme,
+    onSave,
+    onCursorActivity,
+    placeholder = '# 마크다운 노트\n\n내용을 작성하세요...',
+    renderMarkdownToHtml = defaultRenderMarkdownToHtml,
+    onFocus,
+    editorRef,
+    tiptapRef,
+    ref,
+    apiRef,
+    isDrawingOpen = false,
+    onCloseDrawing,
+    showTablePicker = false,
+    onCloseTablePicker,
+    tableAnchorRef,
+    onInsertTable,
+    onToast,
+    className = '',
+  } = props;
   const [internalMode, setInternalMode] = useState<string>(mode || 'wysiwyg');
   const internalEditorRef = useRef<HTMLTextAreaElement | null>(null);
   const internalTiptapRef = useRef<TiptapWysiwygEditorRef | null>(null);
@@ -173,6 +177,14 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
                 break;
               case 'code':
                 editor.chain().focus().toggleCode().run();
+                break;
+              case 'rule':
+              case 'horizontalRule':
+                editor.chain().focus().setHorizontalRule().run();
+                break;
+              case 'strike':
+              case 'strikethrough':
+                editor.chain().focus().toggleStrike().run();
                 break;
               default:
                 tiptap.executeCommand(action);
@@ -325,6 +337,36 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
         newText = currentVal.slice(0, lineStart) + replaced + currentVal.slice(lineEnd);
         newStart = lineStart;
         newEnd = lineStart + replaced.length;
+      } else if (action === 'rule' || action === 'horizontalRule') {
+        const replacement = '\n---\n';
+        newText = currentVal.slice(0, start) + replacement + currentVal.slice(end);
+        newStart = start + replacement.length;
+        newEnd = start + replacement.length;
+      } else if (action === 'strike' || action === 'strikethrough') {
+        if (selectedText.startsWith('~~') && selectedText.endsWith('~~') && selectedText.length >= 4) {
+          const unwrapped = selectedText.slice(2, -2);
+          newText = currentVal.slice(0, start) + unwrapped + currentVal.slice(end);
+          newStart = start;
+          newEnd = start + unwrapped.length;
+        } else {
+          const inner = selectedText || '취소선 텍스트';
+          const wrapped = `~~${inner}~~`;
+          newText = currentVal.slice(0, start) + wrapped + currentVal.slice(end);
+          newStart = start + 2;
+          newEnd = start + 2 + inner.length;
+        }
+      } else if (action === 'link') {
+        const inner = selectedText || '링크 텍스트';
+        const wrapped = `[${inner}](https://)`;
+        newText = currentVal.slice(0, start) + wrapped + currentVal.slice(end);
+        newStart = start + 1;
+        newEnd = start + 1 + inner.length;
+      } else if (action === 'image') {
+        const inner = selectedText || '이미지 설명';
+        const wrapped = `![${inner}](https://)`;
+        newText = currentVal.slice(0, start) + wrapped + currentVal.slice(end);
+        newStart = start + 2;
+        newEnd = start + 2 + inner.length;
       }
 
       // Immediately trigger onChange
@@ -346,27 +388,28 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
     [internalMode, internalTiptapRef, activeEditorRef, value, onChange]
   );
 
-  // Expose imperative API through ref prop
+  // Expose imperative API through ref or apiRef prop
   useEffect(() => {
-    if (!ref) return;
+    const effectiveRef = ref || apiRef;
+    if (!effectiveRef) return;
     const api: UnifiedEditorRef = {
       applyFormat,
       focus: () => {
         if (internalMode === 'wysiwyg' && internalTiptapRef.current) {
-          internalTiptapRef.current.focus();
+          internalTiptapRef.current.focus?.();
         } else if (activeEditorRef.current) {
-          activeEditorRef.current.focus();
+          activeEditorRef.current.focus?.();
         }
       },
       getMode: () => internalMode,
       setMode: (m) => handleModeSelect(m as any)
     };
-    if (typeof ref === 'function') {
-      ref(api);
-    } else if (ref && 'current' in ref) {
-      (ref as any).current = api;
+    if (typeof effectiveRef === 'function') {
+      effectiveRef(api);
+    } else if (effectiveRef && 'current' in effectiveRef) {
+      (effectiveRef as any).current = api;
     }
-  }, [ref, applyFormat, internalMode, handleModeSelect, activeEditorRef]);
+  }, [ref, apiRef, applyFormat, internalMode, handleModeSelect, activeEditorRef]);
 
   // Compute cursor metadata and fire onCursorActivity
   const handleCursorActivity = useCallback(() => {
@@ -636,3 +679,5 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
     </div>
   );
 };
+
+UnifiedEditor.displayName = 'UnifiedEditor';

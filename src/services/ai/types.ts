@@ -50,6 +50,15 @@ export interface AiModelInfo {
   description?: string;
 }
 
+export interface AiDomainProfile {
+  id: string;
+  name: string;
+  systemPrompt: string;
+  temperature?: number;
+  recommendedModel?: string;
+  outputFormat?: 'markdown' | 'json';
+}
+
 export interface AiProviderAdapter {
   isAvailable(): Promise<boolean>;
   getModels(): Promise<{ id: string; name: string }[]>;
