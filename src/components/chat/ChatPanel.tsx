@@ -27,6 +27,7 @@ import { WEB_LLM_MODEL_ID, WEB_LLM_MODEL_DISPLAY_NAME } from '../../utils/webllm
 export interface ChatPanelProps {
   // Session & Message Data
   activeSessionId: string;
+  sessionTitle?: string;
   messages: ChatMessage[];
   isAiLoading: boolean;
 
@@ -103,6 +104,7 @@ export interface ChatPanelProps {
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({
   activeSessionId,
+  sessionTitle,
   messages,
   isAiLoading,
   chatInput,

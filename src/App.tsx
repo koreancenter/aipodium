@@ -73,7 +73,6 @@ import { CouncilOfCriticsModal } from './components/CouncilOfCriticsModal';
 import { GhostDiffModal } from './components/GhostDiffModal';
 import { AiRoleAssignmentModal } from './components/AiRoleAssignmentModal';
 import { AiEngineOnboardingModal } from './components/AiEngineOnboardingModal';
-import { InlineModelSelector } from './components/InlineModelSelector';
 import { LinkAttachmentInput } from './components/LinkAttachmentInput';
 import { AiMessageBubble } from './components/AiMessageBubble';
 import { evaluateDocumentLocally } from './utils/criticsEngine';
@@ -8388,20 +8387,19 @@ ${projectEvents
                   <PanelLeft className="w-3.5 h-3.5" />
                 </button>
                 <Bot className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                <span className="truncate max-w-[120px] sm:max-w-[180px] font-medium text-slate-200 text-xs" title={activeSession?.title}>
-                  {selectedModel === WEB_LLM_MODEL_ID
-                    ? '브라우저 로컬 AI'
-                    : (isOnboardingMode ? 'AI 지식 비서 · 온보딩' : (activeSession?.title || 'AI 프로젝트'))}
+                <span className="truncate max-w-[130px] sm:max-w-[190px] font-medium text-slate-200 text-xs" title={activeSession?.title}>
+                  {isOnboardingMode ? 'AI 지식 비서 · 온보딩' : (activeSession?.title || 'AI 프로젝트')}
                 </span>
-                {selectedModel === WEB_LLM_MODEL_ID ? (
-                  <span className="text-[0.5625rem] px-1.5 py-0.2 rounded-xs bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-medium shrink-0">
-                    WebGPU Qwen2.5
+                {/* Clean, minimal read-only model indicator */}
+                <span
+                  className="text-[0.6875rem] text-slate-400 font-mono flex items-center gap-1 shrink-0 select-none pointer-events-none"
+                  title="현재 활성 AI 모델 (선택 및 변경은 하단 프롬프트 툴바에서 지원)"
+                >
+                  <span className="text-slate-600" aria-hidden="true">·</span>
+                  <span className="text-slate-400">
+                    {selectedModel === WEB_LLM_MODEL_ID ? 'WebGPU Qwen2.5' : (getModelDisplayName(selectedModel) || selectedModel)}
                   </span>
-                ) : isOnboardingMode ? (
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-white/5 shrink-0">
-                    가이드 v0.0.8
-                  </span>
-                ) : null}
+                </span>
               </div>
 
               <div className="flex items-center gap-1 shrink-0">
@@ -8668,6 +8666,7 @@ ${projectEvents
             {/* Active Conversation Chat Area via ChatPanel (Phase 3.1) */}
             <ChatPanel
               activeSessionId={activeSessionId}
+              sessionTitle={activeSession?.title}
               messages={messages}
               isAiLoading={isAiLoading}
               chatInput={chatInput}
