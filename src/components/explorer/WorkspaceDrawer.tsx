@@ -305,7 +305,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                 type="button"
                 onClick={() => onOpenSSOTModal(activeSession?.title)}
                 className="p-1 rounded-xs hover:bg-[#18181b] hover:text-[#6366f1] transition cursor-pointer"
-                title="단일 진실 공급원(SSOT) 문서 생성기"
+                title="단일 진실 공급원 문서 생성기"
               >
                 <Sparkles className="w-3.5 h-3.5 text-[#6366f1]" />
               </button>
@@ -316,7 +316,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                   type="button"
                   onClick={onOpenDriftModal}
                   className="p-1 rounded-xs hover:bg-[#18181b] hover:text-amber-400 transition cursor-pointer"
-                  title="문서 일관성 및 정합성 검사 (Drift Auditor)"
+                  title="문서 일관성 및 정합성 검사"
                 >
                   <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
                 </button>

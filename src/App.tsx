@@ -173,7 +173,6 @@ import {
   Wand2,
   ListTree,
   History,
-  ChevronsLeft,
   Clock,
   Paperclip,
   Image as ImageIcon,
@@ -208,6 +207,7 @@ import {
   Maximize2,
   Upload,
   Loader2,
+  PanelLeft,
   PanelLeftClose,
   PanelLeftOpen,
   PanelRight,
@@ -8368,8 +8368,23 @@ ${projectEvents
         >
           <div className="w-[320px] sm:w-[510px] lg:w-[510px] h-full flex flex-col min-h-0 overflow-hidden">
             {/* Header */}
-            <div className="bg-[#0f0f12] border-b border-[#222226] px-2.5 h-8 flex items-center justify-between shrink-0">
+            <div className="bg-[#0f0f12] border-b border-[#222226] px-2 h-8 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0">
+                {/* Unified Persistent Project Drawer Toggle Button */}
+                <button
+                  type="button"
+                  id="project-drawer-toggle"
+                  onClick={() => setIsProjectListOpen((prev) => !prev)}
+                  className={`p-1 rounded-xs transition cursor-pointer flex items-center justify-center shrink-0 ${
+                    isProjectListOpen
+                      ? 'bg-[#18181b] text-indigo-400 hover:text-indigo-300'
+                      : 'text-slate-400 hover:text-white hover:bg-[#18181b]'
+                  }`}
+                  title={isProjectListOpen ? '프로젝트 목록 접기' : '프로젝트 목록 펼치기'}
+                  aria-label={isProjectListOpen ? '프로젝트 목록 접기' : '프로젝트 목록 펼치기'}
+                >
+                  <PanelLeft className="w-3.5 h-3.5" />
+                </button>
                 <Bot className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
                 <span className="truncate max-w-[120px] sm:max-w-[180px] font-medium text-slate-200 text-xs" title={activeSession?.title}>
                   {selectedModel === WEB_LLM_MODEL_ID
@@ -8446,15 +8461,6 @@ ${projectEvents
                       title="새 프로젝트 생성"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                    </button>
-                    {/* [<<] Collapse Slide Button */}
-                    <button
-                      type="button"
-                      onClick={() => setIsProjectListOpen(false)}
-                      className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-white transition flex items-center justify-center shrink-0 cursor-pointer"
-                      title="프로젝트 목록 접기"
-                    >
-                      <ChevronsLeft className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -8656,18 +8662,6 @@ ${projectEvents
                 })()}
               </div>
             </div>
-
-            {/* Slide-open tab button when panel is tucked away */}
-            {!isProjectListOpen && (
-              <button
-                type="button"
-                onClick={() => setIsProjectListOpen(true)}
-                className="absolute left-0 top-12 z-20 bg-[#121214] hover:bg-[#18181b] text-[#6366f1] py-2 px-1 rounded-r-xs border border-l-0 border-[#222226] transition flex items-center gap-1 text-[0.625rem] font-mono group cursor-pointer"
-                title="프로젝트 목록 펼치기"
-              >
-                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform text-[#6366f1]" />
-              </button>
-            )}
 
             {/* Active Conversation Chat Area via ChatPanel (Phase 3.1) */}
             <ChatPanel
