@@ -13,6 +13,7 @@ export const WEB_LLM_KOREAN_GUARDRAIL_SYSTEM_PROMPT =
 
 let engineInstance: WebWorkerMLCEngine | null = null;
 let currentWorker: Worker | null = null;
+let initPromise: Promise<WebWorkerMLCEngine> | null = null;
 
 export function isWebGPUSupported(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -36,6 +37,9 @@ export async function initWebLLMEngine(
   if (engineInstance) {
     return engineInstance;
   }
+  if (initPromise) {
+    return initPromise;
+  }
 
   // Create standard Vite Web Worker
   const worker = new Worker(
@@ -44,26 +48,32 @@ export async function initWebLLMEngine(
   );
   currentWorker = worker;
 
-  try {
-    engineInstance = await CreateWebWorkerMLCEngine(
-      worker,
-      WEB_LLM_MODEL_ID,
-      {
-        initProgressCallback: (report: InitProgressReport) => {
-          if (onProgress) {
-            onProgress(report);
-          }
-        },
-        logLevel: 'WARN',
-        appConfig: prebuiltAppConfig,
-      }
-    );
+  initPromise = (async () => {
+    try {
+      engineInstance = await CreateWebWorkerMLCEngine(
+        worker,
+        WEB_LLM_MODEL_ID,
+        {
+          initProgressCallback: (report: InitProgressReport) => {
+            if (onProgress) {
+              onProgress(report);
+            }
+          },
+          logLevel: 'WARN',
+          appConfig: prebuiltAppConfig,
+        }
+      );
 
-    return engineInstance;
-  } catch (error) {
-    terminateWebLLMEngine();
-    throw error;
-  }
+      return engineInstance;
+    } catch (error) {
+      terminateWebLLMEngine();
+      throw error;
+    } finally {
+      initPromise = null;
+    }
+  })();
+
+  return initPromise;
 }
 
 export function getLoadedWebLLMEngine(): WebWorkerMLCEngine | null {
@@ -71,6 +81,7 @@ export function getLoadedWebLLMEngine(): WebWorkerMLCEngine | null {
 }
 
 export function terminateWebLLMEngine(): void {
+  initPromise = null;
   if (engineInstance) {
     try {
       engineInstance.unload();

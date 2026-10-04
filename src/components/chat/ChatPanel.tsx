@@ -16,7 +16,8 @@ import {
   Link2,
   FileText,
   Ghost,
-  Globe
+  Globe,
+  Loader2
 } from 'lucide-react';
 import type { ChatMessage, ChatAttachment, GhostWriterLevel, MentionItem } from '../../types';
 import { AiMessageBubble } from '../AiMessageBubble';
@@ -61,6 +62,7 @@ export interface ChatPanelProps {
   onModeChange: (mode: 'single' | 'multi' | 'routing') => void;
   availableChatModels: any[];
   provider: 'cloud' | 'local-pc' | 'local-server' | string;
+  activeProvider?: 'webllm' | 'cloud' | 'local-pc' | string;
   onSelectProvider: (provider: any) => void;
   onRefreshOllama?: () => Promise<void>;
   localEndpointAddress?: string;
@@ -130,6 +132,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   onModeChange,
   availableChatModels,
   provider,
+  activeProvider,
   onSelectProvider,
   onRefreshOllama,
   localEndpointAddress,
@@ -210,38 +213,77 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             transition={{ duration: 0.15, ease: 'easeOut' }}
             className="space-y-3 select-text max-w-3xl mx-auto w-full"
           >
-            {/* Active WebLLM progress banner if downloading */}
-            {webllmProgress?.isLoading && !isWebLlmBannerDismissed && (
-              <WebLlmBanner
-                isSupported={webllmProgress.isSupported}
-                isLoading={webllmProgress.isLoading}
-                isReady={webllmProgress.isReady}
-                progressText={webllmProgress.progressText}
-                progressPercent={webllmProgress.progressPercent}
-                onStartDownload={onStartWebLlmDownload || (() => {})}
-                onSelectModel={() => {
-                  onSelectModel(WEB_LLM_MODEL_ID);
-                  onSelectProvider('local-pc');
-                  onToast('✓ Qwen2.5-0.5B 브라우저 로컬 AI가 선택되었습니다.');
-                }}
-                onDismiss={onDismissWebLlmBanner || (() => {})}
-              />
-            )}
-
             {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center min-h-[360px] h-full text-center px-4 py-16 select-none">
-                <div className="w-10 h-10 rounded-full bg-white/5 border border-white/5 flex items-center justify-center mb-3 text-indigo-400">
-                  <Sparkles className="w-5 h-5" />
+              webllmProgress?.isLoading ? (
+                <div
+                  id="webllm-chat-download-progress"
+                  className="flex flex-col items-center justify-center min-h-[360px] h-full text-center px-6 py-12 select-none max-w-md mx-auto w-full animate-in fade-in duration-200"
+                >
+                  <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4 text-[#6366f1]">
+                    <Loader2 className="w-6 h-6 animate-spin text-[#6366f1]" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-zinc-100 mb-1">
+                    브라우저 내장 로컬 AI 가중치 다운로드 및 초기화 중
+                  </h3>
+                  <p className="text-xs text-zinc-400 mb-5 leading-relaxed break-keep">
+                    Qwen2.5-0.5B 모델 가중치(약 1.5GB)를 브라우저 로컬 캐시에 다운로드하고 있습니다. 최초 1회 완료 후 완전 오프라인에서도 무료로 실행됩니다.
+                  </p>
+
+                  {/* 0~100% 게이지 바 */}
+                  <div className="w-full bg-[#09090b] border border-[#222226] rounded-full h-2 overflow-hidden mb-2.5">
+                    <div
+                      className="bg-[#6366f1] h-full transition-all duration-200 rounded-full"
+                      style={{ width: `${Math.max(2, Math.min(100, webllmProgress.progressPercent ?? 0))}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between w-full text-xs text-zinc-400 font-mono">
+                    <span className="truncate max-w-[75%] text-left text-[11px]" title={webllmProgress.progressText}>
+                      {webllmProgress.progressText || '가중치 다운로드 및 WebGPU 컴파일 중...'}
+                    </span>
+                    <span className="font-bold text-[#6366f1] text-xs shrink-0">
+                      {webllmProgress.progressPercent ?? 0}%
+                    </span>
+                  </div>
+                  <div className="mt-3 text-[10px] text-zinc-500 font-mono">
+                    권장 메모리: 4GB 이상 · 가중치 캐싱 약 1.5GB
+                  </div>
                 </div>
-                <p className="text-sm font-medium text-zinc-300">
-                  AI 어시스턴트와 대화를 시작하거나 프롬프트를 입력하세요
-                </p>
-                <p className="text-xs text-zinc-500 mt-1.5 max-w-xs leading-relaxed">
-                  질문, 문서 요약, 코드 생성 및 번역 작업을 지원합니다
-                </p>
-              </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center min-h-[360px] h-full text-center px-4 py-16 select-none">
+                  <div className="w-10 h-10 rounded-full bg-white/5 border border-white/5 flex items-center justify-center mb-3 text-indigo-400">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <p className="text-sm font-medium text-zinc-300">
+                    AI 어시스턴트와 대화를 시작하거나 프롬프트를 입력하세요
+                  </p>
+                  <p className="text-xs text-zinc-500 mt-1.5 max-w-xs leading-relaxed">
+                    질문, 문서 요약, 코드 생성 및 번역 작업을 지원합니다
+                  </p>
+                </div>
+              )
             ) : (
-              messages.map((msg) =>
+              <>
+                {webllmProgress?.isLoading && (
+                  <div className="p-3 bg-[#121214] border border-[#222226] rounded-md select-none mb-3">
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="flex items-center gap-1.5 text-zinc-200 font-medium">
+                        <Loader2 className="w-3.5 h-3.5 text-[#6366f1] animate-spin" />
+                        가중치 다운로드 중
+                      </span>
+                      <span className="font-mono font-bold text-[#6366f1]">
+                        {webllmProgress.progressPercent ?? 0}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-[#09090b] border border-[#222226] rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-[#6366f1] h-full transition-all duration-200 rounded-full"
+                        style={{ width: `${Math.max(2, Math.min(100, webllmProgress.progressPercent ?? 0))}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {messages.map((msg) =>
                 msg.sender === 'ai' ? (
                   <AiMessageBubble
                     key={msg.id}
@@ -332,8 +374,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                     </div>
                   </div>
                 )
-              )
-            )}
+              )}
+            </>
+          )}
 
             {/* Preparation Indicator */}
             {isAiLoading && !messages.some((m) => m.isStreaming) && (

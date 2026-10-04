@@ -7497,37 +7497,43 @@ ${projectEvents
   // Inline AI Message Translation Handler (Phase 4.1)
   const handleTranslateMessage = useCallback(
     async (messageId: string, content: string): Promise<string> => {
+      // DO NOT default or hardcode to 'local-pc'
+      const activeProvider: 'webllm' | 'cloud' | 'local-pc' =
+        selectedModel === WEB_LLM_MODEL_ID
+          ? 'webllm'
+          : provider === 'local-pc' || provider === 'local-server'
+          ? 'local-pc'
+          : 'cloud';
+      const model = selectedModel;
+
       try {
-        const translationPrompt =
-          'Translate the following response into natural, fluent Korean. Preserve code blocks, technical terms, and markdown formatting exactly as is:\n\n' +
-          content;
-
         let resultText = '';
-        const targetProvider =
-          (provider as string) === 'webllm'
-            ? 'webllm'
-            : provider === 'local-pc' || provider === 'local-server'
-            ? 'local-pc'
-            : 'cloud';
-
-        await aiClient.streamCompletion(targetProvider as any, {
-          model: provider === 'cloud' ? 'gemini-2.5-flash' : selectedModel,
+        await aiClient.streamCompletion(activeProvider, {
+          model: model,
           messages: [
             {
               role: 'system',
               content:
-                'You are an expert translator. Translate the text into natural, fluent Korean. Preserve code blocks, technical terms, and markdown formatting exactly as is. Output only the translated content without any conversational prefixes or meta explanations.',
+                'You are a professional translator. Translate the given text into natural, fluent Korean. Preserve technical terms, markdown format, and code blocks exactly.',
             },
             {
               role: 'user',
-              content: translationPrompt,
+              content: content,
             },
           ],
           temperature: 0.3,
           apiKey: cloudApiKey || undefined,
-          ollamaEndpoint: localEndpointAddress || 'http://localhost:11434',
-          onChunk: (chunk) => {
-            resultText += chunk;
+          ollamaEndpoint: activeProvider === 'local-pc' ? (localEndpointAddress || 'http://localhost:11434') : undefined,
+          onChunk: (deltaText) => {
+            resultText += deltaText;
+            setSessions((prev) =>
+              prev.map((s) => ({
+                ...s,
+                messages: s.messages.map((m) =>
+                  m.id === messageId ? { ...m, translatedText: resultText } : m
+                ),
+              }))
+            );
           },
         });
 
@@ -7543,13 +7549,13 @@ ${projectEvents
           );
         }
         return finalResult;
-      } catch (err) {
-        console.error('Failed to translate message:', err);
+      } catch (error) {
+        console.error('Translation error:', error);
         showToast('⚠️ AI 메시지 번역 중 오류가 발생했습니다.', 'error');
         return '';
       }
     },
-    [provider, selectedModel, cloudApiKey, localEndpointAddress, showToast]
+    [selectedModel, provider, cloudApiKey, localEndpointAddress, showToast]
   );
 
   // Handle send message logic
@@ -8444,12 +8450,12 @@ ${projectEvents
 
       </header>
 
-      {/* WebLLM Download Progress & Guide Banner when activeProvider === 'webllm' */}
-      {(selectedModel === WEB_LLM_MODEL_ID || webllmProgress.isLoading) && (!isWebLlmBannerDismissed || webllmProgress.isLoading) && (
+      {/* WebLLM Guide Banner: Suppressed when downloading so ChatPanel exclusively displays the centered download progress indicator */}
+      {!webllmProgress.isLoading && (selectedModel === WEB_LLM_MODEL_ID) && !isWebLlmBannerDismissed && !webllmProgress.isReady && (
         <WebLlmBanner
           isSupported={webllmProgress.isSupported ?? isWebGPUSupported()}
-          isLoading={webllmProgress.isLoading}
-          isModelLoading={webllmProgress.isLoading}
+          isLoading={false}
+          isModelLoading={false}
           isReady={webllmProgress.isReady}
           progressText={webllmProgress.progressText}
           progressPercent={webllmProgress.progressPercent}
@@ -8833,7 +8839,8 @@ ${projectEvents
               mode={mode}
               onModeChange={setMode}
               availableChatModels={availableChatModels}
-              provider={provider}
+              activeProvider={selectedModel === WEB_LLM_MODEL_ID ? 'webllm' : (provider === 'local-pc' || provider === 'local-server' ? 'local-pc' : 'cloud')}
+              provider={selectedModel === WEB_LLM_MODEL_ID ? 'webllm' : provider}
               onSelectProvider={setProvider}
               onRefreshOllama={async () => {
                 await triggerFetchOllamaTags();
