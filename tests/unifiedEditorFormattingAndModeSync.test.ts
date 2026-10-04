@@ -83,19 +83,37 @@ test('4. UnifiedEditor top toolbar has Pen, BookOpen, Split mode toggles and onM
   assert.ok(preventDefaultMatches && preventDefaultMatches.length >= 10, 'All toolbar buttons must prevent mousedown blur');
 });
 
-test('5. App.tsx right-side vertical toolbar buttons prevent focus loss via onMouseDown', () => {
+test('5. Single horizontal toolbar exists at the top; redundant right-side vertical toolbar is removed', () => {
+  const unifiedEditorPath = path.resolve(process.cwd(), 'src/components/editor/UnifiedEditor.tsx');
+  const unifiedEditorContent = fs.readFileSync(unifiedEditorPath, 'utf-8');
+
+  // Verify consolidated formatting actions in UnifiedEditor top toolbar
+  assert.match(unifiedEditorContent, /handleApplyFormat\('h1'\)/);
+  assert.match(unifiedEditorContent, /handleApplyFormat\('h2'\)/);
+  assert.match(unifiedEditorContent, /handleApplyFormat\('h3'\)/);
+  assert.match(unifiedEditorContent, /handleApplyFormat\('bold'\)/);
+  assert.match(unifiedEditorContent, /handleApplyFormat\('italic'\)/);
+  assert.match(unifiedEditorContent, /handleApplyFormat\('code'\)/);
+  assert.match(unifiedEditorContent, /handleApplyFormat\('bullet'\)/);
+  assert.match(unifiedEditorContent, /handleApplyFormat\('number'\)/);
+  assert.match(unifiedEditorContent, /handleApplyFormat\('task'\)/);
+  assert.match(unifiedEditorContent, /handleApplyFormat\('quote'\)/);
+  assert.match(unifiedEditorContent, /handleApplyFormat\('table'\)/);
+  assert.match(unifiedEditorContent, /handleToggleDrawing/);
+  assert.match(unifiedEditorContent, /handleToggleFullscreen/);
+
+  // Verify onMouseDown preventDefault is present across all buttons
+  const preventDefaultMatches = unifiedEditorContent.match(/onMouseDown=\{\(e\)\s*=>\s*e\.preventDefault\(\)\}/g);
+  assert.ok(preventDefaultMatches && preventDefaultMatches.length >= 14, 'Every toolbar button must prevent mousedown blur');
+
+  // Verify App.tsx has completely removed the redundant vertical toolbar drawer
   const appPath = path.resolve(process.cwd(), 'src/App.tsx');
-  const content = fs.readFileSync(appPath, 'utf-8');
+  const appContent = fs.readFileSync(appPath, 'utf-8');
 
-  // Verify toolbar has onMouseDown on h1, h2, h3, bold, italic, code, etc.
-  assert.match(content, /applyMarkdownBlockFormat\('h1'\)/);
-  assert.match(content, /applyMarkdownBlockFormat\('bold'\)/);
-  assert.match(content, /applyMarkdownBlockFormat\('italic'\)/);
-  assert.match(content, /applyMarkdownBlockFormat\('code'\)/);
-  assert.match(content, /applyMarkdownBlockFormat\('bullet'\)/);
-  assert.match(content, /applyMarkdownBlockFormat\('quote'\)/);
+  assert.doesNotMatch(appContent, /id="editor-formatting-toolbar"/, 'Must not render vertical editor formatting toolbar');
+  assert.doesNotMatch(appContent, /id="editor-toolbar-drawer-toggle"/, 'Must not render vertical toolbar drawer toggle');
 
-  // Verify unifiedEditorRef is plugged in
-  assert.ok(content.includes('unifiedEditorRef.current?.applyFormat'));
-  assert.ok(content.includes('ref={unifiedEditorRef}'));
+  // Verify unifiedEditorRef is plugged in App.tsx
+  assert.ok(appContent.includes('unifiedEditorRef.current?.applyFormat'));
+  assert.ok(appContent.includes('ref={unifiedEditorRef}'));
 });

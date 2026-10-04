@@ -190,6 +190,9 @@ export const TiptapWysiwygEditor = memo(
               case 'rule':
                 editor.chain().focus().setHorizontalRule().run();
                 break;
+              case 'table':
+                editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+                break;
               case 'link': {
                 const { from, to } = editor.state.selection;
                 const text = editor.state.doc.textBetween(from, to, ' ');

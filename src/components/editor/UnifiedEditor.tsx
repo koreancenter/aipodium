@@ -9,13 +9,20 @@ import {
   Pen,
   BookOpen,
   Split,
+  Heading1,
+  Heading2,
+  Heading3,
   Bold,
   Italic,
   Code,
   List,
   ListOrdered,
   CheckSquare,
-  Quote
+  Quote,
+  Table as TableIcon,
+  Pencil,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { OptimizedEditor } from './OptimizedEditor';
 import { FreeformDrawingOverlay } from './FreeformDrawingOverlay';
@@ -50,6 +57,7 @@ export interface UnifiedEditorProps {
   ref?: React.Ref<UnifiedEditorRef>;
   apiRef?: React.Ref<UnifiedEditorRef>;
   isDrawingOpen?: boolean;
+  onToggleDrawing?: () => void;
   onCloseDrawing?: () => void;
   showTablePicker?: boolean;
   onCloseTablePicker?: () => void;
@@ -57,6 +65,8 @@ export interface UnifiedEditorProps {
   onInsertTable?: (rows: number, cols: number) => void;
   onToast?: (message: string, type?: 'info' | 'warn' | 'error' | 'success') => void;
   className?: string;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
 export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
@@ -78,6 +88,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
     ref,
     apiRef,
     isDrawingOpen = false,
+    onToggleDrawing,
     onCloseDrawing,
     showTablePicker = false,
     onCloseTablePicker,
@@ -85,12 +96,45 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
     onInsertTable,
     onToast,
     className = '',
+    isFullscreen = false,
+    onToggleFullscreen,
   } = props;
   const [internalMode, setInternalMode] = useState<string>(mode || 'wysiwyg');
+  const [internalDrawingOpen, setInternalDrawingOpen] = useState<boolean>(isDrawingOpen);
+  const [internalFullscreen, setInternalFullscreen] = useState<boolean>(isFullscreen);
   const internalEditorRef = useRef<HTMLTextAreaElement | null>(null);
   const internalTiptapRef = useRef<TiptapWysiwygEditorRef | null>(null);
 
   const activeEditorRef = editorRef || internalEditorRef;
+
+  // Sync internal drawing state with incoming props
+  useEffect(() => {
+    setInternalDrawingOpen(isDrawingOpen);
+  }, [isDrawingOpen]);
+
+  // Sync internal fullscreen state with incoming props
+  useEffect(() => {
+    setInternalFullscreen(isFullscreen);
+  }, [isFullscreen]);
+
+  const activeDrawing = onToggleDrawing ? isDrawingOpen : internalDrawingOpen;
+  const activeFullscreen = onToggleFullscreen ? isFullscreen : internalFullscreen;
+
+  const handleToggleDrawing = useCallback(() => {
+    if (onToggleDrawing) {
+      onToggleDrawing();
+    } else {
+      setInternalDrawingOpen((prev) => !prev);
+    }
+  }, [onToggleDrawing]);
+
+  const handleToggleFullscreen = useCallback(() => {
+    if (onToggleFullscreen) {
+      onToggleFullscreen();
+    } else {
+      setInternalFullscreen((prev) => !prev);
+    }
+  }, [onToggleFullscreen]);
 
   // Keep internal mode in sync with incoming mode prop
   useEffect(() => {
@@ -131,7 +175,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
 
   // Dual-Mode formatting handler
   const applyFormat = useCallback(
-    (action: string) => {
+    (action: string, options?: { rows?: number; cols?: number }) => {
       const isWysiwyg = internalMode === 'wysiwyg';
 
       if (isWysiwyg) {
@@ -186,12 +230,26 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
               case 'strikethrough':
                 editor.chain().focus().toggleStrike().run();
                 break;
+              case 'table': {
+                const r = options?.rows || 3;
+                const c = options?.cols || 3;
+                if (editor.commands.insertTable) {
+                  editor.chain().focus().insertTable({ rows: r, cols: c, withHeaderRow: true }).run();
+                } else if (tiptap.insertTable) {
+                  tiptap.insertTable(r, c);
+                }
+                break;
+              }
               default:
                 tiptap.executeCommand(action);
                 break;
             }
           } else {
-            tiptap.executeCommand(action);
+            if (action === 'table') {
+              tiptap.insertTable?.(options?.rows || 3, options?.cols || 3);
+            } else {
+              tiptap.executeCommand(action);
+            }
           }
         }
         return;
@@ -367,6 +425,19 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
         newText = currentVal.slice(0, start) + wrapped + currentVal.slice(end);
         newStart = start + 2;
         newEnd = start + 2 + inner.length;
+      } else if (action === 'table') {
+        const r = options?.rows || 3;
+        const c = options?.cols || 3;
+        const headers = Array.from({ length: c }, (_, i) => `제목 ${i + 1}`).join(' | ');
+        const separator = Array.from({ length: c }, () => '---').join(' | ');
+        let body = '';
+        for (let ri = 0; ri < r; ri++) {
+          body += '| ' + Array.from({ length: c }, (_, ci) => `내용 ${ri + 1}-${ci + 1}`).join(' | ') + ' |\n';
+        }
+        const tableBlock = `\n| ${headers} |\n| ${separator} |\n${body}\n`;
+        newText = currentVal.slice(0, start) + tableBlock + currentVal.slice(end);
+        newStart = start + tableBlock.length;
+        newEnd = start + tableBlock.length;
       }
 
       // Immediately trigger onChange
@@ -387,6 +458,8 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
     },
     [internalMode, internalTiptapRef, activeEditorRef, value, onChange]
   );
+
+  const handleApplyFormat = applyFormat;
 
   // Expose imperative API through ref or apiRef prop
   useEffect(() => {
@@ -463,24 +536,28 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
 
   return (
     <div
-      className={`relative w-full h-full flex flex-col flex-1 overflow-hidden ${className}`}
+      className={`${
+        activeFullscreen
+          ? 'fixed inset-0 z-50 bg-[#09090b] flex flex-col'
+          : 'relative w-full h-full flex flex-col flex-1 overflow-hidden'
+      } ${className}`}
       style={{ '--editor-font-size': `${fontSize}px` } as React.CSSProperties}
       onKeyDown={handleKeyDown}
       onKeyUp={handleCursorActivity}
       onClick={handleCursorActivity}
     >
-      {/* Top Toolbar: Mode toggle (Pen / BookOpen / Split) and quick formatting buttons */}
+      {/* Top Toolbar: Clean single-row horizontal toolbar above editor canvas */}
       <div
         id="unified-editor-top-toolbar"
-        className="shrink-0 h-8 px-2 bg-[#121214] border-b border-[#222226] flex items-center justify-between select-none z-10 text-xs"
+        className="shrink-0 h-8 px-2 bg-[#121214] border-b border-[#222226] flex items-center justify-between select-none z-10 text-xs gap-2"
       >
-        {/* Mode Toggle Group (Pen / BookOpen / Split) */}
-        <div className="flex items-center gap-1">
+        {/* Left Section: Mode Switcher (Icon-only) */}
+        <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleModeSelect('wysiwyg')}
-            className={`h-6 px-2 rounded-xs text-xs flex items-center gap-1.5 transition cursor-pointer select-none ${
+            className={`h-6 w-6 rounded-xs text-xs flex items-center justify-center transition cursor-pointer select-none shrink-0 ${
               internalMode === 'wysiwyg'
                 ? 'bg-[#18181b] text-indigo-400 border border-[#6366f1]/50 font-medium'
                 : 'text-slate-400 hover:text-white hover:bg-[#18181b] border border-transparent'
@@ -489,14 +566,13 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             aria-label="서식 모드"
           >
             <Pen className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">서식 모드</span>
           </button>
 
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleModeSelect('markdown')}
-            className={`h-6 px-2 rounded-xs text-xs flex items-center gap-1.5 transition cursor-pointer select-none ${
+            className={`h-6 w-6 rounded-xs text-xs flex items-center justify-center transition cursor-pointer select-none shrink-0 ${
               internalMode === 'markdown' || internalMode === 'edit'
                 ? 'bg-[#18181b] text-white border border-[#6366f1]/50 font-medium'
                 : 'text-slate-400 hover:text-white hover:bg-[#18181b] border border-transparent'
@@ -505,14 +581,13 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             aria-label="마크다운 모드"
           >
             <BookOpen className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">마크다운 모드</span>
           </button>
 
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleModeSelect('split')}
-            className={`h-6 px-2 rounded-xs text-xs flex items-center gap-1.5 transition cursor-pointer select-none ${
+            className={`h-6 w-6 rounded-xs text-xs flex items-center justify-center transition cursor-pointer select-none shrink-0 ${
               internalMode === 'split'
                 ? 'bg-[#18181b] text-white border border-[#6366f1]/50 font-medium'
                 : 'text-slate-400 hover:text-white hover:bg-[#18181b] border border-transparent'
@@ -521,50 +596,51 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             aria-label="분할 모드"
           >
             <Split className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">분할 모드</span>
           </button>
         </div>
 
-        {/* Quick Formatting Actions with onMouseDown preventDefault */}
+        {/* Right Section: Grouped Formatting Actions (Icon-only) */}
         <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-none">
+          {/* Headings: Heading1, Heading2, Heading3 */}
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat('h1')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white font-semibold text-xs font-mono transition flex items-center justify-center cursor-pointer select-none text-slate-300"
+            onClick={() => handleApplyFormat('h1')}
+            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
             title="제목 1"
             aria-label="Heading 1"
           >
-            h1
+            <Heading1 className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat('h2')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white font-semibold text-xs font-mono transition flex items-center justify-center cursor-pointer select-none text-slate-300"
+            onClick={() => handleApplyFormat('h2')}
+            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
             title="제목 2"
             aria-label="Heading 2"
           >
-            h2
+            <Heading2 className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat('h3')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white font-semibold text-xs font-mono transition flex items-center justify-center cursor-pointer select-none text-slate-300"
+            onClick={() => handleApplyFormat('h3')}
+            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
             title="제목 3"
             aria-label="Heading 3"
           >
-            h3
+            <Heading3 className="w-3.5 h-3.5" />
           </button>
 
-          <div className="h-3.5 w-px bg-[#222226] mx-0.5" />
+          <div className="h-3.5 w-px bg-[#222226] mx-0.5 shrink-0" />
 
+          {/* Inline Styles: B (Bold), I (Italic), <> (Code) */}
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat('bold')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white font-bold transition flex items-center justify-center cursor-pointer select-none text-slate-300"
+            onClick={() => handleApplyFormat('bold')}
+            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
             title="굵게"
             aria-label="Bold"
           >
@@ -573,8 +649,8 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat('italic')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white italic transition flex items-center justify-center cursor-pointer select-none text-slate-300"
+            onClick={() => handleApplyFormat('italic')}
+            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white italic transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
             title="기울임"
             aria-label="Italic"
           >
@@ -583,21 +659,22 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat('code')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white font-mono text-xs transition flex items-center justify-center cursor-pointer select-none text-slate-300"
+            onClick={() => handleApplyFormat('code')}
+            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white font-mono text-xs transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
             title="코드"
             aria-label="Code"
           >
             <Code className="w-3.5 h-3.5" />
           </button>
 
-          <div className="h-3.5 w-px bg-[#222226] mx-0.5" />
+          <div className="h-3.5 w-px bg-[#222226] mx-0.5 shrink-0" />
 
+          {/* Block Formats: Bullet List, Numbered List, Task List, Blockquote, Table */}
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat('bullet')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300"
+            onClick={() => handleApplyFormat('bullet')}
+            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
             title="글머리 기호 목록"
             aria-label="Bullet list"
           >
@@ -606,8 +683,8 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat('number')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300"
+            onClick={() => handleApplyFormat('number')}
+            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
             title="번호 목록"
             aria-label="Numbered list"
           >
@@ -616,8 +693,8 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat('task')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300"
+            onClick={() => handleApplyFormat('task')}
+            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
             title="할 일 목록"
             aria-label="Task list"
           >
@@ -626,12 +703,60 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => applyFormat('quote')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300"
+            onClick={() => handleApplyFormat('quote')}
+            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
             title="인용구"
             aria-label="Blockquote"
           >
             <Quote className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => handleApplyFormat('table')}
+            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
+            title="표 삽입"
+            aria-label="Table"
+          >
+            <TableIcon className="w-3.5 h-3.5" />
+          </button>
+
+          <div className="h-3.5 w-px bg-[#222226] mx-0.5 shrink-0" />
+
+          {/* Drawing Canvas Toggle (Pencil icon) */}
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleToggleDrawing}
+            className={`h-6 w-6 rounded-xs transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
+              activeDrawing
+                ? 'bg-indigo-600 text-white font-medium'
+                : 'text-slate-300 hover:bg-[#18181b] hover:text-white'
+            }`}
+            title={activeDrawing ? '자유 필기 메모 닫기' : '자유 필기 메모'}
+            aria-label="Drawing canvas"
+          >
+            <Pencil className="w-3.5 h-3.5 text-indigo-400" />
+          </button>
+
+          {/* Fullscreen Toggle (Icon button) */}
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleToggleFullscreen}
+            className={`h-6 w-6 rounded-xs transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
+              activeFullscreen
+                ? 'bg-indigo-600 text-white font-medium'
+                : 'text-slate-300 hover:bg-[#18181b] hover:text-white'
+            }`}
+            title={activeFullscreen ? '전체 화면 해제' : '전체 화면'}
+            aria-label="Fullscreen toggle"
+          >
+            {activeFullscreen ? (
+              <Minimize2 className="w-3.5 h-3.5" />
+            ) : (
+              <Maximize2 className="w-3.5 h-3.5" />
+            )}
           </button>
         </div>
       </div>
@@ -656,10 +781,13 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
       />
 
       {/* Freeform Drawing Canvas Overlay encapsulated within editor layer */}
-      {isDrawingOpen && (
+      {activeDrawing && (
         <FreeformDrawingOverlay
-          isOpen={isDrawingOpen}
-          onClose={onCloseDrawing || (() => {})}
+          isOpen={activeDrawing}
+          onClose={() => {
+            if (onCloseDrawing) onCloseDrawing();
+            setInternalDrawingOpen(false);
+          }}
           onInsertImageToEditor={handleInsertDrawing}
           onToast={onToast || (() => {})}
         />
