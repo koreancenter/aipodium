@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   isWebOrGitHubUrl,
   normalizeLinkUrl,
@@ -173,5 +175,40 @@ test('External Link Ingestion Pipeline & Model Selector', async (t) => {
       (m) => m.group === 'local' && m.id !== 'Qwen2.5-0.5B-Instruct'
     );
     assert.equal(detectedAfter.length > 0, true);
+  });
+
+  await t.test('InlineModelSelector popover fixed boundary and scrollable flex viewport', () => {
+    const selectorFile = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/components/InlineModelSelector.tsx'),
+      'utf-8'
+    );
+
+    // Verify fixed dimensions on outer popover
+    assert.match(
+      selectorFile,
+      /w-\[340px\]\s+h-\[380px\]\s+flex\s+flex-col\s+bg-\[#16161a\]\s+border\s+border-white\/10\s+rounded-xl\s+shadow-2xl\s+overflow-hidden/,
+      'Outer popover container must enforce fixed 340px by 380px boundary'
+    );
+
+    // Verify header slot
+    assert.match(
+      selectorFile,
+      /shrink-0\s+p-2\.5\s+border-b\s+border-white\/5/,
+      'Header slot must have shrink-0 p-2.5 border-b border-white/5'
+    );
+
+    // Verify scrollable body viewport
+    assert.match(
+      selectorFile,
+      /flex-1\s+min-h-0\s+overflow-y-auto\s+p-2\s+space-y-2/,
+      'Body flex child must have flex-1 min-h-0 overflow-y-auto p-2 space-y-2'
+    );
+
+    // Verify footer slot
+    assert.match(
+      selectorFile,
+      /shrink-0\s+px-3\s+py-2\s+border-t\s+border-white\/5\s+text-xs\s+text-zinc-400/,
+      'Footer slot must have shrink-0 px-3 py-2 border-t border-white/5 text-xs text-zinc-400'
+    );
   });
 });
