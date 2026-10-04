@@ -20,6 +20,7 @@ import {
   CheckSquare,
   Quote,
   Table as TableIcon,
+  PenTool,
   Pencil,
   Maximize2,
   Minimize2
@@ -723,8 +724,9 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
 
           <div className="h-3.5 w-px bg-[#222226] mx-0.5 shrink-0" />
 
-          {/* Drawing Canvas Toggle (Pencil icon) */}
+          {/* Drawing Canvas Toggle (PenTool icon - 자유 형식 메모) */}
           <button
+            id="editor-freeform-memo-toggle"
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={handleToggleDrawing}
@@ -733,10 +735,10 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
                 ? 'bg-indigo-600 text-white font-medium'
                 : 'text-slate-300 hover:bg-[#18181b] hover:text-white'
             }`}
-            title={activeDrawing ? '자유 필기 메모 닫기' : '자유 필기 메모'}
+            title={activeDrawing ? '자유 형식 메모 닫기' : '자유 형식 메모'}
             aria-label="Drawing canvas"
           >
-            <Pencil className="w-3.5 h-3.5 text-indigo-400" />
+            <PenTool className="w-3.5 h-3.5 text-indigo-400" />
           </button>
 
           {/* Fullscreen Toggle (Icon button) */}

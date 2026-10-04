@@ -274,6 +274,30 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
         }}
       >
         <div style={{ width: `${width}px` }} className="max-w-full h-full flex flex-col min-h-0 overflow-hidden">
+          {/* Search Filter Bar */}
+          <div className="px-2 py-1.5 bg-[#0c0c0e] border-b border-[#222226] shrink-0">
+            <div className="relative">
+              <Search className="w-3 h-3 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={activeSearchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder="파일 검색..."
+                className="w-full bg-[#121214] border border-[#222226] focus:border-[#6366f1] rounded pl-6 pr-6 py-0.5 text-[0.6875rem] text-slate-200 placeholder:text-slate-500 outline-none transition"
+              />
+              {activeSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => handleSearchChange('')}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-0.5 cursor-pointer"
+                  title="검색어 지우기"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Explorer Header Toolbar */}
           <div className="flex items-center justify-between h-8 px-2 bg-[#0f0f12] border-b border-[#222226] shrink-0 text-slate-300 select-none">
             <div className="flex items-center gap-1">
@@ -367,30 +391,6 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
             >
               <PanelRightClose className="w-3.5 h-3.5" />
             </button>
-          </div>
-
-          {/* Search Filter Bar (if searching) */}
-          <div className="px-2 py-1.5 bg-[#0c0c0e] border-b border-[#222226] shrink-0">
-            <div className="relative">
-              <Search className="w-3 h-3 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={activeSearchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="파일 검색..."
-                className="w-full bg-[#121214] border border-[#222226] focus:border-[#6366f1] rounded pl-6 pr-6 py-0.5 text-[0.6875rem] text-slate-200 placeholder:text-slate-500 outline-none transition"
-              />
-              {activeSearchQuery && (
-                <button
-                  type="button"
-                  onClick={() => handleSearchChange('')}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-0.5 cursor-pointer"
-                  title="검색어 지우기"
-                >
-                  <X className="w-2.5 h-2.5" />
-                </button>
-              )}
-            </div>
           </div>
 
           {/* Continuous Tree Structure */}

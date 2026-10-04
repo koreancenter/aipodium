@@ -8497,7 +8497,7 @@ ${projectEvents
                 </button>
                 <Bot className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
                 <span className="truncate max-w-[130px] sm:max-w-[190px] font-medium text-slate-200 text-xs" title={activeSession?.title}>
-                  {isOnboardingMode ? 'AI 지식 비서 · 온보딩' : (activeSession?.title || 'AI 프로젝트')}
+                  {isOnboardingMode ? 'AI 지식 비서 · 가이드 v0.0.8' : (activeSession?.title || 'AI 프로젝트')}
                 </span>
                 {/* Clean, minimal read-only model indicator */}
                 <span
@@ -8977,58 +8977,6 @@ ${projectEvents
                         <X className="w-3 h-3 text-[#6366f1] hover:text-white shrink-0 ml-0.5" />
                       </button>
                     )}
-
-
-                    {/* Freeform Memo (자유 형식 메모) Quick Toggle Button */}
-                    <button
-                      id="editor-freeform-memo-toggle"
-                      type="button"
-                      onClick={() => setIsDrawingOverlayOpen((prev) => !prev)}
-                      className={`p-1 rounded-xs border transition flex items-center justify-center cursor-pointer select-none ${
-                        isDrawingOverlayOpen
-                          ? 'bg-[#18181b] text-indigo-400 border-[#6366f1]'
-                          : 'bg-[#09090b] text-slate-400 border-[#222226] hover:text-white hover:bg-[#18181b]'
-                      }`}
-                      title={isDrawingOverlayOpen ? '자유 형식 메모 닫기' : '자유 형식 메모'}
-                      aria-label="자유 형식 메모"
-                    >
-                      <PenTool className="w-3 h-3" />
-                    </button>
-
-                    {/* Focus Mode (문서 집중 모드) Quick Toggle Button */}
-                    <button
-                      id="editor-focus-mode-toggle"
-                      type="button"
-                      onClick={() => {
-                        const isFocus = isSection1Collapsed && isSection3Collapsed;
-                        if (isFocus) {
-                          setIsSection1Collapsed(false);
-                          setIsSection3Collapsed(false);
-                          showToast('기본 패널 레이아웃이 복원되었습니다.');
-                        } else {
-                          setIsSection1Collapsed(true);
-                          setIsSection3Collapsed(true);
-                          showToast('🎯 문서 집중 모드: 사이드바를 모두 접었습니다.');
-                        }
-                      }}
-                      className={`p-1 rounded-xs border transition flex items-center justify-center cursor-pointer select-none ${
-                        isSection1Collapsed && isSection3Collapsed
-                          ? 'bg-[#18181b] text-indigo-400 border-[#6366f1]'
-                          : 'bg-[#09090b] text-slate-400 border-[#222226] hover:text-white hover:bg-[#18181b]'
-                      }`}
-                      title={
-                        isSection1Collapsed && isSection3Collapsed
-                          ? '문서 집중 모드 해제 (패널 복원)'
-                          : '문서 집중 모드 (사이드바 숨기기)'
-                      }
-                      aria-label="문서 집중 모드 토글"
-                    >
-                      {isSection1Collapsed && isSection3Collapsed ? (
-                        <Minimize2 className="w-3 h-3" />
-                      ) : (
-                        <Maximize2 className="w-3 h-3" />
-                      )}
-                    </button>
 
                     {/* Right Panel Quick Toggle when collapsed */}
                     {!isRightPanelVisible && (
