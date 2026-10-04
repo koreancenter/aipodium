@@ -8541,239 +8541,239 @@ ${projectEvents
               </div>
             </div>
 
-          {/* Left Pane Body: Split Chat History Sidebar + Active Chat Area */}
-          <div className="flex-1 flex overflow-hidden relative">
-
-            {/* Chat History & Project List Sidebar Panel */}
-            <div
-              id="project-list-panel"
-              className={`bg-[#121214] border-r border-[#222226] flex flex-col shrink-0 transition-all duration-300 ease-in-out transform z-10 ${
-                isProjectListOpen
-                  ? 'w-52 sm:w-60 opacity-100 translate-x-0'
-                  : 'w-0 opacity-0 -translate-x-full overflow-hidden border-r-0 pointer-events-none'
-              }`}
-            >
-              {/* Sidebar Header */}
-              <div className="p-2 border-b border-[#222226] space-y-1.5 bg-[#0c0c0e] shrink-0">
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <Folder className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                    <span className="font-semibold tracking-wider text-[0.6875rem] uppercase text-indigo-300">프로젝트 목록</span>
-                  </div>
-
-                  <div className="flex items-center gap-1 shrink-0">
-                    {/* [+] New Project Session Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleCreateNewSession()}
-                      className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-white transition cursor-pointer"
-                      title="새 프로젝트 생성"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Search Input Box in Project Sidebar */}
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={sessionSearchQuery}
-                    onChange={(e) => setSessionSearchQuery(e.target.value)}
-                    placeholder="프로젝트 검색..."
-                    className="w-full bg-[#121214] border border-[#222226] focus:border-[#6366f1] rounded-md pl-7 pr-6 py-1 text-[0.6875rem] text-slate-200 placeholder:text-slate-400 outline-none transition"
-                  />
-                  {sessionSearchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSessionSearchQuery('')}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 cursor-pointer"
-                      title="검색어 초기화"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Session List */}
-              <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5 text-xs custom-scrollbar">
-                {(() => {
-                  const query = sessionSearchQuery.toLowerCase().trim();
-                  const filteredSessions = sessions.filter((s) => {
-                    if (!query) return true;
-                    const titleMatch = s.title.toLowerCase().includes(query);
-                    const messageMatch = s.messages.some(
-                      (m) =>
-                        m.text.toLowerCase().includes(query) ||
-                        (m.attachments && m.attachments.some((att) => att.name.toLowerCase().includes(query)))
-                    );
-                    return titleMatch || messageMatch;
-                  });
-
-                  if (filteredSessions.length === 0) {
-                    return (
-                      <div className="text-center py-6 px-3 text-slate-400 space-y-2">
-                        <Search className="w-5 h-5 mx-auto text-slate-500 opacity-60" />
-                        <p className="text-[0.6875rem] font-medium text-slate-300">
-                          {sessionSearchQuery ? `'${sessionSearchQuery}' 검색 결과 없음` : '프로젝트가 없습니다.'}
-                        </p>
-                        {sessionSearchQuery && (
-                          <button
-                            type="button"
-                            onClick={() => setSessionSearchQuery('')}
-                            className="text-[0.625rem] text-[#6366f1] hover:underline font-mono cursor-pointer"
-                          >
-                            검색어 초기화
-                          </button>
-                        )}
+          {/* Left Pane Body: Chat Area with Confined Project Drawer (Phase 3.1) */}
+          <div className="flex-1 flex flex-col overflow-hidden relative min-h-0">
+            {/* Active Conversation Chat Area via ChatPanel (Phase 3.1) */}
+            <ChatPanel
+              projectDrawer={
+                <aside
+                  id="project-list-panel"
+                  aria-label="프로젝트 목록"
+                  className={`bg-[#121214] border-r border-[#222226] flex flex-col shrink-0 transition-all duration-300 ease-in-out transform z-10 h-full ${
+                    isProjectListOpen
+                      ? 'w-52 sm:w-60 opacity-100 translate-x-0'
+                      : 'w-0 opacity-0 -translate-x-full overflow-hidden border-r-0 pointer-events-none'
+                  }`}
+                >
+                  {/* Sidebar Header */}
+                  <div className="p-2 border-b border-[#222226] space-y-1.5 bg-[#0c0c0e] shrink-0">
+                    <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Folder className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
+                        <span className="font-semibold tracking-wider text-[0.6875rem] uppercase text-indigo-300">프로젝트 목록</span>
                       </div>
-                    );
-                  }
 
-                  return filteredSessions.map((session) => {
-                    const isActive = session.id === activeSessionId;
-                    const matchedMsgCount = query
-                      ? session.messages.filter(
+                      <div className="flex items-center gap-1 shrink-0">
+                        {/* [+] New Project Session Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleCreateNewSession()}
+                          className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-white transition cursor-pointer"
+                          title="새 프로젝트 생성"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Search Input Box in Project Sidebar */}
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={sessionSearchQuery}
+                        onChange={(e) => setSessionSearchQuery(e.target.value)}
+                        placeholder="프로젝트 검색..."
+                        className="w-full bg-[#121214] border border-[#222226] focus:border-[#6366f1] rounded-md pl-7 pr-6 py-1 text-[0.6875rem] text-slate-200 placeholder:text-slate-400 outline-none transition"
+                      />
+                      {sessionSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setSessionSearchQuery('')}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 cursor-pointer"
+                          title="검색어 초기화"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Session List */}
+                  <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5 text-xs custom-scrollbar">
+                    {(() => {
+                      const query = sessionSearchQuery.toLowerCase().trim();
+                      const filteredSessions = sessions.filter((s) => {
+                        if (!query) return true;
+                        const titleMatch = s.title.toLowerCase().includes(query);
+                        const messageMatch = s.messages.some(
                           (m) =>
                             m.text.toLowerCase().includes(query) ||
                             (m.attachments && m.attachments.some((att) => att.name.toLowerCase().includes(query)))
-                        ).length
-                      : 0;
+                        );
+                        return titleMatch || messageMatch;
+                      });
 
-                    const isDraggingThis = draggedType === 'project' && draggedId === session.id;
-                    const isTarget = dragOverTargetId === session.id;
-                    const isDroppingBefore = isTarget && dragDropPosition === 'before';
-                    const isDroppingAfter = isTarget && dragDropPosition === 'after';
+                      if (filteredSessions.length === 0) {
+                        return (
+                          <div className="text-center py-6 px-3 text-slate-400 space-y-2">
+                            <Search className="w-5 h-5 mx-auto text-slate-500 opacity-60" />
+                            <p className="text-[0.6875rem] font-medium text-slate-300">
+                              {sessionSearchQuery ? `'${sessionSearchQuery}' 검색 결과 없음` : '프로젝트가 없습니다.'}
+                            </p>
+                            {sessionSearchQuery && (
+                              <button
+                                type="button"
+                                onClick={() => setSessionSearchQuery('')}
+                                className="text-[0.625rem] text-[#6366f1] hover:underline font-mono cursor-pointer"
+                              >
+                                검색어 초기화
+                              </button>
+                            )}
+                          </div>
+                        );
+                      }
 
-                    return (
-                      <div
-                        key={session.id}
-                        draggable={true}
-                        onDragStart={(e) => handleProjectDragStart(e, session.id)}
-                        onDragOver={(e) => handleFolderDragOver(e, session.id)}
-                        onDragLeave={(e) => handleFolderDragLeave(e, session.id)}
-                        onDrop={(e) => handleFolderDrop(e, session.id)}
-                        onDragEnd={handleDragEnd}
-                        onClick={() => handleSelectSession(session.id)}
-                        className={`group relative flex flex-col px-2.5 py-1.5 rounded-xs transition cursor-pointer ${
-                          isDraggingThis
-                            ? 'opacity-40 border border-dashed border-[#6366f1] bg-[#18181b]/50'
-                            : isActive
-                            ? 'bg-[#18181b] text-white border-l-2 border-[#6366f1] pl-2 font-medium border-t border-r border-b border-[#222226]'
-                            : 'text-slate-300 hover:bg-[#09090b]/60 hover:text-slate-100'
-                        }`}
-                      >
-                        {/* Visual Drop Insertion Indicators */}
-                        {isDroppingBefore && (
-                          <div className="absolute -top-1 left-0 right-0 h-0.5 bg-[#6366f1] z-30 pointer-events-none" />
-                        )}
-                        {isDroppingAfter && (
-                          <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#6366f1] z-30 pointer-events-none" />
-                        )}
+                      return filteredSessions.map((session) => {
+                        const isActive = session.id === activeSessionId;
+                        const matchedMsgCount = query
+                          ? session.messages.filter(
+                              (m) =>
+                                m.text.toLowerCase().includes(query) ||
+                                (m.attachments && m.attachments.some((att) => att.name.toLowerCase().includes(query)))
+                            ).length
+                          : 0;
 
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="font-medium truncate flex-1 text-xs flex items-center gap-1 min-w-0">
-                            <span
-                              className="cursor-grab active:cursor-grabbing text-slate-500 group-hover:text-slate-300 hover:text-slate-100 p-0.5 -ml-0.5 rounded transition shrink-0"
-                              title="드래그하여 프로젝트 순서 변경"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <GripVertical className="w-3 h-3" />
-                            </span>
-                            {editingTreeTarget?.id === `project:${session.id}` ? (
-                              <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
-                                <InlineRenameInput
-                                  initialValue={session.title}
-                                  isFolder={true}
-                                  onCommit={handleCommitRename}
-                                  onCancel={() => setEditingTreeTarget(null)}
-                                />
+                        const isDraggingThis = draggedType === 'project' && draggedId === session.id;
+                        const isTarget = dragOverTargetId === session.id;
+                        const isDroppingBefore = isTarget && dragDropPosition === 'before';
+                        const isDroppingAfter = isTarget && dragDropPosition === 'after';
+
+                        return (
+                          <div
+                            key={session.id}
+                            draggable={true}
+                            onDragStart={(e) => handleProjectDragStart(e, session.id)}
+                            onDragOver={(e) => handleFolderDragOver(e, session.id)}
+                            onDragLeave={(e) => handleFolderDragLeave(e, session.id)}
+                            onDrop={(e) => handleFolderDrop(e, session.id)}
+                            onDragEnd={handleDragEnd}
+                            onClick={() => handleSelectSession(session.id)}
+                            className={`group relative flex flex-col px-2.5 py-1.5 rounded-xs transition cursor-pointer ${
+                              isDraggingThis
+                                ? 'opacity-40 border border-dashed border-[#6366f1] bg-[#18181b]/50'
+                                : isActive
+                                ? 'bg-[#18181b] text-white border-l-2 border-[#6366f1] pl-2 font-medium border-t border-r border-b border-[#222226]'
+                                : 'text-slate-300 hover:bg-[#09090b]/60 hover:text-slate-100'
+                            }`}
+                          >
+                            {/* Visual Drop Insertion Indicators */}
+                            {isDroppingBefore && (
+                              <div className="absolute -top-1 left-0 right-0 h-0.5 bg-[#6366f1] z-30 pointer-events-none" />
+                            )}
+                            {isDroppingAfter && (
+                              <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#6366f1] z-30 pointer-events-none" />
+                            )}
+
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-medium truncate flex-1 text-xs flex items-center gap-1 min-w-0">
+                                <span
+                                  className="cursor-grab active:cursor-grabbing text-slate-500 group-hover:text-slate-300 hover:text-slate-100 p-0.5 -ml-0.5 rounded transition shrink-0"
+                                  title="드래그하여 프로젝트 순서 변경"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <GripVertical className="w-3 h-3" />
+                                </span>
+                                {editingTreeTarget?.id === `project:${session.id}` ? (
+                                  <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+                                    <InlineRenameInput
+                                      initialValue={session.title}
+                                      isFolder={true}
+                                      onCommit={handleCommitRename}
+                                      onCancel={() => setEditingTreeTarget(null)}
+                                    />
+                                  </div>
+                                ) : (
+                                  <span
+                                    className="truncate"
+                                    onDoubleClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingTreeTarget({
+                                        id: `project:${session.id}`,
+                                        type: 'session',
+                                        name: session.title,
+                                        path: session.title,
+                                        sessionId: session.id,
+                                      });
+                                    }}
+                                  >
+                                    {session.title}
+                                  </span>
+                                )}
+                                {matchedMsgCount > 0 && query && (
+                                  <span className="text-[0.5625rem] bg-[#6366f1]/15 text-[#6366f1] px-1 py-0.2 rounded border border-[#6366f1]/30 shrink-0 font-mono">
+                                    {matchedMsgCount}
+                                  </span>
+                                )}
+                              </span>
+
+                              <div className="flex items-center gap-1 shrink-0">
+                                <span className="text-[0.625rem] font-mono text-slate-400 group-hover:hidden">
+                                  {session.messages.length}
+                                </span>
+                                <div className="hidden group-hover:flex items-center gap-0.5 transition">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingTreeTarget({
+                                        id: `project:${session.id}`,
+                                        type: 'session',
+                                        name: session.title,
+                                        path: session.title,
+                                        sessionId: session.id,
+                                      });
+                                    }}
+                                    className="p-0.5 text-slate-400 hover:text-amber-300 transition rounded hover:bg-[#18181b]"
+                                    title="프로젝트 이름 변경"
+                                  >
+                                    <Pencil className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleExportChatSession('json', session.id);
+                                    }}
+                                    className="p-0.5 text-slate-400 hover:text-[#6366f1] transition rounded hover:bg-[#18181b]"
+                                    title="JSON으로 내보내기"
+                                  >
+                                    <Download className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => requestDeleteSession(session.id, e)}
+                                    className="p-0.5 text-slate-400 hover:text-rose-400 transition rounded hover:bg-[#18181b]"
+                                    title="프로젝트 삭제"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
                               </div>
-                            ) : (
-                              <span
-                                className="truncate"
-                                onDoubleClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingTreeTarget({
-                                    id: `project:${session.id}`,
-                                    type: 'session',
-                                    name: session.title,
-                                    path: session.title,
-                                    sessionId: session.id,
-                                  });
-                                }}
-                              >
-                                {session.title}
-                              </span>
-                            )}
-                            {matchedMsgCount > 0 && query && (
-                              <span className="text-[0.5625rem] bg-[#6366f1]/15 text-[#6366f1] px-1 py-0.2 rounded border border-[#6366f1]/30 shrink-0 font-mono">
-                                {matchedMsgCount}
-                              </span>
-                            )}
-                          </span>
+                            </div>
 
-                          <div className="flex items-center gap-1 shrink-0">
-                            <span className="text-[0.625rem] font-mono text-slate-400 group-hover:hidden">
-                              {session.messages.length}
-                            </span>
-                            <div className="hidden group-hover:flex items-center gap-0.5 transition">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingTreeTarget({
-                                    id: `project:${session.id}`,
-                                    type: 'session',
-                                    name: session.title,
-                                    path: session.title,
-                                    sessionId: session.id,
-                                  });
-                                }}
-                                className="p-0.5 text-slate-400 hover:text-amber-300 transition rounded hover:bg-[#18181b]"
-                                title="프로젝트 이름 변경"
-                              >
-                                <Pencil className="w-3 h-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleExportChatSession('json', session.id);
-                                }}
-                                className="p-0.5 text-slate-400 hover:text-[#6366f1] transition rounded hover:bg-[#18181b]"
-                                title="JSON으로 내보내기"
-                              >
-                                <Download className="w-3 h-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => requestDeleteSession(session.id, e)}
-                                className="p-0.5 text-slate-400 hover:text-rose-400 transition rounded hover:bg-[#18181b]"
-                                title="프로젝트 삭제"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
+                            <div className="flex items-center justify-between text-[0.5625rem] text-slate-400 font-mono mt-0.5">
+                              <span>
+                                {session.createdAt}
+                              </span>
                             </div>
                           </div>
-                        </div>
-
-                        <div className="flex items-center justify-between text-[0.5625rem] text-slate-400 font-mono mt-0.5">
-                          <span>
-                            {session.createdAt}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </div>
-
-            {/* Active Conversation Chat Area via ChatPanel (Phase 3.1) */}
-            <ChatPanel
+                        );
+                      });
+                    })()}
+                  </div>
+                </aside>
+              }
               activeSessionId={activeSessionId}
               sessionTitle={activeSession?.title}
               messages={messages}

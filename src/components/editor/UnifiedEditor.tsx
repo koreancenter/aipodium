@@ -21,7 +21,6 @@ import {
   Quote,
   Table as TableIcon,
   PenTool,
-  Pencil,
   Maximize2,
   Minimize2
 } from 'lucide-react';

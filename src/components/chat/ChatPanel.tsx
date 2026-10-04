@@ -26,6 +26,10 @@ import { UniversalPromptInput } from './UniversalPromptInput';
 import { WEB_LLM_MODEL_ID, WEB_LLM_MODEL_DISPLAY_NAME } from '../../utils/webllmService';
 
 export interface ChatPanelProps {
+  // Project Drawer slot & Container
+  projectDrawer?: React.ReactNode;
+  children?: React.ReactNode;
+
   // Session & Message Data
   activeSessionId: string;
   sessionTitle?: string;
@@ -105,6 +109,8 @@ export interface ChatPanelProps {
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({
+  projectDrawer,
+  children,
   activeSessionId,
   sessionTitle,
   messages,
@@ -197,229 +203,236 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
   return (
     <div className={`flex-1 flex flex-col min-w-0 bg-transparent relative overflow-hidden h-full ${className}`}>
-      {/* Scrollable Message List View */}
-      <div
-        id="chat-messages"
-        ref={chatContainerRef}
-        onScroll={handleChatScroll}
-        className="flex-1 overflow-y-auto p-3 select-text custom-scrollbar"
-      >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeSessionId}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="space-y-3 select-text max-w-3xl mx-auto w-full"
-          >
-            {messages.length === 0 ? (
-              webllmProgress?.isLoading ? (
-                <div
-                  id="webllm-chat-download-progress"
-                  className="flex flex-col items-center justify-center min-h-[360px] h-full text-center px-6 py-12 select-none max-w-md mx-auto w-full animate-in fade-in duration-200"
-                >
-                  <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4 text-[#6366f1]">
-                    <Loader2 className="w-6 h-6 animate-spin text-[#6366f1]" />
-                  </div>
-                  <h3 className="text-sm font-semibold text-zinc-100 mb-1">
-                    브라우저 내장 로컬 AI 가중치 다운로드 및 초기화 중
-                  </h3>
-                  <p className="text-xs text-zinc-400 mb-5 leading-relaxed break-keep">
-                    Qwen2.5-0.5B 모델 가중치(약 1.5GB)를 브라우저 로컬 캐시에 다운로드하고 있습니다. 최초 1회 완료 후 완전 오프라인에서도 무료로 실행됩니다.
-                  </p>
+      {/* Middle Message Viewport & Confined Project Drawer Flex Container */}
+      <div className="flex-1 min-h-0 relative flex flex-row overflow-hidden">
+        {/* Confined Project Drawer Container / Aside */}
+        {projectDrawer || children}
 
-                  {/* 0~100% 게이지 바 */}
-                  <div className="w-full bg-[#09090b] border border-[#222226] rounded-full h-2 overflow-hidden mb-2.5">
-                    <div
-                      className="bg-[#6366f1] h-full transition-all duration-200 rounded-full"
-                      style={{ width: `${Math.max(2, Math.min(100, webllmProgress.progressPercent ?? 0))}%` }}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between w-full text-xs text-zinc-400 font-mono">
-                    <span className="truncate max-w-[75%] text-left text-[11px]" title={webllmProgress.progressText}>
-                      {webllmProgress.progressText || '가중치 다운로드 및 WebGPU 컴파일 중...'}
-                    </span>
-                    <span className="font-bold text-[#6366f1] text-xs shrink-0">
-                      {webllmProgress.progressPercent ?? 0}%
-                    </span>
-                  </div>
-                  <div className="mt-3 text-[10px] text-zinc-500 font-mono">
-                    권장 메모리: 4GB 이상 · 가중치 캐싱 약 1.5GB
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center min-h-[360px] h-full text-center px-4 py-16 select-none">
-                  <div className="w-10 h-10 rounded-full bg-white/5 border border-white/5 flex items-center justify-center mb-3 text-indigo-400">
-                    <Sparkles className="w-5 h-5" />
-                  </div>
-                  <p className="text-sm font-medium text-zinc-300">
-                    AI 어시스턴트와 대화를 시작하거나 프롬프트를 입력하세요
-                  </p>
-                  <p className="text-xs text-zinc-500 mt-1.5 max-w-xs leading-relaxed">
-                    질문, 문서 요약, 코드 생성 및 번역 작업을 지원합니다
-                  </p>
-                </div>
-              )
-            ) : (
-              <>
-                {webllmProgress?.isLoading && (
-                  <div className="p-3 bg-[#121214] border border-[#222226] rounded-md select-none mb-3">
-                    <div className="flex items-center justify-between text-xs mb-1.5">
-                      <span className="flex items-center gap-1.5 text-zinc-200 font-medium">
-                        <Loader2 className="w-3.5 h-3.5 text-[#6366f1] animate-spin" />
-                        가중치 다운로드 중
-                      </span>
-                      <span className="font-mono font-bold text-[#6366f1]">
-                        {webllmProgress.progressPercent ?? 0}%
-                      </span>
+        {/* Scrollable Message List View */}
+        <div
+          id="chat-messages"
+          ref={chatContainerRef}
+          onScroll={handleChatScroll}
+          className="flex-1 min-w-0 h-full overflow-y-auto p-3 select-text custom-scrollbar"
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeSessionId}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+              className="space-y-3 select-text max-w-3xl mx-auto w-full"
+            >
+              {messages.length === 0 ? (
+                webllmProgress?.isLoading ? (
+                  <div
+                    id="webllm-chat-download-progress"
+                    className="flex flex-col items-center justify-center min-h-[360px] h-full text-center px-6 py-12 select-none max-w-md mx-auto w-full animate-in fade-in duration-200"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4 text-[#6366f1]">
+                      <Loader2 className="w-6 h-6 animate-spin text-[#6366f1]" />
                     </div>
-                    <div className="w-full bg-[#09090b] border border-[#222226] rounded-full h-1.5 overflow-hidden">
+                    <h3 className="text-sm font-semibold text-zinc-100 mb-1">
+                      브라우저 내장 로컬 AI 가중치 다운로드 및 초기화 중
+                    </h3>
+                    <p className="text-xs text-zinc-400 mb-5 leading-relaxed break-keep">
+                      Qwen2.5-0.5B 모델 가중치(약 1.5GB)를 브라우저 로컬 캐시에 다운로드하고 있습니다. 최초 1회 완료 후 완전 오프라인에서도 무료로 실행됩니다.
+                    </p>
+
+                    {/* 0~100% 게이지 바 */}
+                    <div className="w-full bg-[#09090b] border border-[#222226] rounded-full h-2 overflow-hidden mb-2.5">
                       <div
                         className="bg-[#6366f1] h-full transition-all duration-200 rounded-full"
                         style={{ width: `${Math.max(2, Math.min(100, webllmProgress.progressPercent ?? 0))}%` }}
                       />
                     </div>
+
+                    <div className="flex items-center justify-between w-full text-xs text-zinc-400 font-mono">
+                      <span className="truncate max-w-[75%] text-left text-[11px]" title={webllmProgress.progressText}>
+                        {webllmProgress.progressText || '가중치 다운로드 및 WebGPU 컴파일 중...'}
+                      </span>
+                      <span className="font-bold text-[#6366f1] text-xs shrink-0">
+                        {webllmProgress.progressPercent ?? 0}%
+                      </span>
+                    </div>
+                    <div className="mt-3 text-[10px] text-zinc-500 font-mono">
+                      권장 메모리: 4GB 이상 · 가중치 캐싱 약 1.5GB
+                    </div>
                   </div>
-                )}
-                {messages.map((msg) =>
-                msg.sender === 'ai' ? (
-                  <AiMessageBubble
-                    key={msg.id}
-                    msg={msg}
-                    selectedModel={
-                      selectedModel === WEB_LLM_MODEL_ID
-                        ? WEB_LLM_MODEL_DISPLAY_NAME
-                        : isOnboardingMode
-                        ? 'AI 지식 비서'
-                        : selectedModel
-                    }
-                    onCopy={(text) => {
-                      navigator.clipboard.writeText(text);
-                      onToast('✓ AI 답변 내용이 클립보드에 복사되었습니다.');
-                    }}
-                    onDiff={(text, model) => {
-                      onDiff(text, model);
-                    }}
-                    onSendToEditor={(text) => onSendToEditor(text)}
-                    onActionChipClick={(chipType) => onActionChipClick?.(chipType)}
-                    onOpenSettings={(tab) => onOpenSettings?.(tab)}
-                    onTranslate={onTranslate}
-                  />
                 ) : (
-                  <div key={msg.id} className="flex gap-2.5 items-start select-text justify-end">
-                    <div className="rounded-md p-3 text-xs leading-relaxed space-y-2 select-text cursor-text bg-[#18181f] border border-white/[0.08] text-slate-100 max-w-[85%]">
-                      {/* Attachment Rendering */}
-                      {msg.attachments && msg.attachments.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 pt-0.5 border-b border-white/[0.06] pb-1.5 select-none">
-                          {msg.attachments.map((att) => (
-                            <div
-                              key={att.id}
-                              className="rounded overflow-hidden border border-white/[0.06] bg-black/40 p-1 flex items-center gap-1.5 max-w-full"
-                            >
-                              {att.type === 'image' && att.url ? (
-                                <img
-                                  src={att.url}
-                                  alt={att.name}
-                                  className="max-h-36 rounded border border-white/[0.06] object-cover"
-                                />
-                              ) : att.type === 'link' ? (
-                                <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-slate-300 font-mono">
-                                  <Link2 className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                                  <span className="truncate max-w-[150px] font-medium">{att.name}</span>
-                                  <span className="text-[0.625rem] text-slate-400">({att.size})</span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-slate-300 font-mono">
-                                  <FileText className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                                  <span className="truncate max-w-[150px] font-medium">{att.name}</span>
-                                  <span className="text-[0.625rem] text-slate-400">({att.size})</span>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Ghost Writer Level Indicator */}
-                      {msg.ghostWriterLevel && msg.ghostWriterLevel !== 'off' && (
-                        <div className="flex flex-col gap-1 pb-1.5 mb-1.5 border-b border-white/[0.06] select-none">
-                          <div className="flex items-center justify-between gap-2 text-[0.625rem]">
-                            <span className="inline-flex items-center gap-1 font-semibold text-emerald-200 bg-emerald-950/80 px-1.5 py-0.5 rounded text-[0.5625rem] border border-emerald-800/60">
-                              <Ghost className="w-3 h-3 text-emerald-300" />
-                              Ghost Writer {msg.ghostWriterLevel}%
-                            </span>
-                            <span className="text-[0.625rem] text-[#38bdf8] font-mono flex items-center gap-1">
-                              <Globe className="w-3 h-3 text-[#0ea5e9]" />
-                              영문 프롬프트
-                            </span>
-                          </div>
-                          {msg.originalText && msg.originalText !== msg.text && (
-                            <div className="text-[0.6875rem] text-slate-300 flex items-start gap-1 font-sans pt-0.5">
-                              <span className="font-medium text-slate-400 shrink-0">🇰🇷 한국어 원문:</span>
-                              <span className="italic text-slate-200">{msg.originalText}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="whitespace-pre-wrap font-sans space-y-1 select-text cursor-text selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)]">
-                        {renderFormattedMessageText(msg.text)}
-                      </div>
+                  <div className="flex flex-col items-center justify-center min-h-[360px] h-full text-center px-4 py-16 select-none">
+                    <div className="w-10 h-10 rounded-full bg-white/5 border border-white/5 flex items-center justify-center mb-3 text-indigo-400">
+                      <Sparkles className="w-5 h-5" />
                     </div>
-
-                    <div className="w-6 h-6 rounded-md bg-[#121214] border border-[#222226] flex items-center justify-center text-slate-200 text-xs shrink-0 mt-0.5 select-none shadow-xs">
-                      <User className="w-3.5 h-3.5" />
-                    </div>
+                    <p className="text-sm font-medium text-zinc-300">
+                      AI 어시스턴트와 대화를 시작하거나 프롬프트를 입력하세요
+                    </p>
+                    <p className="text-xs text-zinc-500 mt-1.5 max-w-xs leading-relaxed">
+                      질문, 문서 요약, 코드 생성 및 번역 작업을 지원합니다
+                    </p>
                   </div>
                 )
-              )}
-            </>
-          )}
+              ) : (
+                <>
+                  {webllmProgress?.isLoading && (
+                    <div className="p-3 bg-[#121214] border border-[#222226] rounded-md select-none mb-3">
+                      <div className="flex items-center justify-between text-xs mb-1.5">
+                        <span className="flex items-center gap-1.5 text-zinc-200 font-medium">
+                          <Loader2 className="w-3.5 h-3.5 text-[#6366f1] animate-spin" />
+                          가중치 다운로드 중
+                        </span>
+                        <span className="font-mono font-bold text-[#6366f1]">
+                          {webllmProgress.progressPercent ?? 0}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-[#09090b] border border-[#222226] rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-[#6366f1] h-full transition-all duration-200 rounded-full"
+                          style={{ width: `${Math.max(2, Math.min(100, webllmProgress.progressPercent ?? 0))}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {messages.map((msg) =>
+                  msg.sender === 'ai' ? (
+                    <AiMessageBubble
+                      key={msg.id}
+                      msg={msg}
+                      selectedModel={
+                        selectedModel === WEB_LLM_MODEL_ID
+                          ? WEB_LLM_MODEL_DISPLAY_NAME
+                          : isOnboardingMode
+                          ? 'AI 지식 비서'
+                          : selectedModel
+                      }
+                      onCopy={(text) => {
+                        navigator.clipboard.writeText(text);
+                        onToast('✓ AI 답변 내용이 클립보드에 복사되었습니다.');
+                      }}
+                      onDiff={(text, model) => {
+                        onDiff(text, model);
+                      }}
+                      onSendToEditor={(text) => onSendToEditor(text)}
+                      onActionChipClick={(chipType) => onActionChipClick?.(chipType)}
+                      onOpenSettings={(tab) => onOpenSettings?.(tab)}
+                      onTranslate={onTranslate}
+                    />
+                  ) : (
+                    <div key={msg.id} className="flex gap-2.5 items-start select-text justify-end">
+                      <div className="rounded-md p-3 text-xs leading-relaxed space-y-2 select-text cursor-text bg-[#18181f] border border-white/[0.08] text-slate-100 max-w-[85%]">
+                        {/* Attachment Rendering */}
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pt-0.5 border-b border-white/[0.06] pb-1.5 select-none">
+                            {msg.attachments.map((att) => (
+                              <div
+                                key={att.id}
+                                className="rounded overflow-hidden border border-white/[0.06] bg-black/40 p-1 flex items-center gap-1.5 max-w-full"
+                              >
+                                {att.type === 'image' && att.url ? (
+                                  <img
+                                    src={att.url}
+                                    alt={att.name}
+                                    className="max-h-36 rounded border border-white/[0.06] object-cover"
+                                  />
+                                ) : att.type === 'link' ? (
+                                  <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-slate-300 font-mono">
+                                    <Link2 className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
+                                    <span className="truncate max-w-[150px] font-medium">{att.name}</span>
+                                    <span className="text-[0.625rem] text-slate-400">({att.size})</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-slate-300 font-mono">
+                                    <FileText className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
+                                    <span className="truncate max-w-[150px] font-medium">{att.name}</span>
+                                    <span className="text-[0.625rem] text-slate-400">({att.size})</span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
 
-            {/* Preparation Indicator */}
-            {isAiLoading && !messages.some((m) => m.isStreaming) && (
-              <div className="flex gap-2.5 items-center py-1 bg-transparent border-0 select-none">
-                <div className="w-5 h-5 flex items-center justify-center text-indigo-400 text-xs shrink-0 select-none bg-transparent border-0">
-                  <Bot className="w-4 h-4 animate-pulse text-indigo-400" />
-                </div>
-                <div className="bg-transparent border-0 px-1 py-1 text-xs text-slate-400 flex items-center gap-2 font-sans shadow-none">
-                  <div className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></span>
-                  </div>
-                  <span className="text-slate-400 text-xs">
-                    {isOnboardingMode
-                      ? 'AI 지식 비서가 답변을 준비하고 있습니다...'
-                      : 'AI 모델이 응답을 준비하고 있습니다...'}
-                  </span>
-                </div>
-              </div>
+                        {/* Ghost Writer Level Indicator */}
+                        {msg.ghostWriterLevel && msg.ghostWriterLevel !== 'off' && (
+                          <div className="flex flex-col gap-1 pb-1.5 mb-1.5 border-b border-white/[0.06] select-none">
+                            <div className="flex items-center justify-between gap-2 text-[0.625rem]">
+                              <span className="inline-flex items-center gap-1 font-semibold text-emerald-200 bg-emerald-950/80 px-1.5 py-0.5 rounded text-[0.5625rem] border border-emerald-800/60">
+                                <Ghost className="w-3 h-3 text-emerald-300" />
+                                Ghost Writer {msg.ghostWriterLevel}%
+                              </span>
+                              <span className="text-[0.625rem] text-[#38bdf8] font-mono flex items-center gap-1">
+                                <Globe className="w-3 h-3 text-[#0ea5e9]" />
+                                영문 프롬프트
+                              </span>
+                            </div>
+                            {msg.originalText && msg.originalText !== msg.text && (
+                              <div className="text-[0.6875rem] text-slate-300 flex items-start gap-1 font-sans pt-0.5">
+                                <span className="font-medium text-slate-400 shrink-0">🇰🇷 한국어 원문:</span>
+                                <span className="italic text-slate-200">{msg.originalText}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="whitespace-pre-wrap font-sans space-y-1 select-text cursor-text selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)]">
+                          {renderFormattedMessageText(msg.text)}
+                        </div>
+                      </div>
+
+                      <div className="w-6 h-6 rounded-md bg-[#121214] border border-[#222226] flex items-center justify-center text-slate-200 text-xs shrink-0 mt-0.5 select-none shadow-xs">
+                        <User className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                  )
+                )}
+              </>
             )}
-          </motion.div>
-        </AnimatePresence>
+
+              {/* Preparation Indicator */}
+              {isAiLoading && !messages.some((m) => m.isStreaming) && (
+                <div className="flex gap-2.5 items-center py-1 bg-transparent border-0 select-none">
+                  <div className="w-5 h-5 flex items-center justify-center text-indigo-400 text-xs shrink-0 select-none bg-transparent border-0">
+                    <Bot className="w-4 h-4 animate-pulse text-indigo-400" />
+                  </div>
+                  <div className="bg-transparent border-0 px-1 py-1 text-xs text-slate-400 flex items-center gap-2 font-sans shadow-none">
+                    <div className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></span>
+                    </div>
+                    <span className="text-slate-400 text-xs">
+                      {isOnboardingMode
+                        ? 'AI 지식 비서가 답변을 준비하고 있습니다...'
+                        : 'AI 모델이 응답을 준비하고 있습니다...'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Floating Scroll to Bottom Button */}
+        {isScrolledUp && (
+          <button
+            type="button"
+            onClick={() => {
+              isUserScrolledUpRef.current = false;
+              setIsScrolledUp(false);
+              scrollToChatBottom(true);
+            }}
+            className="absolute bottom-4 right-6 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#121214]/95 border border-[#222226] text-[0.6875rem] text-slate-300 hover:text-white shadow-lg hover:border-[#6366f1] transition-all cursor-pointer group select-none"
+          >
+            <ArrowDown className="w-3 h-3 text-[#6366f1] group-hover:translate-y-0.5 transition-transform" />
+            <span>아래로 스크롤</span>
+          </button>
+        )}
       </div>
 
-      {/* Floating Scroll to Bottom Button */}
-      {isScrolledUp && (
-        <button
-          type="button"
-          onClick={() => {
-            isUserScrolledUpRef.current = false;
-            setIsScrolledUp(false);
-            scrollToChatBottom(true);
-          }}
-          className="absolute bottom-16 right-6 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#121214]/95 border border-[#222226] text-[0.6875rem] text-slate-300 hover:text-white shadow-lg hover:border-[#6366f1] transition-all cursor-pointer group select-none"
-        >
-          <ArrowDown className="w-3 h-3 text-[#6366f1] group-hover:translate-y-0.5 transition-transform" />
-          <span>아래로 스크롤</span>
-        </button>
-      )}
-
-      {/* Bottom-Flush UniversalPromptInput */}
+      {/* Persistently Mounted Bottom UniversalPromptInput across the Full Width */}
       <UniversalPromptInput
+        className="w-full shrink-0 border-t border-[#222226]"
         chatInput={chatInput}
         onChatInputChange={onChatInputChange}
         chatAttachments={chatAttachments}
