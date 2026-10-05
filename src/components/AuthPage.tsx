@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   GraduationCap,
-  BookOpen,
   FileText,
   ShieldCheck,
   Lock,
@@ -839,9 +838,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                 {!generatedRecoveryKey && !hasPinConfigured && (
                   <div className="space-y-4 sm:space-y-5 lg:space-y-6">
                     <div>
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-2 sm:mb-4">
-                        <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </div>
                       <h2 className="text-lg sm:text-xl font-semibold text-zinc-100 tracking-tight">
                         {t.welcomeTitle}
                       </h2>

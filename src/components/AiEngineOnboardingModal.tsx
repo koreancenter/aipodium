@@ -185,28 +185,25 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 6 }}
           transition={{ duration: 0.15, ease: 'easeOut' }}
-          className="max-w-md w-full bg-[#121214] border border-[#222226] rounded-xl p-5 shadow-2xl flex flex-col justify-between min-h-[440px] text-left"
+          className="max-w-md w-full bg-[#121214] border border-[#222226] rounded-xl p-5 shadow-2xl flex flex-col justify-between text-left"
         >
           <div>
             {/* Header */}
             <div className="mb-4">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2">
                 <Cpu className="w-4 h-4 text-indigo-400 shrink-0" />
                 <h2 className="text-sm font-semibold text-zinc-100 tracking-tight">
                   AI 엔진 선택
                 </h2>
               </div>
-              <p className="text-xs text-zinc-400">
-                작업 환경에 맞는 AI 모델 엔진을 선택합니다.
-              </p>
             </div>
 
             {/* 3 Flat Selection Options */}
             <div className="space-y-2 mb-3">
-              {/* Option 1: 클라우드 API - Gemini / OpenAI */}
+              {/* Option 1: 클라우드 API · Gemini / OpenAI */}
               <div
                 onClick={() => handleSelectOption('cloud')}
-                className={`p-3 rounded-lg border cursor-pointer transition flex items-center justify-between ${
+                className={`px-3 py-2.5 rounded-lg border cursor-pointer transition flex items-center justify-between ${
                   selectedOption === 'cloud'
                     ? 'border-indigo-500/50 bg-indigo-500/10'
                     : 'border-white/5 hover:border-white/20 hover:bg-white/[0.03]'
@@ -214,13 +211,8 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Sparkles className={`w-4 h-4 shrink-0 ${selectedOption === 'cloud' ? 'text-indigo-400' : 'text-zinc-500'}`} />
-                  <div className="min-w-0">
-                    <div className="text-xs font-medium text-zinc-200 truncate">
-                      클라우드 API · Gemini / OpenAI
-                    </div>
-                    <div className="text-[11px] text-zinc-400 truncate">
-                      보유한 API 키 연결
-                    </div>
+                  <div className="text-xs font-medium text-zinc-200 truncate">
+                    클라우드 API · Gemini / OpenAI
                   </div>
                 </div>
                 <div
@@ -237,7 +229,7 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
               {/* Option 2: 로컬 AI · Ollama */}
               <div
                 onClick={() => handleSelectOption('ollama')}
-                className={`p-3 rounded-lg border cursor-pointer transition flex items-center justify-between ${
+                className={`px-3 py-2.5 rounded-lg border cursor-pointer transition flex items-center justify-between ${
                   selectedOption === 'ollama'
                     ? 'border-indigo-500/50 bg-indigo-500/10'
                     : 'border-white/5 hover:border-white/20 hover:bg-white/[0.03]'
@@ -245,13 +237,8 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Server className={`w-4 h-4 shrink-0 ${selectedOption === 'ollama' ? 'text-indigo-400' : 'text-zinc-500'}`} />
-                  <div className="min-w-0">
-                    <div className="text-xs font-medium text-zinc-200 truncate">
-                      로컬 AI · Ollama
-                    </div>
-                    <div className="text-[11px] text-zinc-400 truncate">
-                      localhost:11434 직접 연결
-                    </div>
+                  <div className="text-xs font-medium text-zinc-200 truncate">
+                    로컬 AI · Ollama
                   </div>
                 </div>
                 <div
@@ -268,7 +255,7 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
               {/* Option 3: 브라우저 내장 WebLLM */}
               <div
                 onClick={() => handleSelectOption('webllm')}
-                className={`p-3 rounded-lg border cursor-pointer transition flex items-center justify-between ${
+                className={`px-3 py-2.5 rounded-lg border cursor-pointer transition flex items-center justify-between ${
                   selectedOption === 'webllm'
                     ? 'border-indigo-500/50 bg-indigo-500/10'
                     : 'border-white/5 hover:border-white/20 hover:bg-white/[0.03]'
@@ -276,13 +263,8 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Cpu className={`w-4 h-4 shrink-0 ${selectedOption === 'webllm' ? 'text-indigo-400' : 'text-zinc-500'}`} />
-                  <div className="min-w-0">
-                    <div className="text-xs font-medium text-zinc-200 truncate">
-                      브라우저 내장 WebLLM
-                    </div>
-                    <div className="text-[11px] text-zinc-400 truncate">
-                      무설치 브라우저 WebGPU 즉시 실행 (API 키 불필요)
-                    </div>
+                  <div className="text-xs font-medium text-zinc-200 truncate">
+                    브라우저 내장 WebLLM
                   </div>
                 </div>
                 <div
@@ -429,9 +411,9 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-md text-xs font-medium transition cursor-pointer flex items-center gap-1 shadow-sm"
+                className="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-md text-xs font-medium transition cursor-pointer flex items-center gap-1 shadow-sm"
               >
-                설정 저장 후 시작하기
+                저장 후 시작
               </button>
             </div>
           </div>
