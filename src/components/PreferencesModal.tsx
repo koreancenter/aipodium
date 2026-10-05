@@ -44,6 +44,10 @@ import type { GithubConfig } from './GithubIntegrationModal';
 import { fetchOllamaInstalledModels } from '../services/documentConverterService';
 import { HelpTooltip } from './HelpTooltip';
 import {
+  verifyGeminiApiKey,
+  verifyGeminiApiKeyDetailed
+} from '../services/ai';
+import {
   VENDOR_MODELS_MAP,
   CLOUD_MODEL_OPTIONS,
   DEFAULT_LOCAL_MODEL_OPTIONS,
@@ -574,10 +578,12 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   };
 
   const handleSelectVendor = (vendorId: 'gemini' | 'openai' | 'anthropic' | 'deepseek' | 'groq') => {
-    // 1. Save current key into localPrefs.apiKeys
+    // 1. Sanitize and save current key into localPrefs.apiKeys
+    const rawKey = localApiKeyInput;
+    const sanitizedKey = rawKey.trim();
     const updatedApiKeys = {
       ...(localPrefs.apiKeys || {}),
-      [selectedVendor]: localApiKeyInput.trim()
+      [selectedVendor]: sanitizedKey
     };
     setLocalPrefs((prev) => ({
       ...prev,
@@ -640,9 +646,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   const handleSave = () => {
     // 1. Save general preferences with updated defaultModel & apiKeys & grounding
     const modelToSet = localSelectedModel === 'custom' && customModelInput.trim() ? customModelInput.trim() : localSelectedModel;
+    const rawKey = localApiKeyInput;
+    const sanitizedKey = rawKey.trim();
     const updatedApiKeys = {
       ...(localPrefs.apiKeys || {}),
-      [selectedVendor]: localApiKeyInput.trim()
+      [selectedVendor]: sanitizedKey
     };
     const updatedPrefs: UserPreferences = {
       ...localPrefs,
@@ -666,7 +674,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
       onSelectProvider(targetProvider);
     }
     if (onUpdateApiKey) {
-      onUpdateApiKey(localApiKeyInput.trim());
+      onUpdateApiKey(sanitizedKey);
     }
     if (onUpdateEndpoint) {
       onUpdateEndpoint(localEndpointInput.trim() || 'http://localhost:11434');
@@ -701,16 +709,34 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
   const handleTriggerVerify = async () => {
     if (localProviderType === 'cloud') {
-      const key = localApiKeyInput.trim();
-      if (!key) {
+      const rawKey = localApiKeyInput;
+      const sanitizedKey = rawKey.trim();
+      if (!sanitizedKey) {
         onToast(`${selectedVendor.toUpperCase()} API Key를 입력해주세요.`, 'warn');
         return;
       }
-      onUpdateApiKey(key);
+
+      if (selectedVendor === 'gemini') {
+        try {
+          const diag = await verifyGeminiApiKeyDetailed(sanitizedKey);
+          if (!diag.valid) {
+            const errDetail = diag.errorMessage || (diag.statusCode ? `HTTP ${diag.statusCode}` : '인증 실패');
+            console.error(`Gemini verification error: ${errDetail}`);
+            onToast(`⚠️ API 검증 실패: ${errDetail}`, 'error');
+            return;
+          }
+        } catch (err: any) {
+          console.error('Gemini Key verification failed:', err);
+          onToast(`⚠️ API 검증 실패: ${err?.message || '네트워크 오류'}`, 'error');
+          return;
+        }
+      }
+
+      onUpdateApiKey(sanitizedKey);
       if (onSelectProvider) onSelectProvider('cloud');
       
       try {
-        const models = await fetchProviderActiveModels(selectedVendor, key);
+        const models = await fetchProviderActiveModels(selectedVendor, sanitizedKey);
         if (models && models.length > 0) {
           const simplified = models.map((m) => ({ id: m.id, name: m.name }));
           setVendorActiveModels((prev) => ({
@@ -723,9 +749,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
         console.warn('동적 모델 목록 조회 실패:', err);
       }
 
-      onVerify(selectedVendor, key);
+      onVerify(selectedVendor, sanitizedKey);
     } else {
-      const ep = localEndpointInput.trim() || 'http://localhost:11434';
+      const ep = (localEndpointInput || 'http://localhost:11434').trim().replace(/\/+$/, '');
       onUpdateEndpoint(ep);
       if (onSelectProvider) onSelectProvider('local-pc');
       await fetchLocalModels(ep);

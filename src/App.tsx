@@ -1,5 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { OptimizedEditor } from './components/OptimizedEditor';
+import { UnifiedEditor } from './components/editor';
+import type { UnifiedEditorRef } from './components/editor';
+import { ChatPanel } from './components/chat';
+import { WorkspaceDrawer } from './components/explorer';
 import { PdfViewer, PdfViewerHandle, PdfViewerState } from './components/PdfViewer';
 import { SAMPLE_PDF_DATA_URL } from './data/samplePdfData';
 import { motion, AnimatePresence } from 'motion/react';
@@ -45,6 +48,10 @@ import {
   RenameTarget,
 } from './components/RecursiveFolderTree';
 import {
+  FileTreeContextMenu,
+  FileTreeContextMenuTarget,
+} from './components/FileTreeContextMenu';
+import {
   saveHybridStorage,
   getDbItem,
   clearDb,
@@ -67,7 +74,6 @@ import { CouncilOfCriticsModal } from './components/CouncilOfCriticsModal';
 import { GhostDiffModal } from './components/GhostDiffModal';
 import { AiRoleAssignmentModal } from './components/AiRoleAssignmentModal';
 import { AiEngineOnboardingModal } from './components/AiEngineOnboardingModal';
-import { InlineModelSelector } from './components/InlineModelSelector';
 import { LinkAttachmentInput } from './components/LinkAttachmentInput';
 import { AiMessageBubble } from './components/AiMessageBubble';
 import { evaluateDocumentLocally } from './utils/criticsEngine';
@@ -75,6 +81,14 @@ import { LocalAiResourceMonitor } from './components/LocalAiResourceMonitor';
 import { getOnboardingResponse } from './utils/onboardingBot';
 import { WebLlmBanner } from './components/WebLlmBanner';
 import { TopMenuBar } from './components/TopMenuBar';
+import {
+  calculateDefaultPanelWidths,
+  clampChatWidth,
+  clampExplorerWidth,
+  loadSavedPanelWidths,
+  savePanelWidths,
+  type PanelWidths,
+} from './utils/panelLayoutEngine';
 import {
   DEFAULT_FALLBACK_MODELS,
   RECOMMENDED_QUICK_MODELS,
@@ -116,7 +130,11 @@ import {
   hasMasterPinConfigured,
   purgeGuestWorkspaceData,
 } from './utils/securityCrypto';
-import { clearAiDecryptedKeyMemory } from './services/aiEngineCore';
+import {
+  aiClient,
+  clearAiDecryptedKeyMemory,
+  verifyGeminiApiKeyDetailed,
+} from './services/ai';
 import {
   Brain,
   Cpu,
@@ -163,8 +181,6 @@ import {
   Wand2,
   ListTree,
   History,
-  ChevronsLeft,
-  ChevronsRight,
   Clock,
   Paperclip,
   Image as ImageIcon,
@@ -800,6 +816,37 @@ export default function App() {
   const [newFileFolderTarget, setNewFileFolderTarget] = useState<string>('');
   const newFileInputRef = useRef<HTMLInputElement>(null);
 
+  // File Tree Right-Click Context Menu State
+  const [fileTreeContextMenu, setFileTreeContextMenu] = useState<{
+    isOpen: boolean;
+    x: number;
+    y: number;
+    target: FileTreeContextMenuTarget | null;
+  }>({
+    isOpen: false,
+    x: 0,
+    y: 0,
+    target: null,
+  });
+
+  const handleOpenFileTreeContextMenu = (
+    e: React.MouseEvent,
+    target: FileTreeContextMenuTarget
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFileTreeContextMenu({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+      target,
+    });
+  };
+
+  const handleCloseFileTreeContextMenu = () => {
+    setFileTreeContextMenu((prev) => ({ ...prev, isOpen: false }));
+  };
+
   useEffect(() => {
     if (isNewFileModalOpen) {
       setTimeout(() => {
@@ -1137,18 +1184,20 @@ export default function App() {
   };
 
   const [chatInput, setChatInput] = useState<string>('');
-  const [chatInputHeight, setChatInputHeight] = useState<number>(53);
+  const [chatInputHeight, setChatInputHeight] = useState<number>(72);
   const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
   const [chatAttachments, setChatAttachments] = useState<ChatAttachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const mentionDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Auto-growing textarea logic: dynamically expands between 53px and 264px, scrollable beyond
+  // Auto-growing textarea logic: dynamically expands between 72px and 260px, scrollable beyond
   const adjustChatInputHeight = () => {
     if (chatInputRef.current) {
       chatInputRef.current.style.height = 'auto';
-      const nextHeight = Math.min(Math.max(chatInputRef.current.scrollHeight, 53), 264);
+      const leftScroll = chatInputRef.current.scrollHeight;
+      const rightScroll = 0;
+      const nextHeight = Math.min(Math.max(leftScroll, rightScroll, 88), 260);
       chatInputRef.current.style.height = `${nextHeight}px`;
       setChatInputHeight(nextHeight);
     }
@@ -1156,9 +1205,9 @@ export default function App() {
 
   const resetChatInputHeight = () => {
     if (chatInputRef.current) {
-      chatInputRef.current.style.height = '53px';
+      chatInputRef.current.style.height = '72px';
     }
-    setChatInputHeight(53);
+    setChatInputHeight(72);
   };
 
   useEffect(() => {
@@ -1299,7 +1348,6 @@ export default function App() {
   const tableButtonRef = useRef<HTMLButtonElement | null>(null);
   const helpButtonRef = useRef<HTMLButtonElement | null>(null);
   const [isAiCleaning, setIsAiCleaning] = useState<boolean>(false);
-  const [isEditorToolbarDrawerOpen, setIsEditorToolbarDrawerOpen] = useState<boolean>(false);
   const [isDrawingOverlayOpen, setIsDrawingOverlayOpen] = useState<boolean>(false);
 
   // Editor Font Size State (12px ~ 22px, Default 12px - matches chat window)
@@ -1324,34 +1372,6 @@ export default function App() {
     } catch {}
     document.documentElement.style.setProperty('--editor-font-size', `${editorFontSize}px`);
   }, [editorFontSize]);
-
-  // Close editor toolbar drawer on outside click or Escape key
-  useEffect(() => {
-    if (!isEditorToolbarDrawerOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsEditorToolbarDrawerOpen(false);
-      }
-    };
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (
-        target &&
-        !target.closest('#editor-formatting-toolbar') &&
-        !target.closest('#editor-toolbar-drawer-toggle') &&
-        !target.closest('#table-grid-picker-popover') &&
-        !target.closest('#markdown-help-popover')
-      ) {
-        setIsEditorToolbarDrawerOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isEditorToolbarDrawerOpen]);
 
   // Fast SSOT Consistency & Drift Analysis Summary for Toolbar Badge
   const ssotAuditSummary = useMemo(() => analyzeSSOTDriftLocally(editorContent), [editorContent]);
@@ -1449,6 +1469,7 @@ export default function App() {
   const [trashSessions, setTrashSessions] = useState<ChatSession[]>([]);
   const [deleteConfirmSession, setDeleteConfirmSession] = useState<ChatSession | null>(null);
   const [deleteConfirmFile, setDeleteConfirmFile] = useState<string | null>(null);
+  const [deleteConfirmFolder, setDeleteConfirmFolder] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [isTrashOpen, setIsTrashOpen] = useState<boolean>(false);
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
@@ -2199,6 +2220,92 @@ export default function App() {
   // Fixed Optimal Panels (Golden Ratio Layout) & Pure Collapsible State
   const mainContainerRef = useRef<HTMLElement>(null);
 
+  // Responsive Golden Ratio Panel Widths:
+  // - Ultra-wide (>= 1920px): Chat 28%, Editor 54%, Explorer 18%
+  // - Standard Laptop (1440px - 1600px): Chat 32%, Editor 48%, Explorer 20%
+  // - Clamps: Chat (280px ~ 520px), Explorer (200px ~ 420px)
+  // - Persisted in localStorage ('aipodium_panel_widths')
+  const [panelWidths, setPanelWidths] = useState<PanelWidths>(() => {
+    const saved = loadSavedPanelWidths();
+    if (saved) return saved;
+    const w = typeof window !== 'undefined' ? window.innerWidth : 1440;
+    return calculateDefaultPanelWidths(w);
+  });
+
+  const [activeResizer, setActiveResizer] = useState<'chat' | 'explorer' | null>(null);
+
+  // Smooth mouse drag resizer for Left Pane (ChatPanel <-> UnifiedEditor)
+  const handleLeftResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveResizer('chat');
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      moveEvent.preventDefault();
+      if (!mainContainerRef.current) return;
+      const mainRect = mainContainerRef.current.getBoundingClientRect();
+      const rawWidth = moveEvent.clientX - mainRect.left;
+      const clampedWidth = clampChatWidth(rawWidth);
+      setPanelWidths((prev) => {
+        if (prev.chat === clampedWidth) return prev;
+        return { ...prev, chat: clampedWidth };
+      });
+    };
+
+    const handleMouseUp = () => {
+      setActiveResizer(null);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      setPanelWidths((latest) => {
+        savePanelWidths(latest);
+        return latest;
+      });
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, []);
+
+  // Smooth mouse drag resizer for Right Pane (UnifiedEditor <-> WorkspaceDrawer)
+  const handleRightResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveResizer('explorer');
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      moveEvent.preventDefault();
+      if (!mainContainerRef.current) return;
+      const mainRect = mainContainerRef.current.getBoundingClientRect();
+      const rawWidth = mainRect.right - moveEvent.clientX;
+      const clampedWidth = clampExplorerWidth(rawWidth);
+      setPanelWidths((prev) => {
+        if (prev.explorer === clampedWidth) return prev;
+        return { ...prev, explorer: clampedWidth };
+      });
+    };
+
+    const handleMouseUp = () => {
+      setActiveResizer(null);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      setPanelWidths((latest) => {
+        savePanelWidths(latest);
+        return latest;
+      });
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, []);
+
   // Persist toggle states in localStorage:
   // aipodium_left_panel_visible: boolean
   // aipodium_right_panel_visible: boolean
@@ -2284,7 +2391,7 @@ export default function App() {
     setIsSection2Collapsed(false);
   }, []);
 
-  // Responsive fallback on mobile/tablet viewport resize
+  // Responsive fallback on mobile/tablet viewport resize and default golden ratio calculation
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1024) {
@@ -2292,10 +2399,33 @@ export default function App() {
         const savedRight = localStorage.getItem('aipodium_right_panel_visible');
         if (savedLeft === null) setIsLeftPanelVisible(false);
         if (savedRight === null) setIsRightPanelVisible(false);
+      } else {
+        const savedWidths = loadSavedPanelWidths();
+        if (!savedWidths) {
+          setPanelWidths(calculateDefaultPanelWidths(window.innerWidth));
+        }
       }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Lightweight Micro-Animation on Initial Load (runs strictly once upon initial mount)
+  const [hasInitialMounted, setHasInitialMounted] = useState<boolean>(false);
+  const [isInitialAnimating, setIsInitialAnimating] = useState<boolean>(true);
+
+  useEffect(() => {
+    const rAF = requestAnimationFrame(() => {
+      setHasInitialMounted(true);
+    });
+    const timer = setTimeout(() => {
+      setIsInitialAnimating(false);
+    }, 380);
+
+    return () => {
+      cancelAnimationFrame(rAF);
+      clearTimeout(timer);
+    };
   }, []);
 
   // Auto-collapse Section 1 (AI Chat) when a PDF tab is active to allocate wide space
@@ -2320,6 +2450,7 @@ export default function App() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const tiptapEditorRef = useRef<TiptapWysiwygEditorRef>(null);
+  const unifiedEditorRef = useRef<UnifiedEditorRef>(null);
   const lastActiveTextTargetRef = useRef<'editor' | 'chat'>('chat');
 
   // Resolved list of prompt templates for top menu instant injection
@@ -2506,10 +2637,7 @@ export default function App() {
 
         // 3. Open Tabs
         if (savedOpenTabs && Array.isArray(savedOpenTabs)) {
-          let cleanedTabs = savedOpenTabs.filter((t) => !isLegacySampleFile(t) && t !== 'tech_notes.md' && (resolvedFiles[t] || t.startsWith('Untitled-')));
-          if (cleanedTabs.includes('welcome.md') && cleanedTabs.includes('ai_guide.md')) {
-            cleanedTabs = cleanedTabs.filter((t) => t !== 'ai_guide.md');
-          }
+          let cleanedTabs = savedOpenTabs.filter((t) => !isLegacySampleFile(t) && t !== 'tech_notes.md' && t !== 'welcome.md' && t !== 'ai_guide.md' && (resolvedFiles[t] || t.startsWith('Untitled-')));
           setOpenTabs(cleanedTabs.length > 0 ? cleanedTabs : ['Untitled-1']);
         }
 
@@ -2528,7 +2656,7 @@ export default function App() {
         if (savedProjects && Array.isArray(savedProjects)) {
           cleanedSessions = savedProjects.filter(
             (s) => !isLegacySampleId(s.id) && !isLegacySampleTitle(s.title)
-          ).map((s) => s.fileName === 'tech_notes.md' ? { ...s, fileName: 'Untitled-1', editorContent: '' } : s);
+          ).map((s) => (s.fileName === 'tech_notes.md' || s.fileName === 'welcome.md' || s.fileName === 'ai_guide.md') ? { ...s, fileName: 'Untitled-1', editorContent: '' } : s);
         }
         if (cleanedSessions.length === 0) {
           cleanedSessions = [defaultSession];
@@ -2542,14 +2670,17 @@ export default function App() {
 
         const activeSess = cleanedSessions.find((s) => s.id === targetId) || cleanedSessions[0];
         if (activeSess) {
-          if (activeSess.fileName === 'tech_notes.md') {
+          if (activeSess.fileName === 'tech_notes.md' || activeSess.fileName === 'welcome.md' || activeSess.fileName === 'ai_guide.md') {
             activeSess.fileName = 'Untitled-1';
             activeSess.editorContent = '';
           }
-          const initialFileName = isLegacySampleFile(activeSess.fileName) ? 'Untitled-1' : (activeSess.fileName || 'Untitled-1');
-          const initialContent = activeSess.editorContent !== undefined
+          const isGuideOrLegacy = isLegacySampleFile(activeSess.fileName) || activeSess.fileName === 'welcome.md' || activeSess.fileName === 'ai_guide.md';
+          const initialFileName = isGuideOrLegacy ? 'Untitled-1' : (activeSess.fileName || 'Untitled-1');
+          const initialContent = isGuideOrLegacy
+            ? ''
+            : (activeSess.editorContent !== undefined
             ? activeSess.editorContent
-            : (resolvedFiles[initialFileName] || '');
+            : (resolvedFiles[initialFileName] || ''));
           // 앱 초기 시작 시 항상 서식 모드(워드프로세서)로 시작
           const initialTab: 'wysiwyg' | 'edit' | 'split' | 'preview' = 'wysiwyg';
 
@@ -2837,15 +2968,9 @@ export default function App() {
         delete loadedFiles['redis_caching_guide.md'];
         if (loadedFiles['welcome.md'] && (loadedFiles['welcome.md'].includes('🚀') || loadedFiles['welcome.md'].startsWith('# '))) {
           loadedFiles['welcome.md'] = GUEST_SAMPLE_FILES['welcome.md'];
-          if (loadedActiveFile === 'welcome.md' || !loadedActiveFile) {
-            loadedContent = GUEST_SAMPLE_FILES['welcome.md'];
-          }
         }
         if (loadedFiles['ai_guide.md'] && (loadedFiles['ai_guide.md'].includes('🤖') || loadedFiles['ai_guide.md'].startsWith('# '))) {
           loadedFiles['ai_guide.md'] = GUEST_SAMPLE_FILES['ai_guide.md'];
-          if (loadedActiveFile === 'ai_guide.md') {
-            loadedContent = GUEST_SAMPLE_FILES['ai_guide.md'];
-          }
         }
         delete loadedFiles['rest_graphql_comparison.md'];
         delete loadedFiles['redis_caching_guide.md'];
@@ -2863,20 +2988,19 @@ export default function App() {
         });
         setFileFolders(loadedFolders);
       }
-      if (loadedContent !== null) {
-        setEditorContent(loadedActiveFile === 'tech_notes.md' ? '' : loadedContent);
-      }
-      if (loadedActiveFile) {
-        const safeActiveFile = (loadedActiveFile === 'rest_graphql_comparison.md' || loadedActiveFile === 'redis_caching_guide.md' || loadedActiveFile === 'tech_notes.md')
-          ? 'Untitled-1'
-          : loadedActiveFile;
-        setCurrentActiveFile(safeActiveFile);
-        setFileName(safeActiveFile);
+      const isGuideOrLegacyActive = !loadedActiveFile || loadedActiveFile === 'welcome.md' || loadedActiveFile === 'ai_guide.md' || loadedActiveFile === 'rest_graphql_comparison.md' || loadedActiveFile === 'redis_caching_guide.md' || loadedActiveFile === 'tech_notes.md';
+      const safeActiveFile = isGuideOrLegacyActive ? 'Untitled-1' : loadedActiveFile;
+      setCurrentActiveFile(safeActiveFile);
+      setFileName(safeActiveFile);
+      if (safeActiveFile === 'Untitled-1') {
+        setEditorContent('');
+      } else if (loadedContent !== null) {
+        setEditorContent(loadedContent);
       }
       if (loadedSessions && Array.isArray(loadedSessions) && loadedSessions.length > 0) {
         const safeSessions = loadedSessions.filter(
           (s) => s.id !== 'session-rest-graphql' && s.id !== 'session-redis' && !s.title.includes('REST API') && !s.title.includes('Redis')
-        ).map((s) => s.fileName === 'tech_notes.md' ? { ...s, fileName: 'Untitled-1', editorContent: '' } : s);
+        ).map((s) => (s.fileName === 'tech_notes.md' || s.fileName === 'welcome.md' || s.fileName === 'ai_guide.md') ? { ...s, fileName: 'Untitled-1', editorContent: '' } : s);
         setSessions(safeSessions.length > 0 ? safeSessions : [
           {
             id: 'session-default',
@@ -2896,10 +3020,7 @@ export default function App() {
         setActiveSessionId(safeActiveSessId);
       }
       if (loadedOpenTabs && Array.isArray(loadedOpenTabs)) {
-        let safeTabs = loadedOpenTabs.filter((t) => t !== 'rest_graphql_comparison.md' && t !== 'redis_caching_guide.md' && t !== 'tech_notes.md');
-        if (safeTabs.includes('welcome.md') && safeTabs.includes('ai_guide.md')) {
-          safeTabs = safeTabs.filter((t) => t !== 'ai_guide.md');
-        }
+        let safeTabs = loadedOpenTabs.filter((t) => t !== 'rest_graphql_comparison.md' && t !== 'redis_caching_guide.md' && t !== 'tech_notes.md' && t !== 'welcome.md' && t !== 'ai_guide.md');
         setOpenTabs(safeTabs.length > 0 ? safeTabs : ['Untitled-1']);
       }
 
@@ -3160,24 +3281,65 @@ export default function App() {
     }
   }, [messages, isAiLoading, activeSessionId]);
 
-  // REQUIREMENT 4: [에디터로 보내기 ➔] Logic
+  // REQUIREMENT 4: [에디터로 보내기 ➔] Logic & Guide Protection Guard
   const handleSendToEditor = (msgText: string) => {
     const timestamp = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     const headerTitle = `AI 응답 수집 - ${timestamp}`;
 
-    if (editorTab === 'wysiwyg' && tiptapEditorRef.current) {
+    // Protect Guide Files from Being Overwritten by Chat Responses (Requirement 3)
+    const isGuideFile =
+      !currentActiveFile ||
+      currentActiveFile === 'welcome.md' ||
+      currentActiveFile === 'ai_guide.md' ||
+      currentActiveFile.startsWith('guide/') ||
+      fileFolders[currentActiveFile] === '가이드 & 도움말';
+
+    let targetFilePath = currentActiveFile;
+    const currentFolder = activeSession?.title || 'AI 지식 비서';
+
+    if (isGuideFile || currentActiveFile === 'Untitled-1') {
+      targetFilePath = `${currentFolder}/notes_${Date.now().toString().slice(-4)}.md`;
+
+      setOpenFolders((prev) => ({
+        ...prev,
+        [currentFolder]: true,
+      }));
+      try {
+        const saved = JSON.parse(localStorage.getItem('aipodium_open_folders') || '{}');
+        saved[currentFolder] = true;
+        localStorage.setItem('aipodium_open_folders', JSON.stringify(saved));
+      } catch {}
+
+      setFileFolders((prev) => ({
+        ...prev,
+        [targetFilePath]: currentFolder,
+      }));
+      setCurrentActiveFile(targetFilePath);
+      setFileName(targetFilePath);
+      setOpenTabs((prev) => {
+        const withoutGuides = prev.filter((t) => t !== 'welcome.md' && t !== 'ai_guide.md');
+        return [targetFilePath, ...withoutGuides];
+      });
+    }
+
+    const baseContent = (isGuideFile || currentActiveFile === 'Untitled-1')
+      ? `# ${currentFolder}\n\n`
+      : editorContent;
+
+    if (editorTab === 'wysiwyg' && tiptapEditorRef.current && !isGuideFile && currentActiveFile !== 'Untitled-1') {
       // 1. 서식 모드 (워드프로세서 방식): 서식 그대로 리치 텍스트 노드로 주입
       const syncedMd = tiptapEditorRef.current.insertFormattedMarkdown(msgText, headerTitle);
       const updated = syncedMd || (editorContent ? `${editorContent}\n\n---\n> [${headerTitle}]\n\n${msgText.trim()}\n` : `> [${headerTitle}]\n\n${msgText.trim()}\n`);
 
       setEditorContent(updated);
+      setFiles((prev) => ({ ...prev, [targetFilePath]: updated }));
       setSessions((prev) =>
         prev.map((s) =>
           s.id === activeSessionId
             ? {
                 ...s,
                 editorContent: updated,
-                fileName: currentActiveFile
+                fileName: targetFilePath
               }
             : s
         )
@@ -3186,35 +3348,14 @@ export default function App() {
       showToast('✓ AI 답변이 서식 모드(워드프로세서)에 서식 그대로 주입되었습니다.');
     } else {
       // 2. 마크다운 모드 (edit, split, preview): 마크다운 문법 원문으로 주입
-      const isDocEmpty = !editorContent.trim();
+      const isDocEmpty = !baseContent.trim();
       const formattedAppend = isDocEmpty
         ? `> [${headerTitle}]\n\n` + msgText.trim() + `\n`
         : `\n\n---\n> [${headerTitle}]\n\n` + msgText.trim() + `\n`;
 
-      const textarea = editorRef.current;
-      let updated: string;
-
-      if (textarea && typeof textarea.selectionStart === 'number' && document.activeElement === textarea) {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        updated = editorContent.slice(0, start) + formattedAppend + editorContent.slice(end);
-        setEditorContent(updated);
-        setTimeout(() => {
-          if (editorRef.current) {
-            const newCursor = start + formattedAppend.length;
-            editorRef.current.setSelectionRange(newCursor, newCursor);
-            editorRef.current.focus();
-          }
-        }, 30);
-      } else {
-        updated = editorContent ? editorContent + formattedAppend : formattedAppend.trimStart();
-        setEditorContent(updated);
-        setTimeout(() => {
-          if (editorRef.current) {
-            editorRef.current.scrollTop = editorRef.current.scrollHeight;
-          }
-        }, 30);
-      }
+      const updated = baseContent ? baseContent + formattedAppend : formattedAppend.trimStart();
+      setEditorContent(updated);
+      setFiles((prev) => ({ ...prev, [targetFilePath]: updated }));
 
       setSessions((prev) =>
         prev.map((s) =>
@@ -3222,18 +3363,18 @@ export default function App() {
             ? {
                 ...s,
                 editorContent: updated,
-                fileName: currentActiveFile
+                fileName: targetFilePath
               }
             : s
         )
       );
 
-      showToast('✓ AI 답변이 마크다운 모드에 마크다운 문법으로 주입되었습니다.');
+      showToast(`✓ AI 답변이 '${targetFilePath}' 문서에 성공적으로 수집되었습니다.`);
     }
 
     const fullTimeStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     setRecentAiChanges({
-      file: currentActiveFile,
+      file: targetFilePath,
       source: 'AI 대화 응답 수집',
       timestamp: fullTimeStr,
       preview: msgText.trim().slice(0, 65) + '...'
@@ -3363,7 +3504,10 @@ export default function App() {
   };
 
   // Create New File Modal / Handler
-  const handleCreateNewFile = () => {
+  const handleCreateNewFile = (targetFolderOrEvent?: string | React.MouseEvent) => {
+    const targetFolder = typeof targetFolderOrEvent === 'string' ? targetFolderOrEvent : undefined;
+    const defaultFolder = targetFolder || activeSession?.title || 'docs';
+    setNewFileFolderTarget(defaultFolder);
     setIsNewFileModalOpen(true);
     setNewFileNameInput('');
   };
@@ -3381,9 +3525,10 @@ export default function App() {
       showToast(`'${name}' 파일이 이미 존재합니다.`, 'warn');
       return;
     }
+    const targetFolder = newFileFolderTarget || activeSession?.title || 'docs';
     const initialContent = `# ${name.replace(/\.[^/.]+$/, '')}\n\n새로운 마크다운 문서입니다.`;
     const updatedFiles = { ...files, [name]: initialContent };
-    const updatedFolders = { ...fileFolders, [name]: activeSession?.title || 'docs' };
+    const updatedFolders = { ...fileFolders, [name]: targetFolder };
     setFiles(updatedFiles);
     setFileFolders(updatedFolders);
     setFileName(name);
@@ -3391,6 +3536,9 @@ export default function App() {
     setEditorContent(initialContent);
     setEditorTab('wysiwyg');
     setIsNewFileModalOpen(false);
+
+    // Ensure target folder is expanded in tree
+    setOpenFolders((prev) => ({ ...prev, [targetFolder]: true }));
 
     // Physical Local Directory / Storage sync
     const dirHandle = getMemoryDirectoryHandle();
@@ -3406,6 +3554,56 @@ export default function App() {
     }
 
     showToast(`📄 '${name}' 새 파일이 생성되었습니다.`);
+  };
+
+  // Context Menu Action Dispatchers
+  const handleContextMenuNewFile = (targetFolder?: string) => {
+    handleCreateNewFile(targetFolder);
+  };
+
+  const handleContextMenuNewFolder = () => {
+    handleCreateNewSession();
+  };
+
+  const handleContextMenuRename = (target: {
+    id: string;
+    type: 'file' | 'folder' | 'session';
+    name: string;
+    path: string;
+    sessionId?: string;
+  }) => {
+    setFocusedTreeItemId(target.id);
+    setEditingTreeTarget(target);
+  };
+
+  const handleContextMenuDelete = (target: {
+    type: 'file' | 'folder' | 'session';
+    path: string;
+    name: string;
+    sessionId?: string;
+  }) => {
+    if (target.type === 'file') {
+      handleDeleteFile(target.path);
+    } else if (target.type === 'folder') {
+      handleDeleteFolder(target.path);
+    } else if (target.type === 'session') {
+      if (target.sessionId) {
+        requestDeleteSession(target.sessionId);
+      }
+    }
+  };
+
+  const handleContextMenuCopyPath = async (path: string) => {
+    try {
+      await navigator.clipboard.writeText(path);
+      showToast(`✓ 파일 경로 복사됨: ${path}`, 'success');
+    } catch {
+      showToast(`경로: ${path}`, 'info');
+    }
+  };
+
+  const handleContextMenuSSOT = (sessionTitle: string) => {
+    handleOpenSSOTGeneratorModal(sessionTitle);
   };
 
   // Save As File Handler
@@ -3786,13 +3984,15 @@ export default function App() {
       (f) => f === folderPath || f.startsWith(`${folderPath}/`)
     );
     if (matchingFiles.length === 0) return;
-    if (
-      !window.confirm(
-        `'${folderPath}' 폴더 및 하위 파일(${matchingFiles.length}개)을 삭제하시겠습니까?`
-      )
-    ) {
-      return;
-    }
+    setDeleteConfirmFolder(folderPath);
+  };
+
+  const executeDeleteFolder = () => {
+    if (!deleteConfirmFolder) return;
+    const folderPath = deleteConfirmFolder;
+    const matchingFiles = Object.keys(files).filter(
+      (f) => f === folderPath || f.startsWith(`${folderPath}/`)
+    );
 
     setFiles((prev) => {
       const updated = { ...prev };
@@ -3814,6 +4014,7 @@ export default function App() {
       }
     }
 
+    setDeleteConfirmFolder(null);
     showToast(`🗑️ 폴더 및 하위 ${matchingFiles.length}개 파일이 삭제되었습니다.`);
   };
 
@@ -4114,10 +4315,13 @@ export default function App() {
     // 2. Filter openTabs to ensure they only contain valid existing files
     const sanitizedTabs = openTabs.filter((tab) => allValidFiles.has(tab));
 
-    // If all open tabs were invalid, fallback to the first available file
+    // If all open tabs were invalid, fallback to the first available non-guide file or blank workspace buffer
     let finalTabs = sanitizedTabs;
     if (sanitizedTabs.length === 0) {
-      const fallbackFile = validFileKeys[0] || validUntitledKeys[0] || 'welcome.md';
+      const nonGuideFiles = validFileKeys.filter(
+        (k) => k !== 'welcome.md' && k !== 'ai_guide.md' && !k.startsWith('guide/') && fileFolders[k] !== '가이드 & 도움말'
+      );
+      const fallbackFile = nonGuideFiles[0] || validUntitledKeys[0] || 'Untitled-1';
       finalTabs = [fallbackFile];
     }
 
@@ -4596,6 +4800,10 @@ export default function App() {
   // Smart Block & List Formatting (Heading, Bullet List, Numbered List, Task List, Quote, Code, etc.)
   const applyMarkdownBlockFormat = useCallback(
     (formatType: 'h1' | 'h2' | 'h3' | 'bullet' | 'number' | 'task' | 'quote' | 'rule' | 'link' | 'image' | 'bold' | 'italic' | 'code' | 'codeblock') => {
+      if (unifiedEditorRef.current?.applyFormat) {
+        unifiedEditorRef.current.applyFormat(formatType);
+        return;
+      }
       if (editorTab === 'wysiwyg' && tiptapEditorRef.current) {
         tiptapEditorRef.current.executeCommand(formatType);
         return;
@@ -5399,9 +5607,45 @@ export default function App() {
       const isLocal = vendor === 'local' || (!vendor && provider !== 'cloud');
       if (!isLocal) {
         const activeVendor = (vendor && vendor !== 'local') ? vendor : (getVendorForModel(selectedModel) || 'gemini');
-        const activeKey = (typeof keyOrEp === 'string' && keyOrEp.trim())
-          ? keyOrEp.trim()
+        const rawKey = (typeof keyOrEp === 'string' && keyOrEp.trim())
+          ? keyOrEp
           : (apiKeys[activeVendor] || (activeVendor === 'gemini' ? cloudApiKey : ''));
+        const activeKey = (rawKey || '').trim();
+
+        if (activeVendor === 'gemini') {
+          if (!activeKey) {
+            setIsVerified(false);
+            showToast('⚠️ Gemini API 키를 입력해주세요.', 'warn');
+            return;
+          }
+
+          const diag = await verifyGeminiApiKeyDetailed(activeKey);
+          if (diag.valid) {
+            setIsVerified(true);
+            showToast('✓ GOOGLE GEMINI (gemini-2.5-flash) API 연결 및 키 검증 성공!', 'success');
+
+            // Dynamically fetch and register provider active models
+            try {
+              const models = await fetchProviderActiveModels(activeVendor, activeKey);
+              if (models && models.length > 0) {
+                const simplified = models.map((m) => ({ id: m.id, name: m.name }));
+                setDynamicProviderModels((prev) => ({
+                  ...prev,
+                  [activeVendor]: simplified
+                }));
+              }
+            } catch (err) {
+              console.warn('동적 모델 목록 갱신 실패:', err);
+            }
+            return;
+          } else {
+            setIsVerified(false);
+            const errDetail = diag.errorMessage || (diag.statusCode ? `HTTP ${diag.statusCode}` : '인증 오류');
+            console.error(`Gemini verification error: ${errDetail}`);
+            showToast(`⚠️ API 검증 실패: ${errDetail}`, 'error');
+            return;
+          }
+        }
 
         const res = await fetch('/api/verify', {
           method: 'POST',
@@ -5432,7 +5676,7 @@ export default function App() {
           }
         } else {
           setIsVerified(false);
-          showToast(`⚠️ API 검증 실패: ${data.error || '인증 오류'}`, 'error');
+          showToast(`⚠️ API 검증 실패: ${data.error || `HTTP ${res.status} 인증 오류`}`, 'error');
         }
       } else {
         const cleanEndpoint = ((typeof keyOrEp === 'string' && keyOrEp.trim()) ? keyOrEp : (localEndpointAddress || 'http://localhost:11434')).trim().replace(/\/+$/, '');
@@ -5870,12 +6114,34 @@ export default function App() {
     const targetFolder = config.selectedFolder;
     const timeStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
 
-    // Gather text from selected source files
+    // Gather text from selected source files or fallback to sourceContent / editorContent & chatContext
     let sourceTextsCombined = '';
     if (config.selectedFiles && config.selectedFiles.length > 0) {
       sourceTextsCombined = config.selectedFiles
         .map((fn) => `### 📄 [참조 소스 파일] ${fn}\n\n${files[fn] || ''}`)
         .join('\n\n---\n\n');
+    } else if (config.sourceContent && config.sourceContent.trim()) {
+      sourceTextsCombined = config.sourceContent.trim();
+    } else if (editorContent && editorContent.trim().length > 0) {
+      sourceTextsCombined = `### Active Editor Content:\n${editorContent.trim()}`;
+    }
+
+    const activeSession = sessions.find((s) => s.id === activeSessionId) || sessions[0];
+    const chatContext = config.chatContext || activeSession?.messages
+      ?.filter((m) => m.sender === 'ai' || (m as any).role === 'assistant')
+      ?.map((m) => m.text || (m as any).content || '')
+      ?.filter(Boolean)
+      ?.join('\n\n') || '';
+
+    if (!sourceTextsCombined.trim() && !chatContext.trim()) {
+      showToast('⚠️ 분석할 에디터 내용이나 대화 내역이 없습니다.', 'warn');
+      return;
+    }
+
+    if (chatContext.trim()) {
+      sourceTextsCombined = sourceTextsCombined
+        ? `${sourceTextsCombined}\n\n### 💬 [대화 컨텍스트]\n${chatContext.trim()}`
+        : `### 💬 [대화 컨텍스트]\n${chatContext.trim()}`;
     }
 
     if (config.autoGenerateWithAi && sourceTextsCombined.trim()) {
@@ -5913,27 +6179,51 @@ ${sourceTextsCombined}
 
         const ssotModel = config.model || selectedModel || roleModels.ssot || roleModels.architect || DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-2.5-flash';
         const targetProvider = config.provider || (availableChatModels.find(m => m.id === ssotModel)?.group === 'local' ? (provider.startsWith('local') ? provider : 'local-pc') : 'cloud');
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: prompt,
-            model: ssotModel,
-            provider: targetProvider,
-            apiKey: targetProvider === 'cloud' ? (getApiKeyForModel(ssotModel) || cloudApiKey) : undefined,
-            endpoint: (targetProvider === 'local-pc' || targetProvider === 'local-server') ? localEndpointAddress : undefined,
-            parameters: aiParameters,
-            googleSearchGrounding: preferences.googleSearchGrounding ?? false,
-            history: []
-          })
-        });
 
         let finalContent = getFallbackDoc();
-        if (res.ok) {
-          const data = await res.json();
-          const generatedMarkdown = data.reply || data.text || '';
-          if (generatedMarkdown.trim()) {
-            finalContent = generatedMarkdown;
+
+        if (ssotModel === WEB_LLM_MODEL_ID || targetProvider === 'webllm') {
+          let accumulated = '';
+          await streamWebLLMCompletion(
+            [
+              { role: 'system', content: '당신은 단일 진실 공급원(SSOT) 기준 문서를 작성하는 전문 수석 테크니컬 라이터입니다.' },
+              { role: 'user', content: prompt }
+            ],
+            (delta: string) => {
+              accumulated += delta;
+            },
+            0.4
+          );
+          if (accumulated.trim()) {
+            finalContent = accumulated;
+          }
+        } else {
+          const endpointToUse = config.ollamaEndpoint || ((targetProvider === 'local-pc' || targetProvider === 'local-server') ? localEndpointAddress : undefined);
+          const apiKeyToUse = targetProvider === 'cloud'
+            ? (config.apiKey || (config.apiKeys ? config.apiKeys[ssotModel] || config.apiKeys.gemini : undefined) || getApiKeyForModel(ssotModel) || cloudApiKey)
+            : undefined;
+
+          const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: prompt,
+              model: ssotModel,
+              provider: targetProvider,
+              apiKey: apiKeyToUse,
+              endpoint: endpointToUse,
+              parameters: aiParameters,
+              googleSearchGrounding: preferences.googleSearchGrounding ?? false,
+              history: []
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const generatedMarkdown = data.reply || data.text || '';
+            if (generatedMarkdown.trim()) {
+              finalContent = generatedMarkdown;
+            }
           }
         }
 
@@ -7175,6 +7465,70 @@ ${projectEvents
     }
   };
 
+  // Inline AI Message Translation Handler (Phase 4.1)
+  const handleTranslateMessage = useCallback(
+    async (messageId: string, content: string): Promise<string> => {
+      // DO NOT default or hardcode to 'local-pc'
+      const activeProvider: 'webllm' | 'cloud' | 'local-pc' =
+        selectedModel === WEB_LLM_MODEL_ID
+          ? 'webllm'
+          : provider === 'local-pc' || provider === 'local-server'
+          ? 'local-pc'
+          : 'cloud';
+      const model = selectedModel;
+
+      try {
+        let resultText = '';
+        await aiClient.streamCompletion(activeProvider, {
+          model: model,
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are a professional translator. Translate the given text into natural, fluent Korean. Preserve technical terms, markdown format, and code blocks exactly.',
+            },
+            {
+              role: 'user',
+              content: content,
+            },
+          ],
+          temperature: 0.3,
+          apiKey: cloudApiKey || undefined,
+          ollamaEndpoint: activeProvider === 'local-pc' ? (localEndpointAddress || 'http://localhost:11434') : undefined,
+          onChunk: (deltaText) => {
+            resultText += deltaText;
+            setSessions((prev) =>
+              prev.map((s) => ({
+                ...s,
+                messages: s.messages.map((m) =>
+                  m.id === messageId ? { ...m, translatedText: resultText } : m
+                ),
+              }))
+            );
+          },
+        });
+
+        const finalResult = resultText.trim();
+        if (finalResult) {
+          setSessions((prev) =>
+            prev.map((s) => ({
+              ...s,
+              messages: s.messages.map((m) =>
+                m.id === messageId ? { ...m, translatedText: finalResult } : m
+              ),
+            }))
+          );
+        }
+        return finalResult;
+      } catch (error) {
+        console.error('Translation error:', error);
+        showToast('⚠️ AI 메시지 번역 중 오류가 발생했습니다.', 'error');
+        return '';
+      }
+    },
+    [selectedModel, provider, cloudApiKey, localEndpointAddress, showToast]
+  );
+
   // Handle send message logic
   const handleSendMessage = async (
     overrideText?: string,
@@ -7233,19 +7587,54 @@ ${projectEvents
       currentActiveSession.messages.length === 0 ||
       !currentActiveSession.messages.some((m) => m.sender === 'user');
 
+    let freshNewFilePath: string | null = null;
+
     if (isFreshSession) {
       // 1. Auto-generate a concise project title from the first prompt text (strip punctuation, truncate to 20 chars)
       const rawFirstText = userMessageText || attachedFiles[0]?.name || '새 프로젝트';
       const autoTitle = generateProjectTitleFromPrompt(rawFirstText);
+      const folderName = autoTitle;
+
+      // 1. Fix Auto-Created Project Folder File Routing:
+      // Do NOT write or append AI responses into the previously active file (welcome.md).
+      // Ensure a new document path is created inside that new folder:
+      const newFilePath = `${folderName}/notes_${Date.now().toString().slice(-4)}.md`;
+      freshNewFilePath = newFilePath;
+
+      // Set currentFile immediately to newFilePath
+      setFiles((prev) => ({
+        ...prev,
+        [newFilePath]: '',
+      }));
+      setFileFolders((prev) => ({
+        ...prev,
+        [newFilePath]: folderName,
+      }));
+      setCurrentActiveFile(newFilePath);
+      setFileName(newFilePath);
+      setEditorContent('');
+
+      // In the file tree, ensure the newly created folder is automatically expanded so the newly created document is visibly selected under it.
+      setOpenFolders((prev) => ({
+        ...prev,
+        [folderName]: true,
+      }));
+      try {
+        const saved = JSON.parse(localStorage.getItem('aipodium_open_folders') || '{}');
+        saved[folderName] = true;
+        localStorage.setItem('aipodium_open_folders', JSON.stringify(saved));
+      } catch {}
+
+      setOpenTabs((prev) => {
+        const withoutGuides = prev.filter((t) => t !== 'welcome.md' && t !== 'ai_guide.md');
+        return [newFilePath, ...withoutGuides.filter((t) => t !== newFilePath)];
+      });
 
       // 2. Create and persist a new project record into IndexedDB (workspaceStorageService.createProject(title))
-      const currentFileName = currentActiveSession?.fileName && currentActiveSession.fileName !== 'tech_notes.md'
-        ? currentActiveSession.fileName
-        : 'Untitled-1';
       const newProject = await workspaceStorageService.createProject(autoTitle, {
-        fileName: currentFileName,
-        editorContent: currentActiveSession?.editorContent !== undefined ? currentActiveSession.editorContent : '',
-        editorTab: currentActiveSession?.editorTab || 'wysiwyg',
+        fileName: newFilePath,
+        editorContent: '',
+        editorTab: 'wysiwyg',
         messages: [userMsg],
       });
 
@@ -7263,6 +7652,47 @@ ${projectEvents
 
       // Smooth Drawer Auto-Collapse: Automatically collapse the left Project List panel
       setIsProjectListOpen(false);
+    } else {
+      // 3. Protect Guide Files from Being Overwritten by Chat Responses (Requirement 3)
+      // If currentFile starts with guide/ or equals welcome.md / ai_guide.md, block automatic response appending to it.
+      // Force the creation of a new file inside the current project session folder instead.
+      const isGuideActive =
+        !currentActiveFile ||
+        currentActiveFile === 'welcome.md' ||
+        currentActiveFile === 'ai_guide.md' ||
+        currentActiveFile.startsWith('guide/') ||
+        fileFolders[currentActiveFile] === '가이드 & 도움말';
+
+      if (isGuideActive) {
+        const currentFolder = currentActiveSession?.title || 'AI 지식 비서';
+        const newFilePath = `${currentFolder}/notes_${Date.now().toString().slice(-4)}.md`;
+        freshNewFilePath = newFilePath;
+
+        setFiles((prev) => ({
+          ...prev,
+          [newFilePath]: '',
+        }));
+        setFileFolders((prev) => ({
+          ...prev,
+          [newFilePath]: currentFolder,
+        }));
+        setCurrentActiveFile(newFilePath);
+        setFileName(newFilePath);
+        setEditorContent('');
+        setOpenFolders((prev) => ({
+          ...prev,
+          [currentFolder]: true,
+        }));
+        try {
+          const saved = JSON.parse(localStorage.getItem('aipodium_open_folders') || '{}');
+          saved[currentFolder] = true;
+          localStorage.setItem('aipodium_open_folders', JSON.stringify(saved));
+        } catch {}
+        setOpenTabs((prev) => {
+          const withoutGuides = prev.filter((t) => t !== 'welcome.md' && t !== 'ai_guide.md');
+          return [newFilePath, ...withoutGuides.filter((t) => t !== newFilePath)];
+        });
+      }
     }
 
     // Route to Onboarding Interactive Guide Bot for guest users without API keys or Ollama
@@ -7453,6 +7883,25 @@ ${projectEvents
               chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
             }
 
+            if (freshNewFilePath) {
+              setFiles((prev) => ({
+                ...prev,
+                [freshNewFilePath!]: currentText,
+              }));
+              setEditorContent((prev) => (!prev.trim() ? currentText : prev));
+              setSessions((prev) =>
+                prev.map((s) =>
+                  s.id === targetSessionId
+                    ? {
+                        ...s,
+                        editorContent: currentText,
+                        fileName: freshNewFilePath!,
+                      }
+                    : s
+                )
+              );
+            }
+
             completedStreams += 1;
             if (completedStreams >= totalStreams) {
               setIsAiLoading(false);
@@ -7476,189 +7925,65 @@ ${projectEvents
       };
 
       try {
-        if (modelKey === WEB_LLM_MODEL_ID) {
-          // Browser-native WebGPU WebLLM streaming execution
-          if (!getLoadedWebLLMEngine()) {
-            if (webllmProgress.isLoading) {
-              pushChunk('브라우저 WebLLM 엔진을 초기화하는 중입니다. 완료 후 답변이 이어집니다...\n\n');
-              let waitCount = 0;
-              while (!getLoadedWebLLMEngine() && waitCount < 120) {
-                await new Promise((r) => setTimeout(r, 500));
-                waitCount++;
-              }
-            } else {
-              await handleStartWebLlmDownload();
+        const effectiveProvider = (modelKey === WEB_LLM_MODEL_ID)
+          ? 'webllm'
+          : (provider === 'local-pc' || provider === 'local-server')
+          ? 'local-pc'
+          : 'cloud';
+
+        // Pre-initialization check for WebLLM engine
+        if (effectiveProvider === 'webllm' && !getLoadedWebLLMEngine()) {
+          if (webllmProgress.isLoading) {
+            pushChunk('브라우저 WebLLM 엔진을 초기화하는 중입니다. 완료 후 답변이 이어집니다...\n\n');
+            let waitCount = 0;
+            while (!getLoadedWebLLMEngine() && waitCount < 120) {
+              await new Promise((r) => setTimeout(r, 500));
+              waitCount++;
             }
-          }
-
-          const fullSystem = sysInstruction
-            ? `${sysInstruction}\n\n[Editor Context]\n${editorContent || ''}`
-            : (editorContent ? `[Editor Context]\n${editorContent}` : undefined);
-
-          const messagesForWebLlm = [
-            ...(fullSystem ? [{ role: 'system' as const, content: fullSystem }] : []),
-            { role: 'user' as const, content: finalPrompt }
-          ];
-
-          await streamWebLLMCompletion(
-            messagesForWebLlm,
-            (delta: string) => {
-              pushChunk(delta);
-            },
-            0.35
-          );
-          finishStream();
-        } else if (provider === 'local-pc' || provider === 'local-server') {
-          // Local Ollama streaming execution
-          const cleanEndpoint = (localEndpointAddress || 'http://localhost:11434').trim().replace(/\/+$/, '');
-          const fullSystem = sysInstruction
-            ? `${sysInstruction}\n\n[Editor Context]\n${editorContent || ''}`
-            : (editorContent ? `[Editor Context]\n${editorContent}` : undefined);
-
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-          const res = await fetch(`${cleanEndpoint}/api/chat`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal: controller.signal,
-            body: JSON.stringify({
-              model: modelKey,
-              messages: [
-                ...(fullSystem ? [{ role: 'system', content: fullSystem }] : []),
-                { role: 'user', content: finalPrompt }
-              ],
-              stream: true,
-              options: {
-                temperature: aiParameters?.temperature,
-                top_p: aiParameters?.topP,
-                num_predict: aiParameters?.maxTokens
-              }
-            })
-          });
-          clearTimeout(timeoutId);
-
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.error || `HTTP ${res.status}`);
-          }
-
-          if (res.body) {
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split('\n');
-              buffer = lines.pop() || '';
-
-              for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed) continue;
-                try {
-                  const parsed = JSON.parse(trimmed);
-                  const piece = parsed?.message?.content || parsed?.response;
-                  if (piece) pushChunk(piece);
-                } catch {}
-              }
-            }
-
-            if (buffer.trim()) {
-              try {
-                const parsed = JSON.parse(buffer.trim());
-                const piece = parsed?.message?.content || parsed?.response;
-                if (piece) pushChunk(piece);
-              } catch {}
-            }
-          }
-          finishStream();
-        } else {
-          // Cloud Provider (Server API with SSE streaming support)
-          const targetApiKey = getApiKeyForModel(modelKey) || cloudApiKey;
-          const res = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'text/event-stream, application/json'
-            },
-            body: JSON.stringify({
-              message: finalPrompt,
-              editorContent: editorContent,
-              model: modelKey,
-              parameters: aiParameters,
-              apiKey: targetApiKey || undefined,
-              systemInstruction: sysInstruction,
-              googleSearchGrounding: preferences.googleSearchGrounding ?? false,
-              stream: true
-            })
-          });
-
-          const isSSE = res.headers.get('content-type')?.includes('text/event-stream');
-
-          if (isSSE && res.body) {
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split('\n');
-              buffer = lines.pop() || '';
-
-              for (const line of lines) {
-                const trimmed = line.trim();
-                if (trimmed.startsWith('data: ')) {
-                  try {
-                    const parsed = JSON.parse(trimmed.slice(6));
-                    if (parsed.chunk) {
-                      pushChunk(parsed.chunk);
-                    }
-                    if (parsed.done) {
-                      finishStream({
-                        tokens: parsed.usage,
-                        groundingSources: parsed.groundingSources
-                      });
-                    }
-                    if (parsed.error) {
-                      pushChunk(`\n\n⚠️ ${parsed.error}`);
-                      finishStream();
-                    }
-                  } catch {}
-                }
-              }
-            }
-
-            if (buffer.trim().startsWith('data: ')) {
-              try {
-                const parsed = JSON.parse(buffer.trim().slice(6));
-                if (parsed.chunk) pushChunk(parsed.chunk);
-                if (parsed.done) {
-                  finishStream({ tokens: parsed.usage, groundingSources: parsed.groundingSources });
-                }
-              } catch {}
-            }
-            finishStream();
           } else {
-            // Non-SSE or fallback response
-            const data = await res.json();
-            if (!res.ok) {
-              const vendor = getVendorForModel(modelKey);
-              pushChunk(`💡 **AI 엔진 안내**: ${data.error || '응답을 생성할 수 없습니다.'}\n\n*설정([Ctrl+,])의 [AI 엔진 설정]에서 **${vendor.toUpperCase()} API 키**를 등록하거나, 상단 모드를 [Local PC (Ollama)]로 전환하여 사용할 수 있습니다.*`);
-              finishStream();
-            } else {
-              pushChunk(data.text || '');
-              finishStream({
-                tokens: data.usage,
-                groundingSources: data.groundingSources
-              });
-            }
+            await handleStartWebLlmDownload();
           }
         }
+
+        const targetApiKey = getApiKeyForModel(modelKey) || cloudApiKey;
+        const fullSystem = sysInstruction
+          ? `${sysInstruction}\n\n[Editor Context]\n${editorContent || ''}`
+          : (editorContent ? `[Editor Context]\n${editorContent}` : undefined);
+
+        const result = await aiClient.streamCompletion(effectiveProvider, {
+          model: modelKey,
+          messages: [
+            ...(fullSystem ? [{ role: 'system' as const, content: fullSystem }] : []),
+            { role: 'user' as const, content: finalPrompt },
+          ],
+          temperature: aiParameters?.temperature,
+          maxTokens: aiParameters?.maxTokens,
+          topP: aiParameters?.topP,
+          apiKey: targetApiKey || undefined,
+          endpoint: localEndpointAddress,
+          systemInstruction: sysInstruction,
+          editorContent: editorContent || undefined,
+          googleSearchGrounding: preferences.googleSearchGrounding ?? false,
+          onChunk: (delta: string) => {
+            pushChunk(delta);
+          },
+        });
+
+        finishStream({
+          tokens: result.usage
+            ? {
+                prompt: result.usage.promptTokens,
+                completion: result.usage.completionTokens,
+                total:
+                  result.usage.totalTokens ??
+                  result.usage.promptTokens + result.usage.completionTokens,
+              }
+            : undefined,
+          groundingSources: result.groundingSources?.map((g) => ({
+            title: g.title || '',
+            url: g.url || '',
+          })),
+        });
       } catch (e: any) {
         const isAbort = e?.name === 'AbortError';
         const isCors = e?.message?.includes('Failed to fetch') || e?.name === 'TypeError';
@@ -8096,73 +8421,30 @@ ${projectEvents
 
       </header>
 
-      {/* COLLAPSED SECTIONS RESTORE CONTROL BAR */}
-      {(isSection1Collapsed || isSection2Collapsed || isSection3Collapsed) && (
-        <div className="flex items-center justify-between bg-[#09090b]/90 backdrop-blur-md border-b border-[#222226] px-3 py-1.5 text-xs shrink-0 z-30 shadow-xs">
-          <div className="flex items-center gap-2">
-            {(isSection1Collapsed || isSection2Collapsed) && (
-              <span className="text-[0.6875rem] font-semibold text-slate-300 flex items-center gap-1">
-                <ChevronsRight className="w-3.5 h-3.5 text-[#6366f1]" />
-                <span>접힌 섹션 펼치기:</span>
-              </span>
-            )}
-            {isSection1Collapsed && (
-              <button
-                type="button"
-                onClick={() => setIsSection1Collapsed(false)}
-                className="p-1 px-2 rounded-xs bg-[#121214] hover:bg-[#18181b] text-indigo-400 hover:text-white border border-[#222226] transition flex items-center gap-1.5 active:scale-95 cursor-pointer text-[0.6875rem]"
-                title="좌측 AI 대화 패널 펼치기"
-              >
-                <Bot className="w-3.5 h-3.5 text-indigo-400" />
-                <span>AI 대화</span>
-              </button>
-            )}
-            {isSection2Collapsed && (
-              <button
-                type="button"
-                onClick={() => setIsSection2Collapsed(false)}
-                className="p-1 px-2 rounded-xs bg-[#121214] hover:bg-[#18181b] text-indigo-400 hover:text-white border border-[#222226] transition flex items-center gap-1.5 active:scale-95 cursor-pointer text-[0.6875rem]"
-                title="중앙 에디터 패널 펼치기"
-              >
-                <FileText className="w-3.5 h-3.5 text-indigo-400" />
-                <span>중앙 에디터</span>
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 ml-auto">
-            {isSection1Collapsed && isSection3Collapsed && (
-              <div className="flex items-center gap-2 mr-1">
-                <span className="text-[0.625rem] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-xs border border-indigo-500/20 font-medium flex items-center gap-1">
-                  <span>🎯 문서 집중 모드 활성화 중</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsSection1Collapsed(false);
-                    setIsSection3Collapsed(false);
-                    showToast('기본 패널 레이아웃이 복원되었습니다.');
-                  }}
-                  className="p-1 px-2 rounded-xs bg-[#121214] hover:bg-[#18181b] text-slate-300 hover:text-white border border-[#222226] transition flex items-center gap-1 active:scale-95 cursor-pointer text-[0.6875rem]"
-                  title="모든 패널 복원"
-                >
-                  <span>전체 패널 복원</span>
-                </button>
-              </div>
-            )}
-            {isSection3Collapsed && (
-              <button
-                type="button"
-                onClick={() => setIsSection3Collapsed(false)}
-                className="p-1 rounded-xs hover:bg-[#18181b] hover:text-white text-slate-400 border border-[#222226] transition flex items-center justify-center cursor-pointer shrink-0"
-                title="우측 파일 탐색기 패널 펼치기"
-                aria-label="우측 파일 탐색기 패널 펼치기"
-              >
-                <PanelRightOpen className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
+      {/* WebLLM Guide Banner: Suppressed when downloading so ChatPanel exclusively displays the centered download progress indicator */}
+      {!webllmProgress.isLoading && (selectedModel === WEB_LLM_MODEL_ID) && !isWebLlmBannerDismissed && !webllmProgress.isReady && (
+        <WebLlmBanner
+          isSupported={webllmProgress.isSupported ?? isWebGPUSupported()}
+          isLoading={false}
+          isModelLoading={false}
+          isReady={webllmProgress.isReady}
+          progressText={webllmProgress.progressText}
+          progressPercent={webllmProgress.progressPercent}
+          downloadProgress={webllmProgress.progressPercent}
+          memoryGuide="권장 메모리: 4GB 이상 · 가중치 캐싱 약 1.5GB"
+          onStartDownload={handleStartWebLlmDownload}
+          onSelectModel={() => {
+            setSelectedModel(WEB_LLM_MODEL_ID);
+            setRoleModels((prev) => ({ ...prev, chat: WEB_LLM_MODEL_ID }));
+            showToast('✓ 브라우저 로컬 AI가 기본 대화 모델로 적용되었습니다.');
+          }}
+          onDismiss={() => {
+            setIsWebLlmBannerDismissed(true);
+            try {
+              localStorage.setItem('aipodium_webllm_banner_dismissed', 'true');
+            } catch {}
+          }}
+        />
       )}
 
       {/* MAIN AREA: 3-PANE FIXED GOLDEN RATIO LAYOUT WITH COLLAPSIBLE SIDEBARS */}
@@ -8177,51 +8459,56 @@ ${projectEvents
           />
         )}
 
-        {/* ==================== LEFT PANE: AI Chat Area (Fixed 510px) ==================== */}
+        {/* ==================== LEFT PANE: AI Chat Area ==================== */}
         <section
-          className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 transition-all duration-200 ease-in-out z-40 lg:z-10 ${
+          style={isLeftPanelVisible ? { width: `${panelWidths.chat}px` } : undefined}
+          className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 ${
+            activeResizer === 'chat'
+              ? 'transition-none'
+              : isInitialAnimating
+              ? `transition-[opacity,transform] duration-200 ease-out delay-0 ${
+                  hasInitialMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
+                }`
+              : 'transition-all duration-200 ease-in-out'
+          } z-40 lg:z-10 ${
             isLeftPanelVisible
-              ? 'w-[320px] sm:w-[510px] lg:w-[510px] opacity-100 pointer-events-auto border-r border-[#222226] fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/80 lg:shadow-none'
+              ? 'opacity-100 pointer-events-auto border-r border-[#222226] fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/80 lg:shadow-none'
               : 'w-0 opacity-0 pointer-events-none overflow-hidden border-r-0'
           }`}
         >
-          <div className="w-[320px] sm:w-[510px] lg:w-[510px] h-full flex flex-col min-h-0 overflow-hidden">
+          <div style={{ width: `${panelWidths.chat}px` }} className="max-w-full h-full flex flex-col min-h-0 overflow-hidden">
             {/* Header */}
-            <div className="bg-[#0f0f12] border-b border-[#222226] px-2.5 h-8 flex items-center justify-between shrink-0">
+            <div className="bg-[#0f0f12] border-b border-[#222226] px-2 h-8 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0">
+                {/* Unified Persistent Project Drawer Toggle Button */}
                 <button
                   type="button"
-                  onClick={() => setIsProjectListOpen(!isProjectListOpen)}
-                  className={`p-1 rounded-xs transition flex items-center gap-1.5 border shrink-0 cursor-pointer ${
+                  id="project-drawer-toggle"
+                  onClick={() => setIsProjectListOpen((prev) => !prev)}
+                  className={`p-1 rounded-xs transition cursor-pointer flex items-center justify-center shrink-0 ${
                     isProjectListOpen
-                      ? 'bg-[#18181b] text-[#6366f1] border-[#6366f1]/40'
-                      : 'bg-[#121214] text-slate-300 hover:text-white border-[#222226] hover:bg-[#18181b]'
+                      ? 'bg-[#18181b] text-indigo-400 hover:text-indigo-300'
+                      : 'text-slate-400 hover:text-white hover:bg-[#18181b]'
                   }`}
-                  title={isProjectListOpen ? '프로젝트 목록 접기' : '프로젝트 목록 열기'}
+                  title={isProjectListOpen ? '프로젝트 목록 접기' : '프로젝트 목록 펼치기'}
+                  aria-label={isProjectListOpen ? '프로젝트 목록 접기' : '프로젝트 목록 펼치기'}
                 >
-                  <PanelLeft className="w-3 h-3 text-[#6366f1]" />
-                  <span className="bg-[#09090b] text-indigo-300 text-[0.625rem] px-1 py-0.2 rounded-xs font-mono border border-[#222226]">
-                    {sessions.length}
-                  </span>
+                  <PanelLeft className="w-3.5 h-3.5" />
                 </button>
-
-                <div className="flex items-center gap-1.5 pl-1 border-l border-[#222226] min-w-0">
-                  <Bot className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                  <span className="truncate max-w-[120px] sm:max-w-[180px] font-medium text-slate-200 text-xs" title={activeSession?.title}>
-                    {selectedModel === WEB_LLM_MODEL_ID
-                      ? '브라우저 로컬 AI'
-                      : (isOnboardingMode ? 'AI 지식 비서 · 온보딩' : (activeSession?.title || 'AI 프로젝트'))}
+                <Bot className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
+                <span className="truncate max-w-[130px] sm:max-w-[190px] font-medium text-slate-200 text-xs" title={activeSession?.title}>
+                  {isOnboardingMode ? 'AI 지식 비서 · 가이드 v0.0.8' : (activeSession?.title || 'AI 프로젝트')}
+                </span>
+                {/* Clean, minimal read-only model indicator */}
+                <span
+                  className="text-[0.6875rem] text-slate-400 font-mono flex items-center gap-1 shrink-0 select-none pointer-events-none"
+                  title="현재 활성 AI 모델 (선택 및 변경은 하단 프롬프트 툴바에서 지원)"
+                >
+                  <span className="text-slate-600" aria-hidden="true">·</span>
+                  <span className="text-slate-400">
+                    {selectedModel === WEB_LLM_MODEL_ID ? 'WebGPU Qwen2.5' : (getModelDisplayName(selectedModel) || selectedModel)}
                   </span>
-                  {selectedModel === WEB_LLM_MODEL_ID ? (
-                    <span className="text-[0.5625rem] px-1.5 py-0.2 rounded-xs bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-medium shrink-0">
-                      WebGPU Qwen2.5
-                    </span>
-                  ) : isOnboardingMode ? (
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-white/5 shrink-0">
-                      가이드 v0.0.8
-                    </span>
-                  ) : null}
-                </div>
+                </span>
               </div>
 
               <div className="flex items-center gap-1 shrink-0">
@@ -8254,899 +8541,344 @@ ${projectEvents
               </div>
             </div>
 
-          {/* Left Pane Body: Split Chat History Sidebar + Active Chat Area */}
-          <div className="flex-1 flex overflow-hidden relative">
-
-            {/* Chat History & Project List Sidebar Panel */}
-            <div
-              id="project-list-panel"
-              className={`bg-[#121214] border-r border-[#222226] flex flex-col shrink-0 transition-all duration-300 ease-in-out transform z-10 ${
-                isProjectListOpen
-                  ? 'w-52 sm:w-60 opacity-100 translate-x-0'
-                  : 'w-0 opacity-0 -translate-x-full overflow-hidden border-r-0 pointer-events-none'
-              }`}
-            >
-              {/* Sidebar Header */}
-              <div className="p-2 border-b border-[#222226] space-y-1.5 bg-[#0c0c0e] shrink-0">
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <Folder className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                    <span className="font-semibold tracking-wider text-[0.6875rem] uppercase text-indigo-300">프로젝트 목록</span>
-                  </div>
-
-                  <div className="flex items-center gap-1 shrink-0">
-                    {/* [+] New Project Session Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleCreateNewSession()}
-                      className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-white transition cursor-pointer"
-                      title="새 프로젝트 생성"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                    {/* [<<] Collapse Slide Button */}
-                    <button
-                      type="button"
-                      onClick={() => setIsProjectListOpen(false)}
-                      className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-white transition flex items-center justify-center shrink-0 cursor-pointer"
-                      title="프로젝트 목록 접기"
-                    >
-                      <ChevronsLeft className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Search Input Box in Project Sidebar */}
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={sessionSearchQuery}
-                    onChange={(e) => setSessionSearchQuery(e.target.value)}
-                    placeholder="프로젝트 검색..."
-                    className="w-full bg-[#121214] border border-[#222226] focus:border-[#6366f1] rounded-md pl-7 pr-6 py-1 text-[0.6875rem] text-slate-200 placeholder:text-slate-400 outline-none transition"
-                  />
-                  {sessionSearchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSessionSearchQuery('')}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 cursor-pointer"
-                      title="검색어 초기화"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Session List */}
-              <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5 text-xs custom-scrollbar">
-                {(() => {
-                  const query = sessionSearchQuery.toLowerCase().trim();
-                  const filteredSessions = sessions.filter((s) => {
-                    if (!query) return true;
-                    const titleMatch = s.title.toLowerCase().includes(query);
-                    const messageMatch = s.messages.some(
-                      (m) =>
-                        m.text.toLowerCase().includes(query) ||
-                        (m.attachments && m.attachments.some((att) => att.name.toLowerCase().includes(query)))
-                    );
-                    return titleMatch || messageMatch;
-                  });
-
-                  if (filteredSessions.length === 0) {
-                    return (
-                      <div className="text-center py-6 px-3 text-slate-400 space-y-2">
-                        <Search className="w-5 h-5 mx-auto text-slate-500 opacity-60" />
-                        <p className="text-[0.6875rem] font-medium text-slate-300">
-                          {sessionSearchQuery ? `'${sessionSearchQuery}' 검색 결과 없음` : '프로젝트가 없습니다.'}
-                        </p>
-                        {sessionSearchQuery && (
-                          <button
-                            type="button"
-                            onClick={() => setSessionSearchQuery('')}
-                            className="text-[0.625rem] text-[#6366f1] hover:underline font-mono cursor-pointer"
-                          >
-                            검색어 초기화
-                          </button>
-                        )}
+          {/* Left Pane Body: Chat Area with Confined Project Drawer (Phase 3.1) */}
+          <div className="flex-1 flex flex-col overflow-hidden relative min-h-0">
+            {/* Active Conversation Chat Area via ChatPanel (Phase 3.1) */}
+            <ChatPanel
+              projectDrawer={
+                <aside
+                  id="project-list-panel"
+                  aria-label="프로젝트 목록"
+                  className={`bg-[#121214] border-r border-[#222226] flex flex-col shrink-0 transition-all duration-300 ease-in-out transform z-10 h-full ${
+                    isProjectListOpen
+                      ? 'w-52 sm:w-60 opacity-100 translate-x-0'
+                      : 'w-0 opacity-0 -translate-x-full overflow-hidden border-r-0 pointer-events-none'
+                  }`}
+                >
+                  {/* Sidebar Header */}
+                  <div className="p-2 border-b border-[#222226] space-y-1.5 bg-[#0c0c0e] shrink-0">
+                    <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Folder className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
+                        <span className="font-semibold tracking-wider text-[0.6875rem] uppercase text-indigo-300">프로젝트 목록</span>
                       </div>
-                    );
-                  }
 
-                  return filteredSessions.map((session) => {
-                    const isActive = session.id === activeSessionId;
-                    const matchedMsgCount = query
-                      ? session.messages.filter(
+                      <div className="flex items-center gap-1 shrink-0">
+                        {/* [+] New Project Session Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleCreateNewSession()}
+                          className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-white transition cursor-pointer"
+                          title="새 프로젝트 생성"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Search Input Box in Project Sidebar */}
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={sessionSearchQuery}
+                        onChange={(e) => setSessionSearchQuery(e.target.value)}
+                        placeholder="프로젝트 검색..."
+                        className="w-full bg-[#121214] border border-[#222226] focus:border-[#6366f1] rounded-md pl-7 pr-6 py-1 text-[0.6875rem] text-slate-200 placeholder:text-slate-400 outline-none transition"
+                      />
+                      {sessionSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setSessionSearchQuery('')}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 cursor-pointer"
+                          title="검색어 초기화"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Session List */}
+                  <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5 text-xs custom-scrollbar">
+                    {(() => {
+                      const query = sessionSearchQuery.toLowerCase().trim();
+                      const filteredSessions = sessions.filter((s) => {
+                        if (!query) return true;
+                        const titleMatch = s.title.toLowerCase().includes(query);
+                        const messageMatch = s.messages.some(
                           (m) =>
                             m.text.toLowerCase().includes(query) ||
                             (m.attachments && m.attachments.some((att) => att.name.toLowerCase().includes(query)))
-                        ).length
-                      : 0;
+                        );
+                        return titleMatch || messageMatch;
+                      });
 
-                    const isDraggingThis = draggedType === 'project' && draggedId === session.id;
-                    const isTarget = dragOverTargetId === session.id;
-                    const isDroppingBefore = isTarget && dragDropPosition === 'before';
-                    const isDroppingAfter = isTarget && dragDropPosition === 'after';
-
-                    return (
-                      <div
-                        key={session.id}
-                        draggable={true}
-                        onDragStart={(e) => handleProjectDragStart(e, session.id)}
-                        onDragOver={(e) => handleFolderDragOver(e, session.id)}
-                        onDragLeave={(e) => handleFolderDragLeave(e, session.id)}
-                        onDrop={(e) => handleFolderDrop(e, session.id)}
-                        onDragEnd={handleDragEnd}
-                        onClick={() => handleSelectSession(session.id)}
-                        className={`group relative flex flex-col px-2.5 py-1.5 rounded-xs transition cursor-pointer ${
-                          isDraggingThis
-                            ? 'opacity-40 border border-dashed border-[#6366f1] bg-[#18181b]/50'
-                            : isActive
-                            ? 'bg-[#18181b] text-white border-l-2 border-[#6366f1] pl-2 font-medium border-t border-r border-b border-[#222226]'
-                            : 'text-slate-300 hover:bg-[#09090b]/60 hover:text-slate-100'
-                        }`}
-                      >
-                        {/* Visual Drop Insertion Indicators */}
-                        {isDroppingBefore && (
-                          <div className="absolute -top-1 left-0 right-0 h-0.5 bg-[#6366f1] z-30 pointer-events-none" />
-                        )}
-                        {isDroppingAfter && (
-                          <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#6366f1] z-30 pointer-events-none" />
-                        )}
-
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="font-medium truncate flex-1 text-xs flex items-center gap-1 min-w-0">
-                            <span
-                              className="cursor-grab active:cursor-grabbing text-slate-500 group-hover:text-slate-300 hover:text-slate-100 p-0.5 -ml-0.5 rounded transition shrink-0"
-                              title="드래그하여 프로젝트 순서 변경"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <GripVertical className="w-3 h-3" />
-                            </span>
-                            {editingTreeTarget?.id === `project:${session.id}` ? (
-                              <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
-                                <InlineRenameInput
-                                  initialValue={session.title}
-                                  isFolder={true}
-                                  onCommit={handleCommitRename}
-                                  onCancel={() => setEditingTreeTarget(null)}
-                                />
-                              </div>
-                            ) : (
-                              <span
-                                className="truncate"
-                                onDoubleClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingTreeTarget({
-                                    id: `project:${session.id}`,
-                                    type: 'session',
-                                    name: session.title,
-                                    path: session.title,
-                                    sessionId: session.id,
-                                  });
-                                }}
-                              >
-                                {session.title}
-                              </span>
-                            )}
-                            {matchedMsgCount > 0 && query && (
-                              <span className="text-[0.5625rem] bg-[#6366f1]/15 text-[#6366f1] px-1 py-0.2 rounded border border-[#6366f1]/30 shrink-0 font-mono">
-                                {matchedMsgCount}
-                              </span>
-                            )}
-                          </span>
-
-                          <div className="flex items-center gap-1 shrink-0">
-                            <span className="text-[0.625rem] font-mono text-slate-400 group-hover:hidden">
-                              {session.messages.length}
-                            </span>
-                            <div className="hidden group-hover:flex items-center gap-0.5 transition">
+                      if (filteredSessions.length === 0) {
+                        return (
+                          <div className="text-center py-6 px-3 text-slate-400 space-y-2">
+                            <Search className="w-5 h-5 mx-auto text-slate-500 opacity-60" />
+                            <p className="text-[0.6875rem] font-medium text-slate-300">
+                              {sessionSearchQuery ? `'${sessionSearchQuery}' 검색 결과 없음` : '프로젝트가 없습니다.'}
+                            </p>
+                            {sessionSearchQuery && (
                               <button
                                 type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingTreeTarget({
-                                    id: `project:${session.id}`,
-                                    type: 'session',
-                                    name: session.title,
-                                    path: session.title,
-                                    sessionId: session.id,
-                                  });
-                                }}
-                                className="p-0.5 text-slate-400 hover:text-amber-300 transition rounded hover:bg-[#18181b]"
-                                title="프로젝트 이름 변경"
+                                onClick={() => setSessionSearchQuery('')}
+                                className="text-[0.625rem] text-[#6366f1] hover:underline font-mono cursor-pointer"
                               >
-                                <Pencil className="w-3 h-3" />
+                                검색어 초기화
                               </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleExportChatSession('json', session.id);
-                                }}
-                                className="p-0.5 text-slate-400 hover:text-[#6366f1] transition rounded hover:bg-[#18181b]"
-                                title="JSON으로 내보내기"
-                              >
-                                <Download className="w-3 h-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => requestDeleteSession(session.id, e)}
-                                className="p-0.5 text-slate-400 hover:text-rose-400 transition rounded hover:bg-[#18181b]"
-                                title="프로젝트 삭제"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between text-[0.5625rem] text-slate-400 font-mono mt-0.5">
-                          <span>
-                            {session.createdAt}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </div>
-
-            {/* Slide-open tab button when panel is tucked away */}
-            {!isProjectListOpen && (
-              <button
-                type="button"
-                onClick={() => setIsProjectListOpen(true)}
-                className="absolute left-0 top-12 z-20 bg-[#121214] hover:bg-[#18181b] text-[#6366f1] py-2 px-1 rounded-r-xs border border-l-0 border-[#222226] transition flex items-center gap-1 text-[0.625rem] font-mono group cursor-pointer"
-                title="프로젝트 목록 펼치기"
-              >
-                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform text-[#6366f1]" />
-              </button>
-            )}
-
-            {/* Active Conversation Chat Area */}
-            <div className="flex-1 flex flex-col min-w-0 bg-transparent relative">
-              {/* Chat Messages */}
-              <div id="chat-messages" ref={chatContainerRef} onScroll={handleChatScroll} className="flex-1 overflow-y-auto p-3 select-text custom-scrollbar">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeSessionId}
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.15, ease: 'easeOut' }}
-                    className="space-y-3 select-text max-w-3xl mx-auto w-full"
-                  >
-                    {/* Active WebLLM progress banner if downloading */}
-                    {webllmProgress.isLoading && (
-                      <WebLlmBanner
-                        isSupported={webllmProgress.isSupported}
-                        isLoading={webllmProgress.isLoading}
-                        isReady={webllmProgress.isReady}
-                        progressText={webllmProgress.progressText}
-                        progressPercent={webllmProgress.progressPercent}
-                        onStartDownload={handleStartWebLlmDownload}
-                        onSelectModel={() => {
-                          setSelectedModel(WEB_LLM_MODEL_ID);
-                          setProvider('local-pc');
-                          showToast('✓ Qwen2.5-0.5B 브라우저 로컬 AI가 선택되었습니다.');
-                        }}
-                        onDismiss={() => {
-                          setIsWebLlmBannerDismissed(true);
-                          try {
-                            localStorage.setItem('aipodium_webllm_banner_dismissed', 'true');
-                          } catch {}
-                        }}
-                      />
-                    )}
-
-                    {messages.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center min-h-[360px] h-full text-center px-4 py-16 select-none">
-                        <div className="w-10 h-10 rounded-full bg-white/5 border border-white/5 flex items-center justify-center mb-3 text-indigo-400">
-                          <Sparkles className="w-5 h-5" />
-                        </div>
-                        <p className="text-sm font-medium text-zinc-300">
-                          AI 어시스턴트와 대화를 시작하거나 프롬프트를 입력하세요
-                        </p>
-                        <p className="text-xs text-zinc-500 mt-1.5 max-w-xs leading-relaxed">
-                          질문, 문서 요약, 코드 생성 및 번역 작업을 지원합니다
-                        </p>
-                      </div>
-                    ) : (
-                      messages.map((msg) =>
-                      msg.sender === 'ai' ? (
-                        <AiMessageBubble
-                          key={msg.id}
-                          msg={msg}
-                          selectedModel={selectedModel === WEB_LLM_MODEL_ID ? WEB_LLM_MODEL_DISPLAY_NAME : (isOnboardingMode ? 'AI 지식 비서' : selectedModel)}
-                          onCopy={(text) => {
-                            navigator.clipboard.writeText(text);
-                            showToast('✓ AI 답변 내용이 클립보드에 복사되었습니다.');
-                          }}
-                          onDiff={(text, model) => {
-                            setDiffModalData({
-                              isOpen: true,
-                              proposedContent: text,
-                              title: 'AI 응답과 현재 문서 시맨틱 Diff',
-                              sourceLabel: `${model || 'AI Assistant'} 제안본`,
-                            });
-                          }}
-                          onSendToEditor={(text) => handleSendToEditor(text)}
-                          onActionChipClick={(chipType) => handleOnboardingChipClick(chipType)}
-                          onOpenSettings={(tab) => {
-                            setPreferencesInitialTab(tab || 'ai-engine');
-                            setIsPreferencesModalOpen(true);
-                          }}
-                        />
-                      ) : (
-                        <div
-                          key={msg.id}
-                          className="flex gap-2.5 items-start select-text justify-end"
-                        >
-                          <div className="rounded-md p-3 text-xs leading-relaxed space-y-2 select-text cursor-text bg-[#18181f] border border-white/[0.08] text-slate-100 max-w-[85%]">
-                            {/* Attachment Rendering in Chat Bubble */}
-                            {msg.attachments && msg.attachments.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5 pt-0.5 border-b border-white/[0.06] pb-1.5 select-none">
-                                {msg.attachments.map((att) => (
-                                  <div key={att.id} className="rounded overflow-hidden border border-white/[0.06] bg-black/40 p-1 flex items-center gap-1.5 max-w-full">
-                                    {att.type === 'image' && att.url ? (
-                                      <img
-                                        src={att.url}
-                                        alt={att.name}
-                                        className="max-h-36 rounded border border-white/[0.06] object-cover"
-                                      />
-                                    ) : att.type === 'link' ? (
-                                      <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-slate-300 font-mono">
-                                        <Link2 className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                                        <span className="truncate max-w-[150px] font-medium">{att.name}</span>
-                                        <span className="text-[0.625rem] text-slate-400">({att.size})</span>
-                                      </div>
-                                    ) : (
-                                      <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-slate-300 font-mono">
-                                        <FileText className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                                        <span className="truncate max-w-[150px] font-medium">{att.name}</span>
-                                        <span className="text-[0.625rem] text-slate-400">({att.size})</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {msg.ghostWriterLevel && msg.ghostWriterLevel !== 'off' && (
-                              <div className="flex flex-col gap-1 pb-1.5 mb-1.5 border-b border-white/[0.06] select-none">
-                                <div className="flex items-center justify-between gap-2 text-[0.625rem]">
-                                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-200 bg-emerald-950/80 px-1.5 py-0.5 rounded text-[0.5625rem] border border-emerald-800/60">
-                                    <Ghost className="w-3 h-3 text-emerald-300" />
-                                    Ghost Writer {msg.ghostWriterLevel}%
-                                  </span>
-                                  <span className="text-[0.625rem] text-[#38bdf8] font-mono flex items-center gap-1">
-                                    <Globe className="w-3 h-3 text-[#0ea5e9]" />
-                                    영문 프롬프트
-                                  </span>
-                                </div>
-                                {msg.originalText && msg.originalText !== msg.text && (
-                                  <div className="text-[0.6875rem] text-slate-300 flex items-start gap-1 font-sans pt-0.5">
-                                    <span className="font-medium text-slate-400 shrink-0">🇰🇷 한국어 원문:</span>
-                                    <span className="italic text-slate-200">{msg.originalText}</span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            <div className="whitespace-pre-wrap font-sans space-y-1 select-text cursor-text selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)]">
-                              {renderFormattedMessageText(msg.text)}
-                            </div>
-                          </div>
-
-                          <div className="w-6 h-6 rounded-md bg-[#121214] border border-[#222226] flex items-center justify-center text-slate-200 text-xs shrink-0 mt-0.5 select-none shadow-xs">
-                            <User className="w-3.5 h-3.5" />
-                          </div>
-                        </div>
-                      )
-                    ))}
-
-                    {isAiLoading && !messages.some((m) => m.isStreaming) && (
-                      <div className="flex gap-2.5 items-center py-1 bg-transparent border-0 select-none">
-                        <div className="w-5 h-5 flex items-center justify-center text-indigo-400 text-xs shrink-0 select-none bg-transparent border-0">
-                          <Bot className="w-4 h-4 animate-pulse text-indigo-400" />
-                        </div>
-                        <div className="bg-transparent border-0 px-1 py-1 text-xs text-slate-400 flex items-center gap-2 font-sans shadow-none">
-                          <div className="flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></span>
-                          </div>
-                          <span className="text-slate-400 text-xs">
-                            {isOnboardingMode ? 'AI 지식 비서가 답변을 준비하고 있습니다...' : 'AI 모델이 응답을 준비하고 있습니다...'}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-
-              {/* Floating scroll to bottom pill */}
-              {isScrolledUp && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    isUserScrolledUpRef.current = false;
-                    setIsScrolledUp(false);
-                    scrollToChatBottom(true);
-                  }}
-                  className="absolute bottom-3 right-6 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#121214]/95 border border-[#222226] text-[0.6875rem] text-slate-300 hover:text-white shadow-lg hover:border-[#6366f1] transition-all cursor-pointer group select-none"
-                  title="최신 대화로 스크롤 이동"
-                >
-                  <ChevronDown className="w-3.5 h-3.5 text-[#6366f1] group-hover:translate-y-0.5 transition-transform" />
-                  <span>최신 대화로 이동</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Input Box Area - Minimalist Clean Layout */}
-          <div className="p-2.5 bg-[#09090b]/95 border-t border-[#222226] shrink-0">
-            {/* Hidden File Input */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              multiple
-              onChange={(e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                  processFiles(e.target.files);
-                  e.target.value = '';
-                }
-              }}
-              accept="image/*,.txt,.md,.markdown,.pdf,.docx,.xlsx,.xls,.csv,.pptx,.ppt,.json,.js,.ts,.py,.css,.html"
-              className="hidden"
-            />
-
-            <form
-              id="chat-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                setShowMentionMenu(false);
-                handleSendMessage();
-              }}
-              className="space-y-1.5 max-w-3xl mx-auto w-full"
-            >
-              {/* Attached Files Preview Bar */}
-              {chatAttachments.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 p-1.5 bg-[#0c0c0e] border border-[#222226] rounded-xs max-h-28 overflow-y-auto custom-scrollbar">
-                  {chatAttachments.map((att) => (
-                    <div
-                      key={att.id}
-                      className="relative group bg-[#09090b] border border-[#222226] rounded-xs p-1 flex items-center gap-1.5 text-xs text-slate-200 shrink-0"
-                    >
-                      {att.isParsing ? (
-                        <RotateCw className="w-3.5 h-3.5 text-[#6366f1] animate-spin shrink-0" />
-                      ) : att.type === 'image' && att.url ? (
-                        <img src={att.url} alt={att.name} className="w-7 h-7 rounded object-cover border border-[#222226]" />
-                      ) : att.type === 'link' ? (
-                        <Link2 className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                      ) : (
-                        <FileText className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                      )}
-                      <div className="flex flex-col text-[0.625rem] pr-4">
-                        <span className="truncate max-w-[120px] font-medium text-slate-200">{att.name}</span>
-                        <span className="text-[0.5625rem] text-slate-400 font-mono">
-                          {att.isParsing ? '파싱 중...' : att.size}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveAttachment(att.id)}
-                        className="absolute top-1 right-1 p-0.5 rounded-full bg-[#18181b] hover:bg-rose-900/80 text-slate-300 hover:text-rose-200 transition cursor-pointer"
-                        title="첨부 파일 삭제"
-                      >
-                        <X className="w-2.5 h-2.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Textarea + Action Bar Container - Clean Seamless Unified Input Card */}
-              <div
-                className="relative flex flex-col bg-[#101014] border border-white/[0.08] focus-within:border-[#6366f1]/70 rounded-md transition"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                    processFiles(e.dataTransfer.files);
-                  }
-                }}
-              >
-                {/* Autocomplete / Reference Dropdown Menu for Workspace Folders & Files */}
-                <AnimatePresence>
-                  {showMentionMenu && (
-                    <motion.div
-                      ref={mentionDropdownRef}
-                      initial={{ opacity: 0, y: 6, scale: 0.99 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 4, scale: 0.99 }}
-                      transition={{ duration: 0.12 }}
-                      className="absolute bottom-full left-0 right-0 mb-2 bg-[#121214] border border-white/[0.08] rounded-md shadow-2xl z-50 overflow-hidden flex flex-col max-h-72"
-                    >
-                      {/* Filtered Item List */}
-                      <div
-                        ref={mentionListRef}
-                        className="overflow-y-auto p-1.5 space-y-0.5 text-xs select-none max-h-60 scroll-smooth bg-[#121214]"
-                      >
-                        {filteredMentionItems.length === 0 ? (
-                          <div className="py-6 text-center text-zinc-500 text-xs flex flex-col items-center gap-2">
-                            <Info className="w-4 h-4 text-zinc-500" />
-                            <span>'{mentionQuery}'에 해당하는 폴더 또는 파일이 없습니다.</span>
-                          </div>
-                        ) : (
-                          filteredMentionItems.map((item, index) => {
-                            const isSelected = index === mentionSelectedIndex;
-                            return (
-                              <div
-                                key={item.id}
-                                ref={(el) => {
-                                  mentionItemRefs.current[index] = el;
-                                }}
-                                onClick={() => handleSelectMention(item)}
-                                onMouseEnter={() => setMentionSelectedIndex(index)}
-                                className={`group flex items-center justify-between px-3 py-1.5 h-8 rounded-md cursor-pointer transition-colors ${
-                                  isSelected
-                                    ? 'bg-white/10 text-zinc-100'
-                                    : 'text-zinc-300 hover:bg-white/5'
-                                }`}
-                              >
-                                {/* Left: Monochrome Icon + Name */}
-                                <div className="flex items-center gap-2 min-w-0 flex-1 mr-3">
-                                  {item.type === 'folder' ? (
-                                    <Folder className="w-4 h-4 text-zinc-400 shrink-0" />
-                                  ) : (
-                                    <FileText className="w-4 h-4 text-zinc-400 shrink-0" />
-                                  )}
-                                  <span className="text-xs truncate font-medium">
-                                    {item.name}
-                                  </span>
-                                </div>
-
-                                {/* Right: Meta (File count / Size) + Select hint */}
-                                <div className="flex items-center gap-2.5 shrink-0">
-                                  <span className="text-xs text-zinc-500 font-mono">
-                                    {item.detail}
-                                  </span>
-                                  <span
-                                    className={`text-[0.6875rem] font-mono transition-opacity ${
-                                      isSelected
-                                        ? 'text-zinc-300 opacity-100'
-                                        : 'text-zinc-500 opacity-0 group-hover:opacity-100'
-                                    }`}
-                                  >
-                                    선택 ↵
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-
-                      {/* Footer Shortcut Navigation Guide */}
-                      <div className="flex items-center justify-between px-3 py-1.5 bg-[#121214] border-t border-[#222226] text-[0.6875rem] text-zinc-400">
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center gap-1">
-                            <kbd className="px-1 py-0.2 bg-[#18181b] rounded-xs text-[0.625rem] border border-[#27272a] text-zinc-300">↑</kbd>
-                            <kbd className="px-1 py-0.2 bg-[#18181b] rounded-xs text-[0.625rem] border border-[#27272a] text-zinc-300">↓</kbd>
-                            <span className="text-zinc-500 ml-0.5">이동</span>
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <kbd className="px-1.5 py-0.2 bg-[#18181b] rounded-xs text-[0.625rem] border border-[#27272a] text-zinc-300">Enter</kbd>
-                            <span className="text-zinc-600">/</span>
-                            <kbd className="px-1.5 py-0.2 bg-[#18181b] rounded-xs text-[0.625rem] border border-[#27272a] text-zinc-300">Tab</kbd>
-                            <span className="text-zinc-500 ml-0.5">참조 삽입</span>
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <kbd className="px-1.5 py-0.2 bg-[#18181b] rounded-xs text-[0.625rem] border border-[#27272a] text-zinc-300">Esc</kbd>
-                            <span className="text-zinc-500 ml-0.5">닫기</span>
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {ghostWriterLevel !== 'off' ? (
-                  <div className="flex flex-col">
-                    {/* Dual Pane Layout (Left: Korean Prompt / Right: Ghost Practice) */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/[0.08] bg-transparent">
-                      {/* Left: Native Korean Prompt Input */}
-                      <div className="flex flex-col px-3 py-2.5 relative bg-transparent">
-                        <textarea
-                          id="chat-input"
-                          ref={chatInputRef}
-                          style={{ height: `${chatInputHeight}px` }}
-                          value={chatInput}
-                          onFocus={() => {
-                            lastActiveTextTargetRef.current = 'chat';
-                          }}
-                          onInput={adjustChatInputHeight}
-                          onChange={(e) => {
-                            handleChatInputChange(e);
-                            if (ghostTargetEnglish || ghostTemplateText || ghostUserInput) {
-                              setGhostTargetEnglish('');
-                              setGhostTemplateText('');
-                              setGhostUserInput('');
-                              setGhostShowFullAnswer(false);
-                            }
-                          }}
-                          onPaste={handlePaste}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey)) {
-                              e.preventDefault();
-                              if (chatInput.trim()) {
-                                handleGenerateGhostText();
-                              } else {
-                                showToast('⚠️ 한국어 질문 또는 개념을 먼저 입력해주세요.');
-                              }
-                              return;
-                            }
-                            handleChatInputKeyDown(e);
-                          }}
-                          placeholder="한국어로 입력 (예: REST API vs GraphQL)... Enter로 영작 생성"
-                          className="w-full bg-transparent p-0 text-[0.625rem] text-slate-100 placeholder:text-slate-400 placeholder:text-[0.625rem] border-0 focus:ring-0 focus:outline-none resize-none min-h-[53px] max-h-[264px] overflow-y-auto outline-none font-sans leading-relaxed transition"
-                        />
-                      </div>
-
-                      {/* Right: Ghost Writer Interactive Practice Pane */}
-                      <div className="flex flex-col px-3 py-2.5 relative bg-transparent">
-                        {/* Interactive Ghost Text Canvas / Overlay Textarea */}
-                        <div
-                          style={{ height: `${chatInputHeight}px` }}
-                          className="relative w-full bg-transparent border-0 overflow-hidden"
-                        >
-                          {/* Background Layer: Ghost Template (Guide / Blank / Full Answer) */}
-                          <div className="absolute inset-0 p-0 text-[0.625rem] font-mono leading-relaxed select-none pointer-events-none whitespace-pre-wrap break-words overflow-y-auto">
-                            {isGhostLoading ? (
-                              <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-slate-400 gap-2">
-                                <Sparkles className="w-4 h-4 text-[#6366f1] animate-spin" />
-                                <span className="text-[0.625rem] text-emerald-300 font-medium animate-pulse">Ghost Text 생성 중...</span>
-                              </div>
-                            ) : ghostTargetEnglish ? (
-                              <div>
-                                {ghostShowFullAnswer || ghostWriterLevel === '100' ? (
-                                  <span className="text-[#6366f1] font-medium">{ghostTargetEnglish}</span>
-                                ) : (
-                                  <span className="text-teal-200/70">{ghostTemplateText}</span>
-                                )}
-                              </div>
-                            ) : chatInput.trim() ? (
-                              <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-slate-400 gap-1.5 pointer-events-auto">
-                                <div className="flex items-center gap-1.5 text-emerald-300 text-[0.625rem] font-medium">
-                                  <Sparkles className="w-3.5 h-3.5 text-[#6366f1] animate-pulse" />
-                                  <span>한국어 입력 완료 대기 중</span>
-                                </div>
-                                <p className="text-[0.625rem] text-slate-400 font-sans leading-relaxed">
-                                  <kbd className="px-1 py-0.5 rounded-xs bg-[#18181b] border border-[#27272a] text-teal-200 font-mono text-[0.5625rem]">Enter</kbd> 키 또는 상단 <span className="text-emerald-300 font-medium">[영작 생성]</span> 버튼을 누르면 고스트 텍스트가 생성됩니다.
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={() => handleGenerateGhostText()}
-                                  disabled={isGhostLoading}
-                                  className="mt-0.5 px-2 py-0.5 rounded-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-[0.625rem] font-medium flex items-center gap-1 transition cursor-pointer disabled:cursor-not-allowed"
-                                >
-                                  <Ghost className="w-2.5 h-2.5" />
-                                  <span>지금 Ghost Text 생성</span>
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-slate-400 gap-1">
-                                <Ghost className="w-4 h-4 text-slate-500 mb-0.5" />
-                                <p className="text-[0.625rem] text-slate-400 font-sans">
-                                  왼쪽에 한국어 프롬프트를 입력하면 여기에 영작 고스트 텍스트가 표시됩니다.
-                                </p>
-                              </div>
                             )}
                           </div>
-
-                          {/* Foreground Layer: User Real-Time Typing Textarea */}
-                          {ghostTargetEnglish && (
-                            <textarea
-                              ref={ghostInputRef}
-                              value={ghostUserInput}
-                              onChange={handleGhostUserInputChange}
-                              onKeyDown={handleGhostInputKeyDown}
-                              placeholder=""
-                              className="absolute inset-0 w-full h-full p-0 text-[0.625rem] font-mono leading-relaxed bg-transparent text-emerald-100 placeholder:text-transparent outline-none border-0 resize-none z-10 selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)]"
-                              spellCheck={false}
-                              autoFocus
-                            />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <textarea
-                    id="chat-input"
-                    ref={chatInputRef}
-                    style={{ height: `${chatInputHeight}px` }}
-                    value={chatInput}
-                    onFocus={() => {
-                      lastActiveTextTargetRef.current = 'chat';
-                    }}
-                    onInput={adjustChatInputHeight}
-                    onChange={handleChatInputChange}
-                    onPaste={handlePaste}
-                    onKeyDown={handleChatInputKeyDown}
-                    placeholder="질문 또는 요청 입력, '@'로 워크스페이스 폴더 및 문서 참조..."
-                    className="w-full bg-transparent px-3 py-2.5 text-xs text-slate-100 placeholder:text-slate-400 resize-none min-h-[53px] max-h-[264px] overflow-y-auto outline-none font-sans leading-relaxed"
-                  />
-                )}
-
-                {/* Bottom Input Action Bar - Clean Borderless Unified Layout */}
-                <div className="flex items-center justify-between px-2.5 pb-2 pt-0.5">
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="p-1 hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 rounded transition flex items-center justify-center cursor-pointer"
-                      title="이미지 또는 파일 첨부하기"
-                    >
-                      <Paperclip className="w-3.5 h-3.5" />
-                    </button>
-
-                    {/* 🔗 Add External Link Button */}
-                    <button
-                      type="button"
-                      onClick={() => setIsLinkInputOpen((prev) => !prev)}
-                      className={`p-1 hover:bg-white/[0.06] rounded transition flex items-center justify-center cursor-pointer ${
-                        isLinkInputOpen ? 'bg-white/[0.1] text-indigo-400' : 'text-slate-400 hover:text-slate-200'
-                      }`}
-                      title="웹 링크 또는 GitHub URL 첨부"
-                    >
-                      <Link2 className="w-3.5 h-3.5" />
-                    </button>
-
-                    {/* @ Workspace Reference Trigger Button */}
-                    <button
-                      type="button"
-                      onClick={handleTriggerMention}
-                      className="p-1 hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 rounded transition flex items-center justify-center cursor-pointer"
-                      title="워크스페이스 폴더 및 파일 참조"
-                    >
-                      <AtSign className="w-3.5 h-3.5" />
-                    </button>
-
-                    {/* Inline VS-Code Style Model Selector & Routing Mode Toggle */}
-                    <div className="h-3.5 w-[1px] bg-white/[0.1] mx-0.5" />
-                    <InlineModelSelector
-                      selectedModel={selectedModel}
-                      onSelectModel={(m) => {
-                        setSelectedModel(m);
-                        setRoleModels((prev) => {
-                          const updated = { ...prev, chat: m };
-                          try {
-                            localStorage.setItem('aipodium_ai_role_models', JSON.stringify(updated));
-                          } catch {}
-                          return updated;
-                        });
-                      }}
-                      selectedMultiModels={selectedMultiModels}
-                      onSelectMultiModels={(list) => setSelectedMultiModels(list)}
-                      mode={mode}
-                      onModeChange={(newMode) => setMode(newMode)}
-                      availableChatModels={availableChatModels}
-                      onOpenRoleModal={() => setIsAiRoleModalOpen(true)}
-                      onShowToast={(msg, type) => showToast(msg, type)}
-                      provider={provider}
-                      onSelectProvider={handleProviderSelect}
-                      onRefreshOllama={async () => {
-                        await triggerFetchOllamaTags();
-                      }}
-                      localEndpoint={localEndpointAddress}
-                      onSelectDefaultLocalTag={(tag) => {
-                        setProvider('local-pc');
-                        setSelectedModel(tag);
-                        setDiscoveredLocalModels((prev) => {
-                          if (prev.some((m) => m.id === tag)) return prev;
-                          const next = [...prev, { id: tag, name: tag }];
-                          try {
-                            localStorage.setItem('aipodium_discovered_models', JSON.stringify(next));
-                          } catch {}
-                          return next;
-                        });
-                      }}
-                    />
-
-                    {/* Link Attachment Input Popover */}
-                    <LinkAttachmentInput
-                      isOpen={isLinkInputOpen}
-                      onClose={() => setIsLinkInputOpen(false)}
-                      onAddAttachment={handleAddOrUpdateAttachment}
-                      onShowToast={showToast}
-                    />
-
-                    {/* Ghost Writer Auto-Complete Button (Visible when GW is enabled in Preferences) */}
-                    {ghostWriterLevel !== 'off' && ghostTargetEnglish && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setGhostUserInput(ghostTargetEnglish);
-                          showToast('✨ 영작 자동 완성');
-                        }}
-                        className="px-1.5 py-0.5 rounded hover:bg-white/[0.06] text-indigo-400 hover:text-indigo-300 text-[0.625rem] font-mono flex items-center gap-1 transition cursor-pointer border border-white/[0.08]"
-                        title="정답 문장 자동 완성"
-                      >
-                        <Sparkles className="w-2.5 h-2.5 text-indigo-400" />
-                        <span>Tab 완성</span>
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1.5 ml-auto">
-                    {/* Secondary & Primary Send Buttons */}
-                    {ghostWriterLevel !== 'off' && (
-                      <button
-                        type="button"
-                        disabled={isAiLoading || chatAttachments.some((a) => a.isParsing) || (!chatInput.trim() && chatAttachments.length === 0)}
-                        onClick={() => {
-                          if (chatInput.trim() || chatAttachments.length > 0) {
-                            handleSendMessage(chatInput.trim(), {
-                              originalText: chatInput.trim(),
-                              ghostWriterLevel: 'off'
-                            });
-                          }
-                        }}
-                        className="hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed text-slate-400 hover:text-slate-200 h-6 w-6 flex items-center justify-center rounded transition cursor-pointer"
-                        title="한국어 원문으로 직접 전송"
-                      >
-                        <Languages className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-
-                    <button
-                      type="submit"
-                      disabled={isAiLoading || chatAttachments.some((a) => a.isParsing) || (!chatInput.trim() && chatAttachments.length === 0)}
-                      onClick={(e) => {
-                        if (ghostWriterLevel !== 'off') {
-                          e.preventDefault();
-                          handleSendGhostMessage();
-                        }
-                      }}
-                      className={`h-6 px-2.5 rounded transition flex items-center justify-center ${
-                        isAiLoading || chatAttachments.some((a) => a.isParsing) || (!chatInput.trim() && chatAttachments.length === 0)
-                          ? 'bg-zinc-800 text-zinc-500 border border-zinc-700/40 cursor-not-allowed'
-                          : 'bg-indigo-600/80 hover:bg-indigo-600 active:bg-indigo-700 text-white border border-indigo-500/40 cursor-pointer'
-                      }`}
-                      title={
-                        chatAttachments.some((a) => a.isParsing)
-                          ? '파일 분석 중...'
-                          : ghostWriterLevel !== 'off'
-                          ? '영작된 영어 프롬프트로 AI 전송'
-                          : '메시지 전송'
+                        );
                       }
-                    >
-                      {chatAttachments.some((a) => a.isParsing) ? (
-                        <RotateCw className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <Send className="w-3 h-3" />
-                      )}
-                    </button>
+
+                      return filteredSessions.map((session) => {
+                        const isActive = session.id === activeSessionId;
+                        const matchedMsgCount = query
+                          ? session.messages.filter(
+                              (m) =>
+                                m.text.toLowerCase().includes(query) ||
+                                (m.attachments && m.attachments.some((att) => att.name.toLowerCase().includes(query)))
+                            ).length
+                          : 0;
+
+                        const isDraggingThis = draggedType === 'project' && draggedId === session.id;
+                        const isTarget = dragOverTargetId === session.id;
+                        const isDroppingBefore = isTarget && dragDropPosition === 'before';
+                        const isDroppingAfter = isTarget && dragDropPosition === 'after';
+
+                        return (
+                          <div
+                            key={session.id}
+                            draggable={true}
+                            onDragStart={(e) => handleProjectDragStart(e, session.id)}
+                            onDragOver={(e) => handleFolderDragOver(e, session.id)}
+                            onDragLeave={(e) => handleFolderDragLeave(e, session.id)}
+                            onDrop={(e) => handleFolderDrop(e, session.id)}
+                            onDragEnd={handleDragEnd}
+                            onClick={() => handleSelectSession(session.id)}
+                            className={`group relative flex flex-col px-2.5 py-1.5 rounded-xs transition cursor-pointer ${
+                              isDraggingThis
+                                ? 'opacity-40 border border-dashed border-[#6366f1] bg-[#18181b]/50'
+                                : isActive
+                                ? 'bg-[#18181b] text-white border-l-2 border-[#6366f1] pl-2 font-medium border-t border-r border-b border-[#222226]'
+                                : 'text-slate-300 hover:bg-[#09090b]/60 hover:text-slate-100'
+                            }`}
+                          >
+                            {/* Visual Drop Insertion Indicators */}
+                            {isDroppingBefore && (
+                              <div className="absolute -top-1 left-0 right-0 h-0.5 bg-[#6366f1] z-30 pointer-events-none" />
+                            )}
+                            {isDroppingAfter && (
+                              <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#6366f1] z-30 pointer-events-none" />
+                            )}
+
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-medium truncate flex-1 text-xs flex items-center gap-1 min-w-0">
+                                <span
+                                  className="cursor-grab active:cursor-grabbing text-slate-500 group-hover:text-slate-300 hover:text-slate-100 p-0.5 -ml-0.5 rounded transition shrink-0"
+                                  title="드래그하여 프로젝트 순서 변경"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <GripVertical className="w-3 h-3" />
+                                </span>
+                                {editingTreeTarget?.id === `project:${session.id}` ? (
+                                  <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+                                    <InlineRenameInput
+                                      initialValue={session.title}
+                                      isFolder={true}
+                                      onCommit={handleCommitRename}
+                                      onCancel={() => setEditingTreeTarget(null)}
+                                    />
+                                  </div>
+                                ) : (
+                                  <span
+                                    className="truncate"
+                                    onDoubleClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingTreeTarget({
+                                        id: `project:${session.id}`,
+                                        type: 'session',
+                                        name: session.title,
+                                        path: session.title,
+                                        sessionId: session.id,
+                                      });
+                                    }}
+                                  >
+                                    {session.title}
+                                  </span>
+                                )}
+                                {matchedMsgCount > 0 && query && (
+                                  <span className="text-[0.5625rem] bg-[#6366f1]/15 text-[#6366f1] px-1 py-0.2 rounded border border-[#6366f1]/30 shrink-0 font-mono">
+                                    {matchedMsgCount}
+                                  </span>
+                                )}
+                              </span>
+
+                              <div className="flex items-center gap-1 shrink-0">
+                                <span className="text-[0.625rem] font-mono text-slate-400 group-hover:hidden">
+                                  {session.messages.length}
+                                </span>
+                                <div className="hidden group-hover:flex items-center gap-0.5 transition">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingTreeTarget({
+                                        id: `project:${session.id}`,
+                                        type: 'session',
+                                        name: session.title,
+                                        path: session.title,
+                                        sessionId: session.id,
+                                      });
+                                    }}
+                                    className="p-0.5 text-slate-400 hover:text-amber-300 transition rounded hover:bg-[#18181b]"
+                                    title="프로젝트 이름 변경"
+                                  >
+                                    <Pencil className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleExportChatSession('json', session.id);
+                                    }}
+                                    className="p-0.5 text-slate-400 hover:text-[#6366f1] transition rounded hover:bg-[#18181b]"
+                                    title="JSON으로 내보내기"
+                                  >
+                                    <Download className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => requestDeleteSession(session.id, e)}
+                                    className="p-0.5 text-slate-400 hover:text-rose-400 transition rounded hover:bg-[#18181b]"
+                                    title="프로젝트 삭제"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between text-[0.5625rem] text-slate-400 font-mono mt-0.5">
+                              <span>
+                                {session.createdAt}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
-                </div>
-              </div>
-            </form>
+                </aside>
+              }
+              activeSessionId={activeSessionId}
+              sessionTitle={activeSession?.title}
+              messages={messages}
+              isAiLoading={isAiLoading}
+              chatInput={chatInput}
+              onChatInputChange={setChatInput}
+              chatAttachments={chatAttachments}
+              onRemoveAttachment={handleRemoveAttachment}
+              onAddAttachment={(att) => setChatAttachments((prev) => [...prev, att])}
+              onAddFiles={(files) => processFiles(files)}
+              onSendMessage={handleSendMessage}
+              onSendToEditor={handleSendToEditor}
+              onDiff={(text, model) => {
+                setDiffModalData({
+                  isOpen: true,
+                  proposedContent: text,
+                  title: 'AI 응답과 현재 문서 시맨틱 Diff',
+                  sourceLabel: `${model || 'AI Assistant'} 제안본`,
+                });
+              }}
+              onActionChipClick={handleOnboardingChipClick}
+              onOpenSettings={(tab) => {
+                setPreferencesInitialTab((tab as any) || 'ai-engine');
+                setIsPreferencesModalOpen(true);
+              }}
+              onTranslate={handleTranslateMessage}
+              onToast={showToast}
+              allMentionItems={allMentionItems}
+              renderFormattedMessageText={renderFormattedMessageText}
+              selectedModel={selectedModel}
+              onSelectModel={setSelectedModel}
+              selectedMultiModels={selectedMultiModels}
+              onSelectMultiModels={setSelectedMultiModels}
+              mode={mode}
+              onModeChange={setMode}
+              availableChatModels={availableChatModels}
+              activeProvider={selectedModel === WEB_LLM_MODEL_ID ? 'webllm' : (provider === 'local-pc' || provider === 'local-server' ? 'local-pc' : 'cloud')}
+              provider={selectedModel === WEB_LLM_MODEL_ID ? 'webllm' : provider}
+              onSelectProvider={setProvider}
+              onRefreshOllama={async () => {
+                await triggerFetchOllamaTags();
+              }}
+              localEndpointAddress={localEndpointAddress}
+              onSelectDefaultLocalTag={(tag) => {
+                setSelectedModel(tag);
+                setProvider('local-pc');
+              }}
+              onOpenRoleModal={() => setIsAiRoleModalOpen(true)}
+              isOnboardingMode={isOnboardingMode}
+              webllmProgress={webllmProgress}
+              onStartWebLlmDownload={handleStartWebLlmDownload}
+              isWebLlmBannerDismissed={isWebLlmBannerDismissed}
+              onDismissWebLlmBanner={() => {
+                setIsWebLlmBannerDismissed(true);
+                try {
+                  localStorage.setItem('aipodium_webllm_banner_dismissed', 'true');
+                } catch {}
+              }}
+              ghostWriterLevel={ghostWriterLevel}
+              ghostTargetEnglish={ghostTargetEnglish}
+              ghostTemplateText={ghostTemplateText}
+              ghostUserInput={ghostUserInput}
+              ghostShowFullAnswer={ghostShowFullAnswer}
+              isGhostLoading={isGhostLoading}
+              onGenerateGhostText={handleGenerateGhostText}
+              onGhostUserInputChange={setGhostUserInput}
+              onGhostInputKeyDown={handleGhostInputKeyDown}
+              onSendGhostMessage={handleSendGhostMessage}
+              onSetGhostTargetEnglish={setGhostTargetEnglish}
+              onSetGhostTemplateText={setGhostTemplateText}
+              onSetGhostUserInput={setGhostUserInput}
+              onSetGhostShowFullAnswer={setGhostShowFullAnswer}
+              chatInputRef={chatInputRef}
+              onInputFocus={() => {
+                lastActiveTextTargetRef.current = 'chat';
+              }}
+            />
           </div>
 
         </div>
         </section>
 
+        {/* ==================== RESIZE HANDLE: ChatPanel <-> UnifiedEditor ==================== */}
+        {isLeftPanelVisible && (
+          <div
+            id="chat-resizer-handle"
+            onMouseDown={handleLeftResizeStart}
+            className={`hidden lg:flex w-1 hover:w-1.5 -ml-0.5 z-30 cursor-col-resize items-center justify-center transition-all select-none group ${
+              activeResizer === 'chat' ? 'bg-[#6366f1] w-1.5' : 'hover:bg-[#6366f1] bg-transparent'
+            }`}
+            title="드래그하여 대화 패널 너비 조절 (280px ~ 520px)"
+          >
+            <div className="w-full h-full opacity-0 group-hover:opacity-100 bg-[#6366f1]/40" />
+          </div>
+        )}
+
         {/* ==================== CENTER PANE: Markdown Editor (Flex-1 Canvas) ==================== */}
         <section
           className={`h-full min-h-0 flex-1 min-w-0 flex flex-col bg-[#09090b] backdrop-blur-md overflow-hidden z-10 relative ${
-            isSection2Collapsed ? 'hidden' : ''
-          }`}
+            isInitialAnimating
+              ? `transition-[opacity,transform] duration-200 ease-out delay-[40ms] ${
+                  hasInitialMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
+                }`
+              : ''
+          } ${isSection2Collapsed ? 'hidden' : ''}`}
           onDragOver={(e) => {
             if (e.dataTransfer.types.includes('Files')) {
               e.preventDefault();
@@ -9246,493 +8978,18 @@ ${projectEvents
                       </button>
                     )}
 
-
-                    {/* Freeform Memo (자유 형식 메모) Quick Toggle Button */}
-                    <button
-                      id="editor-freeform-memo-toggle"
-                      type="button"
-                      onClick={() => setIsDrawingOverlayOpen((prev) => !prev)}
-                      className={`p-1 rounded-xs border transition flex items-center justify-center cursor-pointer select-none ${
-                        isDrawingOverlayOpen
-                          ? 'bg-[#18181b] text-indigo-400 border-[#6366f1]'
-                          : 'bg-[#09090b] text-slate-400 border-[#222226] hover:text-white hover:bg-[#18181b]'
-                      }`}
-                      title={isDrawingOverlayOpen ? '자유 형식 메모 닫기' : '자유 형식 메모'}
-                      aria-label="자유 형식 메모"
-                    >
-                      <PenTool className="w-3 h-3" />
-                    </button>
-
-                    {/* Focus Mode (문서 집중 모드) Quick Toggle Button */}
-                    <button
-                      id="editor-focus-mode-toggle"
-                      type="button"
-                      onClick={() => {
-                        const isFocus = isSection1Collapsed && isSection3Collapsed;
-                        if (isFocus) {
-                          setIsSection1Collapsed(false);
-                          setIsSection3Collapsed(false);
-                          showToast('기본 패널 레이아웃이 복원되었습니다.');
-                        } else {
-                          setIsSection1Collapsed(true);
-                          setIsSection3Collapsed(true);
-                          showToast('🎯 문서 집중 모드: 사이드바를 모두 접었습니다.');
-                        }
-                      }}
-                      className={`p-1 rounded-xs border transition flex items-center justify-center cursor-pointer select-none ${
-                        isSection1Collapsed && isSection3Collapsed
-                          ? 'bg-[#18181b] text-indigo-400 border-[#6366f1]'
-                          : 'bg-[#09090b] text-slate-400 border-[#222226] hover:text-white hover:bg-[#18181b]'
-                      }`}
-                      title={
-                        isSection1Collapsed && isSection3Collapsed
-                          ? '문서 집중 모드 해제 (패널 복원)'
-                          : '문서 집중 모드 (사이드바 숨기기)'
-                      }
-                      aria-label="문서 집중 모드 토글"
-                    >
-                      {isSection1Collapsed && isSection3Collapsed ? (
-                        <Minimize2 className="w-3 h-3" />
-                      ) : (
-                        <Maximize2 className="w-3 h-3" />
-                      )}
-                    </button>
-
-                    {/* Compact Top-Right Drawer Button (24px wide, 12px high - half size of standard 24px button) */}
-                    <button
-                      id="editor-toolbar-drawer-toggle"
-                      type="button"
-                      onClick={() => setIsEditorToolbarDrawerOpen((prev) => !prev)}
-                      className={`w-6 h-3 rounded-xs border transition flex items-center justify-center cursor-pointer select-none ${
-                        isEditorToolbarDrawerOpen
-                          ? 'bg-[#18181b] text-white border-[#6366f1]'
-                          : 'bg-[#09090b] text-slate-400 border-[#222226] hover:text-white hover:bg-[#18181b]'
-                      }`}
-                      title={isEditorToolbarDrawerOpen ? '편집 도구 모음 접기' : '편집 도구 모음 펼치기'}
-                      aria-label="편집 툴바 드로워 토글"
-                    >
-                      {isEditorToolbarDrawerOpen ? (
-                        <ChevronUp className="w-2.5 h-2.5 text-indigo-400 shrink-0" />
-                      ) : (
-                        <ChevronDown className="w-2.5 h-2.5 shrink-0" />
-                      )}
-                    </button>
-
-                    {/* Sliding Drop-down Vertical Toolbar Drawer */}
-                    <AnimatePresence>
-                      {isEditorToolbarDrawerOpen && (
-                        <motion.div
-                          id="editor-formatting-toolbar"
-                          initial={{ opacity: 0, y: -12, scaleY: 0.85 }}
-                          animate={{ opacity: 1, y: 0, scaleY: 1 }}
-                          exit={{ opacity: 0, y: -8, scaleY: 0.88, transition: { duration: 0.16, ease: 'easeOut' } }}
-                          transition={{
-                            type: 'spring',
-                            stiffness: 420,
-                            damping: 26,
-                            mass: 0.8,
-                            opacity: { duration: 0.18 }
-                          }}
-                          className="absolute top-full right-0 mt-1.5 z-50 flex flex-col items-center bg-[#0f0f12] border border-[#222226] rounded-xs p-0.5 max-h-[calc(100vh-140px)] overflow-y-auto scrollbar-none w-7 origin-top gap-0.5"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {/* View Modes */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditorTab('wysiwyg');
-                              setSessions((prev) =>
-                                prev.map((s) => (s.id === activeSessionId ? { ...s, editorTab: 'wysiwyg' } : s))
-                              );
-                            }}
-                            className={`h-6 w-6 min-w-[24px] px-0 rounded-xs transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
-                              editorTab === 'wysiwyg'
-                                ? 'bg-[#18181b] text-indigo-400 font-medium'
-                                : 'text-slate-400 hover:text-white hover:bg-[#18181b]/60'
-                            }`}
-                            title="서식 모드 (워드프로세서 방식)"
-                            aria-label="서식 모드"
-                          >
-                            <FileText className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditorTab('edit');
-                              setSessions((prev) =>
-                                prev.map((s) => (s.id === activeSessionId ? { ...s, editorTab: 'edit' } : s))
-                              );
-                            }}
-                            className={`h-6 w-6 min-w-[24px] px-0 rounded-xs transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
-                              editorTab === 'edit'
-                                ? 'bg-[#18181b] text-white font-medium'
-                                : 'text-slate-400 hover:text-white hover:bg-[#18181b]/60'
-                            }`}
-                            title="마크다운 소스 모드 (원본)"
-                            aria-label="마크다운 소스 모드"
-                          >
-                            <Edit3 className="w-3.5 h-3.5 text-slate-200 shrink-0" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditorTab('split');
-                              setSessions((prev) =>
-                                prev.map((s) => (s.id === activeSessionId ? { ...s, editorTab: 'split' } : s))
-                              );
-                            }}
-                            className={`h-6 w-6 min-w-[24px] px-0 rounded-xs transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
-                              editorTab === 'split'
-                                ? 'bg-[#18181b] text-white font-medium'
-                                : 'text-slate-400 hover:text-white hover:bg-[#18181b]/60'
-                            }`}
-                            title="실시간 분할 모드 (에디터 50% | 미리보기 50%)"
-                            aria-label="실시간 분할 모드"
-                          >
-                            <BookOpen className="w-3.5 h-3.5 text-slate-200 shrink-0" />
-                          </button>
-
-                          {/* Divider */}
-                          <div className="h-px w-4 bg-[#222226] shrink-0 my-0.5" />
-
-                          {/* Save Document Button */}
-                          <button
-                            type="button"
-                            onClick={handleSaveDocument}
-                            className={`h-6 w-6 min-w-[24px] px-0 rounded-xs transition flex items-center justify-center relative font-mono cursor-pointer select-none shrink-0 ${
-                              isCurrentFileDirty
-                                ? 'bg-indigo-600 text-white hover:bg-indigo-500 font-medium'
-                                : 'text-slate-300 hover:bg-[#18181b] hover:text-white'
-                            }`}
-                            title="문서 저장"
-                            aria-label="문서 저장"
-                          >
-                            <Save className="w-3.5 h-3.5 shrink-0" />
-                            {isCurrentFileDirty && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-300 shrink-0 absolute top-0.5 right-0.5 ring-1 ring-[#09090b]" title="저장되지 않은 변경사항 있음" />
-                            )}
-                          </button>
-
-                          {/* Divider */}
-                          <div className="h-px w-4 bg-[#222226] shrink-0 my-0.5" />
-
-                          {/* Undo & Redo */}
-                          <button
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={handleUndo}
-                            className="h-6 w-6 min-w-[24px] px-0 rounded-xs text-slate-300 hover:text-white hover:bg-[#18181b] transition flex items-center justify-center cursor-pointer select-none shrink-0"
-                            title="실행 취소"
-                            aria-label="실행 취소"
-                          >
-                            <Undo2 className="w-3.5 h-3.5 shrink-0" />
-                          </button>
-                          <button
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={handleRedo}
-                            className="h-6 w-6 min-w-[24px] px-0 rounded-xs text-slate-300 hover:text-white hover:bg-[#18181b] transition flex items-center justify-center cursor-pointer select-none shrink-0"
-                            title="다시 실행"
-                            aria-label="다시 실행"
-                          >
-                            <Redo2 className="w-3.5 h-3.5 shrink-0" />
-                          </button>
-
-                          {/* Divider */}
-                          <div className="h-px w-4 bg-[#222226] shrink-0 my-0.5" />
-
-                          {/* Markdown Formatting Section */}
-                          <div
-                            className={`flex flex-col items-center gap-0.5 transition-opacity duration-200 ${
-                              editorTab === 'preview'
-                                ? 'opacity-35 pointer-events-none select-none'
-                                : ''
-                            }`}
-                            title={editorTab === 'preview' ? '미리보기 전용 모드에서는 서식 툴바가 비활성화됩니다' : undefined}
-                          >
-                            {/* Headings (h1, h2, h3) */}
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => applyMarkdownBlockFormat('h1')}
-                              className="h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white font-semibold text-xs transition font-mono cursor-pointer flex items-center justify-center select-none text-slate-300 shrink-0"
-                              title="제목 1"
-                              aria-label="Heading 1"
-                            >
-                              h1
-                            </button>
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => applyMarkdownBlockFormat('h2')}
-                              className="h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white font-semibold text-xs transition font-mono cursor-pointer flex items-center justify-center select-none text-slate-300 shrink-0"
-                              title="제목 2"
-                              aria-label="Heading 2"
-                            >
-                              h2
-                            </button>
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => applyMarkdownBlockFormat('h3')}
-                              className="h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white font-semibold text-xs transition font-mono cursor-pointer flex items-center justify-center select-none text-slate-300 shrink-0"
-                              title="제목 3"
-                              aria-label="Heading 3"
-                            >
-                              h3
-                            </button>
-
-                            {/* Divider */}
-                            <div className="h-px w-4 bg-[#222226] shrink-0 my-0.5" />
-
-                            {/* Link & Image */}
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => applyMarkdownBlockFormat('link')}
-                              className="h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-                              title="링크 삽입"
-                              aria-label="링크 추가"
-                            >
-                              <Link className="w-3.5 h-3.5 text-slate-300" />
-                            </button>
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => applyMarkdownBlockFormat('image')}
-                              className="h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-                              title="이미지 삽입"
-                              aria-label="이미지 추가"
-                            >
-                              <ImageIcon className="w-3.5 h-3.5 text-slate-300" />
-                            </button>
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => {
-                                setIsDrawingOverlayOpen((prev) => !prev);
-                                setIsEditorToolbarDrawerOpen(false);
-                              }}
-                              className={`h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
-                                isDrawingOverlayOpen
-                                  ? 'bg-indigo-600 text-white font-medium'
-                                  : 'text-slate-300'
-                              }`}
-                              title="자유 형식 메모"
-                              aria-label="자유 형식 메모"
-                            >
-                              <PenTool className="w-3.5 h-3.5 text-indigo-400" />
-                            </button>
-
-                            {/* Divider */}
-                            <div className="h-px w-4 bg-[#222226] shrink-0 my-0.5" />
-
-                            {/* Text Formatting (Bold, Italic, Code) */}
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => applyMarkdownBlockFormat('bold')}
-                              className="h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white font-bold transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-                              title="굵게"
-                              aria-label="굵게"
-                            >
-                              <Bold className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => applyMarkdownBlockFormat('italic')}
-                              className="h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white italic transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-                              title="기울임"
-                              aria-label="기울임"
-                            >
-                              <Italic className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => applyMarkdownBlockFormat('code')}
-                              className="h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white font-mono text-xs transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-                              title="인라인 코드"
-                              aria-label="인라인 코드"
-                            >
-                              <Code className="w-3.5 h-3.5" />
-                            </button>
-
-                            {/* Divider */}
-                            <div className="h-px w-4 bg-[#222226] shrink-0 my-0.5" />
-
-                            {/* Lists, Quote & Rule */}
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => applyMarkdownBlockFormat('bullet')}
-                              className="h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-                              title="글머리 기호 목록"
-                              aria-label="글머리 기호 목록"
-                            >
-                              <List className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => applyMarkdownBlockFormat('number')}
-                              className="h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-                              title="번호 목록"
-                              aria-label="순서 있는 번호 목록"
-                            >
-                              <ListOrdered className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => applyMarkdownBlockFormat('task')}
-                              className="h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-                              title="체크박스 할 일 목록"
-                              aria-label="체크박스 할 일 목록"
-                            >
-                              <CheckSquare className="w-3.5 h-3.5 text-slate-300" />
-                            </button>
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => applyMarkdownBlockFormat('quote')}
-                              className="h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-                              title="인용구"
-                              aria-label="인용구"
-                            >
-                              <Quote className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => applyMarkdownBlockFormat('rule')}
-                              className="h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-                              title="구분선"
-                              aria-label="구분선"
-                            >
-                              <Minus className="w-3.5 h-3.5" />
-                            </button>
-
-                            {/* Divider */}
-                            <div className="h-px w-4 bg-[#222226] shrink-0 my-0.5" />
-
-                            {/* Table Dropdown Button */}
-                            <div className="relative inline-flex items-center">
-                              <button
-                                ref={tableButtonRef}
-                                type="button"
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => setShowTablePicker(!showTablePicker)}
-                                className={`h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
-                                  showTablePicker ? 'bg-indigo-600 text-white' : 'text-slate-300'
-                                }`}
-                                title="표 삽입"
-                                aria-label="표 삽입"
-                              >
-                                <TableIcon className={`w-3.5 h-3.5 ${showTablePicker ? 'text-white' : 'text-indigo-400'}`} />
-                              </button>
-
-                              {showTablePicker && (
-                                <TableGridPicker
-                                  anchorRef={tableButtonRef}
-                                  onInsertTable={handleInsertTable}
-                                  onClose={() => setShowTablePicker(false)}
-                                />
-                              )}
-                            </div>
-
-                            {/* Divider */}
-                            <div className="h-px w-4 bg-[#222226] shrink-0 my-0.5" />
-
-                            {/* Markdown Guide Help (?) */}
-                            <div className="relative inline-flex items-center shrink-0">
-                              <button
-                                ref={helpButtonRef}
-                                type="button"
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => setShowMarkdownHelp(!showMarkdownHelp)}
-                                className={`h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
-                                  showMarkdownHelp ? 'bg-indigo-600 text-white' : 'text-slate-300'
-                                }`}
-                                title="마크다운 문법 및 단축키 안내"
-                                aria-label="마크다운 문법 & 단축키 가이드"
-                              >
-                                <HelpCircle className={`w-3.5 h-3.5 shrink-0 ${showMarkdownHelp ? 'text-white' : 'text-indigo-300'}`} />
-                              </button>
-
-                              {showMarkdownHelp && (
-                                <MarkdownHelpPopover
-                                  isOpen={showMarkdownHelp}
-                                  onClose={() => setShowMarkdownHelp(false)}
-                                  anchorRef={helpButtonRef}
-                                  onInsertSnippet={handleInsertSnippet}
-                                />
-                              )}
-                            </div>
-
-                            {/* Divider */}
-                            <div className="h-px w-4 bg-[#222226] shrink-0 my-0.5" />
-
-                            {/* View Title (TOC / 문서 목차) */}
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => {
-                                setIsTocOpen(!isTocOpen);
-                                if (!isTocOpen) setIsSsotAuditorOpen(false);
-                              }}
-                              className={`h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center relative cursor-pointer select-none shrink-0 ${
-                                isTocOpen
-                                  ? 'bg-indigo-600 text-white font-medium'
-                                  : 'text-slate-300'
-                              }`}
-                              title="문서 목차 보기"
-                              aria-label="문서 목차 보기"
-                            >
-                              <ListTree className={`w-3.5 h-3.5 ${isTocOpen ? 'text-white' : 'text-indigo-400'}`} />
-                              {getTocItems(editorContent).length > 0 && (
-                                <span className="absolute -top-1 -right-1 bg-indigo-600 text-white text-[0.5rem] px-1 rounded-full font-mono scale-90">
-                                  {getTocItems(editorContent).length}
-                                </span>
-                              )}
-                            </button>
-
-                            {/* Divider */}
-                            <div className="h-px w-4 bg-[#222226] shrink-0 my-0.5" />
-
-                            {/* AI Clean Document (AI 자동 정리) */}
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={handleAiCleanDocument}
-                              disabled={isAiCleaning}
-                              className={`h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white text-slate-400 transition flex items-center justify-center group cursor-pointer select-none shrink-0 ${
-                                isAiCleaning ? 'opacity-50 cursor-not-allowed' : ''
-                              }`}
-                              title="AI 자동 정리"
-                              aria-label="AI 자동 정리"
-                            >
-                              <Wand2 className={`w-3.5 h-3.5 text-slate-400 group-hover:text-white ${isAiCleaning ? 'animate-pulse' : ''}`} />
-                            </button>
-
-                            {/* Format Document (문서 서식 및 들여쓰기 자동 정리) */}
-                            <button
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={handleFormatDocument}
-                              className="h-6 w-6 min-w-[24px] px-0 rounded-xs hover:bg-[#18181b] hover:text-white text-slate-400 transition flex items-center justify-center group cursor-pointer select-none shrink-0"
-                              title="문서 서식 자동 정리"
-                              aria-label="문서 서식 자동 정리"
-                            >
-                              <AlignLeft className="w-3.5 h-3.5 text-slate-400 group-hover:text-white" />
-                            </button>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    {/* Right Panel Quick Toggle when collapsed */}
+                    {!isRightPanelVisible && (
+                      <button
+                        type="button"
+                        onClick={() => toggleRightPanel(true)}
+                        className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-indigo-400 border border-[#222226] transition flex items-center justify-center shrink-0 cursor-pointer ml-0.5"
+                        title="우측 파일 탐색기 패널 펼치기"
+                        aria-label="우측 파일 탐색기 패널 펼치기"
+                      >
+                        <PanelRightOpen className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -9963,9 +9220,20 @@ ${projectEvents
                         onViewerStateChange={setPdfViewerState}
                       />
                     ) : (
-                      <OptimizedEditor
+                      <UnifiedEditor
+                        ref={unifiedEditorRef}
                         value={editorContent}
                         onChange={handleEditorChange}
+                        mode={editorTab}
+                        onModeChange={(newMode) => {
+                          const targetTab: 'wysiwyg' | 'edit' | 'split' =
+                            newMode === 'wysiwyg' ? 'wysiwyg' : newMode === 'split' ? 'split' : 'edit';
+                          setEditorTab(targetTab);
+                          setSessions((prev) =>
+                            prev.map((s) => (s.id === activeSessionId ? { ...s, editorTab: targetTab } : s))
+                          );
+                        }}
+                        onSave={() => handleSaveDocument()}
                         onFocus={() => {
                           lastActiveTextTargetRef.current = 'editor';
                           if (hasUnreadAiChanges) setHasUnreadAiChanges(false);
@@ -9973,19 +9241,27 @@ ${projectEvents
                         editorRef={editorRef}
                         tiptapRef={tiptapEditorRef}
                         placeholder="# 마크다운 노트&#10;&#10;AI 답변의 [에디터로 내용 전송] 또는 직접 작성..."
-                        editorTab={editorTab}
                         renderMarkdownToHtml={renderMarkdownToHtml}
                         fontSize={editorFontSize}
+                        isDrawingOpen={isDrawingOverlayOpen}
+                        onToggleDrawing={() => setIsDrawingOverlayOpen((prev) => !prev)}
+                        onCloseDrawing={() => setIsDrawingOverlayOpen(false)}
+                        isFullscreen={isSection1Collapsed && isSection3Collapsed}
+                        onToggleFullscreen={() => {
+                          const isFocus = isSection1Collapsed && isSection3Collapsed;
+                          if (isFocus) {
+                            setIsSection1Collapsed(false);
+                            setIsSection3Collapsed(false);
+                            showToast('기본 패널 레이아웃이 복원되었습니다.');
+                          } else {
+                            setIsSection1Collapsed(true);
+                            setIsSection3Collapsed(true);
+                            showToast('🎯 문서 집중 모드: 사이드바를 모두 접었습니다.');
+                          }
+                        }}
+                        onToast={showToast}
                       />
                     )}
-
-                    {/* Freeform Drawing Canvas Overlay */}
-                    <FreeformDrawingOverlay
-                      isOpen={isDrawingOverlayOpen}
-                      onClose={() => setIsDrawingOverlayOpen(false)}
-                      onInsertImageToEditor={handleInsertDrawingToEditor}
-                      onToast={showToast}
-                    />
 
                     {/* Table of Contents Floating Sidebar / Drawer Overlay */}
                     {isTocOpen && (
@@ -10054,532 +9330,66 @@ ${projectEvents
               </div>
         </section>
 
-        {/* Mobile / Tablet Overlay Backdrop for Right Pane (< lg) */}
+        {/* ==================== RESIZE HANDLE: UnifiedEditor <-> WorkspaceDrawer ==================== */}
         {isRightPanelVisible && (
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs z-30 lg:hidden"
-            onClick={() => toggleRightPanel(false)}
-            aria-hidden="true"
-          />
+            id="explorer-resizer-handle"
+            onMouseDown={handleRightResizeStart}
+            className={`hidden lg:flex w-1 hover:w-1.5 -mr-0.5 z-30 cursor-col-resize items-center justify-center transition-all select-none group ${
+              activeResizer === 'explorer' ? 'bg-[#6366f1] w-1.5' : 'hover:bg-[#6366f1] bg-transparent'
+            }`}
+            title="드래그하여 파일 탐색기 너비 조절 (200px ~ 420px)"
+          >
+            <div className="w-full h-full opacity-0 group-hover:opacity-100 bg-[#6366f1]/40" />
+          </div>
         )}
 
-        {/* ==================== RIGHT PANE: Project File Explorer (Fixed 240px) ==================== */}
-        <section
-          className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 transition-all duration-200 ease-in-out z-40 lg:z-10 ${
-            isRightPanelVisible
-              ? 'w-[240px] opacity-100 pointer-events-auto border-l border-[#222226] fixed lg:relative inset-y-0 right-0 shadow-2xl shadow-black/80 lg:shadow-none'
-              : 'w-0 opacity-0 pointer-events-none overflow-hidden border-l-0'
-          }`}
-          onDragOver={(e) => {
-            if (e.dataTransfer.types.includes('Files')) {
-              e.preventDefault();
-            }
-          }}
-          onDrop={(e) => {
-            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-              e.preventDefault();
-              e.stopPropagation();
-              handleImportDocumentFiles(Array.from(e.dataTransfer.files));
-            }
-          }}
-        >
-          <div className="w-[240px] h-full flex flex-col min-h-0 overflow-hidden">
-            
-            {/* Integrated Sleek 1-Line File Explorer Header Toolbar */}
-            {/* Explorer Header */}
-            <div className="flex items-center justify-end h-8 px-2 bg-[#0f0f12] border-b border-[#222226] shrink-0 text-slate-300 select-none">
-              {/* Action Button Group */}
-              <div className="flex items-center gap-1 shrink-0 text-slate-300 w-full justify-between">
-                <div className="flex items-center gap-1">
-                  {/* [📁+ New Folder] */}
-                  <button
-                    type="button"
-                    onClick={() => handleCreateNewSession()}
-                    className="p-1 rounded-xs hover:bg-[#18181b] hover:text-white transition cursor-pointer"
-                    title="새 폴더 추가"
-                  >
-                    <FolderPlus className="w-3.5 h-3.5 text-indigo-400" />
-                  </button>
-
-                  {/* [📄+ New File] */}
-                  <button
-                    type="button"
-                    onClick={handleCreateNewFile}
-                    className="p-1 rounded-xs hover:bg-[#18181b] hover:text-white transition cursor-pointer"
-                    title="새 파일 추가"
-                  >
-                    <FilePlus className="w-3.5 h-3.5 text-[#6366f1]" />
-                  </button>
-
-                  {/* [📂 Manage/Pick Project Folder Workspace] */}
-                  <button
-                    type="button"
-                    onClick={() => setIsWorkspaceModalOpen(true)}
-                    className="p-1 rounded-xs hover:bg-[#18181b] hover:text-white transition cursor-pointer"
-                    title="프로젝트 폴더 연결 및 문서 가져오기"
-                  >
-                    <FolderOpen className="w-3.5 h-3.5 text-indigo-300" />
-                  </button>
-
-                  {/* [☁️ Google Drive Picker / Connect Button] */}
-                  <button
-                    type="button"
-                    onClick={() => handleOpenGoogleDrive('open')}
-                    className="p-1 rounded-xs hover:bg-[#18181b] hover:text-white transition cursor-pointer relative group"
-                    title="구글 드라이브 파일 탐색 및 연동"
-                  >
-                    <Globe className="w-3.5 h-3.5 text-indigo-400 group-hover:text-indigo-300" />
-                    {googleUser && (
-                      <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    )}
-                  </button>
-
-                  {/* [📄⬆️ Import Office / PDF Document] */}
-                  <button
-                    type="button"
-                    onClick={() => docFileInputRef.current?.click()}
-                    className="p-1 rounded-xs hover:bg-[#18181b] hover:text-white transition cursor-pointer relative group"
-                    title="오피스 및 PDF 문서 가져오기"
-                  >
-                    <FileUp className="w-3.5 h-3.5 text-indigo-400 group-hover:text-indigo-300" />
-                  </button>
-                </div>
-
-                {/* [Collapse Right Panel Button] */}
-                <button
-                  type="button"
-                  onClick={() => toggleRightPanel(false)}
-                  className="p-1 rounded-xs hover:bg-[#18181b] hover:text-white text-slate-400 transition cursor-pointer"
-                  title="우측 파일 탐색기 패널 접기"
-                  aria-label="우측 파일 탐색기 패널 접기"
-                >
-                  <PanelRightClose className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-          {/* Continuous Tree Structure (VS Code Standard Style) */}
-          <div
-            id="file-tree"
-            ref={fileTreeRef}
-            tabIndex={0}
-            onKeyDown={handleTreeKeyDown}
-            className="flex-1 overflow-y-auto py-1 text-xs select-none bg-transparent custom-scrollbar focus:outline-none"
-          >
-            {searchQuery.trim() &&
-              Object.keys(files).filter((f) => f.toLowerCase().includes(searchQuery.trim().toLowerCase())).length === 0 && (
-                <div className="py-8 text-center text-slate-400 text-xs space-y-2">
-                  <p>'{searchQuery}' 검색 결과가 없습니다.</p>
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="text-[#6366f1] hover:underline text-xs cursor-pointer"
-                  >
-                    검색 초기화
-                  </button>
-                </div>
-              )}
-
-            {/* Project / Workspace Folders */}
-            {sessions.map((session) => {
-              const isFolderOpen = openFolders[session.title] ?? true;
-              const isCurrentActiveSession = session.id === activeSessionId;
-              const memoFileName = session.fileName || `${session.title}.md`;
-
-              // Find files belonging to this folder or matching the memo file name (excluding system directories)
-              const folderFiles = Object.keys(files).filter((f) => {
-                if (f.startsWith('01_SSOT_Sources/') || f.startsWith('02_Studio_Outputs/') || f.startsWith('.podium/')) {
-                  return false;
-                }
-                // Guide files belong to the dedicated "가이드 & 도움말" section
-                if (f === 'welcome.md' || f === 'ai_guide.md' || fileFolders[f] === '가이드 & 도움말') {
-                  return false;
-                }
-                // 1. Explicitly assigned to this session folder
-                if (fileFolders[f] === session.title) {
-                  return true;
-                }
-                // 2. If assigned to another session, it must not appear here
-                if (fileFolders[f] && fileFolders[f] !== session.title) {
-                  return false;
-                }
-                // 3. Fallback: Path prefix of session or unassigned session memo
-                if (f.startsWith(`${session.title}/`)) {
-                  return true;
-                }
-                if (f === memoFileName || (session.fileName && f === session.fileName)) {
-                  const isOtherSessionMemo = sessions.some(
-                    (s) => s.id !== session.id && (s.fileName === f || f === `${s.title}.md`)
-                  );
-                  return !isOtherSessionMemo;
-                }
-                return false;
-              });
-
-              const matchingFiles = folderFiles.filter(
-                (f) => !searchQuery.trim() || f.toLowerCase().includes(searchQuery.trim().toLowerCase())
-              );
-
-              const isDraggingThis = draggedType === 'project' && draggedId === session.id;
-              const isTarget = dragOverTargetId === session.id;
-              const isDroppingBefore = isTarget && dragDropPosition === 'before';
-              const isDroppingAfter = isTarget && dragDropPosition === 'after';
-              const isDroppingInside = isTarget && dragDropPosition === 'inside';
-
-              return (
-                <div
-                  key={session.id}
-                  draggable={true}
-                  onDragStart={(e) => handleProjectDragStart(e, session.id)}
-                  onDragOver={(e) => handleFolderDragOver(e, session.id)}
-                  onDragLeave={(e) => handleFolderDragLeave(e, session.id)}
-                  onDrop={(e) => handleFolderDrop(e, session.id)}
-                  onDragEnd={handleDragEnd}
-                  className={`relative transition-colors ${
-                    isDraggingThis ? 'opacity-40 bg-[#18181b]' : ''
-                  } ${isDroppingInside ? 'bg-[#18181b]/90' : ''}`}
-                >
-                  {/* Drop Indicator Lines */}
-                  {isDroppingBefore && (
-                    <div className="absolute -top-0.5 left-0 right-0 h-0.5 bg-[#6366f1] z-30 pointer-events-none shadow-[0_0_8px_#6366f1]" />
-                  )}
-                  {isDroppingAfter && (
-                    <div className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-[#6366f1] z-30 pointer-events-none shadow-[0_0_8px_#6366f1]" />
-                  )}
-
-                  {/* Folder Item Row */}
-                  <div
-                    id={`tree-item-session:${session.id}`}
-                    onClick={() => {
-                      setFocusedTreeItemId(`session:${session.id}`);
-                      fileTreeRef.current?.focus({ preventScroll: true });
-                      setOpenFolders((prev) => ({ ...prev, [session.title]: !isFolderOpen }));
-                      if (session.id !== activeSessionId) {
-                        handleSelectSession(session.id);
-                      }
-                    }}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      handleOpenSSOTGeneratorModal(session.title);
-                    }}
-                    className={`flex items-center justify-between px-2 h-7 cursor-pointer group transition-colors rounded-xs ${
-                      focusedTreeItemId === `session:${session.id}`
-                        ? 'bg-[#1c1c20] text-white ring-1 ring-indigo-500/70 font-medium shadow-xs'
-                        : isCurrentActiveSession
-                        ? 'text-indigo-300 font-medium bg-white/5 border-l-2 border-indigo-500 hover:bg-white/[0.08]'
-                        : 'text-slate-300 hover:bg-white/5 hover:text-slate-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                      {/* Grip for Drag & Drop */}
-                      <span
-                        className="cursor-grab active:cursor-grabbing text-slate-500 opacity-0 group-hover:opacity-100 hover:text-slate-200 transition shrink-0"
-                        title="드래그하여 폴더 순서 변경"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <GripVertical className="w-3 h-3" />
-                      </span>
-
-                      {/* Folder Chevron */}
-                      {isFolderOpen ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      )}
-
-                      {/* Folder Icon */}
-                      {isFolderOpen ? (
-                        <FolderOpen className="w-4 h-4 text-indigo-400 shrink-0" />
-                      ) : (
-                        <Folder className="w-4 h-4 text-indigo-400/80 shrink-0" />
-                      )}
-
-                      {/* Folder Title */}
-                      {editingTreeTarget?.id === `session:${session.id}` ? (
-                        <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
-                          <InlineRenameInput
-                            initialValue={session.title}
-                            isFolder={true}
-                            onCommit={handleCommitRename}
-                            onCancel={() => setEditingTreeTarget(null)}
-                          />
-                        </div>
-                      ) : (
-                        <span className="truncate text-xs text-slate-200 group-hover:text-white">
-                          {session.title}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Right Folder Actions & Badge */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      {isDroppingInside && (
-                        <span className="text-[0.625rem] bg-[#6366f1] text-white px-1.5 py-0.2 rounded-xs font-sans">
-                          이동
-                        </span>
-                      )}
-                      
-                      <span className="text-[0.625rem] text-slate-400 font-mono group-hover:hidden">
-                        {matchingFiles.length}
-                      </span>
-
-                      {/* Hover Action Icons */}
-                      <div className="hidden group-hover:flex items-center gap-0.5 text-slate-300">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenSSOTGeneratorModal(session.title);
-                          }}
-                          className="p-1 rounded-xs hover:bg-[#18181b] hover:text-[#6366f1] transition cursor-pointer"
-                          title="통합 문서 생성"
-                        >
-                          <Sparkles className="w-3 h-3 text-[#6366f1]" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFocusedTreeItemId(`session:${session.id}`);
-                            setEditingTreeTarget({
-                              id: `session:${session.id}`,
-                              type: 'session',
-                              name: session.title,
-                              path: session.title,
-                              sessionId: session.id,
-                            });
-                          }}
-                          className="p-1 rounded-xs hover:bg-[#18181b] hover:text-slate-100 transition cursor-pointer"
-                          title="이름 변경"
-                        >
-                          <Pencil className="w-3 h-3" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => requestDeleteSession(session.id, e)}
-                          className="p-1 rounded-xs hover:bg-[#18181b] hover:text-rose-400 transition cursor-pointer"
-                          title="삭제"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Nested Files / Subdirectories in Folder with Recursive Tree Structure */}
-                  {isFolderOpen && (
-                    <div className="relative pl-5 before:absolute before:left-3 before:top-0 before:bottom-1 before:w-[1px] before:bg-[#222226]">
-                      {matchingFiles.length === 0 ? (
-                        <div className="text-[0.6875rem] text-slate-500 py-1 pl-3 font-mono select-none">
-                          문서 없음
-                        </div>
-                      ) : (
-                        (() => {
-                          const treeRoot = buildFileTreeFromPaths(matchingFiles, session.title);
-                          return (
-                            <div className="py-0.5">
-                              <RecursiveFolderTree
-                                node={treeRoot}
-                                level={0}
-                                sessionTitle={session.title}
-                                sessionId={session.id}
-                                currentActiveFile={currentActiveFile}
-                                isCurrentFileDirty={isCurrentFileDirty}
-                                draggedType={draggedType}
-                                draggedId={draggedId}
-                                searchQuery={searchQuery}
-                                focusedTreeItemId={focusedTreeItemId}
-                                editingTreeItemId={editingTreeTarget?.id}
-                                openFolders={openFolders}
-                                onToggleFolder={(folderKey) =>
-                                  setOpenFolders((prev) => ({
-                                    ...prev,
-                                    [folderKey]: !(prev[folderKey] ?? true),
-                                  }))
-                                }
-                                onSetFocusedItem={(id) => {
-                                  setFocusedTreeItemId(id);
-                                  fileTreeRef.current?.focus({ preventScroll: true });
-                                }}
-                                onStartRename={(target) => setEditingTreeTarget(target)}
-                                onCommitRename={handleCommitRename}
-                                onCancelRename={() => setEditingTreeTarget(null)}
-                                onDeleteFolder={handleDeleteFolder}
-                                onOpenFile={(fpath) => {
-                                  handleSelectSession(session.id);
-                                  handleOpenFile(fpath);
-                                }}
-                                onRenameFile={handleRenameFile}
-                                onDeleteFile={handleDeleteFile}
-                                onDragStart={handleFileDragStart}
-                                onDragEnd={handleDragEnd}
-                              />
-                            </div>
-                          );
-                        })()
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {/* Dedicated "가이드 & 도움말" Reference Section */}
-            {(() => {
-              const guideFiles = Object.keys(files).filter(
-                (f) => f === 'welcome.md' || f === 'ai_guide.md' || fileFolders[f] === '가이드 & 도움말'
-              );
-              if (guideFiles.length === 0) return null;
-              const isHelpSectionOpen = openFolders['가이드 & 도움말'] ?? true;
-              const guideTree = buildFileTreeFromPaths(guideFiles, '가이드 & 도움말');
-
-              return (
-                <div className="mt-2 pt-2 border-t border-[#222226]">
-                  <div
-                    id="tree-item-section:guide-help"
-                    onClick={() => {
-                      setOpenFolders((prev) => ({
-                        ...prev,
-                        '가이드 & 도움말': !isHelpSectionOpen,
-                      }));
-                    }}
-                    className="flex items-center justify-between px-2 h-7 cursor-pointer group transition-colors rounded-xs text-slate-300 hover:bg-white/5 hover:text-slate-100 select-none"
-                  >
-                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                      {isHelpSectionOpen ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      )}
-                      {isHelpSectionOpen ? (
-                        <FolderOpen className="w-4 h-4 text-indigo-400 shrink-0" />
-                      ) : (
-                        <Folder className="w-4 h-4 text-indigo-400/80 shrink-0" />
-                      )}
-                      <span className="truncate text-xs font-medium text-slate-200 group-hover:text-white">
-                        가이드 & 도움말
-                      </span>
-                    </div>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">
-                      {guideFiles.length}
-                    </span>
-                  </div>
-
-                  {isHelpSectionOpen && (
-                    <div className="relative pl-5 before:absolute before:left-3 before:top-0 before:bottom-1 before:w-[1px] before:bg-[#222226] py-0.5">
-                      <RecursiveFolderTree
-                        node={guideTree}
-                        level={0}
-                        sessionTitle="가이드 & 도움말"
-                        currentActiveFile={currentActiveFile}
-                        isCurrentFileDirty={isCurrentFileDirty}
-                        draggedType={draggedType}
-                        draggedId={draggedId}
-                        searchQuery={searchQuery}
-                        focusedTreeItemId={focusedTreeItemId}
-                        editingTreeItemId={editingTreeTarget?.id}
-                        openFolders={openFolders}
-                        onToggleFolder={(folderKey) =>
-                          setOpenFolders((prev) => ({
-                            ...prev,
-                            [folderKey]: !(prev[folderKey] ?? true),
-                          }))
-                        }
-                        onSetFocusedItem={(id) => {
-                          setFocusedTreeItemId(id);
-                          fileTreeRef.current?.focus({ preventScroll: true });
-                        }}
-                        onOpenFile={handleOpenFile}
-                        onRenameFile={handleRenameFile}
-                        onDeleteFile={handleDeleteFile}
-                        onDragStart={handleFileDragStart}
-                        onDragEnd={handleDragEnd}
-                      />
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* Any loose/unassigned files outside registered projects */}
-            {(() => {
-              const allProjectTitles = new Set(sessions.map((s) => s.title));
-              const allSessionMemoFiles = new Set(
-                sessions.flatMap((s) => [s.fileName, `${s.title}.md`].filter(Boolean) as string[])
-              );
-              const unassignedFiles = Object.keys(files).filter((f) => {
-                if (
-                  f.startsWith('01_SSOT_Sources/') ||
-                  f.startsWith('02_Studio_Outputs/') ||
-                  f.startsWith('.podium/')
-                ) {
-                  return false;
-                }
-                // Guide files belong to the dedicated "가이드 & 도움말" section
-                if (f === 'welcome.md' || f === 'ai_guide.md' || fileFolders[f] === '가이드 & 도움말') {
-                  return false;
-                }
-                if (allSessionMemoFiles.has(f)) {
-                  return false;
-                }
-                const folder = fileFolders[f];
-                if (folder && allProjectTitles.has(folder)) {
-                  return false;
-                }
-                return true;
-              });
-
-              if (unassignedFiles.length === 0) return null;
-
-              const unassignedTree = buildFileTreeFromPaths(unassignedFiles, 'OTHER FILES');
-
-              return (
-                <div className="mt-2 pt-2 border-t border-[#222226]">
-                  <div className="px-3 py-1 text-[0.625rem] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Folder className="w-3.5 h-3.5 text-slate-400" />
-                    <span>기타 파일 ({unassignedFiles.length})</span>
-                  </div>
-                  <div className="mt-0.5 px-1">
-                    <RecursiveFolderTree
-                      node={unassignedTree}
-                      level={0}
-                      sessionTitle="OTHER FILES"
-                      currentActiveFile={currentActiveFile}
-                      isCurrentFileDirty={isCurrentFileDirty}
-                      draggedType={draggedType}
-                      draggedId={draggedId}
-                      searchQuery={searchQuery}
-                      focusedTreeItemId={focusedTreeItemId}
-                      editingTreeItemId={editingTreeTarget?.id}
-                      openFolders={openFolders}
-                      onToggleFolder={(folderKey) =>
-                        setOpenFolders((prev) => ({
-                          ...prev,
-                          [folderKey]: !(prev[folderKey] ?? true),
-                        }))
-                      }
-                      onSetFocusedItem={(id) => {
-                        setFocusedTreeItemId(id);
-                        fileTreeRef.current?.focus({ preventScroll: true });
-                      }}
-                      onStartRename={(target) => setEditingTreeTarget(target)}
-                      onCommitRename={handleCommitRename}
-                      onCancelRename={() => setEditingTreeTarget(null)}
-                      onDeleteFolder={handleDeleteFolder}
-                      onOpenFile={handleOpenFile}
-                      onRenameFile={handleRenameFile}
-                      onDeleteFile={handleDeleteFile}
-                      onDragStart={handleFileDragStart}
-                      onDragEnd={handleDragEnd}
-                    />
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-
-        </div>
-        </section>
+        {/* ==================== RIGHT PANE: WorkspaceDrawer (Phase 3.2) ==================== */}
+        <WorkspaceDrawer
+          width={panelWidths.explorer}
+          isResizing={activeResizer === 'explorer'}
+          className={
+            isInitialAnimating
+              ? `transition-[opacity,transform] duration-200 ease-out delay-[80ms] ${
+                  hasInitialMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
+                }`
+              : ''
+          }
+          files={files}
+          currentFile={currentActiveFile}
+          onSelectFile={handleOpenFile}
+          onCreateFile={handleCreateNewFile}
+          onDeleteFile={handleDeleteFile}
+          onRenameFile={handleRenameFile}
+          onOpenSSOTModal={handleOpenSSOTGeneratorModal}
+          onOpenDriftModal={() => setIsSsotAuditorOpen(true)}
+          isOpen={isRightPanelVisible}
+          onToggleOpen={() => toggleRightPanel()}
+          sessions={sessions}
+          activeSessionId={activeSessionId}
+          onSelectSession={handleSelectSession}
+          onCreateSession={handleCreateNewSession}
+          onDeleteSession={(sId) => requestDeleteSession(sId)}
+          onRenameSession={handleRenameProject}
+          fileFolders={fileFolders}
+          isCurrentFileDirty={isCurrentFileDirty}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+          openFolders={openFolders}
+          onToggleFolder={(folderKey) =>
+            setOpenFolders((prev) => ({
+              ...prev,
+              [folderKey]: !(prev[folderKey] ?? true),
+            }))
+          }
+          googleUser={googleUser}
+          onOpenGoogleDrive={handleOpenGoogleDrive}
+          onOpenWorkspaceModal={() => setIsWorkspaceModalOpen(true)}
+          githubConfig={githubConfig}
+          githubSyncStatus={githubSyncStatus}
+          docFileInputRef={docFileInputRef}
+          onImportDocumentFiles={handleImportDocumentFiles}
+        />
 
       </main>
 
@@ -10923,6 +9733,42 @@ ${projectEvents
               <button
                 type="button"
                 onClick={executeDeleteFile}
+                className="px-4 py-1.5 bg-rose-800/80 hover:bg-rose-700/80 text-rose-100 border border-rose-700/40 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-200" />
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Folder Confirmation Modal */}
+      {deleteConfirmFolder !== null && (
+        <div className="fixed inset-0 z-[60] bg-[#09090b]/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="relative bg-[#121214]/95 backdrop-blur-xl border border-[#222226] rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans">
+            <div className="space-y-2 pt-1">
+              <h2 className="text-base font-semibold text-rose-300">폴더 삭제 확인</h2>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                <span className="font-mono text-[#6366f1] bg-[#09090b] px-1.5 py-0.5 rounded-sm border border-[#222226]">
+                  {deleteConfirmFolder}
+                </span> 폴더 및 포함된 모든 문서를 정말 삭제하시겠습니까?
+              </p>
+              <p className="text-[0.6875rem] text-slate-400">
+                이 작업은 되돌릴 수 없으며 워크스페이스에서 즉시 제거됩니다.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2.5 pt-3">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmFolder(null)}
+                className="px-3.5 py-1.5 rounded-md text-xs text-slate-300 hover:text-white bg-[#121214] hover:bg-[#18181b] transition cursor-pointer"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={executeDeleteFolder}
                 className="px-4 py-1.5 bg-rose-800/80 hover:bg-rose-700/80 text-rose-100 border border-rose-700/40 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5 shadow-sm"
               >
                 <Trash2 className="w-3.5 h-3.5 text-rose-200" />
@@ -11565,10 +10411,19 @@ ${projectEvents
         availableTemplates={Object.keys(files).filter(f => f.endsWith('.md') && !f.startsWith('.podium/'))}
         availableModels={availableChatModels}
         currentModel={selectedModel}
+        selectedModel={selectedModel}
+        provider={selectedModel === WEB_LLM_MODEL_ID ? 'webllm' : (provider === 'local-pc' || provider === 'local-server' ? 'local-pc' : 'cloud')}
+        currentProvider={provider}
+        apiKeys={apiKeys}
+        ollamaEndpoint={localEndpointAddress || 'http://localhost:11434'}
         onModelChange={(modelId) => {
           handleQuickDefaultModel(modelId, getModelDisplayName(modelId));
         }}
-        currentProvider={provider}
+        files={files}
+        editorContent={editorContent}
+        sessions={sessions}
+        activeSessionId={activeSessionId}
+        onToast={showToast}
         onGenerate={(config) => {
           setIsSSOTGeneratorModalOpen(false);
           handleGenerateSSOTDocument(config);
@@ -11719,6 +10574,21 @@ ${projectEvents
             showToast('✓ 브라우저 내장 (WebLLM) 엔진이 설정되었습니다.');
           }
         }}
+      />
+
+      {/* File Tree Context Menu (Right Click) */}
+      <FileTreeContextMenu
+        isOpen={fileTreeContextMenu.isOpen}
+        x={fileTreeContextMenu.x}
+        y={fileTreeContextMenu.y}
+        target={fileTreeContextMenu.target}
+        onClose={handleCloseFileTreeContextMenu}
+        onNewFile={handleContextMenuNewFile}
+        onNewFolder={handleContextMenuNewFolder}
+        onRename={handleContextMenuRename}
+        onDelete={handleContextMenuDelete}
+        onCopyPath={handleContextMenuCopyPath}
+        onOpenSSOTGenerator={handleContextMenuSSOT}
       />
 
       {/* Visual Toast Notification Popup */}

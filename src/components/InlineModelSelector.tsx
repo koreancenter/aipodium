@@ -473,7 +473,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
         <span>R</span>
       </button>
 
-      {/* 3. Popover UI (anchored bottom-up) */}
+      {/* 3. Popover UI (anchored bottom-up with fixed 380px height to prevent vertical jitter) */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -482,87 +482,90 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.98 }}
             transition={{ duration: 0.12, ease: 'easeOut' }}
-            className="absolute bottom-full left-0 mb-2 w-72 sm:w-80 bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden text-xs font-normal"
+            className="absolute bottom-full left-0 mb-2 z-50 w-[340px] h-[380px] flex flex-col bg-[#16161a] border border-white/10 rounded-xl shadow-2xl overflow-hidden text-xs font-normal"
           >
-            {/* Search / Filter Input Header */}
-            <div className="p-2.5 border-b border-white/[0.08] bg-[#09090b]/40 flex items-center gap-2">
-              <Search className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-              <input
-                type="text"
-                autoFocus
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="모델 검색..."
-                className="w-full bg-transparent text-xs font-normal text-zinc-200 placeholder:text-zinc-500 outline-none"
-              />
-              {searchQuery && (
+            {/* Header slot (Search input + Tab bar) */}
+            <div className="shrink-0 p-2.5 border-b border-white/5 space-y-2 bg-[#09090b]/40">
+              {/* Search / Filter Input */}
+              <div className="flex items-center gap-2">
+                <Search className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="모델 검색..."
+                  className="w-full bg-transparent text-xs font-normal text-zinc-200 placeholder:text-zinc-500 outline-none"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="text-zinc-400 hover:text-zinc-200 text-[0.6875rem] font-normal px-1 cursor-pointer"
+                  >
+                    지우기
+                  </button>
+                )}
+                {onOpenRoleModal && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      onOpenRoleModal();
+                    }}
+                    className="p-1 text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06] rounded-md transition shrink-0 cursor-pointer"
+                    title="역할별 AI 모델 지정"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Category Filter Tabs: 전체 / 클라우드 / 로컬 AI (Ollama) */}
+              <div className="flex items-center select-none pt-0.5 border-t border-white/5">
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="text-zinc-400 hover:text-zinc-200 text-[0.6875rem] font-normal px-1 cursor-pointer"
+                  onClick={() => setSelectedTab('all')}
+                  className={`px-2.5 py-1 text-xs transition cursor-pointer border-b-2 ${
+                    selectedTab === 'all'
+                      ? 'border-indigo-500 text-white font-medium'
+                      : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                  }`}
                 >
-                  지우기
+                  전체
                 </button>
-              )}
-              {onOpenRoleModal && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsOpen(false);
-                    onOpenRoleModal();
-                  }}
-                  className="p-1 text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06] rounded-md transition shrink-0 cursor-pointer"
-                  title="역할별 AI 모델 지정"
+                  onClick={() => setSelectedTab('cloud')}
+                  className={`px-2.5 py-1 text-xs transition cursor-pointer border-b-2 ${
+                    selectedTab === 'cloud'
+                      ? 'border-indigo-500 text-white font-medium'
+                      : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                  }`}
                 >
-                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  클라우드
                 </button>
-              )}
+                <button
+                  type="button"
+                  onClick={handleSelectLocalAiTab}
+                  className={`px-2.5 py-1 text-xs transition cursor-pointer border-b-2 flex items-center gap-1.5 ${
+                    selectedTab === 'local'
+                      ? 'border-indigo-500 text-white font-medium'
+                      : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                  }`}
+                  title="로컬 AI (Ollama) 선택 및 태그 새로고침"
+                >
+                  <span>로컬 AI (Ollama)</span>
+                  <RotateCcw className={`w-2.5 h-2.5 text-indigo-400 ${isRefetching ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
             </div>
 
-            {/* Category Filter Tabs: 전체 / 클라우드 / 로컬 AI (Ollama) */}
-            <div className="flex items-center border-b border-white/[0.08] px-2 bg-[#09090b]/30 select-none">
-              <button
-                type="button"
-                onClick={() => setSelectedTab('all')}
-                className={`px-2.5 py-1.5 text-xs transition cursor-pointer border-b-2 ${
-                  selectedTab === 'all'
-                    ? 'border-indigo-500 text-white font-medium'
-                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                전체
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedTab('cloud')}
-                className={`px-2.5 py-1.5 text-xs transition cursor-pointer border-b-2 ${
-                  selectedTab === 'cloud'
-                    ? 'border-indigo-500 text-white font-medium'
-                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                클라우드
-              </button>
-              <button
-                type="button"
-                onClick={handleSelectLocalAiTab}
-                className={`px-2.5 py-1.5 text-xs transition cursor-pointer border-b-2 flex items-center gap-1.5 ${
-                  selectedTab === 'local'
-                    ? 'border-indigo-500 text-white font-medium'
-                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
-                }`}
-                title="로컬 AI (Ollama) 선택 및 태그 새로고침"
-              >
-                <span>로컬 AI (Ollama)</span>
-                <RotateCcw className={`w-2.5 h-2.5 text-indigo-400 ${isRefetching ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
-
-            {/* Scrollable Model Lists */}
-            <div className="overflow-y-auto max-h-72 p-1.5 custom-scrollbar bg-transparent">
+            {/* Scrollable Model Lists flex viewport */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-2 custom-scrollbar bg-transparent">
               {/* TAB: LOCAL ONLY */}
               {selectedTab === 'local' && (
-                <>
+                <div className="space-y-1">
                   {pinnedList.filter((m) => m.group === 'local').map((m) => renderModelRow(m))}
                   {remainingLocalList.map((m) => renderModelRow(m))}
                   {detectedOllamaModels.length === 0 && renderFallbackLocalAiPrompt()}
@@ -582,25 +585,25 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                       </button>
                     </div>
                   )}
-                </>
+                </div>
               )}
 
               {/* TAB: CLOUD ONLY */}
               {selectedTab === 'cloud' && (
-                <>
+                <div className="space-y-1">
                   {pinnedList.filter((m) => m.group === 'cloud').map((m) => renderModelRow(m))}
                   {remainingCloudList.map((m) => renderModelRow(m))}
                   {filteredModels.filter((m) => m.group === 'cloud').length === 0 && (
-                    <div className="py-6 text-center text-zinc-500 text-xs font-normal">
+                    <div className="py-8 text-center text-zinc-500 text-xs font-normal">
                       검색된 클라우드 모델이 없습니다.
                     </div>
                   )}
-                </>
+                </div>
               )}
 
               {/* TAB: ALL */}
               {selectedTab === 'all' && (
-                <>
+                <div className="space-y-1">
                   {/* Pinned favorites first */}
                   {pinnedList.map((m) => renderModelRow(m))}
 
@@ -631,16 +634,16 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                   )}
 
                   {filteredModels.length === 0 && (
-                    <div className="py-6 text-center text-zinc-500 text-xs font-normal">
+                    <div className="py-8 text-center text-zinc-500 text-xs font-normal">
                       검색 결과가 없습니다.
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
 
-            {/* Popover Footer */}
-            <div className="px-3 py-2 bg-[#09090b]/50 border-t border-white/[0.08] text-xs font-normal text-zinc-400 flex items-center justify-between">
+            {/* Footer slot (Selection counter) */}
+            <div className="shrink-0 px-3 py-2 border-t border-white/5 text-xs text-zinc-400 flex items-center justify-between bg-[#09090b]/50">
               <span className="font-normal">
                 {activeCount >= 2
                   ? `${activeCount}개 선택됨 (멀티 응답 모드)`

@@ -1,5 +1,8 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import {
+  Heading1,
+  Heading2,
+  Heading3,
   Bold,
   Italic,
   Strikethrough,
@@ -181,34 +184,34 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
     >
       {/* 1. Primary Formatting Toolbar Row */}
       <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
-        {/* Headings (H1, H2, H3) */}
+        {/* Headings (H1, H2, H3) - Pure Icon Buttons */}
         <div className="flex items-center gap-0.5 shrink-0">
           <button
             type="button"
             onClick={() => onApplyFormat('h1')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white font-bold text-[11px] font-mono transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
             title="대제목"
             aria-label="대제목"
           >
-            H1
+            <Heading1 className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
             onClick={() => onApplyFormat('h2')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white font-bold text-[11px] font-mono transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
             title="중제목"
             aria-label="중제목"
           >
-            H2
+            <Heading2 className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
             onClick={() => onApplyFormat('h3')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white font-bold text-[11px] font-mono transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
             title="소제목"
             aria-label="소제목"
           >
-            H3
+            <Heading3 className="w-3.5 h-3.5" />
           </button>
         </div>
 

@@ -82,6 +82,9 @@ export const InlineRenameInput: React.FC<{
   );
 };
 
+import { FileTreeContextMenuTarget } from './FileTreeContextMenu';
+export type { FileTreeContextMenuTarget };
+
 interface RecursiveFolderTreeProps {
   node: TreeDirectoryNode;
   level?: number;
@@ -106,6 +109,7 @@ interface RecursiveFolderTreeProps {
   onDeleteFolder?: (folderPath: string) => void;
   onDragStart?: (e: React.DragEvent, filePath: string) => void;
   onDragEnd?: () => void;
+  onContextMenu?: (e: React.MouseEvent, target: FileTreeContextMenuTarget) => void;
 }
 
 export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
@@ -132,6 +136,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
   onDeleteFolder,
   onDragStart,
   onDragEnd,
+  onContextMenu,
 }) => {
   // Local fallback open state if controlled openFolders is not provided
   const [localIsOpen, setLocalIsOpen] = useState(true);
@@ -196,6 +201,21 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
           onClick={() => {
             if (onSetFocusedItem) onSetFocusedItem(subfolderItemId);
             handleToggle();
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (onSetFocusedItem) onSetFocusedItem(subfolderItemId);
+            if (onContextMenu) {
+              onContextMenu(e, {
+                type: 'folder',
+                path: node.path,
+                name: node.name,
+                sessionId,
+                folder: sessionTitle,
+                folderKey,
+              });
+            }
           }}
           className={`group flex items-center justify-between px-2 h-[26px] cursor-pointer transition-colors rounded-xs ${
             isSubfolderFocused
@@ -321,6 +341,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
               onDeleteFolder={onDeleteFolder}
               onDragStart={onDragStart}
               onDragEnd={onDragEnd}
+              onContextMenu={onContextMenu}
             />
           ))}
 
@@ -345,6 +366,20 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                 onClick={() => {
                   if (onSetFocusedItem) onSetFocusedItem(fileItemId);
                   onOpenFile(file.path);
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (onSetFocusedItem) onSetFocusedItem(fileItemId);
+                  if (onContextMenu) {
+                    onContextMenu(e, {
+                      type: 'file',
+                      path: file.path,
+                      name: file.name,
+                      sessionId,
+                      folder: sessionTitle,
+                    });
+                  }
                 }}
                 className={`group flex items-center justify-between pr-2 h-[26px] cursor-pointer transition-colors rounded-xs ${
                   isDraggingFile
