@@ -78,6 +78,7 @@ export interface WorkspaceDrawerProps {
   onToggleFolder?: (folderKey: string) => void;
   docFileInputRef?: React.RefObject<HTMLInputElement | null>;
   onImportDocumentFiles?: (files: File[]) => void;
+  onContextMenu?: (e: React.MouseEvent, target: FileTreeContextMenuTarget) => void;
 }
 
 export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
@@ -113,6 +114,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
   onToggleFolder: onExternalToggleFolder,
   docFileInputRef,
   onImportDocumentFiles,
+  onContextMenu: externalContextMenu,
 }) => {
   // Sync collapsed state to localStorage
   useEffect(() => {
@@ -195,13 +197,17 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
   const handleOpenContextMenu = useCallback((e: React.MouseEvent, target: FileTreeContextMenuTarget) => {
     e.preventDefault();
     e.stopPropagation();
+    if (externalContextMenu) {
+      externalContextMenu(e, target);
+      return;
+    }
     setContextMenu({
       isOpen: true,
       x: e.clientX,
       y: e.clientY,
       target,
     });
-  }, []);
+  }, [externalContextMenu]);
 
   const handleCloseContextMenu = useCallback(() => {
     setContextMenu((prev) => ({ ...prev, isOpen: false }));

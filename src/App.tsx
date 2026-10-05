@@ -9389,6 +9389,7 @@ ${projectEvents
           githubSyncStatus={githubSyncStatus}
           docFileInputRef={docFileInputRef}
           onImportDocumentFiles={handleImportDocumentFiles}
+          onContextMenu={handleOpenFileTreeContextMenu}
         />
 
       </main>
