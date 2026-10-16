@@ -145,7 +145,7 @@ test('isOnboardingMode logic disables dummy bot fallback when any valid engine i
   );
 });
 
-test('AiEngineOnboardingModal UI conforms to DESIGN.md v2.1 flat design principles', async () => {
+test('AiEngineOnboardingModal UI conforms to luxury minimalism principles', async () => {
   const fs = await import('node:fs');
   const path = await import('node:path');
   const modalContent = fs.readFileSync(
@@ -153,26 +153,26 @@ test('AiEngineOnboardingModal UI conforms to DESIGN.md v2.1 flat design principl
     'utf-8'
   );
 
-  // 1. Container specifies required locked boundary flat styling
-  assert.match(modalContent, /max-w-md w-full bg-\[#121214\] border border-white\/10 rounded-xl p-5 shadow-2xl flex flex-col justify-between min-h-\[440px\]/);
+  // 1. Container specifies clean flat dark theme styling
+  assert.match(modalContent, /max-w-md w-full bg-\[#121214\] border border-\[#222226\] rounded-xl p-5 shadow-2xl flex flex-col justify-between text-left/);
 
-  // 2. Selectable rows use subtle border styling
-  assert.match(modalContent, /p-3 rounded-lg border cursor-pointer/);
+  // 2. Subtitle under header is removed
+  assert.equal(modalContent.includes('작업 환경에 맞는 AI 모델 엔진을 선택합니다'), false);
 
-  // 3. Option titles & punchy 1-line descriptions
-  assert.match(modalContent, /클라우드 API \(Gemini \/ OpenAI\)/);
-  assert.match(modalContent, /보유한 API 키 연결/);
-  assert.match(modalContent, /로컬 AI \(Ollama\)/);
-  assert.match(modalContent, /localhost:11434 직접 연결/);
-  assert.match(modalContent, /브라우저 내장 \(WebLLM\)/);
-  assert.match(modalContent, /무설치 브라우저 WebGPU 즉시 실행/);
+  // 3. Option titles are present without clutter descriptions
+  assert.match(modalContent, /클라우드 API · Gemini \/ OpenAI/);
+  assert.match(modalContent, /로컬 AI · Ollama/);
+  assert.match(modalContent, /브라우저 내장 WebLLM/);
+  assert.equal(modalContent.includes('보유한 API 키 연결'), false);
+  assert.equal(modalContent.includes('localhost:11434 직접 연결'), false);
+  assert.equal(modalContent.includes('무설치 브라우저 WebGPU 즉시 실행'), false);
 
-  // 4. Dedicated fixed height configuration slot to stop layout jitter
+  // 4. Submit button uses punchy '저장 후 시작'
+  assert.match(modalContent, /저장 후 시작/);
+  assert.equal(modalContent.includes('설정 저장 후 시작하기'), false);
+
+  // 5. Dedicated fixed height configuration slot to stop layout jitter
   assert.match(modalContent, /min-h-\[56px\] h-\[56px\] flex items-center mb-4/);
-  assert.match(modalContent, /w-full bg-\[#18181b\] border border-white\/10 rounded-md px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-indigo-500\/60/);
-  assert.match(modalContent, /✨ 별도 설정 없이 브라우저 WebGPU를 통해 기기에서 즉시 실행됩니다\./);
-
-  // 5. Ping connection button for Option 2
   assert.match(modalContent, /http:\/\/localhost:11434/);
   assert.match(modalContent, /연결 확인/);
 });

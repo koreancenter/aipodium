@@ -9,7 +9,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Sparkles,
   Bot,
   User,
   ArrowDown,
@@ -262,9 +261,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center min-h-[360px] h-full text-center px-4 py-16 select-none">
-                    <div className="w-10 h-10 rounded-full bg-white/5 border border-white/5 flex items-center justify-center mb-3 text-indigo-400">
-                      <Sparkles className="w-5 h-5" />
-                    </div>
                     <p className="text-sm font-medium text-zinc-300">
                       AI 어시스턴트와 대화를 시작하거나 프롬프트를 입력하세요
                     </p>
