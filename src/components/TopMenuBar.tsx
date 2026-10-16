@@ -738,12 +738,12 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
               onClick={() => {
                 setIsSection1Collapsed(true);
                 setIsSection3Collapsed(true);
-                showToast('🎯 집중 모드 (모든 사이드바 숨김)');
+                showToast('🎯 전체 패널 숨김');
                 closeAllMenus();
               }}
               className="w-full text-left text-xs text-zinc-300 px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center justify-between transition cursor-pointer"
             >
-              <span>집중 모드 (사이드바 숨김)</span>
+              <span>전체 패널 숨김</span>
             </button>
             <button
               type="button"

@@ -7,7 +7,7 @@ import {
   verifyGeminiApiKeyDetailed,
   isValidGeminiKeyFormat,
   aiClient
-} from '../services/ai';
+} from '../services/aiPodiumIntegration';
 
 export interface AiEngineOnboardingModalProps {
   isOpen: boolean;

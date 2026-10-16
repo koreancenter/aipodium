@@ -8,9 +8,18 @@
  * 3. Immediately clears and zeros ephemeral key memory upon project switch, auto-lock timeout, or logout.
  */
 
-import { authService } from '../authService';
-import { clearDeviceSecretMemory } from '../../utils/securityCrypto';
-import type { ExecuteAiOptions } from '../../types';
+import { authService } from './authService';
+import { clearDeviceSecretMemory } from '../utils/securityCrypto';
+import type { ExecuteAiOptions } from '../types';
+import { AiClient, CloudAdapter, WebLlmAdapter } from './ai';
+import {
+  WEB_LLM_MODEL_DISPLAY_NAME,
+  WEB_LLM_MODEL_ID,
+  getLoadedWebLLMEngine,
+  initWebLLMEngine,
+  isWebGPUSupported,
+  streamWebLLMCompletion,
+} from '../utils/webllmService';
 export type { ExecuteAiOptions };
 
 export type AiEngineChoice = 'cloud' | 'ollama' | 'webllm';
@@ -380,3 +389,30 @@ if (typeof window !== 'undefined') {
     clearAiDecryptedKeyMemory();
   });
 }
+
+function inferVendorFromModel(model: string): string {
+  const normalizedModel = model.toLowerCase();
+  if (normalizedModel.includes('gemini')) return 'gemini';
+  if (normalizedModel.includes('gpt') || normalizedModel.includes('o1') || normalizedModel.includes('o3')) {
+    return 'openai';
+  }
+  if (normalizedModel.includes('claude')) return 'anthropic';
+  return 'gemini';
+}
+
+const webLlmRuntime = {
+  model: { id: WEB_LLM_MODEL_ID, name: WEB_LLM_MODEL_DISPLAY_NAME },
+  isAvailable: isWebGPUSupported,
+  isLoaded: () => Boolean(getLoadedWebLLMEngine()),
+  initialize: async (onProgress: (report: { progress: number; text: string }) => void) => {
+    await initWebLLMEngine(onProgress);
+  },
+  stream: streamWebLLMCompletion,
+};
+
+export const aiClient = new AiClient();
+aiClient.registerAdapter('cloud', new CloudAdapter({
+  resolveApiKey: (model, userSecret) =>
+    getEphemeralDecryptedApiKey(inferVendorFromModel(model), userSecret),
+}));
+aiClient.registerAdapter('webllm', new WebLlmAdapter(webLlmRuntime));

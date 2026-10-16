@@ -30,6 +30,7 @@ export interface AiInferenceOptions {
   model: string;
   messages: AiChatMessage[];
   temperature?: number;
+  responseFormat?: AiResponseFormat;
   maxTokens?: number;
   topP?: number;
   apiKey?: string;
@@ -50,13 +51,15 @@ export interface AiModelInfo {
   description?: string;
 }
 
+export type AiResponseFormat = 'markdown' | 'json';
+
 export interface AiDomainProfile {
   id: string;
   name: string;
   systemPrompt: string;
   temperature?: number;
   recommendedModel?: string;
-  outputFormat?: 'markdown' | 'json';
+  responseFormat?: AiResponseFormat;
 }
 
 export interface AiProviderAdapter {

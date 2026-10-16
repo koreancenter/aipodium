@@ -8,4 +8,4 @@ export * from './adapters/CloudAdapter';
 export * from './adapters/OllamaAdapter';
 export * from './adapters/WebLlmAdapter';
 export * from './AiClient';
-export * from './utils';
+export * from './profiles';

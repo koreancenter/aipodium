@@ -138,7 +138,7 @@ import {
   aiClient,
   clearAiDecryptedKeyMemory,
   verifyGeminiApiKeyDetailed,
-} from './services/ai';
+} from './services/aiPodiumIntegration';
 import {
   Brain,
   Cpu,
@@ -2294,16 +2294,17 @@ export default function App() {
   // aipodium_right_drawer_open: boolean
   const [isLeftPanelVisible, setIsLeftPanelVisible] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true;
+    // 데스크탑은 저장값과 무관하게 항상 열린 상태로 시작
+    if (window.innerWidth >= 1280) return true;
     const saved = localStorage.getItem('aipodium_left_drawer_open') ?? localStorage.getItem('aipodium_left_panel_visible');
-    if (saved !== null) return saved === 'true';
-    return window.innerWidth >= 1280;
+    return saved === 'true';
   });
 
   const [isRightPanelVisible, setIsRightPanelVisible] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true;
+    if (window.innerWidth >= 1280) return true;
     const saved = localStorage.getItem('aipodium_right_drawer_open') ?? localStorage.getItem('aipodium_right_panel_visible');
-    if (saved !== null) return saved === 'true';
-    return window.innerWidth >= 1280;
+    return saved === 'true';
   });
 
   const [isSection2Collapsed, setIsSection2Collapsed] = useState<boolean>(false);
@@ -2432,13 +2433,6 @@ export default function App() {
       setIsLeftPanelVisible(false);
     }
   }, [currentActiveFile]);
-
-  // Initial check on mount if active file is a PDF
-  useEffect(() => {
-    if (currentActiveFile.toLowerCase().endsWith('.pdf')) {
-      setIsLeftPanelVisible(false);
-    }
-  }, []);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);

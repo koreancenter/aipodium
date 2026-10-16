@@ -47,7 +47,7 @@ import {
   verifyGeminiApiKey,
   verifyGeminiApiKeyDetailed,
   isValidGeminiKeyFormat
-} from '../services/ai';
+} from '../services/aiPodiumIntegration';
 import {
   VENDOR_MODELS_MAP,
   CLOUD_MODEL_OPTIONS,

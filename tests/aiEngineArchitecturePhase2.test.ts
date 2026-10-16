@@ -1,16 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  aiClient,
+  AiClient,
   CloudAdapter,
   OllamaAdapter,
   WebLlmAdapter,
-  AiChatMessage,
-  AiInferenceOptions
 } from '../src/services/ai';
 import { UnifiedEditor } from '../src/components/editor';
 
 test('1. AiClient Facade: Registers default adapters and resolves correctly', () => {
+  const aiClient = new AiClient();
   assert.ok(aiClient, 'aiClient instance should exist');
 
   const cloudAdapter = aiClient.getAdapter('cloud');
@@ -129,21 +128,59 @@ test('4. OllamaAdapter.stream handles NDJSON line stream', async () => {
 });
 
 test('5. WebLlmAdapter exposes getModels and isAvailable', async () => {
-  const adapter = new WebLlmAdapter();
+  const adapter = new WebLlmAdapter({
+    model: { id: 'test-webllm-model', name: 'Test WebLLM' },
+    isAvailable: () => false,
+    isLoaded: () => false,
+    initialize: async () => {},
+    stream: async () => '',
+  });
   const models = await adapter.getModels();
   assert.equal(models.length, 1);
-  assert.equal(models[0].id, 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC');
+  assert.equal(models[0].id, 'test-webllm-model');
 
   // In Node environment without WebGPU, isAvailable returns false
   const available = await adapter.isAvailable();
   assert.equal(available, false);
 });
 
-test('6. UnifiedEditor is exported and adheres to controlled component props', () => {
+test('6. WebLlmAdapter delegates inference to its injected runtime', async () => {
+  let streamedMessages: Array<{ role: string; content: string }> = [];
+  let streamedTemperature = -1;
+  const chunks: string[] = [];
+  const adapter = new WebLlmAdapter({
+    model: { id: 'test-webllm-model', name: 'Test WebLLM' },
+    isAvailable: () => true,
+    isLoaded: () => true,
+    initialize: async () => {
+      assert.fail('a loaded runtime should not initialize again');
+    },
+    stream: async (messages, onChunk, temperature) => {
+      streamedMessages = messages;
+      streamedTemperature = temperature;
+      onChunk('reply');
+      return 'reply';
+    },
+  });
+  const result = await adapter.stream({
+    model: 'test-webllm-model',
+    messages: [{ role: 'user', content: 'question' }],
+    systemInstruction: 'host instruction',
+    temperature: 0.6,
+    onChunk: (chunk) => chunks.push(chunk),
+  });
+
+  assert.equal(result.fullText, 'reply');
+  assert.equal(streamedMessages[0].content, 'host instruction');
+  assert.equal(streamedTemperature, 0.6);
+  assert.deepEqual(chunks, ['reply']);
+});
+
+test('7. UnifiedEditor is exported and adheres to controlled component props', () => {
   assert.equal(typeof UnifiedEditor, 'function', 'UnifiedEditor should be a React component');
 });
 
-test('7. Editor modularization structure verification', async () => {
+test('8. Editor modularization structure verification', async () => {
   const fs = await import('node:fs');
   const path = await import('node:path');
 
@@ -164,4 +201,3 @@ test('7. Editor modularization structure verification', async () => {
   assert.match(appContent, /<UnifiedEditor/);
   assert.match(appContent, /aiClient\.streamCompletion/);
 });
-

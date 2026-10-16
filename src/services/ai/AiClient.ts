@@ -7,11 +7,13 @@ import type {
   AiProviderAdapter,
   AiProviderType,
   AiInferenceOptions,
-  AiInferenceResult
+  AiInferenceResult,
+  AiDomainProfile
 } from './types';
 import { CloudAdapter } from './adapters/CloudAdapter';
 import { OllamaAdapter } from './adapters/OllamaAdapter';
 import { WebLlmAdapter } from './adapters/WebLlmAdapter';
+import { applyAiDomainProfile } from './profiles';
 
 export class AiClient {
   private adapters: Map<string, AiProviderAdapter> = new Map();
@@ -43,10 +45,11 @@ export class AiClient {
    */
   async streamCompletion(
     provider: AiProviderType,
-    options: AiInferenceOptions
+    options: AiInferenceOptions,
+    profile?: AiDomainProfile
   ): Promise<AiInferenceResult> {
     const adapter = this.getAdapter(provider);
-    return adapter.stream(options);
+    return adapter.stream(profile ? applyAiDomainProfile(options, profile) : options);
   }
 
   /**
@@ -79,10 +82,17 @@ export class AiClient {
     const systemPrompt = isTargetKorean
       ? '당신은 전문 다국어 번역 비서입니다. 사용자가 제공하는 텍스트를 가장 자연스럽고 명확한 표준 한국어로 충실하게 직독직해 및 의역하여 번역하세요. 설명이나 부연 설명 없이 오직 번역된 본문만을 출력하세요.'
       : `You are an expert translator. Translate the given text into fluent, natural ${targetLanguage}. Output only the translation without any explanations.`;
+    const availableModels = provider === 'cloud'
+      ? []
+      : await this.getAvailableModels(provider);
+    const selectedModel = model?.trim() || (provider === 'cloud' ? 'gemini-2.5-flash' : availableModels[0]?.id);
+    if (!selectedModel) {
+      throw new Error(`No model is available for provider "${provider}".`);
+    }
 
     let resultText = '';
     const res = await this.streamCompletion(provider, {
-      model: model || (provider === 'cloud' ? 'gemini-2.5-flash' : undefined),
+      model: selectedModel,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: text }
@@ -97,6 +107,3 @@ export class AiClient {
     return resultText.trim() || res.fullText.trim();
   }
 }
-
-// Export singleton instance
-export const aiClient = new AiClient();

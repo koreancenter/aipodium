@@ -398,6 +398,9 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
         if (typeof parameters.maxTokens === 'number' && !isNaN(parameters.maxTokens)) {
           config.maxOutputTokens = Math.max(1, Math.min(8192, Math.floor(parameters.maxTokens)));
         }
+        if (parameters.responseFormat === 'json') {
+          config.responseMimeType = 'application/json';
+        }
       }
 
       const chat = ai.chats.create({
