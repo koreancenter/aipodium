@@ -95,6 +95,7 @@ function generateLocalAssistantResponse(message: string, editorContent: string, 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+<<<<<<< HEAD
 
   // Comprehensive Security Headers & Strict Content-Security-Policy (CSP)
   app.use((req, res, next) => {
@@ -109,10 +110,34 @@ async function startServer() {
       "object-src 'none'",
       "base-uri 'self'",
       "frame-ancestors 'self' https:"
+=======
+  const isProduction = process.env.NODE_ENV === "production";
+
+  // Vite injects inline development tooling; deployed production CSP remains strict.
+  app.use((req, res, next) => {
+    const scriptPolicy = isProduction
+      ? "script-src 'self' blob: 'wasm-unsafe-eval'; worker-src 'self' blob:"
+      : "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; worker-src 'self' blob:";
+    const cspDirectives = [
+      "default-src 'self'",
+      scriptPolicy,
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "img-src 'self' data: blob: https:",
+      "connect-src 'self' http://localhost:11434 http://127.0.0.1:11434 https://generativelanguage.googleapis.com https://api.openai.com https://api.anthropic.com https://api.deepseek.com https://api.groq.com https://huggingface.co https://*.huggingface.co https://hf.co https://*.hf.co https://raw.githubusercontent.com ws: wss:",
+      "media-src 'self' data: blob:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "frame-ancestors 'self'"
+>>>>>>> main
     ].join('; ');
 
     res.setHeader('Content-Security-Policy', cspDirectives);
     res.setHeader('X-Content-Type-Options', 'nosniff');
+<<<<<<< HEAD
+=======
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+>>>>>>> main
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -173,7 +198,11 @@ async function startServer() {
       // Gemini Provider Verification
       let effectiveApiKey = process.env.GEMINI_API_KEY || '';
       const sanitizedKey = trimmedKey.trim();
+<<<<<<< HEAD
       if (sanitizedKey && ((sanitizedKey.startsWith('AIza') && sanitizedKey.length > 20) || /^[A-Za-z0-9_\-]{20,128}$/.test(sanitizedKey))) {
+=======
+      if (sanitizedKey && ((sanitizedKey.startsWith('AIza') && sanitizedKey.length > 20) || /^[A-Za-z0-9_\-.]{20,128}$/.test(sanitizedKey))) {
+>>>>>>> main
         effectiveApiKey = sanitizedKey;
       }
 
@@ -393,6 +422,12 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
         if (typeof parameters.maxTokens === 'number' && !isNaN(parameters.maxTokens)) {
           config.maxOutputTokens = Math.max(1, Math.min(8192, Math.floor(parameters.maxTokens)));
         }
+<<<<<<< HEAD
+=======
+        if (parameters.responseFormat === 'json') {
+          config.responseMimeType = 'application/json';
+        }
+>>>>>>> main
       }
 
       const chat = ai.chats.create({

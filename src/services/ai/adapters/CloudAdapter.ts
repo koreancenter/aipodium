@@ -9,12 +9,36 @@ import type {
   AiInferenceResult,
   AiChatMessage
 } from '../types';
+<<<<<<< HEAD
 import { getEphemeralDecryptedApiKey } from '../utils';
 
 export class CloudAdapter implements AiProviderAdapter {
   async isAvailable(): Promise<boolean> {
     try {
       const res = await fetch('/api/health', { method: 'GET' });
+=======
+
+export interface CloudAdapterOptions {
+  chatEndpoint?: string;
+  healthEndpoint?: string;
+  resolveApiKey?: (model: string, userSecret?: string) => Promise<string>;
+}
+
+export class CloudAdapter implements AiProviderAdapter {
+  private readonly chatEndpoint: string;
+  private readonly healthEndpoint: string;
+  private readonly resolveApiKey?: CloudAdapterOptions['resolveApiKey'];
+
+  constructor(options: CloudAdapterOptions = {}) {
+    this.chatEndpoint = options.chatEndpoint ?? '/api/chat';
+    this.healthEndpoint = options.healthEndpoint ?? '/api/health';
+    this.resolveApiKey = options.resolveApiKey;
+  }
+
+  async isAvailable(): Promise<boolean> {
+    try {
+      const res = await fetch(this.healthEndpoint, { method: 'GET' });
+>>>>>>> main
       return res.ok;
     } catch {
       return true; // Assume server is up in SPA environment
@@ -34,12 +58,18 @@ export class CloudAdapter implements AiProviderAdapter {
   async stream(options: AiInferenceOptions): Promise<AiInferenceResult> {
     let resolvedApiKey = options.apiKey ? options.apiKey.trim() : '';
 
+<<<<<<< HEAD
     if (!resolvedApiKey) {
       try {
         const decrypted = await getEphemeralDecryptedApiKey(
           this.inferVendorFromModel(options.model),
           options.userSecret
         );
+=======
+    if (!resolvedApiKey && this.resolveApiKey) {
+      try {
+        const decrypted = await this.resolveApiKey(options.model, options.userSecret);
+>>>>>>> main
         if (decrypted) {
           resolvedApiKey = decrypted.trim();
         }
@@ -59,6 +89,10 @@ export class CloudAdapter implements AiProviderAdapter {
         temperature: options.temperature,
         maxTokens: options.maxTokens,
         topP: options.topP,
+<<<<<<< HEAD
+=======
+        responseFormat: options.responseFormat,
+>>>>>>> main
       },
       apiKey: resolvedApiKey || undefined,
       systemInstruction: options.systemInstruction,
@@ -75,7 +109,11 @@ export class CloudAdapter implements AiProviderAdapter {
       headers['x-goog-api-key'] = resolvedApiKey;
     }
 
+<<<<<<< HEAD
     const res = await fetch('/api/chat', {
+=======
+    const res = await fetch(this.chatEndpoint, {
+>>>>>>> main
       method: 'POST',
       headers,
       signal: options.signal,

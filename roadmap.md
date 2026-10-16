@@ -63,11 +63,20 @@
 - [x] **4.1. AI 메시지 인라인 원클릭 번역 기능 구현**
   - `src/components/AiMessageBubble.tsx` 툴바에 번역 액션 버튼(`Languages` 아이콘) 추가
   - 분리된 `AiClient`의 경량 번역 호출 연동 및 메시지별 번역 상태(`translatedText`, 토글 뷰) 렌더링
+<<<<<<< HEAD
 - [ ] **4.2. 도메인 프로필(Domain Profile) 체계 구축**
   - `AiDomainProfile` 인터페이스 정의 (페르소나 지침, `temperature`, 권장 모델, `responseFormat`)
   - 문서 요약, 일정 관리 등 앱 유형별 프리셋 템플릿 작성
 - [ ] **4.3. 저장소 분리 준비 (Git Package Submodule / Private Repo)**
   - `src/services/ai/`를 독립 레포지토리(`@koreancenter/ai-engine-core`)로 배포 가능한 구조로 정리
+=======
+- [x] **4.2. 도메인 프로필(Domain Profile) 체계 구축**
+  - `AiDomainProfile` 인터페이스 정의 (페르소나 지침, `temperature`, 권장 모델, `responseFormat`)
+  - 문서 요약, 일정 관리 프리셋을 정의하고 AI 요청 및 프로바이더별 출력 형식 처리에 연결
+- [x] **4.3. 저장소 분리 준비 (Git Package Submodule / Private Repo)**
+  - 앱 인증·키 보안 및 WebLLM 런타임 의존성을 어댑터 주입 경계로 분리
+  - `src/services/ai/` 독립 빌드·배포 메타데이터 및 공개 API 구성
+>>>>>>> main
 
 ---
 
@@ -82,4 +91,9 @@
 | **Phase 3** | 대화 패널 분리 (`ChatPanel`) | 완료 | `src/components/chat/` |
 | **Phase 3** | 워크스페이스 탐색기 분리 (`WorkspaceDrawer`) | 완료 | `src/components/explorer/` |
 | **Phase 4** | 인라인 AI 메시지 번역 기능 | 완료 | `AiMessageBubble.tsx`, `AiClient` |
+<<<<<<< HEAD
 | **Phase 4** | 도메인 프로필 주입 체계 정의 | 대기 | `src/services/ai/profiles/` |
+=======
+| **Phase 4** | 도메인 프로필 주입 체계 정의 | 완료 | `src/services/ai/profiles/`, `AiClient` |
+| **Phase 4** | AI 엔진 저장소 분리 준비 | 완료 | `src/services/ai/`, `aiPodiumIntegration.ts` |
+>>>>>>> main

@@ -8,6 +8,7 @@ import type {
   AiInferenceOptions,
   AiInferenceResult
 } from '../types';
+<<<<<<< HEAD
 import {
   WEB_LLM_MODEL_ID,
   WEB_LLM_MODEL_DISPLAY_NAME,
@@ -21,6 +22,32 @@ export class WebLlmAdapter implements AiProviderAdapter {
   private onInitProgress?: (report: { progress: number; text: string }) => void;
 
   constructor(onInitProgress?: (report: { progress: number; text: string }) => void) {
+=======
+
+export interface WebLlmRuntime {
+  model: { id: string; name: string };
+  isAvailable: () => boolean;
+  isLoaded: () => boolean;
+  initialize: (
+    onProgress: (report: { progress: number; text: string }) => void
+  ) => Promise<void>;
+  stream: (
+    messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+    onChunk: (delta: string) => void,
+    temperature: number
+  ) => Promise<string>;
+}
+
+export class WebLlmAdapter implements AiProviderAdapter {
+  private onInitProgress?: (report: { progress: number; text: string }) => void;
+  private readonly runtime?: WebLlmRuntime;
+
+  constructor(
+    runtime?: WebLlmRuntime,
+    onInitProgress?: (report: { progress: number; text: string }) => void
+  ) {
+    this.runtime = runtime;
+>>>>>>> main
     this.onInitProgress = onInitProgress;
   }
 
@@ -29,6 +56,7 @@ export class WebLlmAdapter implements AiProviderAdapter {
   }
 
   async isAvailable(): Promise<boolean> {
+<<<<<<< HEAD
     return isWebGPUSupported();
   }
 
@@ -43,16 +71,38 @@ export class WebLlmAdapter implements AiProviderAdapter {
 
   async stream(options: AiInferenceOptions): Promise<AiInferenceResult> {
     if (!isWebGPUSupported()) {
+=======
+    return this.runtime?.isAvailable() ?? false;
+  }
+
+  async getModels(): Promise<{ id: string; name: string }[]> {
+    return this.runtime ? [this.runtime.model] : [];
+  }
+
+  async stream(options: AiInferenceOptions): Promise<AiInferenceResult> {
+    if (!this.runtime) {
+      throw new Error('WebLLM runtime has not been configured.');
+    }
+
+    if (!this.runtime.isAvailable()) {
+>>>>>>> main
       const errorMsg = '⚠️ 현재 브라우저가 WebGPU 가속을 지원하지 않습니다. Chrome/Edge 최신 버전을 권장합니다.';
       options.onChunk(errorMsg);
       return { fullText: errorMsg };
     }
 
     // Ensure engine is loaded
+<<<<<<< HEAD
     if (!getLoadedWebLLMEngine()) {
       options.onChunk('브라우저 WebLLM 엔진을 초기화하는 중입니다. 완료 후 답변이 이어집니다...\n\n');
       try {
         await initWebLLMEngine((report) => {
+=======
+    if (!this.runtime.isLoaded()) {
+      options.onChunk('브라우저 WebLLM 엔진을 초기화하는 중입니다. 완료 후 답변이 이어집니다...\n\n');
+      try {
+        await this.runtime.initialize((report) => {
+>>>>>>> main
           if (this.onInitProgress) {
             this.onInitProgress({
               progress: Math.round(report.progress * 100),
@@ -90,7 +140,11 @@ export class WebLlmAdapter implements AiProviderAdapter {
 
     let fullText = '';
     try {
+<<<<<<< HEAD
       fullText = await streamWebLLMCompletion(
+=======
+      fullText = await this.runtime.stream(
+>>>>>>> main
         messagesForWebLlm,
         (delta: string) => {
           options.onChunk(delta);

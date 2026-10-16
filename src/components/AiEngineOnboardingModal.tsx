@@ -5,8 +5,14 @@ import {
   saveAiEnginePreference,
   AiEngineChoice,
   verifyGeminiApiKeyDetailed,
+<<<<<<< HEAD
   aiClient
 } from '../services/ai';
+=======
+  isValidGeminiKeyFormat,
+  aiClient
+} from '../services/aiPodiumIntegration';
+>>>>>>> main
 
 export interface AiEngineOnboardingModalProps {
   isOpen: boolean;
@@ -91,6 +97,15 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
       return;
     }
 
+<<<<<<< HEAD
+=======
+    if (!isValidGeminiKeyFormat(sanitizedKey)) {
+      setCloudKeyResult('failed');
+      setCloudKeyError('올바른 Gemini API 키 형식을 입력해 주세요.');
+      return;
+    }
+
+>>>>>>> main
     setIsVerifyingCloudKey(true);
     setCloudKeyResult(null);
     setCloudKeyError('');
@@ -137,6 +152,15 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
     const rawKey = apiKey;
     const sanitizedKey = rawKey.trim();
 
+<<<<<<< HEAD
+=======
+    if (selectedOption === 'cloud' && sanitizedKey && !isValidGeminiKeyFormat(sanitizedKey)) {
+      setCloudKeyResult('failed');
+      setCloudKeyError('올바른 Gemini API 키 형식을 입력해 주세요.');
+      return;
+    }
+
+>>>>>>> main
     // 1. Save engine preference to aiEngineCore configuration
     saveAiEnginePreference({
       engineType: selectedOption,

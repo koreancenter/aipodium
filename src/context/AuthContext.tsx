@@ -1,7 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authService, AuthUser } from '../services/authService';
+<<<<<<< HEAD
 import { hasMasterPinConfigured, purgeGuestWorkspaceData } from '../utils/securityCrypto';
 import { purgeGuestSession } from '../services/workspaceStorageService';
+=======
+import { hasMasterPinConfigured } from '../utils/securityCrypto';
+import { purgeGuestSession, purgeGuestWorkspaceData } from '../services/workspaceStorageService';
+>>>>>>> main
 
 export interface AuthContextType {
   currentUser: AuthUser | null;
@@ -22,7 +27,11 @@ export const AuthContext = createContext<AuthContextType>({
   loginAsGuest: () => authService.loginAsGuest(),
   logout: () => authService.logout(),
   purgeGuestSession: (options) => purgeGuestSession(options),
+<<<<<<< HEAD
   purgeGuestWorkspaceData: () => purgeGuestWorkspaceData(() => purgeGuestSession({ resetToSampleWorkspace: false }))
+=======
+  purgeGuestWorkspaceData: () => purgeGuestWorkspaceData()
+>>>>>>> main
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -45,7 +54,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleLogout = useCallback(async () => {
     if (isGuest || !hasPin) {
       try {
+<<<<<<< HEAD
         await purgeGuestWorkspaceData(() => purgeGuestSession({ resetToSampleWorkspace: false }));
+=======
+        await purgeGuestWorkspaceData();
+>>>>>>> main
       } catch (err) {
         console.warn('[AuthContext] Guest purge warning on logout:', err);
       }
@@ -61,7 +74,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loginAsGuest: (name?: string) => authService.loginAsGuest(name),
     logout: handleLogout,
     purgeGuestSession: (options) => purgeGuestSession(options),
+<<<<<<< HEAD
     purgeGuestWorkspaceData: () => purgeGuestWorkspaceData(() => purgeGuestSession({ resetToSampleWorkspace: false }))
+=======
+    purgeGuestWorkspaceData: () => purgeGuestWorkspaceData()
+>>>>>>> main
   };
 
   return (

@@ -1,7 +1,20 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+<<<<<<< HEAD
 import { Zap, ChevronDown, Search, SlidersHorizontal, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { fetchOllamaTags } from '../config/models.config';
+=======
+import { Zap, ChevronDown, Search, SlidersHorizontal, RefreshCw, Star, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { fetchOllamaTags } from '../config/models.config';
+import {
+  appendModelIfMissing,
+  getModelSelectorLabel,
+  isModelSelected,
+  normalizeModelId,
+  normalizeModelIds,
+} from '../utils/modelSelectorUtils';
+>>>>>>> main
 
 export interface ModelOptionItem {
   id: string;
@@ -22,7 +35,10 @@ export interface InlineModelSelectorProps {
   availableChatModels: ModelOptionItem[];
   onOpenRoleModal?: () => void;
   onShowToast?: (msg: string, type?: 'info' | 'success' | 'warn' | 'error') => void;
+<<<<<<< HEAD
   provider?: 'cloud' | 'local-pc' | 'local-server';
+=======
+>>>>>>> main
   onSelectProvider?: (provider: 'cloud' | 'local-pc' | 'local-server') => void;
   onRefreshOllama?: () => Promise<any> | void;
   localEndpoint?: string;
@@ -41,7 +57,10 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
   availableChatModels,
   onOpenRoleModal,
   onShowToast,
+<<<<<<< HEAD
   provider = 'cloud',
+=======
+>>>>>>> main
   onSelectProvider,
   onRefreshOllama,
   localEndpoint = 'http://localhost:11434',
@@ -54,6 +73,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
   const popoverRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
+<<<<<<< HEAD
   // Auto-heal legacy mock model 'gemini-3.8-flash' to 'gemini-2.5-flash'
   useEffect(() => {
     if (selectedModel === 'gemini-3.8-flash') {
@@ -64,6 +84,26 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
       onSelectMultiModels(Array.from(new Set(fixed)));
     }
   }, [selectedModel, selectedMultiModels, onSelectModel, onSelectMultiModels]);
+=======
+  // Normalize legacy model IDs and keep single mode to exactly one selected model.
+  useEffect(() => {
+    const normalizedSelectedModel = normalizeModelId(selectedModel);
+    if (normalizedSelectedModel !== selectedModel) {
+      onSelectModel('gemini-2.5-flash');
+    }
+
+    const normalizedMultiModels = normalizeModelIds(selectedMultiModels);
+    const nextMultiModels = mode === 'single'
+      ? [normalizedSelectedModel]
+      : normalizedMultiModels;
+    if (
+      nextMultiModels.length !== selectedMultiModels.length ||
+      nextMultiModels.some((modelId, index) => modelId !== selectedMultiModels[index])
+    ) {
+      onSelectMultiModels(nextMultiModels);
+    }
+  }, [mode, selectedModel, selectedMultiModels, onSelectModel, onSelectMultiModels]);
+>>>>>>> main
 
   // Pinned favorites loaded from localStorage
   const [pinnedIds, setPinnedIds] = useState<string[]>(() => {
@@ -121,7 +161,11 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
 
   // Model name resolver
   const getModelName = (id: string): string => {
+<<<<<<< HEAD
     const cleanId = id === 'gemini-3.8-flash' ? 'gemini-2.5-flash' : id;
+=======
+    const cleanId = normalizeModelId(id);
+>>>>>>> main
     const found = availableChatModels.find((m) => m.id === cleanId || m.id === id);
     if (found) return found.name;
     if (cleanId === 'gemini-2.5-flash') return 'Gemini 2.5 Flash';
@@ -131,6 +175,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
   };
 
   // Active models state calculation
+<<<<<<< HEAD
   const isMulti = mode === 'multi' || (mode !== 'single' && selectedMultiModels.length >= 2);
 
   const primaryModelId = useMemo(() => {
@@ -175,10 +220,30 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
       );
     }
     return selectedModel === cleanId || selectedModel === modelId;
+=======
+  const activeModelIds = mode === 'single'
+    ? [selectedModel]
+    : selectedMultiModels.length > 0
+      ? selectedMultiModels
+      : [selectedModel];
+
+  const primaryModelId = activeModelIds[0] || 'gemini-2.5-flash';
+  const primaryModelName = getModelName(primaryModelId);
+
+  const activeCount = activeModelIds.length;
+  const hasMultipleModels = mode !== 'single' && activeCount >= 2;
+
+  const chipLabel = getModelSelectorLabel(mode, activeCount, primaryModelName);
+
+  // Check if a model is currently checked
+  const isChecked = (modelId: string): boolean => {
+    return isModelSelected(modelId, selectedModel, selectedMultiModels, mode);
+>>>>>>> main
   };
 
   // Toggle selection for a model
   const handleModelToggle = (modelId: string) => {
+<<<<<<< HEAD
     const cleanId = modelId === 'gemini-3.8-flash' ? 'gemini-2.5-flash' : modelId;
     const currentlyChecked = isChecked(cleanId);
 
@@ -225,6 +290,40 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     }
   };
 
+=======
+    const cleanId = normalizeModelId(modelId);
+    const currentlyChecked = isChecked(cleanId);
+    const currentSelection = normalizeModelIds(
+      selectedMultiModels.length > 0 ? selectedMultiModels : [selectedModel]
+    );
+
+    if (currentlyChecked) {
+      if (currentSelection.length <= 1) {
+        onShowToast?.('최소 1개 이상의 모델을 선택해야 합니다.', 'warn');
+        return;
+      }
+      const updated = currentSelection.filter((id) => id !== cleanId && id !== modelId);
+      onSelectMultiModels(updated);
+      onSelectModel(updated[0]);
+    } else {
+      const updated = Array.from(new Set([...currentSelection, cleanId]));
+      onSelectMultiModels(updated);
+      if (currentSelection.length === 0) onSelectModel(cleanId);
+    }
+  };
+
+  const handleModeSelect = (nextMode: 'single' | 'multi' | 'routing') => {
+    if (nextMode === 'single') {
+      const nextModel = mode === 'single' ? selectedModel : activeModelIds[0];
+      onSelectModel(nextModel);
+      onSelectMultiModels([nextModel]);
+    } else {
+      onSelectMultiModels(Array.from(new Set(activeModelIds)));
+    }
+    onModeChange(nextMode);
+  };
+
+>>>>>>> main
   // Filtered lists
   const query = searchQuery.trim().toLowerCase();
   const filterFn = (m: ModelOptionItem) => {
@@ -251,6 +350,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     return filteredModels.filter((m) => m.group === 'local' && !pinnedIds.includes(m.id));
   }, [filteredModels, pinnedIds]);
 
+<<<<<<< HEAD
   // Routing mode button toggle
   const handleToggleRouting = () => {
     if (mode === 'routing') {
@@ -267,6 +367,8 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     }
   };
 
+=======
+>>>>>>> main
   // Re-fetch tags from local Ollama endpoint (/api/tags or http://localhost:11434/api/tags)
   const handleRefetchTags = async () => {
     setIsRefetching(true);
@@ -310,7 +412,19 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
       onSelectModel(tag);
       onSelectMultiModels([tag]);
     } else {
+<<<<<<< HEAD
       handleModelToggle(tag);
+=======
+      const currentSelection = selectedMultiModels.length > 0
+        ? selectedMultiModels
+        : [selectedModel];
+      const { modelIds, added } = appendModelIfMissing(currentSelection, tag);
+      if (!added) {
+        onShowToast?.(`'${tag}' 모델은 이미 선택되어 있습니다.`, 'info');
+        return;
+      }
+      onSelectMultiModels(modelIds);
+>>>>>>> main
     }
     onShowToast?.(`'${tag}' 로컬 모델이 선택되었습니다.`, 'success');
   };
@@ -324,6 +438,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
 
   // Render fallback prompt with refresh button & default tags
   const renderFallbackLocalAiPrompt = () => (
+<<<<<<< HEAD
     <div className="p-3 my-1.5 rounded-lg bg-[#09090b] border border-white/[0.08] text-xs space-y-2">
       <div className="flex items-center justify-between gap-2">
         <span className="text-zinc-400 text-[11px] leading-snug">
@@ -339,6 +454,12 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
           <span>다시 확인 / 새로고침</span>
         </button>
       </div>
+=======
+    <div className="px-2 py-1.5 text-xs space-y-2">
+      <span className="text-zinc-400 text-[11px] leading-snug">
+        감지된 Ollama 모델이 없습니다.
+      </span>
+>>>>>>> main
 
       <div className="pt-2 border-t border-white/[0.06]">
         <div className="text-[10px] text-zinc-400 mb-1.5 font-medium">
@@ -370,7 +491,10 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
   );
 
   // Render flat VS Code-style QuickPick row
+<<<<<<< HEAD
   // [Checkbox] [Model Name] ... [Pin (📌/☆)]
+=======
+>>>>>>> main
   function renderModelRow(m: ModelOptionItem) {
     const checked = isChecked(m.id);
     const isPinned = pinnedIds.includes(m.id);
@@ -387,6 +511,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
           }
         }}
         className={`model-row-item group w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-white/[0.06] rounded-md cursor-pointer text-xs select-none transition-colors ${
+<<<<<<< HEAD
           checked ? 'text-zinc-100' : 'text-zinc-300 hover:text-zinc-100'
         }`}
       >
@@ -405,26 +530,61 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
         {/* Center: Model Name only (flat horizontal row, normal font) */}
         <div className="flex items-center min-w-0 flex-1 mx-2.5">
           <span className="truncate font-normal text-xs text-zinc-300 group-hover:text-zinc-100">
+=======
+          checked ? 'bg-white/[0.06] text-white' : 'text-zinc-300 hover:text-zinc-100'
+        }`}
+      >
+        {mode !== 'single' && (
+          <span
+            aria-hidden="true"
+            className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ${
+              checked ? 'border-indigo-400 bg-indigo-500/20' : 'border-zinc-600 group-hover:border-zinc-400'
+            }`}
+          >
+            {checked && <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />}
+          </span>
+        )}
+
+        {/* Center: Model Name only (flat horizontal row, normal font) */}
+        <div className={`flex items-center min-w-0 flex-1 ${mode === 'single' ? '' : 'mx-2.5'}`}>
+          <span className={`truncate font-normal text-xs ${checked ? 'text-white' : 'text-zinc-300 group-hover:text-zinc-100'}`}>
+>>>>>>> main
             {m.name}
           </span>
         </div>
 
+<<<<<<< HEAD
         {/* Right: Pin toggle (📌 / ☆) */}
         <button
           type="button"
           onClick={(e) => handleTogglePin(m.id, e)}
           className={`p-0.5 hover:text-amber-400 transition cursor-pointer shrink-0 text-xs flex items-center justify-center ${
+=======
+        {mode === 'single' && checked && (
+          <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 mr-2" />
+        )}
+
+        {/* Right: Favorite toggle */}
+        <button
+          type="button"
+          onClick={(e) => handleTogglePin(m.id, e)}
+          className={`p-0.5 hover:text-amber-400 transition cursor-pointer shrink-0 flex items-center justify-center ${
+>>>>>>> main
             isPinned
               ? 'text-amber-400'
               : 'text-zinc-500 hover:text-zinc-300 opacity-40 group-hover:opacity-100'
           }`}
           title={isPinned ? '즐겨찾기 고정 해제' : '즐겨찾기에 고정'}
         >
+<<<<<<< HEAD
           {isPinned ? (
             <span className="text-xs">📌</span>
           ) : (
             <span className="text-xs font-normal">☆</span>
           )}
+=======
+          <Star className="w-3.5 h-3.5 stroke-[1.5]" fill={isPinned ? 'currentColor' : 'none'} />
+>>>>>>> main
         </button>
       </div>
     );
@@ -440,7 +600,11 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
         className={`h-6 max-w-[220px] px-1.5 rounded text-[0.6875rem] font-normal flex items-center gap-1.5 transition-colors cursor-pointer ${
           isOpen
             ? 'bg-white/[0.08] text-indigo-300'
+<<<<<<< HEAD
             : activeCount >= 2
+=======
+            : hasMultipleModels
+>>>>>>> main
             ? 'text-indigo-300 hover:text-indigo-200 hover:bg-white/[0.06]'
             : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06]'
         }`}
@@ -455,6 +619,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
         />
       </button>
 
+<<<<<<< HEAD
       {/* 2. Routing Mode Toggle Button (Flat IDE style, no nested box) */}
       <button
         type="button"
@@ -474,6 +639,9 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
       </button>
 
       {/* 3. Popover UI (anchored bottom-up with fixed 380px height to prevent vertical jitter) */}
+=======
+      {/* Popover UI (anchored bottom-up with fixed 380px height to prevent vertical jitter) */}
+>>>>>>> main
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -521,7 +689,33 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                 )}
               </div>
 
+<<<<<<< HEAD
               {/* Category Filter Tabs: 전체 / 클라우드 / 로컬 AI (Ollama) */}
+=======
+              <div className="flex items-center rounded-md border border-white/[0.08] bg-[#09090b]/70 p-0.5">
+                {([
+                  ['single', '싱글'],
+                  ['multi', '멀티'],
+                  ['routing', '라우팅'],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => handleModeSelect(value)}
+                    aria-pressed={mode === value}
+                    className={`flex-1 h-6 rounded-sm text-[11px] transition-colors cursor-pointer ${
+                      mode === value
+                        ? 'bg-white/[0.08] text-white'
+                        : 'text-zinc-500 hover:text-zinc-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Category tabs */}
+>>>>>>> main
               <div className="flex items-center select-none pt-0.5 border-t border-white/5">
                 <button
                   type="button"
@@ -553,10 +747,17 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                       ? 'border-indigo-500 text-white font-medium'
                       : 'border-transparent text-zinc-400 hover:text-zinc-200'
                   }`}
+<<<<<<< HEAD
                   title="로컬 AI (Ollama) 선택 및 태그 새로고침"
                 >
                   <span>로컬 AI (Ollama)</span>
                   <RotateCcw className={`w-2.5 h-2.5 text-indigo-400 ${isRefetching ? 'animate-spin' : ''}`} />
+=======
+                  title="로컬 AI · Ollama 선택 및 태그 새로고침"
+                >
+                  <span>로컬 AI · Ollama</span>
+                  <RefreshCw className={`w-2.5 h-2.5 text-indigo-400 ${isRefetching ? 'animate-spin' : ''}`} />
+>>>>>>> main
                 </button>
               </div>
             </div>
@@ -574,6 +775,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                       <span className="text-[10px] text-zinc-500 font-mono">
                         {detectedOllamaModels.length}개 로컬 모델 감지됨
                       </span>
+<<<<<<< HEAD
                       <button
                         type="button"
                         disabled={isRefetching}
@@ -583,6 +785,8 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                         <RotateCcw className={`w-2.5 h-2.5 ${isRefetching ? 'animate-spin' : ''}`} />
                         <span>다시 확인 / 새로고침</span>
                       </button>
+=======
+>>>>>>> main
                     </div>
                   )}
                 </div>
@@ -607,6 +811,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                   {/* Pinned favorites first */}
                   {pinnedList.map((m) => renderModelRow(m))}
 
+<<<<<<< HEAD
                   {pinnedList.length > 0 && (remainingCloudList.length > 0 || remainingLocalList.length > 0) && (
                     <div className="h-px bg-white/[0.08] my-1" />
                   )}
@@ -630,6 +835,32 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                         로컬 AI (Ollama)
                       </div>
                       {renderFallbackLocalAiPrompt()}
+=======
+                  {/* Remaining Cloud Models */}
+                  {remainingCloudList.map((m) => renderModelRow(m))}
+
+                  {remainingLocalList.some((m) => m.id === 'Qwen2.5-0.5B-Instruct') && (
+                    <div className="mt-1">
+                      <div className="px-2 py-0.5 text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
+                        브라우저 내장 AI · WebGPU
+                      </div>
+                      {remainingLocalList
+                        .filter((m) => m.id === 'Qwen2.5-0.5B-Instruct')
+                        .map((m) => renderModelRow(m))}
+                    </div>
+                  )}
+
+                  {(remainingLocalList.some((m) => m.id !== 'Qwen2.5-0.5B-Instruct') ||
+                    detectedOllamaModels.length === 0) && (
+                    <div className="mt-1">
+                      <div className="px-2 py-0.5 text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
+                        로컬 AI · Ollama
+                      </div>
+                      {remainingLocalList
+                        .filter((m) => m.id !== 'Qwen2.5-0.5B-Instruct')
+                        .map((m) => renderModelRow(m))}
+                      {detectedOllamaModels.length === 0 && renderFallbackLocalAiPrompt()}
+>>>>>>> main
                     </div>
                   )}
 
@@ -645,9 +876,17 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
             {/* Footer slot (Selection counter) */}
             <div className="shrink-0 px-3 py-2 border-t border-white/5 text-xs text-zinc-400 flex items-center justify-between bg-[#09090b]/50">
               <span className="font-normal">
+<<<<<<< HEAD
                 {activeCount >= 2
                   ? `${activeCount}개 선택됨 (멀티 응답 모드)`
                   : `${activeCount}개 선택됨`}
+=======
+                {mode === 'single'
+                  ? `싱글 모드 · ${primaryModelName}`
+                  : mode === 'multi'
+                    ? `멀티 비교 · ${activeCount}개 모델 선택됨`
+                    : `자동 라우팅 · ${activeCount}개 후보 모델`}
+>>>>>>> main
               </span>
             </div>
           </motion.div>

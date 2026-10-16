@@ -39,7 +39,11 @@ import { TiptapWysiwygEditor, TiptapWysiwygEditorRef } from './TiptapWysiwygEdit
 import { getTextareaSelectionCoordinates } from '../../utils/caretCoordinates';
 import { sanitizeHtml } from '../../utils/securitySanitizer';
 import { VirtualizedMarkdownPreview } from '../VirtualizedMarkdownPreview';
+<<<<<<< HEAD
 import { getEphemeralDecryptedApiKey } from '../../services/ai';
+=======
+import { getEphemeralDecryptedApiKey } from '../../services/aiPodiumIntegration';
+>>>>>>> main
 
 export interface OptimizedEditorProps {
   value: string;

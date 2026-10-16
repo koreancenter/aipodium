@@ -637,7 +637,10 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
             availableChatModels={availableChatModels}
             onOpenRoleModal={onOpenRoleModal}
             onShowToast={onToast}
+<<<<<<< HEAD
             provider={provider as any}
+=======
+>>>>>>> main
             onSelectProvider={onSelectProvider}
             onRefreshOllama={onRefreshOllama}
             localEndpoint={localEndpointAddress}

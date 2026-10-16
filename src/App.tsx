@@ -30,6 +30,14 @@ import {
   syncDocToGithub,
   pullDocumentsFromGithub,
   purgeGuestSession,
+<<<<<<< HEAD
+=======
+  purgeGuestWorkspaceData,
+  createInitialEmptySession,
+  getCleanGuestSampleWorkspace,
+  getCleanGuestSampleFolders,
+  blockStorageWrites,
+>>>>>>> main
   workspaceStorageService,
   createProject,
   generateProjectTitleFromPrompt,
@@ -128,18 +136,28 @@ import {
   isEncryptedPayload,
   clearSensitiveClipboard,
   hasMasterPinConfigured,
+<<<<<<< HEAD
   purgeGuestWorkspaceData,
+=======
+>>>>>>> main
 } from './utils/securityCrypto';
 import {
   aiClient,
   clearAiDecryptedKeyMemory,
   verifyGeminiApiKeyDetailed,
+<<<<<<< HEAD
 } from './services/ai';
+=======
+} from './services/aiPodiumIntegration';
+>>>>>>> main
 import {
   Brain,
   Cpu,
   Route,
+<<<<<<< HEAD
   Bot,
+=======
+>>>>>>> main
   User,
   Send,
   Trash2,
@@ -219,7 +237,10 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   PanelRight,
+<<<<<<< HEAD
   PanelRightClose,
+=======
+>>>>>>> main
   PanelRightOpen
 } from 'lucide-react';
 
@@ -721,6 +742,7 @@ export default function App() {
 
   // Chat Sessions State (Projects)
   const [sessions, setSessions] = useState<ChatSession[]>([
+<<<<<<< HEAD
     {
       id: 'session-default',
       title: 'AI 지식 비서',
@@ -730,16 +752,28 @@ export default function App() {
       editorContent: '',
       messages: []
     }
+=======
+    createInitialEmptySession()
+>>>>>>> main
   ]);
   const [activeSessionId, setActiveSessionId] = useState<string>('session-default');
   const activeProjectId = activeSessionId;
   const setActiveProjectId = setActiveSessionId;
   const [isProjectListOpen, setIsProjectListOpen] = useState<boolean>(() => {
     try {
+<<<<<<< HEAD
       const saved = localStorage.getItem('aipodium_project_drawer_open');
       return saved !== null ? saved === 'true' : false; // default collapsed or respect user choice
     } catch {
       return false;
+=======
+      const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 1280 : true;
+      const saved = localStorage.getItem('aipodium_project_drawer_open');
+      // On desktop screens (>= 1280px), initialize with open project list cleanly visible
+      return saved !== null ? saved === 'true' : isDesktop;
+    } catch {
+      return true;
+>>>>>>> main
     }
   });
 
@@ -1026,6 +1060,37 @@ export default function App() {
   const lastPushedContentRef = useRef<Record<string, string>>({});
   const isPushingGithubRef = useRef(false);
 
+<<<<<<< HEAD
+=======
+  // Auto-Save debounced timer ref & storage blocking ref for clean guest purge
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isStorageWriteBlockedRef = useRef<boolean>(false);
+
+  // Helper to synchronously update current active file and tab filename
+  const setCurrentFile = useCallback((file: string) => {
+    setCurrentActiveFile(file);
+    setFileName(file);
+  }, []);
+
+  // Immediately cancel any debounced save/push timers and block storage write operations
+  const cancelPendingAutoSaveTimers = useCallback(() => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+    if (autoPushTimerRef.current) {
+      clearTimeout(autoPushTimerRef.current);
+      autoPushTimerRef.current = null;
+    }
+    if (syncedTimerRef.current) {
+      clearTimeout(syncedTimerRef.current);
+      syncedTimerRef.current = null;
+    }
+    isStorageWriteBlockedRef.current = true;
+    blockStorageWrites(true);
+  }, []);
+
+>>>>>>> main
   const handleGoogleSignIn = async () => {
     try {
       const { profile } = await googleDriveService.signIn();
@@ -1404,13 +1469,20 @@ export default function App() {
   }, []);
 
   // Multi-Tab Document States (Single Unified VS Code-like Tab Bar)
+<<<<<<< HEAD
   const [openTabs, setOpenTabs] = useState<string[]>(['Untitled-1']);
   // In-Memory Untitled Document States (Temporary tabs without physical files)
   const [untitledDocs, setUntitledDocs] = useState<Record<string, string>>({ 'Untitled-1': '' });
+=======
+  const [openTabs, setOpenTabs] = useState<string[]>(['Untitled-1.md']);
+  // In-Memory Untitled Document States (Temporary tabs without physical files)
+  const [untitledDocs, setUntitledDocs] = useState<Record<string, string>>({ 'Untitled-1.md': '' });
+>>>>>>> main
   const untitledCounterRef = useRef<number>(2);
   const [isSaveUntitledModalOpen, setIsSaveUntitledModalOpen] = useState<boolean>(false);
 
   // File Explorer State
+<<<<<<< HEAD
   const [files, setFiles] = useState<Record<string, string>>({
     'architecture_overview.md': `# 시스템 아키텍처 개요\n\n## 프론트엔드\n- Tailwind CSS 기반 3-Pane Split UI\n- 빠르고 직관적인 고속 에디터 & 챗\n\n## 백엔드 & 2차 가공\n- Express Server & AI 2차 가공 파이프라인 (Word, Excel, Code, Slides, Manual)`,
     'api_specifications.md': `# API 스펙 문서\n\n## POST /api/chat\n- Description: AI 대화 요청 처리\n- Headers: Authorization Bearer API_KEY`,
@@ -1457,6 +1529,13 @@ export default function App() {
     'project_analysis_sheet.html': 'AI 지식 비서',
     'README.md': 'AI 지식 비서'
   });
+=======
+  const [files, setFiles] = useState<Record<string, string>>(() => getCleanGuestSampleWorkspace());
+  const [currentActiveFile, setCurrentActiveFile] = useState<string>('Untitled-1.md');
+
+  // File Explorer Folder Assignments & Drag-and-Drop State
+  const [fileFolders, setFileFolders] = useState<Record<string, string>>(() => getCleanGuestSampleFolders());
+>>>>>>> main
   const [draggedType, setDraggedType] = useState<'project' | 'file' | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverTargetId, setDragOverTargetId] = useState<string | null>(null);
@@ -2307,6 +2386,7 @@ export default function App() {
   }, []);
 
   // Persist toggle states in localStorage:
+<<<<<<< HEAD
   // aipodium_left_panel_visible: boolean
   // aipodium_right_panel_visible: boolean
   const [isLeftPanelVisible, setIsLeftPanelVisible] = useState<boolean>(() => {
@@ -2314,13 +2394,29 @@ export default function App() {
     const saved = localStorage.getItem('aipodium_left_panel_visible');
     if (saved !== null) return saved === 'true';
     return window.innerWidth >= 1024;
+=======
+  // aipodium_left_drawer_open: boolean
+  // aipodium_right_drawer_open: boolean
+  const [isLeftPanelVisible, setIsLeftPanelVisible] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    // 데스크탑은 저장값과 무관하게 항상 열린 상태로 시작
+    if (window.innerWidth >= 1280) return true;
+    const saved = localStorage.getItem('aipodium_left_drawer_open') ?? localStorage.getItem('aipodium_left_panel_visible');
+    return saved === 'true';
+>>>>>>> main
   });
 
   const [isRightPanelVisible, setIsRightPanelVisible] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true;
+<<<<<<< HEAD
     const saved = localStorage.getItem('aipodium_right_panel_visible');
     if (saved !== null) return saved === 'true';
     return window.innerWidth >= 1024;
+=======
+    if (window.innerWidth >= 1280) return true;
+    const saved = localStorage.getItem('aipodium_right_drawer_open') ?? localStorage.getItem('aipodium_right_panel_visible');
+    return saved === 'true';
+>>>>>>> main
   });
 
   const [isSection2Collapsed, setIsSection2Collapsed] = useState<boolean>(false);
@@ -2334,6 +2430,10 @@ export default function App() {
       const nextCollapsed = typeof collapsed === 'function' ? collapsed(!prevVisible) : collapsed;
       const nextVisible = !nextCollapsed;
       try {
+<<<<<<< HEAD
+=======
+        localStorage.setItem('aipodium_left_drawer_open', String(nextVisible));
+>>>>>>> main
         localStorage.setItem('aipodium_left_panel_visible', String(nextVisible));
       } catch {}
       return nextVisible;
@@ -2345,6 +2445,10 @@ export default function App() {
       const nextCollapsed = typeof collapsed === 'function' ? collapsed(!prevVisible) : collapsed;
       const nextVisible = !nextCollapsed;
       try {
+<<<<<<< HEAD
+=======
+        localStorage.setItem('aipodium_right_drawer_open', String(nextVisible));
+>>>>>>> main
         localStorage.setItem('aipodium_right_panel_visible', String(nextVisible));
       } catch {}
       return nextVisible;
@@ -2355,6 +2459,10 @@ export default function App() {
     setIsLeftPanelVisible((prev) => {
       const next = typeof force === 'boolean' ? force : !prev;
       try {
+<<<<<<< HEAD
+=======
+        localStorage.setItem('aipodium_left_drawer_open', String(next));
+>>>>>>> main
         localStorage.setItem('aipodium_left_panel_visible', String(next));
       } catch {}
       return next;
@@ -2365,6 +2473,10 @@ export default function App() {
     setIsRightPanelVisible((prev) => {
       const next = typeof force === 'boolean' ? force : !prev;
       try {
+<<<<<<< HEAD
+=======
+        localStorage.setItem('aipodium_right_drawer_open', String(next));
+>>>>>>> main
         localStorage.setItem('aipodium_right_panel_visible', String(next));
       } catch {}
       return next;
@@ -2372,6 +2484,7 @@ export default function App() {
   }, []);
 
   const applyDefaultPanelsForCurrentDevice = useCallback(() => {
+<<<<<<< HEAD
     const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 1024 : true;
     if (isDesktop) {
       setIsLeftPanelVisible(true);
@@ -2379,12 +2492,31 @@ export default function App() {
       try {
         localStorage.setItem('aipodium_left_panel_visible', 'true');
         localStorage.setItem('aipodium_right_panel_visible', 'true');
+=======
+    const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 1280 : true;
+    if (isDesktop) {
+      setIsLeftPanelVisible(true);
+      setIsRightPanelVisible(true);
+      setIsProjectListOpen(true);
+      try {
+        localStorage.setItem('aipodium_left_drawer_open', 'true');
+        localStorage.setItem('aipodium_left_panel_visible', 'true');
+        localStorage.setItem('aipodium_right_drawer_open', 'true');
+        localStorage.setItem('aipodium_right_panel_visible', 'true');
+        localStorage.setItem('aipodium_project_drawer_open', 'true');
+>>>>>>> main
       } catch {}
     } else {
       setIsLeftPanelVisible(false);
       setIsRightPanelVisible(false);
       try {
+<<<<<<< HEAD
         localStorage.setItem('aipodium_left_panel_visible', 'false');
+=======
+        localStorage.setItem('aipodium_left_drawer_open', 'false');
+        localStorage.setItem('aipodium_left_panel_visible', 'false');
+        localStorage.setItem('aipodium_right_drawer_open', 'false');
+>>>>>>> main
         localStorage.setItem('aipodium_right_panel_visible', 'false');
       } catch {}
     }
@@ -2394,9 +2526,15 @@ export default function App() {
   // Responsive fallback on mobile/tablet viewport resize and default golden ratio calculation
   useEffect(() => {
     const handleResize = () => {
+<<<<<<< HEAD
       if (window.innerWidth < 1024) {
         const savedLeft = localStorage.getItem('aipodium_left_panel_visible');
         const savedRight = localStorage.getItem('aipodium_right_panel_visible');
+=======
+      if (window.innerWidth < 1280) {
+        const savedLeft = localStorage.getItem('aipodium_left_drawer_open') ?? localStorage.getItem('aipodium_left_panel_visible');
+        const savedRight = localStorage.getItem('aipodium_right_drawer_open') ?? localStorage.getItem('aipodium_right_panel_visible');
+>>>>>>> main
         if (savedLeft === null) setIsLeftPanelVisible(false);
         if (savedRight === null) setIsRightPanelVisible(false);
       } else {
@@ -2440,6 +2578,7 @@ export default function App() {
     }
   }, [currentActiveFile]);
 
+<<<<<<< HEAD
   // Initial check on mount if active file is a PDF
   useEffect(() => {
     if (currentActiveFile.toLowerCase().endsWith('.pdf')) {
@@ -2447,6 +2586,8 @@ export default function App() {
     }
   }, []);
 
+=======
+>>>>>>> main
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const tiptapEditorRef = useRef<TiptapWysiwygEditorRef>(null);
@@ -3054,12 +3195,28 @@ export default function App() {
 
   // Auto-save sessions, active session, editor content & files to IndexedDB & localStorage on change (Debounced 400ms)
   useEffect(() => {
+<<<<<<< HEAD
     // CRITICAL: Prevent saving wiped/sanitized empty states to persistent storage while locked
     if (isLocked) {
       return;
     }
 
     const timer = setTimeout(async () => {
+=======
+    // CRITICAL: Prevent saving wiped/sanitized empty states to persistent storage while locked or write-blocked
+    if (isLocked || isStorageWriteBlockedRef.current) {
+      return;
+    }
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setTimeout(async () => {
+      if (isLocked || isStorageWriteBlockedRef.current) {
+        return;
+      }
+>>>>>>> main
       try {
         const vaultKey = activeVaultKeyRef.current;
         if (vaultKey) {
@@ -3111,7 +3268,16 @@ export default function App() {
       }
     }, 400);
 
+<<<<<<< HEAD
     return () => clearTimeout(timer);
+=======
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
+    };
+>>>>>>> main
   }, [sessions, activeSessionId, trashSessions, editorContent, files, currentActiveFile, fileFolders, openTabs, isLocked]);
 
   // Drag and Drop Handlers for Project Folders & Files in Explorer & Sidebar
@@ -8204,6 +8370,95 @@ ${projectEvents
     return g === 'off' ? 'Off' : `${g}%`;
   }, [preferences.ghostWriterLevel, ghostWriterLevel]);
 
+<<<<<<< HEAD
+=======
+  // Active AI Engine Provider (cloud | local-pc | webllm)
+  const activeAiEngineProvider: 'webllm' | 'cloud' | 'local-pc' = useMemo(() => {
+    if (selectedModel === WEB_LLM_MODEL_ID) return 'webllm';
+    if (provider === 'local-pc' || provider === 'local-server') return 'local-pc';
+    return 'cloud';
+  }, [selectedModel, provider]);
+
+  // Active Storage Medium Label
+  // Guest Mode: '게스트 임시 저장소'
+  // Local Browser DB: '브라우저 저장소'
+  // Local Folder Mounted: '로컬 폴더 연동됨'
+  // GitHub Connected: 'GitHub 동기화'
+  const storageTargetLabel = useMemo(() => {
+    if (isGuest) {
+      return '게스트 임시 저장소';
+    }
+    if ((githubConfig?.token && githubConfig?.repo) || activeWorkspace.type === 'github') {
+      return 'GitHub 동기화';
+    }
+    if (Boolean(getMemoryDirectoryHandle()) || (activeWorkspace.type === 'local' && Boolean(getMemoryDirectoryHandle()))) {
+      return '로컬 폴더 연동됨';
+    }
+    return '브라우저 저장소';
+  }, [isGuest, githubConfig?.token, githubConfig?.repo, activeWorkspace]);
+
+  // Real-Time Dynamic AI Engine Readiness Status
+  const aiEngineStatus = useMemo(() => {
+    if (activeAiEngineProvider === 'cloud') {
+      const targetKey = getApiKeyForModel(selectedModel) || cloudApiKey;
+      const hasKey = Boolean(
+        targetKey?.trim() ||
+        Object.values(apiKeys).some((k) => typeof k === 'string' && k.trim().length > 0)
+      );
+      if (hasKey) {
+        return {
+          label: 'Cloud AI 준비됨',
+          dotClass: 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.4)]',
+        };
+      }
+      return {
+        label: 'API 키 필요',
+        dotClass: 'bg-amber-400 shadow-[0_0_5px_rgba(251,191,36,0.4)]',
+      };
+    }
+
+    if (activeAiEngineProvider === 'local-pc') {
+      if (isVerified) {
+        return {
+          label: 'Ollama 연결됨',
+          dotClass: 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.4)]',
+        };
+      }
+      return {
+        label: 'Ollama 오프라인',
+        dotClass: 'bg-rose-400 shadow-[0_0_5px_rgba(244,63,94,0.4)]',
+      };
+    }
+
+    if (activeAiEngineProvider === 'webllm') {
+      if (webllmProgress.isReady) {
+        return {
+          label: 'WebGPU 활성',
+          dotClass: 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.4)]',
+        };
+      }
+      return {
+        label: '모델 준비 중...',
+        dotClass: 'bg-amber-400 animate-pulse shadow-[0_0_5px_rgba(251,191,36,0.4)]',
+      };
+    }
+
+    return {
+      label: 'AI 준비 안 됨',
+      dotClass: 'bg-zinc-500',
+    };
+  }, [
+    activeAiEngineProvider,
+    selectedModel,
+    cloudApiKey,
+    apiKeys,
+    getApiKeyForModel,
+    isVerified,
+    webllmProgress.isReady,
+    webllmProgress.isLoading,
+  ]);
+
+>>>>>>> main
   // Authentication & Local Lock Guard: If locked or not logged in, route to AuthPage
   if (!currentUser || isLocked) {
     return (
@@ -8215,6 +8470,7 @@ ${projectEvents
           if (vaultKey) {
             activeVaultKeyRef.current = vaultKey;
           }
+<<<<<<< HEAD
           await reloadSecureWorkspaceData(vaultKey);
           if (user.provider === 'guest' && !localStorage.getItem('aipodium_guest_init_v2')) {
             setFiles(GUEST_SAMPLE_FILES);
@@ -8231,6 +8487,29 @@ ${projectEvents
             localStorage.setItem('notebooklm_open_tabs', JSON.stringify(['Untitled-1']));
             localStorage.setItem('notebooklm_editor_content', '');
             localStorage.setItem('aipodium_guest_init_v2', 'true');
+=======
+          const isGuestUser = user.provider === 'guest' || user.isGuest === true || !hasMasterPinConfigured();
+          if (isGuestUser) {
+            cancelPendingAutoSaveTimers();
+            isStorageWriteBlockedRef.current = false;
+            blockStorageWrites(false);
+
+            setSessions([createInitialEmptySession()]);
+            setFiles(getCleanGuestSampleWorkspace());
+            setFileFolders(getCleanGuestSampleFolders());
+            setCurrentFile('Untitled-1.md');
+            setEditorContent('');
+            setOpenTabs(['Untitled-1.md']);
+            setUntitledDocs({ 'Untitled-1.md': '' });
+            setActiveSessionId('session-default');
+            setEditorTab('wysiwyg');
+
+            try {
+              localStorage.setItem('aipodium_guest_init_v2', 'true');
+            } catch {}
+          } else {
+            await reloadSecureWorkspaceData(vaultKey);
+>>>>>>> main
           }
           const shouldShowOnboarding = localStorage.getItem('aipodium_engine_dont_show') !== 'true';
           if (shouldShowOnboarding) {
@@ -8261,12 +8540,20 @@ ${projectEvents
       >
         <div className="flex items-center gap-2">
           {/* Logo / App Name & Semantic Version Badge */}
+<<<<<<< HEAD
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => showToast('AI Podium v0.0.8')}>
+=======
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => showToast('AI Podium v0.1.0')}>
+>>>>>>> main
             <span className="text-xs font-bold text-slate-100 font-mono tracking-normal">
               AI Podium
             </span>
             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-white/5">
+<<<<<<< HEAD
               v0.0.8
+=======
+              v0.1.0
+>>>>>>> main
             </span>
           </div>
 
@@ -8369,8 +8656,13 @@ ${projectEvents
           className="hidden"
         />
 
+<<<<<<< HEAD
         {/* Right Controls: Command Palette & Status */}
         <div className="flex items-center gap-2">
+=======
+        {/* Right Controls: Command Palette, Status, & Persistent Fixed-Position Right Workspace Drawer Toggle */}
+        <div className="flex items-center gap-1.5">
+>>>>>>> main
           {/* GitHub Connection & Real-time Auto-Push Sync Status Indicator */}
           {((githubConfig?.token && githubConfig?.repo) || (workspaceRootType === 'github' && Boolean(githubConfig))) && (
             <GithubSyncStatusIndicator
@@ -8388,6 +8680,7 @@ ${projectEvents
               variant="header"
               onSignOut={async () => {
                 const isGuestUser = auth.isGuest || currentUser?.provider === 'guest' || currentUser?.isGuest === true || !hasMasterPinConfigured();
+<<<<<<< HEAD
                 if (isGuestUser) {
                   await purgeGuestSession();
                   setEditorContent('');
@@ -8396,10 +8689,33 @@ ${projectEvents
                   setOpenTabs([]);
                   setSessions([]);
                   setActiveSessionId(null);
+=======
+                
+                // 1. Immediately cancel pending auto-save timers and block storage writes
+                cancelPendingAutoSaveTimers();
+
+                if (isGuestUser) {
+                  // 2. Full storage wipe (IndexedDB & localStorage/sessionStorage)
+                  await purgeGuestWorkspaceData();
+                  // 3. Reset in-memory React state to clean slate
+                  setSessions([createInitialEmptySession()]);
+                  setFiles(getCleanGuestSampleWorkspace());
+                  setFileFolders(getCleanGuestSampleFolders());
+                  setCurrentFile('Untitled-1.md');
+                  setEditorContent('');
+                  setOpenTabs(['Untitled-1.md']);
+                  setUntitledDocs({ 'Untitled-1.md': '' });
+                  setActiveSessionId('session-default');
+>>>>>>> main
                 }
                 await auth.logout();
                 setCurrentUser(null);
                 setIsLocked(true);
+<<<<<<< HEAD
+=======
+                isStorageWriteBlockedRef.current = false;
+                blockStorageWrites(false);
+>>>>>>> main
                 showToast(
                   isGuestUser
                     ? '게스트 세션이 종료되고 임시 데이터가 모두 삭제되었습니다.'
@@ -8469,6 +8785,7 @@ ${projectEvents
               ? `transition-[opacity,transform] duration-200 ease-out delay-0 ${
                   hasInitialMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
                 }`
+<<<<<<< HEAD
               : 'transition-all duration-200 ease-in-out'
           } z-40 lg:z-10 ${
             isLeftPanelVisible
@@ -8481,11 +8798,29 @@ ${projectEvents
             <div className="bg-[#0f0f12] border-b border-[#222226] px-2 h-8 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0">
                 {/* Unified Persistent Project Drawer Toggle Button */}
+=======
+              : 'transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]'
+          } z-40 lg:z-10 ${
+            isLeftPanelVisible
+              ? 'opacity-100 pointer-events-auto border-r border-white/5 fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/80 lg:shadow-none'
+              : 'w-0 opacity-0 pointer-events-none overflow-hidden border-r border-white/5'
+          }`}
+        >
+          <div style={{ width: `${panelWidths.chat}px` }} className="max-w-full h-full flex flex-col min-h-0 overflow-hidden">
+            {/* Header: Anchored strictly at top-left at all times */}
+            <div className="bg-[#0f0f12] border-b border-white/5 px-2 h-8 flex items-center justify-between shrink-0 select-none">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0">
+                {/* Unified Persistent Project Drawer Toggle Button - Strictly Anchored at Top-Left */}
+>>>>>>> main
                 <button
                   type="button"
                   id="project-drawer-toggle"
                   onClick={() => setIsProjectListOpen((prev) => !prev)}
+<<<<<<< HEAD
                   className={`p-1 rounded-xs transition cursor-pointer flex items-center justify-center shrink-0 ${
+=======
+                  className={`p-1 rounded-xs transition-colors duration-150 cursor-pointer flex items-center justify-center shrink-0 ${
+>>>>>>> main
                     isProjectListOpen
                       ? 'bg-[#18181b] text-indigo-400 hover:text-indigo-300'
                       : 'text-slate-400 hover:text-white hover:bg-[#18181b]'
@@ -8495,6 +8830,7 @@ ${projectEvents
                 >
                   <PanelLeft className="w-3.5 h-3.5" />
                 </button>
+<<<<<<< HEAD
                 <Bot className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
                 <span className="truncate max-w-[130px] sm:max-w-[190px] font-medium text-slate-200 text-xs" title={activeSession?.title}>
                   {isOnboardingMode ? 'AI 지식 비서 · 가이드 v0.0.8' : (activeSession?.title || 'AI 프로젝트')}
@@ -8508,6 +8844,10 @@ ${projectEvents
                   <span className="text-slate-400">
                     {selectedModel === WEB_LLM_MODEL_ID ? 'WebGPU Qwen2.5' : (getModelDisplayName(selectedModel) || selectedModel)}
                   </span>
+=======
+                <span className="truncate max-w-[200px] sm:max-w-[260px] font-medium text-slate-200 text-xs" title={activeSession?.title}>
+                  {isOnboardingMode ? 'AI 지식 비서 · 가이드 v0.1.0' : (activeSession?.title || 'AI 프로젝트')}
+>>>>>>> main
                 </span>
               </div>
 
@@ -8531,6 +8871,10 @@ ${projectEvents
                 {/* Close/Collapse Left Panel Button */}
                 <button
                   type="button"
+<<<<<<< HEAD
+=======
+                  id="left-drawer-collapse-btn"
+>>>>>>> main
                   onClick={() => toggleLeftPanel(false)}
                   className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-white transition cursor-pointer"
                   title="좌측 AI 대화 패널 접기"
@@ -8549,7 +8893,11 @@ ${projectEvents
                 <aside
                   id="project-list-panel"
                   aria-label="프로젝트 목록"
+<<<<<<< HEAD
                   className={`bg-[#121214] border-r border-[#222226] flex flex-col shrink-0 transition-all duration-300 ease-in-out transform z-10 h-full ${
+=======
+                  className={`bg-[#121214] border-r border-white/5 flex flex-col shrink-0 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] transform z-10 h-full ${
+>>>>>>> main
                     isProjectListOpen
                       ? 'w-52 sm:w-60 opacity-100 translate-x-0'
                       : 'w-0 opacity-0 -translate-x-full overflow-hidden border-r-0 pointer-events-none'
@@ -8850,6 +9198,11 @@ ${projectEvents
               onInputFocus={() => {
                 lastActiveTextTargetRef.current = 'chat';
               }}
+<<<<<<< HEAD
+=======
+              isProjectDrawerOpen={isProjectListOpen}
+              onToggleProjectDrawer={() => setIsProjectListOpen((prev) => !prev)}
+>>>>>>> main
             />
           </div>
 
@@ -8898,8 +9251,14 @@ ${projectEvents
                 {!isLeftPanelVisible && (
                   <button
                     type="button"
+<<<<<<< HEAD
                     onClick={() => toggleLeftPanel(true)}
                     className="p-1 mr-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-indigo-400 border border-[#222226] transition flex items-center justify-center shrink-0 cursor-pointer"
+=======
+                    id="editor-left-drawer-toggle"
+                    onClick={() => toggleLeftPanel(true)}
+                    className="p-1 mr-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-indigo-400 border border-white/5 transition-colors duration-150 flex items-center justify-center shrink-0 cursor-pointer"
+>>>>>>> main
                     title="좌측 AI 대화 패널 펼치기"
                     aria-label="좌측 AI 대화 패널 펼치기"
                   >
@@ -8982,8 +9341,14 @@ ${projectEvents
                     {!isRightPanelVisible && (
                       <button
                         type="button"
+<<<<<<< HEAD
                         onClick={() => toggleRightPanel(true)}
                         className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-indigo-400 border border-[#222226] transition flex items-center justify-center shrink-0 cursor-pointer ml-0.5"
+=======
+                        id="editor-workspace-drawer-toggle"
+                        onClick={() => toggleRightPanel(true)}
+                        className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-indigo-400 border border-white/5 transition-colors duration-150 flex items-center justify-center shrink-0 cursor-pointer ml-0.5"
+>>>>>>> main
                         title="우측 파일 탐색기 패널 펼치기"
                         aria-label="우측 파일 탐색기 패널 펼치기"
                       >
@@ -9412,6 +9777,7 @@ ${projectEvents
         </div>
 
         <div className="flex items-center gap-3 shrink-0 text-slate-400 text-[0.625rem]">
+<<<<<<< HEAD
           {/* Local AI Resource Monitor (Podium style VRAM & CPU indicator) */}
           <LocalAiResourceMonitor
             endpoint={localEndpointAddress}
@@ -9425,6 +9791,26 @@ ${projectEvents
             }}
           />
           <span className="text-slate-600">|</span>
+=======
+          {/* Local AI Resource Monitor (VRAM & CPU indicator) - rendered only for webllm or local-pc */}
+          {(activeAiEngineProvider === 'webllm' || activeAiEngineProvider === 'local-pc') && (
+            <>
+              <LocalAiResourceMonitor
+                endpoint={localEndpointAddress}
+                isGenerating={isAiLoading}
+                activeModel={selectedModel}
+                provider={activeAiEngineProvider}
+                activeProvider={activeAiEngineProvider}
+                variant="statusbar"
+                onOpenSettings={() => {
+                  setPreferencesInitialTab('ai-engine');
+                  setIsPreferencesModalOpen(true);
+                }}
+              />
+              <span className="text-slate-600">|</span>
+            </>
+          )}
+>>>>>>> main
 
           {currentActiveFile && (
             <>
@@ -9436,7 +9822,11 @@ ${projectEvents
           )}
           <span className="hidden sm:inline">총 {Object.keys(files).length}개 파일</span>
           <span className="text-slate-600 hidden sm:inline">|</span>
+<<<<<<< HEAD
           <span className="uppercase">{activeWorkspace.type}</span>
+=======
+          <span className="text-slate-300">{storageTargetLabel}</span>
+>>>>>>> main
           <span className="text-slate-600">|</span>
           {githubConfig?.token && githubConfig?.repo && (
             <>
@@ -9466,10 +9856,26 @@ ${projectEvents
               <span className="text-slate-600">|</span>
             </>
           )}
+<<<<<<< HEAD
           <span className="text-slate-300 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/80 shadow-[0_0_5px_rgba(52,211,153,0.4)]" />
             연결됨
           </span>
+=======
+          {/* Dynamic AI Engine Readiness Status Indicator */}
+          <button
+            type="button"
+            onClick={() => {
+              setPreferencesInitialTab('ai-engine');
+              setIsPreferencesModalOpen(true);
+            }}
+            className="text-slate-300 flex items-center gap-1.5 hover:text-white transition cursor-pointer focus:outline-none"
+            title="클릭하여 AI 엔진 및 엔드포인트 설정 열기"
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${aiEngineStatus.dotClass}`} />
+            <span>{aiEngineStatus.label}</span>
+          </button>
+>>>>>>> main
         </div>
       </footer>
 

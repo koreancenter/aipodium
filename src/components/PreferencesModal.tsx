@@ -45,8 +45,14 @@ import { fetchOllamaInstalledModels } from '../services/documentConverterService
 import { HelpTooltip } from './HelpTooltip';
 import {
   verifyGeminiApiKey,
+<<<<<<< HEAD
   verifyGeminiApiKeyDetailed
 } from '../services/ai';
+=======
+  verifyGeminiApiKeyDetailed,
+  isValidGeminiKeyFormat
+} from '../services/aiPodiumIntegration';
+>>>>>>> main
 import {
   VENDOR_MODELS_MAP,
   CLOUD_MODEL_OPTIONS,
@@ -206,7 +212,11 @@ export const CLOUD_VENDORS: CloudVendorMeta[] = [
     signupUrl: 'https://aistudio.google.com/apikey',
     signupLabel: 'API 키 발급',
     guide: 'Google AI Studio에서 구글 계정으로 로그인 후 무료 API 키를 발급받을 수 있습니다. 안정적인 고속 쿼리를 지원합니다.',
+<<<<<<< HEAD
     placeholder: 'AIzaSy...',
+=======
+    placeholder: 'AIzaSy... 또는 AQ.Ab...',
+>>>>>>> main
     defaultModel: 'gemini-2.5-flash'
   },
   {
@@ -717,6 +727,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
       }
 
       if (selectedVendor === 'gemini') {
+<<<<<<< HEAD
+=======
+        if (!isValidGeminiKeyFormat(sanitizedKey)) {
+          onToast('⚠️ 올바른 Gemini API 키 형식을 입력해 주세요.', 'warn');
+          return;
+        }
+>>>>>>> main
         try {
           const diag = await verifyGeminiApiKeyDetailed(sanitizedKey);
           if (!diag.valid) {

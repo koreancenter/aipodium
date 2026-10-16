@@ -110,6 +110,10 @@ export class OllamaAdapter implements AiProviderAdapter {
           model: options.model,
           messages: formattedMessages,
           stream: true,
+<<<<<<< HEAD
+=======
+          ...(options.responseFormat === 'json' ? { format: 'json' } : {}),
+>>>>>>> main
           options: {
             temperature: options.temperature,
             top_p: options.topP,

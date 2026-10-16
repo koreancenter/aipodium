@@ -8,6 +8,15 @@ import {
   convertGitHubUrlToRaw,
   formatLinkReferenceBlock
 } from '../src/services/externalLinkService.js';
+<<<<<<< HEAD
+=======
+import {
+  appendModelIfMissing,
+  getModelSelectorLabel,
+  isModelSelected,
+  normalizeModelIds,
+} from '../src/utils/modelSelectorUtils.js';
+>>>>>>> main
 import type { ChatAttachment } from '../src/types.js';
 
 // Helper matching handleSendMessage in App.tsx
@@ -128,6 +137,7 @@ test('External Link Ingestion Pipeline & Model Selector', async (t) => {
   });
 
   await t.test('Inline model selector label generation logic', () => {
+<<<<<<< HEAD
     // Helper function matching InlineModelSelector label logic
     const getChipLabel = (
       selectedModel: string,
@@ -152,6 +162,35 @@ test('External Link Ingestion Pipeline & Model Selector', async (t) => {
     assert.equal(
       getChipLabel('gemini-2.5-flash', ['gemini-2.5-flash', 'ollama-qwen', 'webllm'], 'multi'),
       'gemini-2.5-flash +2'
+=======
+    assert.equal(getModelSelectorLabel('single', 1, 'Gemini 2.5 Flash'), 'Gemini 2.5 Flash');
+    assert.equal(getModelSelectorLabel('multi', 2, 'Gemini 2.5 Flash'), 'Gemini 2.5 Flash +1');
+    assert.equal(getModelSelectorLabel('multi', 3, 'Gemini 2.5 Flash'), 'Gemini 2.5 Flash +2');
+    assert.equal(getModelSelectorLabel('routing', 2, 'Gemini 2.5 Flash'), '자동 라우팅 2');
+  });
+
+  await t.test('Model selector normalizes legacy IDs and keeps fallback selection idempotent', () => {
+    assert.deepEqual(
+      normalizeModelIds(['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.5-pro']),
+      ['gemini-2.5-flash', 'gemini-2.5-pro']
+    );
+    assert.equal(
+      isModelSelected(
+        'gemini-2.5-flash',
+        'gemini-3.8-flash',
+        ['gemini-2.5-pro'],
+        'single'
+      ),
+      true
+    );
+    assert.deepEqual(
+      appendModelIfMissing(['qwen2.5:latest'], 'qwen2.5:latest'),
+      { modelIds: ['qwen2.5:latest'], added: false }
+    );
+    assert.deepEqual(
+      appendModelIfMissing(['llama3.2:latest'], 'qwen2.5:latest'),
+      { modelIds: ['llama3.2:latest', 'qwen2.5:latest'], added: true }
+>>>>>>> main
     );
   });
 

@@ -106,8 +106,29 @@ export async function getDbItem<T>(key: string): Promise<T | null> {
   }
 }
 
+<<<<<<< HEAD
 // Set item in IndexedDB
 export async function setDbItem<T>(key: string, value: T): Promise<void> {
+=======
+let isStorageWritesBlockedFlag = false;
+
+/**
+ * Blocks or unblocks storage write operations (e.g. during guest logout/purge)
+ */
+export function blockStorageWrites(blocked: boolean = true): void {
+  isStorageWritesBlockedFlag = blocked;
+}
+
+export function isStorageWritesBlocked(): boolean {
+  return isStorageWritesBlockedFlag;
+}
+
+// Set item in IndexedDB
+export async function setDbItem<T>(key: string, value: T): Promise<void> {
+  if (isStorageWritesBlockedFlag) {
+    return;
+  }
+>>>>>>> main
   try {
     const db = await openIndexedDB();
     return new Promise((resolve, reject) => {
@@ -164,6 +185,17 @@ export async function clearDb(): Promise<void> {
   }
 }
 
+<<<<<<< HEAD
+=======
+/**
+ * Clear all items in primary IndexedDB store.
+ * Explicit API alias for clearDb() required for guest data purge.
+ */
+export async function clearAll(): Promise<void> {
+  await clearDb();
+}
+
+>>>>>>> main
 // List all keys stored in IndexedDB
 export async function getAllDbKeys(): Promise<string[]> {
   try {
@@ -318,6 +350,12 @@ export async function saveHybridStorage<T>(
   value: T,
   mirrorToLocalStorage = true
 ): Promise<void> {
+<<<<<<< HEAD
+=======
+  if (isStorageWritesBlockedFlag) {
+    return;
+  }
+>>>>>>> main
   // 1. Primary save to IndexedDB (Reliable, high-capacity, non-blocking)
   try {
     await setDbItem(key, value);
@@ -423,3 +461,27 @@ export async function migrateFromLocalStorageIfAvailable(): Promise<{ migratedCo
   return { migratedCount };
 }
 
+<<<<<<< HEAD
+=======
+export const indexedDbService = {
+  openIndexedDB,
+  getDbItem,
+  setDbItem,
+  removeDbItem,
+  clearDb,
+  clearAll,
+  getAllDbKeys,
+  exportAllDbData,
+  importAllDbData,
+  getStorageQuotaEstimate,
+  requestPersistentStorage,
+  saveHybridStorage,
+  loadHybridStorage,
+  migrateFromLocalStorageIfAvailable,
+  blockStorageWrites,
+  isStorageWritesBlocked,
+};
+
+export default indexedDbService;
+
+>>>>>>> main

@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import { WorkspaceDrawer } from '../src/components/explorer';
 import { AiMessageBubble } from '../src/components/AiMessageBubble';
+<<<<<<< HEAD
 import { aiClient } from '../src/services/ai';
+=======
+import { aiClient } from '../src/services/aiPodiumIntegration';
+>>>>>>> main
 
 test('1. WorkspaceDrawer is properly exported and is a React component', () => {
   assert.equal(typeof WorkspaceDrawer, 'function', 'WorkspaceDrawer must be a React component function');

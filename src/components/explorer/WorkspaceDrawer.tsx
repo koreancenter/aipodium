@@ -119,6 +119,10 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
   // Sync collapsed state to localStorage
   useEffect(() => {
     try {
+<<<<<<< HEAD
+=======
+      localStorage.setItem('aipodium_right_drawer_open', String(isOpen));
+>>>>>>> main
       localStorage.setItem('aipodium_drawer_collapsed', String(!isOpen));
       localStorage.setItem('aipodium_right_panel_visible', String(isOpen));
     } catch {}
@@ -260,11 +264,19 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
       <section
         style={isOpen ? { width: `${width}px` } : undefined}
         className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 ${
+<<<<<<< HEAD
           isResizing ? 'transition-none' : 'transition-all duration-200 ease-in-out'
         } z-40 lg:z-10 ${
           isOpen
             ? 'opacity-100 pointer-events-auto border-l border-[#222226] fixed lg:relative inset-y-0 right-0 shadow-2xl shadow-black/80 lg:shadow-none'
             : 'w-0 opacity-0 pointer-events-none overflow-hidden border-l-0'
+=======
+          isResizing ? 'transition-none' : 'transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]'
+        } z-40 lg:z-10 ${
+          isOpen
+            ? 'opacity-100 pointer-events-auto border-l border-white/5 fixed lg:relative inset-y-0 right-0 shadow-2xl shadow-black/80 lg:shadow-none'
+            : 'w-0 opacity-0 pointer-events-none overflow-hidden border-l border-white/5'
+>>>>>>> main
         } ${className}`}
         onDragOver={(e) => {
           if (e.dataTransfer.types.includes('Files')) {
@@ -280,6 +292,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
         }}
       >
         <div style={{ width: `${width}px` }} className="max-w-full h-full flex flex-col min-h-0 overflow-hidden">
+<<<<<<< HEAD
           {/* Search Filter Bar */}
           <div className="px-2 py-1.5 bg-[#0c0c0e] border-b border-[#222226] shrink-0">
             <div className="relative">
@@ -307,6 +320,17 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
           {/* Explorer Header Toolbar */}
           <div className="flex items-center justify-between h-8 px-2 bg-[#0f0f12] border-b border-[#222226] shrink-0 text-slate-300 select-none">
             <div className="flex items-center gap-1">
+=======
+          {/* Explorer Header Toolbar (Row 1 - perfectly aligned with Editor Multi-Tab Bar & Chat Header) */}
+          <div className="flex items-center justify-between h-[34px] px-2 bg-[#0c0c0e] border-b border-white/5 shrink-0 text-slate-300 select-none">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-[0.6875rem] font-semibold text-slate-300 uppercase tracking-wider pl-0.5">
+                파일 탐색기
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1 shrink-0">
+>>>>>>> main
               {/* [📁+ New Folder] */}
               <button
                 type="button"
@@ -385,6 +409,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                   <FileUp className="w-3.5 h-3.5 text-indigo-400 group-hover:text-indigo-300" />
                 </button>
               )}
+<<<<<<< HEAD
             </div>
 
             {/* [Collapse Right Panel Button] */}
@@ -397,6 +422,45 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
             >
               <PanelRightClose className="w-3.5 h-3.5" />
             </button>
+=======
+
+              {/* [Collapse Right Panel Button - anchored at top-right corner] */}
+              <button
+                type="button"
+                id="workspace-drawer-collapse-btn"
+                onClick={onToggleOpen}
+                className="p-1 rounded-xs hover:bg-[#18181b] hover:text-white text-slate-400 transition cursor-pointer ml-0.5"
+                title="우측 파일 탐색기 패널 접기"
+                aria-label="우측 파일 탐색기 패널 접기"
+              >
+                <PanelRightClose className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Search Filter Bar (Row 2) */}
+          <div className="px-2 py-1.5 bg-[#0f0f12] border-b border-white/5 shrink-0">
+            <div className="relative">
+              <Search className="w-3 h-3 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={activeSearchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder="파일 검색..."
+                className="w-full bg-[#121214] border border-[#222226] focus:border-[#6366f1] rounded pl-6 pr-6 py-0.5 text-[0.6875rem] text-slate-200 placeholder:text-slate-500 outline-none transition"
+              />
+              {activeSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => handleSearchChange('')}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-0.5 cursor-pointer"
+                  title="검색어 지우기"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              )}
+            </div>
+>>>>>>> main
           </div>
 
           {/* Continuous Tree Structure */}

@@ -28,6 +28,14 @@ export interface ChatPanelProps {
   // Project Drawer slot & Container
   projectDrawer?: React.ReactNode;
   children?: React.ReactNode;
+<<<<<<< HEAD
+=======
+  isProjectDrawerOpen?: boolean;
+  onToggleProjectDrawer?: () => void;
+  headerLeft?: React.ReactNode;
+  headerRight?: React.ReactNode;
+  header?: React.ReactNode;
+>>>>>>> main
 
   // Session & Message Data
   activeSessionId: string;
@@ -110,6 +118,14 @@ export interface ChatPanelProps {
 export const ChatPanel: React.FC<ChatPanelProps> = ({
   projectDrawer,
   children,
+<<<<<<< HEAD
+=======
+  isProjectDrawerOpen,
+  onToggleProjectDrawer,
+  headerLeft,
+  headerRight,
+  header,
+>>>>>>> main
   activeSessionId,
   sessionTitle,
   messages,
@@ -202,6 +218,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
   return (
     <div className={`flex-1 flex flex-col min-w-0 bg-transparent relative overflow-hidden h-full ${className}`}>
+<<<<<<< HEAD
+=======
+      {/* Top Header: Rendered only when explicit header is provided */}
+      {header !== undefined ? header : null}
+
+>>>>>>> main
       {/* Middle Message Viewport & Confined Project Drawer Flex Container */}
       <div className="flex-1 min-h-0 relative flex flex-row overflow-hidden">
         {/* Confined Project Drawer Container / Aside */}
