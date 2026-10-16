@@ -8,7 +8,40 @@ export default defineConfig(() => {
     // 💡 저장소(Repository) 이름을 작성합니다. 
     // 예: 레포지토리 주소가 github.com/user/my-app 이라면 '/my-app/'
     base: '/', 
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      {
+        name: 'preload-stylesheet',
+        apply: 'build',
+        enforce: 'post',
+        generateBundle(_options, bundle) {
+          const html = bundle['index.html'];
+          if (!html || html.type !== 'asset' || typeof html.source !== 'string') return;
+
+          let hasStylesheet = false;
+          let transformedHtml = html.source.replace(
+            /<link\b([^>]*\brel="stylesheet"[^>]*)>/g,
+            (tag, attributes: string) => {
+              const href = attributes.match(/\bhref="([^"]+\.css)"/)?.[1];
+              if (!href) return tag;
+
+              hasStylesheet = true;
+              const crossorigin = /\bcrossorigin(?:="[^"]*")?/i.test(attributes) ? ' crossorigin' : '';
+              return `<link rel="preload" as="style" href="${href}"${crossorigin}>`;
+            },
+          );
+
+          if (hasStylesheet) {
+            transformedHtml = transformedHtml.replace(
+              '</head>',
+              '<style>html,body,#root{min-height:100%;margin:0}body{background:#09090b;color:#e2e8f0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.4}</style></head>',
+            );
+            html.source = transformedHtml;
+          }
+        },
+      },
+    ],
     resolve: {
       alias: [
         { find: /^@tiptap\/pm$/, replacement: path.resolve(__dirname, 'src/shims/tiptap-pm.ts') },
@@ -21,15 +54,6 @@ export default defineConfig(() => {
       cssMinify: true,
       sourcemap: false,
       chunkSizeWarningLimit: 1500,
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            'vendor-webllm': ['@mlc-ai/web-llm'],
-            'vendor-editor': ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/pm'],
-            'vendor-parsers': ['katex', 'mammoth', 'xlsx', 'turndown'],
-          },
-        },
-      },
     },
     server: {
       allowedHosts: true as const,
