@@ -3,6 +3,17 @@ import { sanitizeHtml, sanitizeUrl, DOMPurify } from './securitySanitizer.ts';
 
 export { sanitizeHtml, sanitizeUrl, DOMPurify };
 
+let katexStylesPromise: Promise<void> | undefined;
+
+function loadKatexStyles(): void {
+  katexStylesPromise ??= import('katex/dist/katex.min.css')
+    .then(() => undefined)
+    .catch((error: unknown) => {
+      katexStylesPromise = undefined;
+      console.error('Failed to load KaTeX styles:', error);
+    });
+}
+
 /**
  * Universal, high-performance Markdown & HTML rendering engine.
  * Fully supports:
@@ -41,6 +52,7 @@ function sanitizeHtmlFragment(html: string): string {
 
 // Render Math Formula using KaTeX
 function renderMath(formula: string, displayMode: boolean): string {
+  loadKatexStyles();
   try {
     return katex.renderToString(formula.trim(), {
       displayMode,

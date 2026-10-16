@@ -19,7 +19,7 @@ export default defineConfig(() => {
       target: 'es2020',
       minify: 'esbuild' as const,
       cssMinify: true,
-      sourcemap: true,
+      sourcemap: false,
       chunkSizeWarningLimit: 1500,
       rollupOptions: {
         output: {
