@@ -1,9 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { UnifiedEditor } from './components/editor';
-import type { UnifiedEditorRef } from './components/editor';
-import { ChatPanel } from './components/chat';
-import { WorkspaceDrawer } from './components/explorer';
-import { PdfViewer, PdfViewerHandle, PdfViewerState } from './components/PdfViewer';
+import type { UnifiedEditorRef } from './components/editor/UnifiedEditor';
+import type { PdfViewerHandle, PdfViewerState } from './components/PdfViewer';
 import { SAMPLE_PDF_DATA_URL } from './data/samplePdfData';
 import { motion, AnimatePresence } from 'motion/react';
 import { googleDriveService, GoogleUserProfile, DriveFolderInfo } from './services/googleDriveService';
@@ -17,7 +14,7 @@ import { SSOTGeneratorModal, SSOTGeneratorConfig } from './components/SSOTGenera
 import { WorkspaceConnectionModal } from './components/WorkspaceConnectionModal';
 import { SaveUntitledModal } from './components/SaveUntitledModal';
 import { DocumentConverterModal } from './components/DocumentConverterModal';
-import { convertDocumentToMarkdown, DocumentConversionResult } from './services/documentConverterService';
+import type { DocumentConversionResult } from './services/documentConverterService';
 import {
   ActiveWorkspace,
   saveFileToLocalDirectory,
@@ -70,7 +67,6 @@ import { AuthPage } from './components/AuthPage';
 import { UserProfileBadge } from './components/UserProfileBadge';
 import { GUEST_SAMPLE_FILES, GUEST_SAMPLE_FOLDERS } from './data/guestSampleWorkspace';
 import { authService, AuthUser } from './services/authService';
-import { renderMarkdownToHtml } from './utils/markdownParser';
 import { TableGridPicker } from './components/TableGridPicker';
 import { MarkdownHelpPopover } from './components/MarkdownHelpPopover';
 import { TiptapWysiwygEditorRef } from './components/TiptapWysiwygEditor';
@@ -244,6 +240,24 @@ import {
   PanelRightOpen
 } from 'lucide-react';
 
+const UnifiedEditor = React.lazy(() =>
+  import('./components/editor/UnifiedEditor').then(({ UnifiedEditor: component }) => ({ default: component }))
+);
+const ChatPanel = React.lazy(() =>
+  import('./components/chat/ChatPanel').then(({ ChatPanel: component }) => ({ default: component }))
+);
+const WorkspaceDrawer = React.lazy(() =>
+  import('./components/explorer/WorkspaceDrawer').then(({ WorkspaceDrawer: component }) => ({ default: component }))
+);
+const PdfViewer = React.lazy(() =>
+  import('./components/PdfViewer').then(({ PdfViewer: component }) => ({ default: component }))
+);
+
+type MarkdownRenderer = typeof import('./utils/markdownParser').renderMarkdownToHtml;
+
+const renderPlainMarkdownSafely: MarkdownRenderer = (markdown) =>
+  `<pre>${markdown.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`;
+
 // Safe persistent storage accessor
 const storage = {
   get: (key: string): string | null => {
@@ -296,6 +310,7 @@ export default function App() {
   // Authentication & Local Lock State
   const auth = useAuth();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => auth.currentUser || authService.getCurrentUser());
+  const [renderMarkdownToHtml, setMarkdownRenderer] = useState<MarkdownRenderer>(() => renderPlainMarkdownSafely);
   const hasPin = hasMasterPinConfigured();
   const isGuest = auth.isGuest || !hasPin || currentUser?.provider === 'guest' || currentUser?.isGuest === true;
 
@@ -346,6 +361,24 @@ export default function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!currentUser || isLocked) return;
+
+    let isMounted = true;
+    import('./utils/markdownParser')
+      .then(({ renderMarkdownToHtml: renderer }) => {
+        if (isMounted) setMarkdownRenderer(() => renderer);
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to load the Markdown renderer:', error);
+        if (isMounted) showToast('마크다운 렌더러를 불러오지 못했습니다.', 'error');
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser, isLocked, showToast]);
 
   // Optional zero-trust security setting: purge session when browser/tab is closed
   useEffect(() => {
@@ -1337,6 +1370,7 @@ export default function App() {
         reader.readAsDataURL(file);
       } else {
         try {
+          const { convertDocumentToMarkdown } = await import('./services/documentConverterService');
           const result = await convertDocumentToMarkdown(file);
           const parsedMd = (result.markdown || '').trim();
           setChatAttachments((prev) =>
@@ -3897,6 +3931,7 @@ export default function App() {
     try {
       setIsConvertingDoc(true);
       showToast(`🔄 '${file.name}'을 클라이언트 엔진으로 변환 중입니다...`, 'info');
+      const { convertDocumentToMarkdown } = await import('./services/documentConverterService');
       const result = await convertDocumentToMarkdown(file);
       setIsConvertingDoc(false);
 
@@ -8888,7 +8923,8 @@ ${projectEvents
           {/* Left Pane Body: Chat Area with Confined Project Drawer (Phase 3.1) */}
           <div className="flex-1 flex flex-col overflow-hidden relative min-h-0">
             {/* Active Conversation Chat Area via ChatPanel (Phase 3.1) */}
-            <ChatPanel
+            <React.Suspense fallback={<div className="flex-1 min-h-0 bg-[#09090b]" aria-busy="true" />}>
+              <ChatPanel
               projectDrawer={
                 <aside
                   id="project-list-panel"
@@ -9204,6 +9240,7 @@ ${projectEvents
               onToggleProjectDrawer={() => setIsProjectListOpen((prev) => !prev)}
 >>>>>>> main
             />
+            </React.Suspense>
           </div>
 
         </div>
@@ -9564,69 +9601,71 @@ ${projectEvents
               >
                 <div className="h-full relative overflow-hidden flex flex-col min-w-0 w-full">
                   <div className="flex-1 relative overflow-hidden flex flex-col min-h-0">
-                    {currentActiveFile.toLowerCase().endsWith('.pdf') ? (
-                      <PdfViewer
-                        ref={pdfViewerRef}
-                        fileName={currentActiveFile}
-                        pdfData={files[currentActiveFile] || SAMPLE_PDF_DATA_URL}
-                        markdownContent={
-                          pdfMarkdownMap[currentActiveFile] ??
-                          files[currentActiveFile.replace(/\.pdf$/i, '.md')] ??
-                          ''
-                        }
-                        onMarkdownChange={handlePdfMarkdownChange}
-                        onClearMarkdownCache={handlePdfClearMarkdownCache}
-                        onUploadPdf={handlePdfUploadFromViewer}
-                        ollamaEndpoint={preferences.pdfParser?.ollamaEndpoint || 'http://localhost:11434'}
-                        ollamaModel={preferences.pdfParser?.ollamaModel || 'llama3.2-vision'}
-                        onToast={showToast}
-                        renderMarkdownToHtml={renderMarkdownToHtml}
-                        hideTopToolbar={true}
-                        onViewerStateChange={setPdfViewerState}
-                      />
-                    ) : (
-                      <UnifiedEditor
-                        ref={unifiedEditorRef}
-                        value={editorContent}
-                        onChange={handleEditorChange}
-                        mode={editorTab}
-                        onModeChange={(newMode) => {
-                          const targetTab: 'wysiwyg' | 'edit' | 'split' =
-                            newMode === 'wysiwyg' ? 'wysiwyg' : newMode === 'split' ? 'split' : 'edit';
-                          setEditorTab(targetTab);
-                          setSessions((prev) =>
-                            prev.map((s) => (s.id === activeSessionId ? { ...s, editorTab: targetTab } : s))
-                          );
-                        }}
-                        onSave={() => handleSaveDocument()}
-                        onFocus={() => {
-                          lastActiveTextTargetRef.current = 'editor';
-                          if (hasUnreadAiChanges) setHasUnreadAiChanges(false);
-                        }}
-                        editorRef={editorRef}
-                        tiptapRef={tiptapEditorRef}
-                        placeholder="# 마크다운 노트&#10;&#10;AI 답변의 [에디터로 내용 전송] 또는 직접 작성..."
-                        renderMarkdownToHtml={renderMarkdownToHtml}
-                        fontSize={editorFontSize}
-                        isDrawingOpen={isDrawingOverlayOpen}
-                        onToggleDrawing={() => setIsDrawingOverlayOpen((prev) => !prev)}
-                        onCloseDrawing={() => setIsDrawingOverlayOpen(false)}
-                        isFullscreen={isSection1Collapsed && isSection3Collapsed}
-                        onToggleFullscreen={() => {
-                          const isFocus = isSection1Collapsed && isSection3Collapsed;
-                          if (isFocus) {
-                            setIsSection1Collapsed(false);
-                            setIsSection3Collapsed(false);
-                            showToast('기본 패널 레이아웃이 복원되었습니다.');
-                          } else {
-                            setIsSection1Collapsed(true);
-                            setIsSection3Collapsed(true);
-                            showToast('🎯 문서 집중 모드: 사이드바를 모두 접었습니다.');
+                    <React.Suspense fallback={<div className="flex-1 min-h-0 bg-[#0c0c0e]" aria-busy="true" />}>
+                      {currentActiveFile.toLowerCase().endsWith('.pdf') ? (
+                        <PdfViewer
+                          ref={pdfViewerRef}
+                          fileName={currentActiveFile}
+                          pdfData={files[currentActiveFile] || SAMPLE_PDF_DATA_URL}
+                          markdownContent={
+                            pdfMarkdownMap[currentActiveFile] ??
+                            files[currentActiveFile.replace(/\.pdf$/i, '.md')] ??
+                            ''
                           }
-                        }}
-                        onToast={showToast}
-                      />
-                    )}
+                          onMarkdownChange={handlePdfMarkdownChange}
+                          onClearMarkdownCache={handlePdfClearMarkdownCache}
+                          onUploadPdf={handlePdfUploadFromViewer}
+                          ollamaEndpoint={preferences.pdfParser?.ollamaEndpoint || 'http://localhost:11434'}
+                          ollamaModel={preferences.pdfParser?.ollamaModel || 'llama3.2-vision'}
+                          onToast={showToast}
+                          renderMarkdownToHtml={renderMarkdownToHtml}
+                          hideTopToolbar={true}
+                          onViewerStateChange={setPdfViewerState}
+                        />
+                      ) : (
+                        <UnifiedEditor
+                          ref={unifiedEditorRef}
+                          value={editorContent}
+                          onChange={handleEditorChange}
+                          mode={editorTab}
+                          onModeChange={(newMode) => {
+                            const targetTab: 'wysiwyg' | 'edit' | 'split' =
+                              newMode === 'wysiwyg' ? 'wysiwyg' : newMode === 'split' ? 'split' : 'edit';
+                            setEditorTab(targetTab);
+                            setSessions((prev) =>
+                              prev.map((s) => (s.id === activeSessionId ? { ...s, editorTab: targetTab } : s))
+                            );
+                          }}
+                          onSave={() => handleSaveDocument()}
+                          onFocus={() => {
+                            lastActiveTextTargetRef.current = 'editor';
+                            if (hasUnreadAiChanges) setHasUnreadAiChanges(false);
+                          }}
+                          editorRef={editorRef}
+                          tiptapRef={tiptapEditorRef}
+                          placeholder="# 마크다운 노트&#10;&#10;AI 답변의 [에디터로 내용 전송] 또는 직접 작성..."
+                          renderMarkdownToHtml={renderMarkdownToHtml}
+                          fontSize={editorFontSize}
+                          isDrawingOpen={isDrawingOverlayOpen}
+                          onToggleDrawing={() => setIsDrawingOverlayOpen((prev) => !prev)}
+                          onCloseDrawing={() => setIsDrawingOverlayOpen(false)}
+                          isFullscreen={isSection1Collapsed && isSection3Collapsed}
+                          onToggleFullscreen={() => {
+                            const isFocus = isSection1Collapsed && isSection3Collapsed;
+                            if (isFocus) {
+                              setIsSection1Collapsed(false);
+                              setIsSection3Collapsed(false);
+                              showToast('기본 패널 레이아웃이 복원되었습니다.');
+                            } else {
+                              setIsSection1Collapsed(true);
+                              setIsSection3Collapsed(true);
+                              showToast('🎯 문서 집중 모드: 사이드바를 모두 접었습니다.');
+                            }
+                          }}
+                          onToast={showToast}
+                        />
+                      )}
+                    </React.Suspense>
 
                     {/* Table of Contents Floating Sidebar / Drawer Overlay */}
                     {isTocOpen && (
@@ -9710,52 +9749,64 @@ ${projectEvents
         )}
 
         {/* ==================== RIGHT PANE: WorkspaceDrawer (Phase 3.2) ==================== */}
-        <WorkspaceDrawer
-          width={panelWidths.explorer}
-          isResizing={activeResizer === 'explorer'}
-          className={
-            isInitialAnimating
-              ? `transition-[opacity,transform] duration-200 ease-out delay-[80ms] ${
-                  hasInitialMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
-                }`
-              : ''
+        <React.Suspense
+          fallback={
+            <div
+              style={isRightPanelVisible ? { width: `${panelWidths.explorer}px` } : undefined}
+              className={`h-full min-h-0 shrink-0 bg-[#121214] ${
+                isRightPanelVisible ? '' : 'w-0 overflow-hidden'
+              }`}
+              aria-busy="true"
+            />
           }
-          files={files}
-          currentFile={currentActiveFile}
-          onSelectFile={handleOpenFile}
-          onCreateFile={handleCreateNewFile}
-          onDeleteFile={handleDeleteFile}
-          onRenameFile={handleRenameFile}
-          onOpenSSOTModal={handleOpenSSOTGeneratorModal}
-          onOpenDriftModal={() => setIsSsotAuditorOpen(true)}
-          isOpen={isRightPanelVisible}
-          onToggleOpen={() => toggleRightPanel()}
-          sessions={sessions}
-          activeSessionId={activeSessionId}
-          onSelectSession={handleSelectSession}
-          onCreateSession={handleCreateNewSession}
-          onDeleteSession={(sId) => requestDeleteSession(sId)}
-          onRenameSession={handleRenameProject}
-          fileFolders={fileFolders}
-          isCurrentFileDirty={isCurrentFileDirty}
-          searchQuery={searchQuery}
-          onSearchQueryChange={setSearchQuery}
-          openFolders={openFolders}
-          onToggleFolder={(folderKey) =>
-            setOpenFolders((prev) => ({
-              ...prev,
-              [folderKey]: !(prev[folderKey] ?? true),
-            }))
-          }
-          googleUser={googleUser}
-          onOpenGoogleDrive={handleOpenGoogleDrive}
-          onOpenWorkspaceModal={() => setIsWorkspaceModalOpen(true)}
-          githubConfig={githubConfig}
-          githubSyncStatus={githubSyncStatus}
-          docFileInputRef={docFileInputRef}
-          onImportDocumentFiles={handleImportDocumentFiles}
-          onContextMenu={handleOpenFileTreeContextMenu}
-        />
+        >
+          <WorkspaceDrawer
+            width={panelWidths.explorer}
+            isResizing={activeResizer === 'explorer'}
+            className={
+              isInitialAnimating
+                ? `transition-[opacity,transform] duration-200 ease-out delay-[80ms] ${
+                    hasInitialMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
+                  }`
+                : ''
+            }
+            files={files}
+            currentFile={currentActiveFile}
+            onSelectFile={handleOpenFile}
+            onCreateFile={handleCreateNewFile}
+            onDeleteFile={handleDeleteFile}
+            onRenameFile={handleRenameFile}
+            onOpenSSOTModal={handleOpenSSOTGeneratorModal}
+            onOpenDriftModal={() => setIsSsotAuditorOpen(true)}
+            isOpen={isRightPanelVisible}
+            onToggleOpen={() => toggleRightPanel()}
+            sessions={sessions}
+            activeSessionId={activeSessionId}
+            onSelectSession={handleSelectSession}
+            onCreateSession={handleCreateNewSession}
+            onDeleteSession={(sId) => requestDeleteSession(sId)}
+            onRenameSession={handleRenameProject}
+            fileFolders={fileFolders}
+            isCurrentFileDirty={isCurrentFileDirty}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            openFolders={openFolders}
+            onToggleFolder={(folderKey) =>
+              setOpenFolders((prev) => ({
+                ...prev,
+                [folderKey]: !(prev[folderKey] ?? true),
+              }))
+            }
+            googleUser={googleUser}
+            onOpenGoogleDrive={handleOpenGoogleDrive}
+            onOpenWorkspaceModal={() => setIsWorkspaceModalOpen(true)}
+            githubConfig={githubConfig}
+            githubSyncStatus={githubSyncStatus}
+            docFileInputRef={docFileInputRef}
+            onImportDocumentFiles={handleImportDocumentFiles}
+            onContextMenu={handleOpenFileTreeContextMenu}
+          />
+        </React.Suspense>
 
       </main>
 

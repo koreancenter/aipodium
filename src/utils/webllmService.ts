@@ -1,9 +1,4 @@
-import {
-  CreateWebWorkerMLCEngine,
-  prebuiltAppConfig,
-  type WebWorkerMLCEngine,
-  type InitProgressReport
-} from '@mlc-ai/web-llm';
+import type { WebWorkerMLCEngine, InitProgressReport } from '@mlc-ai/web-llm';
 
 export const WEB_LLM_MODEL_ID = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
 export const WEB_LLM_MODEL_DISPLAY_NAME = 'Qwen2.5-0.5B (브라우저 로컬 WebGPU)';
@@ -50,6 +45,7 @@ export async function initWebLLMEngine(
 
   initPromise = (async () => {
     try {
+      const { CreateWebWorkerMLCEngine, prebuiltAppConfig } = await import('@mlc-ai/web-llm');
       engineInstance = await CreateWebWorkerMLCEngine(
         worker,
         WEB_LLM_MODEL_ID,

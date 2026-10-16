@@ -1,24 +1,3 @@
-import * as pdfjsLib from 'pdfjs-dist';
-import mammoth from 'mammoth';
-import TurndownService from 'turndown';
-import * as XLSX from 'xlsx';
-import JSZip from 'jszip';
-import { sanitizeHtml } from '../utils/securitySanitizer';
-
-// Configure PDF.js worker client-side safely
-if (typeof window !== 'undefined') {
-  try {
-    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-        'pdfjs-dist/build/pdf.worker.min.mjs',
-        import.meta.url
-      ).toString();
-    }
-  } catch {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-  }
-}
-
 export type SupportedDocFormat = 'pdf' | 'docx' | 'xlsx' | 'pptx' | 'text' | 'unknown';
 
 export type PdfParserEngine = 'fast' | 'gemini' | 'ollama';
@@ -53,6 +32,23 @@ export interface DocumentConversionResult {
   parserEngine?: PdfParserEngine;
   ollamaModel?: string;
   originalFile?: File;
+}
+
+async function loadPdfJs() {
+  const pdfjsLib = await import('pdfjs-dist');
+
+  if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    try {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+        'pdfjs-dist/build/pdf.worker.min.mjs',
+        import.meta.url
+      ).toString();
+    } catch {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+    }
+  }
+
+  return pdfjsLib;
 }
 
 /**
@@ -195,6 +191,7 @@ export async function convertPdfToMarkdown(
     };
   }
 
+  const pdfjsLib = await loadPdfJs();
   const loadingTask = pdfjsLib.getDocument({
     data: uint8Data,
     useSystemFonts: true,
@@ -553,6 +550,11 @@ export async function convertDocxToMarkdown(
     };
   }
 
+  const [{ default: mammoth }, { default: TurndownService }, { sanitizeHtml }] = await Promise.all([
+    import('mammoth'),
+    import('turndown'),
+    import('../utils/securitySanitizer'),
+  ]);
   const mammothResult = await mammoth.convertToHtml({ arrayBuffer });
   if (mammothResult.messages && mammothResult.messages.length > 0) {
     mammothResult.messages.forEach((msg) => warnings.push(msg.message));
@@ -635,6 +637,7 @@ export async function convertXlsxToMarkdown(
     };
   }
 
+  const XLSX = await import('xlsx');
   const workbook = XLSX.read(arrayBuffer, { type: 'array' });
   const sheetNames = workbook.SheetNames;
 
@@ -712,6 +715,7 @@ export async function convertPptxToMarkdown(
     };
   }
 
+  const { default: JSZip } = await import('jszip');
   const zip = await JSZip.loadAsync(arrayBuffer);
   const parser = new DOMParser();
 
