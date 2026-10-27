@@ -96,8 +96,6 @@ export const GUEST_SAMPLE_FOLDERS: Record<string, string> = {
   'ai_guide.md': '가이드 & 도움말',
   'AI_Architecture_Whitepaper.pdf': '문서 라이브러리',
 };
-<<<<<<< HEAD
-=======
 
 /**
  * Returns a clean, isolated copy of the guest sample workspace files.
@@ -112,4 +110,3 @@ export function getCleanGuestSampleWorkspace(): Record<string, string> {
 export function getCleanGuestSampleFolders(): Record<string, string> {
   return { ...GUEST_SAMPLE_FOLDERS };
 }
->>>>>>> main

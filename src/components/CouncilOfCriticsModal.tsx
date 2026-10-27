@@ -97,20 +97,21 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
   );
 
   const handleCopyReport = async () => {
-    let report = `# 🏛️ 다각도 비평가 위원회 종합 감사 보고서 (Council of Critics Audit)\n\n`;
+    let report = `# 전문가 위원회 다면 평가 보고서\n\n`;
     report += `- **종합 준비도 지수**: ${summary.overallScore}점 / 100점 (${summary.readinessRating})\n`;
-    report += `- **식별된 위험 요인**: 치명적 결함 ${summary.criticalCount}건, 주의 경고 ${summary.warningCount}건\n`;
-    report += `- **감사 일시**: ${summary.analyzedAt} ${summary.isAiEnhanced ? '(Gemini AI 심층 분석 적용)' : '(로컬 정밀 진단)'}\n\n`;
+    report += `- **식별된 위험 요인**: 치명적 ${summary.criticalCount}건, 주의 ${summary.warningCount}건\n`;
+    report += `- **점검 일시**: ${summary.analyzedAt}\n\n`;
 
     summary.critics.forEach((c) => {
-      report += `## ${c.title} (${c.name} - ${c.role})\n`;
+      report += `## ${c.title} · ${c.name} ${c.role}\n`;
       report += `- **판정**: ${c.verdict} (점수: ${c.score}점)\n`;
       if (c.strengths.length > 0) {
         report += `- **강점**: ${c.strengths.join(', ')}\n`;
       }
       report += `\n### 주요 지적 사항 및 보완 권고:\n`;
       c.issues.forEach((issue, idx) => {
-        report += `${idx + 1}. **[${issue.severity.toUpperCase()}] ${issue.title}**\n`;
+        const sevLabel = issue.severity === 'critical' ? '치명적' : issue.severity === 'warning' ? '주의' : '권고';
+        report += `${idx + 1}. **[${sevLabel}] ${issue.title}**\n`;
         report += `   - 현상: ${issue.description}\n`;
         report += `   - 조치 권고: ${issue.recommendation}\n`;
       });
@@ -132,82 +133,68 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150">
         <div
-          className="bg-[#161722] border border-[#222226] rounded-xl shadow-2xl flex flex-col w-full max-w-5xl h-[88vh] overflow-hidden text-slate-100"
+          className="bg-[#121214] border border-[#222226] rounded-xl shadow-2xl flex flex-col w-full max-w-5xl h-[88vh] overflow-hidden text-zinc-200"
           role="dialog"
           aria-modal="true"
         >
           {/* Top Bar Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-[#11121c] border-b border-[#222226]">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-300">
-                <Users className="w-4 h-4" />
+          <div className="flex items-center justify-between px-6 py-4 bg-[#121214] border-b border-[#222226]">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-medium text-zinc-100">
+                  전문가 위원회 다면 평가
+                </h2>
+                {summary.isAiEnhanced && (
+                  <span className="text-[10px] font-sans px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-indigo-400" />
+                    인공지능 정밀 분석
+                  </span>
+                )}
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-bold text-slate-100">
-                    다각도 비평가 위원회 종합 감사 (Council of Critics)
-                  </h2>
-                  {summary.isAiEnhanced && (
-                    <span className="text-[0.625rem] font-mono font-bold px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-indigo-400" />
-                      AI 심층 분석 적용
-                    </span>
-                  )}
-                </div>
-                <p className="text-[0.6875rem] text-slate-400">
-                  기획(PM), 보안, 재무(CFO), 아키텍처 4인의 적대적 다각도 관점에서 문서를 검증합니다.
-                </p>
-              </div>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                기획, 보안, 재무, 아키텍처 4인의 다각도 관점에서 문서를 검증합니다.
+              </p>
             </div>
 
             {/* Close Button */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-1.5 rounded-md hover:bg-[#222226] text-slate-400 hover:text-slate-200 transition cursor-pointer"
-                title="닫기"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-md hover:bg-[#18181b] text-zinc-400 hover:text-zinc-200 transition cursor-pointer"
+              title="닫기"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
           {/* Council Score & Overall Readiness Banner */}
-          <div className="px-4 py-2.5 bg-[#141520] border-b border-[#222226] flex flex-wrap items-center justify-between gap-3">
+          <div className="px-6 py-3 bg-[#09090b] border-b border-[#222226] flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400 font-medium">종합 준비도:</span>
-                <span
-                  className={`text-sm font-mono font-extrabold px-2 py-0.5 rounded-sm border ${
-                    summary.overallScore >= 85
-                      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                      : summary.overallScore >= 60
-                      ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                      : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
-                  }`}
-                >
+                <span className="text-xs text-zinc-400 font-medium">종합 준비도:</span>
+                <span className="text-sm font-mono font-bold text-zinc-100">
                   {summary.overallScore} / 100점
                 </span>
-                <span
-                  className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                    summary.readinessRating === '출시 준비 완료'
-                      ? 'bg-emerald-950 text-emerald-300'
-                      : summary.readinessRating === '조건부 보완 권고'
-                      ? 'bg-amber-950 text-amber-300'
-                      : 'bg-rose-950 text-rose-300'
-                  }`}
-                >
-                  {summary.readinessRating}
+                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/[0.04] border border-[#222226] text-xs text-zinc-300">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      summary.overallScore >= 85
+                        ? 'bg-emerald-400'
+                        : summary.overallScore >= 60
+                        ? 'bg-amber-400'
+                        : 'bg-rose-400'
+                    }`}
+                  />
+                  <span>{summary.readinessRating}</span>
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 text-xs">
-                <span className="flex items-center gap-1 text-rose-400 font-mono font-semibold">
-                  <XCircle className="w-3.5 h-3.5" /> 치명적 {summary.criticalCount}
+              <div className="flex items-center gap-2.5 text-xs">
+                <span className="flex items-center gap-1 text-zinc-300 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> 치명적 {summary.criticalCount}
                 </span>
-                <span className="flex items-center gap-1 text-amber-400 font-mono font-semibold">
-                  <AlertTriangle className="w-3.5 h-3.5" /> 주의 {summary.warningCount}
+                <span className="flex items-center gap-1 text-zinc-300 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> 주의 {summary.warningCount}
                 </span>
               </div>
             </div>
@@ -218,21 +205,21 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
                 type="button"
                 onClick={handleRunAiAudit}
                 disabled={isLoading}
-                className="px-2.5 py-1 rounded-md bg-[#242636] hover:bg-[#2f3248] text-slate-200 hover:text-white border border-[#3b3e55] text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                title="Gemini AI를 통한 다각도 심층 감사 재실행"
+                className="px-2.5 py-1 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 border border-[#222226] text-xs font-medium transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                title="인공지능 다각도 정밀 검사 재실행"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-indigo-400' : ''}`} />
-                <span>{isLoading ? '감사 진행 중...' : 'AI 정밀 감사 실행'}</span>
+                <span>{isLoading ? '분석 진행 중...' : '인공지능 정밀 검사'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsDiffModalOpen(true)}
-                className="px-3 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-                title="비평가 위원회가 권고한 보완책이 반영된 개정안을 현재 문서와 비교 검토합니다"
+                className="px-2.5 py-1 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 border border-[#222226] text-xs font-medium transition flex items-center gap-1.5 cursor-pointer"
+                title="권고 개정안 차이 비교"
               >
                 <GitCompare className="w-3.5 h-3.5" />
-                <span>보완 개정안 Diff 검토</span>
+                <span>개정안 비교 검토</span>
               </button>
             </div>
           </div>
@@ -240,7 +227,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
           {/* Persona Tabs & Main Content */}
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
             {/* Left Sidebar: 4 Critics Selector */}
-            <div className="w-full md:w-64 bg-[#12131c] border-b md:border-b-0 md:border-r border-[#222226] p-2 flex md:flex-col gap-1.5 overflow-x-auto md:overflow-y-auto">
+            <div className="w-full md:w-60 bg-[#09090b] border-b md:border-b-0 md:border-r border-[#222226] p-2.5 flex md:flex-col gap-1 overflow-x-auto md:overflow-y-auto shrink-0">
               {summary.critics.map((critic) => {
                 const isSelected = activePersona === critic.persona;
                 const Icon =
@@ -257,38 +244,22 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
                     key={critic.persona}
                     type="button"
                     onClick={() => setActivePersona(critic.persona)}
-                    className={`text-left p-2.5 rounded-lg transition flex items-center justify-between gap-2.5 cursor-pointer shrink-0 md:shrink border ${
+                    className={`text-left p-2.5 rounded-lg transition flex items-center justify-between gap-2 cursor-pointer shrink-0 md:shrink border ${
                       isSelected
-                        ? 'bg-indigo-950/60 border-indigo-500/60 text-white shadow-xs'
-                        : 'border-transparent hover:bg-[#1c1e2d] text-slate-300'
+                        ? 'bg-white/[0.08] border-[#222226] text-white'
+                        : 'border-transparent hover:bg-white/[0.04] text-zinc-400 hover:text-zinc-200'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div
-                        className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${
-                          isSelected
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-[#212332] text-slate-400'
-                        }`}
-                      >
-                        <Icon className="w-3.5 h-3.5" />
-                      </div>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Icon className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                       <div className="min-w-0">
-                        <div className="text-xs font-bold truncate">{critic.role}</div>
-                        <div className="text-[0.6875rem] text-slate-400 truncate">{critic.name}</div>
+                        <div className="text-xs font-medium truncate">{critic.role}</div>
+                        <div className="text-[11px] text-zinc-400 truncate">{critic.name}</div>
                       </div>
                     </div>
 
                     <div className="text-right shrink-0">
-                      <span
-                        className={`text-[0.6875rem] font-mono font-bold px-1.5 py-0.5 rounded ${
-                          critic.score >= 80
-                            ? 'bg-emerald-500/15 text-emerald-300'
-                            : critic.score >= 60
-                            ? 'bg-amber-500/15 text-amber-300'
-                            : 'bg-rose-500/15 text-rose-300'
-                        }`}
-                      >
+                      <span className="text-xs font-mono font-medium text-zinc-300">
                         {critic.score}점
                       </span>
                     </div>
@@ -298,31 +269,23 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
             </div>
 
             {/* Right Pane: Selected Critic Findings & Recommendations */}
-            <div className="flex-1 overflow-y-auto p-4 bg-[#141520] space-y-4">
+            <div className="flex-1 overflow-y-auto p-6 bg-[#121214] space-y-4">
               {currentCritic && (
                 <>
                   {/* Critic Profile Card */}
-                  <div className="p-3.5 rounded-xl bg-[#1a1c2a] border border-[#222226] flex flex-wrap items-center justify-between gap-3">
+                  <div className="p-4 rounded-lg bg-[#09090b] border border-[#222226] flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-bold text-slate-100">
+                        <h3 className="text-xs font-medium text-zinc-100">
                           {currentCritic.title}
                         </h3>
-                        <span className="text-xs text-slate-400">
-                          ({currentCritic.name} · {currentCritic.role})
+                        <span className="text-xs text-zinc-400">
+                          · {currentCritic.name} {currentCritic.role}
                         </span>
                       </div>
                       <div className="mt-1 flex items-center gap-2 text-xs">
-                        <span className="text-slate-400 font-medium">검토 판정:</span>
-                        <span
-                          className={`font-bold px-2 py-0.2 rounded text-[0.6875rem] ${
-                            currentCritic.verdict === '승인'
-                              ? 'bg-emerald-950 text-emerald-300'
-                              : currentCritic.verdict === '조건부 승인'
-                              ? 'bg-amber-950 text-amber-300'
-                              : 'bg-rose-950 text-rose-300'
-                          }`}
-                        >
+                        <span className="text-zinc-400 font-medium">검토 판정:</span>
+                        <span className="text-zinc-200 font-medium">
                           {currentCritic.verdict}
                         </span>
                       </div>
@@ -331,11 +294,11 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
                     {/* Strengths summary */}
                     {currentCritic.strengths.length > 0 && (
                       <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                        <span className="text-slate-400 text-[0.6875rem]">인정된 강점:</span>
+                        <span className="text-zinc-400 text-xs">인정된 강점:</span>
                         {currentCritic.strengths.map((str, idx) => (
                           <span
                             key={idx}
-                            className="px-2 py-0.5 rounded-md bg-emerald-950/50 border border-emerald-800/40 text-emerald-300 text-[0.6875rem] flex items-center gap-1"
+                            className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-[#222226] text-zinc-300 text-xs flex items-center gap-1"
                           >
                             <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                             <span>{str}</span>
@@ -345,52 +308,47 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
                     )}
                   </div>
 
-                  {/* Issues & Recommendations List */}
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-400 px-1">
-                      <span>핵심 지적 사항 및 시정 조치 권고 ({currentCritic.issues.length}건)</span>
+                  {/* Issues & Recommendations List (Flat rows with single border-b border-[#222226] py-3.5) */}
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-zinc-400 pb-2 border-b border-[#222226]">
+                      <span>핵심 지적 사항 및 시정 조치 권고 · 총 {currentCritic.issues.length}건</span>
                     </div>
 
                     {currentCritic.issues.length === 0 ? (
-                      <div className="p-8 text-center rounded-xl bg-[#181926] border border-[#222226] text-slate-400 space-y-2">
-                        <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
-                        <div className="text-sm font-semibold text-slate-200">
-                          이 관점에서는 중대한 결함이 발견되지 않았습니다.
+                      <div className="py-12 text-center text-zinc-400 space-y-2">
+                        <CheckCircle2 className="w-7 h-7 text-emerald-400 mx-auto" />
+                        <div className="text-xs font-medium text-zinc-200">
+                          이 관점에서는 중대한 결함이 발견되지 않았습니다
                         </div>
-                        <p className="text-xs text-slate-500">
-                          현재 작성된 내용이 해당 영역의 거버넌스 및 요구사항을 충족하고 있습니다.
+                        <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                          현재 작성된 내용이 해당 영역의 기준 및 요구사항을 온전히 충족하고 있습니다.
                         </p>
                       </div>
                     ) : (
                       currentCritic.issues.map((issue) => (
                         <div
                           key={issue.id}
-                          className={`p-3.5 rounded-xl border transition ${
-                            issue.severity === 'critical'
-                              ? 'bg-rose-950/15 border-rose-500/30'
-                              : issue.severity === 'warning'
-                              ? 'bg-amber-950/15 border-amber-500/30'
-                              : 'bg-indigo-950/15 border-indigo-500/30'
-                          }`}
+                          className="border-b border-[#222226] py-4 space-y-2 last:border-b-0"
                         >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
                               <span
-                                className={`text-[0.625rem] font-bold uppercase px-1.5 py-0.5 rounded font-mono ${
+                                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                                   issue.severity === 'critical'
-                                    ? 'bg-rose-500/20 text-rose-300'
+                                    ? 'bg-rose-500'
                                     : issue.severity === 'warning'
-                                    ? 'bg-amber-500/20 text-amber-300'
-                                    : 'bg-indigo-500/20 text-indigo-300'
+                                    ? 'bg-amber-400'
+                                    : 'bg-emerald-400'
                                 }`}
-                              >
+                              />
+                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/[0.04] text-zinc-300 border border-[#222226] font-medium shrink-0">
                                 {issue.severity === 'critical'
                                   ? '치명적'
                                   : issue.severity === 'warning'
-                                  ? '경고'
+                                  ? '주의'
                                   : '권고'}
                               </span>
-                              <h4 className="text-xs font-bold text-slate-100">{issue.title}</h4>
+                              <h4 className="text-xs font-medium text-zinc-100 truncate">{issue.title}</h4>
                             </div>
 
                             {issue.targetLine && onJumpToLine && (
@@ -400,25 +358,22 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
                                   onJumpToLine(issue.targetLine!);
                                   onClose();
                                 }}
-                                className="px-2 py-0.5 rounded bg-[#202230] hover:bg-[#2b2d42] text-slate-300 text-[0.6875rem] font-mono flex items-center gap-1 transition cursor-pointer"
-                                title="에디터의 해당 행으로 포커스 이동"
+                                className="px-2 py-0.5 rounded bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 text-xs font-mono flex items-center gap-1 transition cursor-pointer border border-[#222226]"
+                                title="해당 줄로 이동"
                               >
-                                <span>L{issue.targetLine} 이동</span>
-                                <ArrowUpRight className="w-3 h-3 text-slate-400" />
+                                <span>{issue.targetLine}줄</span>
+                                <ArrowUpRight className="w-3 h-3 text-zinc-400" />
                               </button>
                             )}
                           </div>
 
-                          <p className="mt-2 text-xs text-slate-300 leading-relaxed">
+                          <p className="text-xs text-zinc-400 leading-relaxed">
                             {issue.description}
                           </p>
 
-                          <div className="mt-2.5 p-2 rounded-lg bg-[#11121c] border border-[#222226]/60 text-xs flex items-start gap-2">
-                            <Info className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
-                            <div>
-                              <span className="font-semibold text-indigo-300">시정 방안: </span>
-                              <span className="text-slate-300">{issue.recommendation}</span>
-                            </div>
+                          <div className="text-xs text-zinc-300 pt-1 flex items-start gap-1.5">
+                            <span className="text-indigo-400 font-medium shrink-0">권장 조치:</span>
+                            <span className="text-zinc-400">{issue.recommendation}</span>
                           </div>
                         </div>
                       ))
@@ -430,21 +385,21 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
           </div>
 
           {/* Footer Actions */}
-          <div className="px-4 py-3 bg-[#11121c] border-t border-[#222226] flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="px-6 py-4 bg-[#09090b] border-t border-[#222226] flex flex-col sm:flex-row items-center justify-between gap-3">
             <button
               type="button"
               onClick={handleCopyReport}
-              className="px-3 py-1.5 rounded-lg border border-[#222226] bg-[#1a1c2a] hover:bg-[#18181b] text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              className="px-3 py-1.5 rounded-md border border-[#222226] bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 hover:text-white transition flex items-center gap-1.5 text-xs font-medium cursor-pointer"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? '보고서 복사 완료!' : '종합 감사 보고서 클립보드 복사'}</span>
+              <span>{copied ? '복사 완료' : '종합 평가 보고서 복사'}</span>
             </button>
 
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-1.5 rounded-md border border-[#222226] hover:bg-[#18181b] text-slate-400 hover:text-slate-200 text-xs font-medium transition cursor-pointer"
+                className="px-3.5 py-1.5 rounded-md hover:bg-[#18181b] text-zinc-400 hover:text-zinc-200 text-xs font-medium transition cursor-pointer"
               >
                 닫기
               </button>
@@ -452,10 +407,10 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsDiffModalOpen(true)}
-                className="px-4 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-indigo-950 cursor-pointer"
+                className="px-4 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition flex items-center gap-1.5 shadow-sm cursor-pointer"
               >
                 <GitCompare className="w-3.5 h-3.5" />
-                <span>비평 반영 개정안 비교 검토 및 적용</span>
+                <span>개정안 비교 검토 및 적용</span>
               </button>
             </div>
           </div>
@@ -469,7 +424,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
         originalContent={content}
         proposedContent={summary.revisedDocument}
         title="비평가 위원회 권고 개정안 차이 비교"
-        sourceLabel="Council of Critics Revision"
+        sourceLabel="위원회 권고 개정안"
         onApplyRevisions={(revised) => {
           onApplyRevisions(revised);
           setIsDiffModalOpen(false);

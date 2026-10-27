@@ -1,7 +1,16 @@
-import { WebWorkerMLCEngineHandler } from '@mlc-ai/web-llm';
+// Web Worker for WebLLM with on-demand dynamic import
+let handlerPromise: Promise<{ onmessage: (msg: MessageEvent) => void }> | null = null;
 
-// Hook up the MLC engine to handle Web Worker messages
-const handler = new WebWorkerMLCEngineHandler();
-self.onmessage = (msg: MessageEvent) => {
+async function getHandler() {
+  if (!handlerPromise) {
+    handlerPromise = import('@mlc-ai/web-llm').then(({ WebWorkerMLCEngineHandler }) => {
+      return new WebWorkerMLCEngineHandler();
+    });
+  }
+  return handlerPromise;
+}
+
+self.onmessage = async (msg: MessageEvent) => {
+  const handler = await getHandler();
   handler.onmessage(msg);
 };

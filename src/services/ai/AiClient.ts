@@ -7,20 +7,14 @@ import type {
   AiProviderAdapter,
   AiProviderType,
   AiInferenceOptions,
-<<<<<<< HEAD
-  AiInferenceResult
-=======
   AiInferenceResult,
   AiDomainProfile
->>>>>>> main
 } from './types';
 import { CloudAdapter } from './adapters/CloudAdapter';
 import { OllamaAdapter } from './adapters/OllamaAdapter';
 import { WebLlmAdapter } from './adapters/WebLlmAdapter';
-<<<<<<< HEAD
-=======
 import { applyAiDomainProfile } from './profiles';
->>>>>>> main
+
 
 export class AiClient {
   private adapters: Map<string, AiProviderAdapter> = new Map();
@@ -52,18 +46,11 @@ export class AiClient {
    */
   async streamCompletion(
     provider: AiProviderType,
-<<<<<<< HEAD
-    options: AiInferenceOptions
-  ): Promise<AiInferenceResult> {
-    const adapter = this.getAdapter(provider);
-    return adapter.stream(options);
-=======
     options: AiInferenceOptions,
     profile?: AiDomainProfile
   ): Promise<AiInferenceResult> {
     const adapter = this.getAdapter(provider);
     return adapter.stream(profile ? applyAiDomainProfile(options, profile) : options);
->>>>>>> main
   }
 
   /**
@@ -96,12 +83,6 @@ export class AiClient {
     const systemPrompt = isTargetKorean
       ? '당신은 전문 다국어 번역 비서입니다. 사용자가 제공하는 텍스트를 가장 자연스럽고 명확한 표준 한국어로 충실하게 직독직해 및 의역하여 번역하세요. 설명이나 부연 설명 없이 오직 번역된 본문만을 출력하세요.'
       : `You are an expert translator. Translate the given text into fluent, natural ${targetLanguage}. Output only the translation without any explanations.`;
-<<<<<<< HEAD
-
-    let resultText = '';
-    const res = await this.streamCompletion(provider, {
-      model: model || (provider === 'cloud' ? 'gemini-2.5-flash' : undefined),
-=======
     const availableModels = provider === 'cloud'
       ? []
       : await this.getAvailableModels(provider);
@@ -113,7 +94,6 @@ export class AiClient {
     let resultText = '';
     const res = await this.streamCompletion(provider, {
       model: selectedModel,
->>>>>>> main
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: text }
@@ -128,9 +108,7 @@ export class AiClient {
     return resultText.trim() || res.fullText.trim();
   }
 }
-<<<<<<< HEAD
 
 // Export singleton instance
 export const aiClient = new AiClient();
-=======
->>>>>>> main
+

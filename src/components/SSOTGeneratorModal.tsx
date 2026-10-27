@@ -218,7 +218,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
     ? availableModels
     : DEFAULT_FALLBACK_MODEL_OPTIONS;
 
-  // Close custom dropdowns on outside click
+  // Close custom dropdowns on outside click or Escape key
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (folderDropdownRef.current && !folderDropdownRef.current.contains(e.target as Node)) {
@@ -228,9 +228,17 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
         setIsModelDropdownOpen(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsFolderDropdownOpen(false);
+        setIsModelDropdownOpen(false);
+      }
+    };
     document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
@@ -438,7 +446,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
 
     if (!sourceContent.trim() && !chatContext.trim()) {
       if (onToast) {
-        onToast('⚠️ 분석할 에디터 내용이나 대화 내역이 없습니다.', 'warn');
+        onToast('분석할 에디터 내용이나 대화 내역이 없습니다.', 'warn');
       }
       return;
     }
@@ -485,26 +493,25 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 font-sans">
-      <div className="relative bg-[#121214] border border-[#222226] rounded-xl max-w-[620px] w-full p-6 shadow-2xl space-y-4 text-slate-200 flex flex-col">
-        
-        {/* Minimal Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-1.5 rounded-md hover:bg-[#18181b] transition cursor-pointer"
-          title="닫기"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
+      <div className="relative bg-[#121214] border border-[#222226] rounded-xl max-w-[620px] w-full p-6 shadow-2xl space-y-4 text-zinc-200 flex flex-col">
         {/* Header */}
-        <div className="space-y-1 pt-0.5 border-b border-[#222226] pb-3">
-          <h2 className="text-base font-semibold text-slate-200 tracking-tight">
-            기준 문서 생성기
-          </h2>
-          <p className="text-xs text-slate-400">
-            선택한 소스 파일들과 작성 지시사항을 바탕으로 마스터 기준 문서를 생성합니다.
-          </p>
+        <div className="px-6 py-4 border-b border-[#222226] flex items-center justify-between -mx-6 -mt-6 mb-1">
+          <div>
+            <h2 className="text-sm font-medium text-zinc-100 tracking-tight">
+              기준 문서 생성기
+            </h2>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              선택한 소스 파일들과 작성 지시사항을 바탕으로 마스터 기준 문서를 생성합니다.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-zinc-400 hover:text-zinc-200 p-1.5 rounded-md hover:bg-[#18181b] transition cursor-pointer"
+            title="닫기"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Form */}
@@ -515,7 +522,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
             {/* Target Folder */}
             <div className="space-y-1.5 relative" ref={folderDropdownRef}>
               <div className="flex items-center justify-between h-5">
-                <label className="text-xs text-slate-300 font-medium">
+                <label className="text-xs text-zinc-300 font-medium">
                   대상 소스 폴더
                 </label>
                 {currentFolderFiles.length > 0 && (
@@ -536,18 +543,18 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                 onClick={() => {
                   setIsFolderDropdownOpen((prev) => !prev);
                 }}
-                className="w-full h-8 bg-[#09090b] border border-[#222226] rounded-md px-2.5 text-xs text-slate-200 hover:bg-[#18181b] hover:border-[#333338] flex items-center justify-between transition cursor-pointer text-left focus:outline-none focus:border-[#6366f1]"
+                className="w-full bg-[#09090b] border border-[#222226] hover:border-zinc-700 rounded-md px-3 py-1.5 text-xs text-zinc-200 flex items-center justify-between transition-colors cursor-pointer text-left focus:outline-none"
               >
                 <span className="truncate font-sans leading-none">
-                  {selectedFolder} ({filesByFolder[selectedFolder]?.length || 0}개 파일)
+                  {selectedFolder} · {filesByFolder[selectedFolder]?.length || 0}개 파일
                 </span>
-                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-150 ${isFolderDropdownOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-150 ${isFolderDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Dropdown Menu (absolute top-full, isolated from layout flow) */}
               {isFolderDropdownOpen && (
-                <div className="absolute top-full left-0 w-full z-50 mt-1 shadow-2xl bg-[#1c1c21] border border-white/[0.12] rounded-xl overflow-hidden max-h-48 overflow-y-auto p-1 text-xs text-slate-200 divide-y divide-[#222226]/50">
-                  <div className="space-y-0.5 pb-0.5">
+                <div className="absolute top-full left-0 w-full z-50 mt-1.5 shadow-2xl bg-[#16181d] border border-white/[0.08] rounded-lg overflow-hidden max-h-48 overflow-y-auto p-1 text-xs text-zinc-200">
+                  <div className="space-y-0.5">
                     {folderOptions.map((f) => {
                       const isCurrent = f === selectedFolder;
                       const count = filesByFolder[f] ? filesByFolder[f].length : 0;
@@ -556,13 +563,13 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                           key={f}
                           type="button"
                           onClick={() => handleFolderChange(f)}
-                          className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between transition cursor-pointer ${
+                          className={`w-full px-2.5 py-1.5 rounded-md text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
                             isCurrent
-                              ? 'bg-white/[0.08] text-white font-medium'
-                              : 'text-slate-300 hover:bg-white/[0.08] hover:text-white'
+                              ? 'bg-indigo-500/10 text-indigo-300 font-medium'
+                              : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
                           }`}
                         >
-                          <span className="truncate">{f} ({count}개 파일)</span>
+                          <span className="truncate">{f} · {count}개 파일</span>
                           {isCurrent && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
                         </button>
                       );
@@ -575,7 +582,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
             {/* Save Filename */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between h-5">
-                <label className="text-xs text-slate-300 font-medium">
+                <label className="text-xs text-zinc-300 font-medium">
                   저장 파일명
                 </label>
               </div>
@@ -585,9 +592,9 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                   value={docBaseName}
                   onChange={(e) => setDocBaseName(e.target.value.replace(/\.md$/i, ''))}
                   placeholder="프로젝트_마스터문서"
-                  className="flex-1 h-full bg-transparent px-2.5 text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-none min-w-0"
+                  className="flex-1 h-full bg-transparent px-2.5 text-xs font-mono text-zinc-200 placeholder:text-zinc-500 focus:outline-none min-w-0"
                 />
-                <span className="h-full bg-[#121214] border-l border-[#222226] px-2 flex items-center text-xs text-slate-400 font-mono select-none shrink-0">
+                <span className="h-full bg-[#121214] border-l border-[#222226] px-2 flex items-center text-xs text-zinc-400 font-mono select-none shrink-0">
                   .md
                 </span>
               </div>
@@ -597,7 +604,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
           {/* Collapsible Detailed File Picker */}
           {showFilePicker && currentFolderFiles.length > 0 && (
             <div className="bg-[#09090b] border border-[#222226] rounded-md p-2.5 space-y-1.5 max-h-28 overflow-y-auto">
-              <div className="text-[0.6875rem] text-slate-400 font-normal px-0.5">
+              <div className="text-[0.6875rem] text-zinc-400 font-normal px-0.5">
                 포함할 소스 파일 선택:
               </div>
               <div className="grid grid-cols-2 gap-1.5">
@@ -609,7 +616,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                       className={`flex items-center gap-1.5 p-1.5 rounded-md text-[0.6875rem] border cursor-pointer transition ${
                         isChecked
                           ? 'border-[#6366f1] bg-[#6366f1]/20 text-white'
-                          : 'border-[#222226] bg-[#0c0c0e] text-slate-400 hover:text-slate-200'
+                          : 'border-[#222226] bg-[#0c0c0e] text-zinc-400 hover:text-zinc-200'
                       }`}
                     >
                       <input
@@ -629,7 +636,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
           {/* Prompt & Instructions with Integrated Attachment Bar */}
           <div className="space-y-1.5 relative">
             <div className="flex items-center justify-between">
-              <label className="text-xs text-slate-300 font-medium">
+              <label className="text-xs text-zinc-300 font-medium">
                 작성 지시사항 및 프롬프트
               </label>
               <span className="text-[0.6875rem] bg-[#09090b] text-indigo-300 border border-[#222226] px-1.5 py-0.5 rounded-sm font-mono select-none">
@@ -645,14 +652,14 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                 onChange={handleTextareaChange}
                 onKeyDown={handleTextareaKeyDown}
                 rows={4}
-                placeholder="폴더 내 파일들을 바탕으로 어떤 마스터 문서를 만들지 지시사항을 입력하세요. (@를 누르면 소스 파일을 빠르게 호출할 수 있습니다.)"
-                className="w-full bg-transparent p-3 pb-1 text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:outline-none resize-none leading-relaxed min-h-[96px]"
+                placeholder="폴더 내 파일들을 바탕으로 어떤 마스터 문서를 만들지 지시사항을 입력하세요. @ 입력 시 소스 파일을 빠르게 호출할 수 있습니다."
+                className="w-full bg-transparent p-3 pb-1 text-xs font-mono text-zinc-200 placeholder:text-zinc-500 focus:outline-none resize-none leading-relaxed min-h-[96px]"
               />
 
               {/* Integrated Bottom Action Bar */}
               <div className="flex items-center justify-between px-2.5 pb-2 pt-1 border-t border-[#222226]/60">
                 <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                  {/* Hidden File Input for Word, Excel, PPT, PDF, Markdown, Text */}
+                  {/* Hidden File Input */}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -666,8 +673,8 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isParsingTemplate}
-                    className="p-1 hover:bg-[#18181b] text-slate-400 hover:text-slate-200 rounded transition flex items-center justify-center cursor-pointer disabled:opacity-50"
-                    title="서식 기준 파일 첨부 (Word, Excel, PPT, PDF 등)"
+                    className="p-1 hover:bg-[#18181b] text-zinc-400 hover:text-zinc-200 rounded transition flex items-center justify-center cursor-pointer disabled:opacity-50"
+                    title="서식 기준 파일 첨부"
                   >
                     <Paperclip className="w-3.5 h-3.5" />
                   </button>
@@ -676,7 +683,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                   <button
                     type="button"
                     onClick={handleTriggerMention}
-                    className="p-1 hover:bg-[#18181b] text-slate-400 hover:text-slate-200 rounded transition flex items-center justify-center cursor-pointer"
+                    className="p-1 hover:bg-[#18181b] text-zinc-400 hover:text-zinc-200 rounded transition flex items-center justify-center cursor-pointer"
                     title="소스 파일 멘션"
                   >
                     <AtSign className="w-3.5 h-3.5" />
@@ -690,14 +697,14 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                     </div>
                   )}
 
-                  {/* Parsing complete chip: 📄 [파일명] (서식 템플릿 준비됨) */}
+                  {/* Parsing complete chip */}
                   {!isParsingTemplate && templateFileName && (
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-200 bg-[#18181b] border border-[#222226] px-2 py-0.5 rounded max-w-[360px] select-none">
-                      <span className="truncate">📄 {templateFileName} (서식 템플릿 준비됨)</span>
+                    <div className="flex items-center gap-1.5 text-[11px] text-zinc-200 bg-[#18181b] border border-[#222226] px-2 py-0.5 rounded max-w-[360px] select-none">
+                      <span className="truncate">📄 {templateFileName} · 서식 템플릿 준비 완료</span>
                       <button
                         type="button"
                         onClick={handleRemoveTemplate}
-                        className="text-slate-400 hover:text-rose-400 p-0.5 rounded transition cursor-pointer shrink-0"
+                        className="text-zinc-400 hover:text-rose-400 p-0.5 rounded transition cursor-pointer shrink-0"
                         title="서식 템플릿 제거"
                       >
                         <X className="w-3 h-3" />
@@ -724,7 +731,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
               {/* Interactive @ Mention Dropdown */}
               {showMentionPopup && filteredMentions.length > 0 && (
                 <div className="absolute left-0 bottom-full mb-1 w-full bg-[#121214] border border-[#222226] rounded-lg shadow-2xl max-h-48 overflow-y-auto z-50 p-1 divide-y divide-[#222226]">
-                  <div className="px-2.5 py-1.5 text-xs font-medium text-slate-400 flex items-center justify-between bg-[#09090b] rounded-t-md">
+                  <div className="px-2.5 py-1.5 text-xs font-medium text-zinc-400 flex items-center justify-between bg-[#09090b] rounded-t-md">
                     <span>멘션 선택 · 방향키 탐색 및 엔터 삽입</span>
                     <span className="text-xs text-indigo-400 font-mono">@{mentionQuery}</span>
                   </div>
@@ -738,7 +745,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                           className={`px-2.5 py-1.5 rounded-md cursor-pointer flex items-center justify-between transition ${
                             isActive
                               ? 'bg-[#6366f1] text-white'
-                              : 'hover:bg-white/10 text-slate-300'
+                              : 'hover:bg-white/10 text-zinc-300'
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -763,96 +770,97 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
 
           {/* Modal Footer with Model Selector & Action Buttons */}
           <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-[#222226]">
-            {/* Left: Model Selector */}
-            <div className="relative" ref={modelDropdownRef}>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400 flex items-center gap-1.5 shrink-0 select-none">
-                  <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" />
-                  <span>구동 모델:</span>
-                </span>
+            {/* Left: Model Selector Trigger & Popover strictly anchored */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-zinc-400 flex items-center gap-1.5 shrink-0 select-none">
+                <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" />
+                <span>구동 모델:</span>
+              </span>
+
+              <div className="relative" ref={modelDropdownRef}>
                 <button
                   type="button"
                   onClick={() => setIsModelDropdownOpen((prev) => !prev)}
-                  className="h-8 bg-[#09090b] border border-[#222226] rounded-md px-2.5 text-xs text-slate-200 hover:bg-[#18181b] hover:border-[#333338] flex items-center gap-2 cursor-pointer transition max-w-[260px] focus:outline-none focus:border-[#6366f1]"
+                  className="bg-[#09090b] border border-[#222226] hover:border-zinc-700 rounded-md px-3 py-1.5 text-xs text-zinc-200 flex items-center justify-between transition-colors cursor-pointer gap-2 max-w-[260px] focus:outline-none"
                 >
                   <span className="truncate font-sans font-medium">
                     {selectedModelObj?.name || selectedModelId}
                   </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#18181b] border border-[#222226] text-slate-400 shrink-0 font-medium">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#18181b] border border-[#222226] text-zinc-400 shrink-0 font-medium">
                     {selectedModelObj?.group === 'local' ? '로컬' : '클라우드'}
                   </span>
-                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-150 ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-150 ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
+
+                {/* Dropdown Options Popup (absolute bottom-full left-0 mb-2 w-64 bg-[#16181d] border border-white/[0.08] rounded-lg shadow-2xl p-1 z-50) */}
+                {isModelDropdownOpen && (
+                  <div className="absolute bottom-full left-0 mb-2 w-64 max-h-56 overflow-y-auto bg-[#16181d] border border-white/[0.08] rounded-lg shadow-2xl p-1 z-50">
+                    {cloudModels.length > 0 && (
+                      <div className="space-y-0.5 pb-1">
+                        <div className="px-2.5 py-1 text-[10px] text-zinc-500 font-medium select-none">
+                          클라우드 모델
+                        </div>
+                        <div className="space-y-0.5">
+                          {cloudModels.map((m) => {
+                            const isSelected = selectedModelId === m.id;
+                            return (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedModelId(m.id);
+                                  onModelChange?.(m.id);
+                                  setIsModelDropdownOpen(false);
+                                }}
+                                className={`w-full px-2.5 py-1.5 rounded-md text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-indigo-500/10 text-indigo-300 font-medium'
+                                    : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
+                                }`}
+                              >
+                                <span className="truncate">{m.name}</span>
+                                {isSelected && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {localModels.length > 0 && (
+                      <div className="space-y-0.5 pt-1 border-t border-white/[0.06]">
+                        <div className="px-2.5 py-1 text-[10px] text-zinc-500 font-medium select-none">
+                          로컬 AI
+                        </div>
+                        <div className="space-y-0.5">
+                          {localModels.map((m) => {
+                            const isSelected = selectedModelId === m.id;
+                            return (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedModelId(m.id);
+                                  onModelChange?.(m.id);
+                                  setIsModelDropdownOpen(false);
+                                }}
+                                className={`w-full px-2.5 py-1.5 rounded-md text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-indigo-500/10 text-indigo-300 font-medium'
+                                    : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
+                                }`}
+                              >
+                                <span className="truncate">{m.name}</span>
+                                {isSelected && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-
-              {/* Dropdown Options Popup (absolute, bottom-full so it doesn't push modal height) */}
-              {isModelDropdownOpen && (
-                <div className="absolute left-0 bottom-full mb-1.5 w-64 max-h-56 overflow-y-auto bg-[#121214] border border-[#222226] rounded-lg shadow-xl p-1 z-50 divide-y divide-[#222226]/50">
-                  {cloudModels.length > 0 && (
-                    <div className="space-y-0.5 pb-1">
-                      <div className="px-2.5 py-1 text-[11px] font-medium text-slate-400 select-none">
-                        클라우드 모델
-                      </div>
-                      <div className="space-y-0.5">
-                        {cloudModels.map((m) => {
-                          const isSelected = selectedModelId === m.id;
-                          return (
-                            <button
-                              key={m.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedModelId(m.id);
-                                onModelChange?.(m.id);
-                                setIsModelDropdownOpen(false);
-                              }}
-                              className={`w-full text-left text-xs px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer ${
-                                isSelected
-                                  ? 'bg-[#6366f1]/15 text-[#818cf8] font-medium'
-                                  : 'text-slate-300 hover:bg-[#18181b] hover:text-white'
-                              }`}
-                            >
-                              <span className="truncate">{m.name}</span>
-                              {isSelected && <Check className="w-3.5 h-3.5 text-[#6366f1] shrink-0 ml-1" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {localModels.length > 0 && (
-                    <div className="space-y-0.5 pt-1">
-                      <div className="px-2.5 py-1 text-[11px] font-medium text-slate-400 select-none">
-                        로컬 모델
-                      </div>
-                      <div className="space-y-0.5">
-                        {localModels.map((m) => {
-                          const isSelected = selectedModelId === m.id;
-                          return (
-                            <button
-                              key={m.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedModelId(m.id);
-                                onModelChange?.(m.id);
-                                setIsModelDropdownOpen(false);
-                              }}
-                              className={`w-full text-left text-xs px-2.5 py-1.5 rounded-md flex items-center justify-between transition cursor-pointer ${
-                                isSelected
-                                  ? 'bg-[#6366f1]/15 text-[#818cf8] font-medium'
-                                  : 'text-slate-300 hover:bg-[#18181b] hover:text-white'
-                              }`}
-                            >
-                              <span className="truncate">{m.name}</span>
-                              {isSelected && <Check className="w-3.5 h-3.5 text-[#6366f1] shrink-0 ml-1" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Right: Action Buttons */}
@@ -860,7 +868,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-1.5 rounded-md text-xs text-slate-400 hover:text-slate-200 hover:bg-[#18181b] transition whitespace-nowrap cursor-pointer shrink-0"
+                className="px-3.5 py-1.5 rounded-md text-xs text-zinc-400 hover:text-zinc-200 hover:bg-[#18181b] transition whitespace-nowrap cursor-pointer shrink-0"
               >
                 취소
               </button>

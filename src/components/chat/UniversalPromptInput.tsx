@@ -56,6 +56,8 @@ export interface UniversalPromptInputProps {
   localEndpointAddress?: string;
   onSelectDefaultLocalTag?: (tag: string) => void;
   onOpenRoleModal?: () => void;
+  onOpenSettings?: (tab?: string) => void;
+  apiKeys?: Record<string, string>;
 
   // Ghost Writer State
   ghostWriterLevel?: GhostWriterLevel;
@@ -103,6 +105,8 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
   localEndpointAddress,
   onSelectDefaultLocalTag,
   onOpenRoleModal,
+  onOpenSettings,
+  apiKeys,
   ghostWriterLevel = 'off',
   ghostTargetEnglish = '',
   ghostTemplateText = '',
@@ -636,11 +640,10 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
             onModeChange={onModeChange}
             availableChatModels={availableChatModels}
             onOpenRoleModal={onOpenRoleModal}
+            onOpenSettings={onOpenSettings}
+            apiKeys={apiKeys}
             onShowToast={onToast}
-<<<<<<< HEAD
             provider={provider as any}
-=======
->>>>>>> main
             onSelectProvider={onSelectProvider}
             onRefreshOllama={onRefreshOllama}
             localEndpoint={localEndpointAddress}

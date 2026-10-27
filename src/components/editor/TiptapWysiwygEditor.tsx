@@ -384,7 +384,7 @@ export const TiptapWysiwygEditor = memo(
           {/* Main Document Body (Clean, Full Viewport) */}
           <div className="flex-1 w-full overflow-y-auto custom-scrollbar">
             <div
-              className="max-w-3xl mx-auto px-6 py-8 min-h-full"
+              className="max-w-3xl mx-auto px-8 py-10 min-h-full"
               style={{ fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 12px)' }}
             >
               <EditorContent editor={editor} />

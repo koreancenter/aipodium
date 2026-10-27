@@ -1,27 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-<<<<<<< HEAD
-  aiClient,
-  CloudAdapter,
-  OllamaAdapter,
-  WebLlmAdapter,
-  AiChatMessage,
-  AiInferenceOptions
-=======
   AiClient,
   CloudAdapter,
   OllamaAdapter,
   WebLlmAdapter,
->>>>>>> main
+
 } from '../src/services/ai';
 import { UnifiedEditor } from '../src/components/editor';
 
 test('1. AiClient Facade: Registers default adapters and resolves correctly', () => {
-<<<<<<< HEAD
-=======
   const aiClient = new AiClient();
->>>>>>> main
+
   assert.ok(aiClient, 'aiClient instance should exist');
 
   const cloudAdapter = aiClient.getAdapter('cloud');
@@ -140,12 +130,6 @@ test('4. OllamaAdapter.stream handles NDJSON line stream', async () => {
 });
 
 test('5. WebLlmAdapter exposes getModels and isAvailable', async () => {
-<<<<<<< HEAD
-  const adapter = new WebLlmAdapter();
-  const models = await adapter.getModels();
-  assert.equal(models.length, 1);
-  assert.equal(models[0].id, 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC');
-=======
   const adapter = new WebLlmAdapter({
     model: { id: 'test-webllm-model', name: 'Test WebLLM' },
     isAvailable: () => false,
@@ -156,20 +140,13 @@ test('5. WebLlmAdapter exposes getModels and isAvailable', async () => {
   const models = await adapter.getModels();
   assert.equal(models.length, 1);
   assert.equal(models[0].id, 'test-webllm-model');
->>>>>>> main
+
 
   // In Node environment without WebGPU, isAvailable returns false
   const available = await adapter.isAvailable();
   assert.equal(available, false);
 });
 
-<<<<<<< HEAD
-test('6. UnifiedEditor is exported and adheres to controlled component props', () => {
-  assert.equal(typeof UnifiedEditor, 'function', 'UnifiedEditor should be a React component');
-});
-
-test('7. Editor modularization structure verification', async () => {
-=======
 test('6. WebLlmAdapter delegates inference to its injected runtime', async () => {
   let streamedMessages: Array<{ role: string; content: string }> = [];
   let streamedTemperature = -1;
@@ -207,7 +184,7 @@ test('7. UnifiedEditor is exported and adheres to controlled component props', (
 });
 
 test('8. Editor modularization structure verification', async () => {
->>>>>>> main
+
   const fs = await import('node:fs');
   const path = await import('node:path');
 
@@ -228,7 +205,4 @@ test('8. Editor modularization structure verification', async () => {
   assert.match(appContent, /<UnifiedEditor/);
   assert.match(appContent, /aiClient\.streamCompletion/);
 });
-<<<<<<< HEAD
 
-=======
->>>>>>> main

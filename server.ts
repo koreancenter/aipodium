@@ -95,22 +95,6 @@ function generateLocalAssistantResponse(message: string, editorContent: string, 
 async function startServer() {
   const app = express();
   const PORT = 3000;
-<<<<<<< HEAD
-
-  // Comprehensive Security Headers & Strict Content-Security-Policy (CSP)
-  app.use((req, res, next) => {
-    const cspDirectives = [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "font-src 'self' data: https://fonts.gstatic.com",
-      "img-src 'self' data: blob: https:",
-      "connect-src 'self' http://localhost:11434 http://127.0.0.1:11434 https://generativelanguage.googleapis.com https://api.openai.com https://api.anthropic.com https://api.deepseek.com https://api.groq.com ws: wss:",
-      "media-src 'self' data: blob:",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "frame-ancestors 'self' https:"
-=======
   const isProduction = process.env.NODE_ENV === "production";
 
   // Vite injects inline development tooling; deployed production CSP remains strict.
@@ -128,16 +112,11 @@ async function startServer() {
       "media-src 'self' data: blob:",
       "object-src 'none'",
       "base-uri 'self'",
-      "frame-ancestors 'self'"
->>>>>>> main
+      "frame-ancestors 'self' https:"
     ].join('; ');
 
     res.setHeader('Content-Security-Policy', cspDirectives);
     res.setHeader('X-Content-Type-Options', 'nosniff');
-<<<<<<< HEAD
-=======
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
->>>>>>> main
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -198,11 +177,7 @@ async function startServer() {
       // Gemini Provider Verification
       let effectiveApiKey = process.env.GEMINI_API_KEY || '';
       const sanitizedKey = trimmedKey.trim();
-<<<<<<< HEAD
-      if (sanitizedKey && ((sanitizedKey.startsWith('AIza') && sanitizedKey.length > 20) || /^[A-Za-z0-9_\-]{20,128}$/.test(sanitizedKey))) {
-=======
       if (sanitizedKey && ((sanitizedKey.startsWith('AIza') && sanitizedKey.length > 20) || /^[A-Za-z0-9_\-.]{20,128}$/.test(sanitizedKey))) {
->>>>>>> main
         effectiveApiKey = sanitizedKey;
       }
 
@@ -254,26 +229,26 @@ async function startServer() {
 
       const catalogMap: Record<string, Array<{ id: string; name: string; desc: string; tier: string }>> = {
         gemini: [
-          { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', desc: '초고속 종합', tier: '⚡ Ultra Fast' },
-          { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', desc: '고성능·추론', tier: '💎 Premium Depth' },
-          { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash-Lite', desc: '초저지연', tier: '⚡ Lightning Fast' }
+          { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'Fast · 일상/요약', tier: '⚡ Ultra Fast • 무료 티어' },
+          { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'Reasoning · 심층/설계', tier: '💎 Premium Depth' },
+          { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', desc: 'Light · 초고속', tier: '⚡ Lightweight' }
         ],
         openai: [
-          { id: 'gpt-4o', name: 'GPT-4o', desc: '플래그십', tier: '🌟 Flagship' },
-          { id: 'gpt-4o-mini', name: 'GPT-4o Mini', desc: '고속 경량', tier: '⚡ Fast' },
-          { id: 'o3-mini', name: 'o3-mini', desc: '심층 추론', tier: '🧠 Reasoning' }
+          { id: 'gpt-4o', name: 'GPT-4o', desc: 'Omni · 고성능', tier: '🌟 Flagship Omni' },
+          { id: 'gpt-4o-mini', name: 'GPT-4o mini', desc: 'Fast · 경량화', tier: '⚡ Efficient Fast' },
+          { id: 'o3-mini', name: 'o3-mini', desc: 'Reasoning · 심층 추론', tier: '🧠 Advanced Reasoning' }
         ],
         anthropic: [
-          { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', desc: '정밀 코딩', tier: '🎯 Precision' },
-          { id: 'claude-3.5-haiku', name: 'Claude 3.5 Haiku', desc: '초경량 고속', tier: '⚡ Fast' }
+          { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', desc: 'Advanced · 코드/설계', tier: '🎯 Elite Coding' },
+          { id: 'claude-3.5-haiku', name: 'Claude 3.5 Haiku', desc: 'Fast · 초고속 응답', tier: '⚡ Instant Response' }
         ],
         deepseek: [
-          { id: 'deepseek-r1', name: 'DeepSeek R1', desc: '심층 추론', tier: '🧠 High Reasoning' },
-          { id: 'deepseek-v3', name: 'DeepSeek V3', desc: '가성비 코딩', tier: '⚖️ Balanced' }
+          { id: 'deepseek-chat', name: 'DeepSeek V3', desc: 'General · 범용/코딩', tier: '🌐 Ultra Cost-Effective' },
+          { id: 'deepseek-reasoner', name: 'DeepSeek R1', desc: 'Reasoning · 심층 추론', tier: '🧠 Open Reasoning' }
         ],
         groq: [
-          { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B Groq', desc: '초고속 LPU', tier: '⚡ LPU Fast' },
-          { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B', desc: 'MoE 고속', tier: '⚡ High Throughput' }
+          { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B (Groq)', desc: 'Ultra Fast · 초고속 LPU', tier: '⚡ LPU Inference' },
+          { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B (Groq)', desc: 'Instant · 즉각 응답', tier: '⚡ Instant LPU' }
         ]
       };
 
@@ -422,12 +397,9 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
         if (typeof parameters.maxTokens === 'number' && !isNaN(parameters.maxTokens)) {
           config.maxOutputTokens = Math.max(1, Math.min(8192, Math.floor(parameters.maxTokens)));
         }
-<<<<<<< HEAD
-=======
         if (parameters.responseFormat === 'json') {
           config.responseMimeType = 'application/json';
         }
->>>>>>> main
       }
 
       const chat = ai.chats.create({

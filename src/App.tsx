@@ -1,19 +1,15 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+// import { UnifiedEditor } from './components/editor';
 import type { UnifiedEditorRef } from './components/editor/UnifiedEditor';
 import type { PdfViewerHandle, PdfViewerState } from './components/PdfViewer';
 import { SAMPLE_PDF_DATA_URL } from './data/samplePdfData';
 import { motion, AnimatePresence } from 'motion/react';
 import { googleDriveService, GoogleUserProfile, DriveFolderInfo } from './services/googleDriveService';
-import { GoogleDrivePickerModal } from './components/GoogleDrivePickerModal';
-import { PreferencesModal, UserPreferences, DEFAULT_PREFERENCES, AiInferenceParameters, DEFAULT_AI_PARAMETERS, applyThemeToDocument, PromptTemplate } from './components/PreferencesModal';
-import { PromptLibraryModal, DEFAULT_SYSTEM_PROMPTS } from './components/PromptLibraryModal';
-import { GoogleAccountModal } from './components/GoogleAccountModal';
-import { GithubIntegrationModal, GithubConfig } from './components/GithubIntegrationModal';
+import { PreferencesTab, UserPreferences, DEFAULT_PREFERENCES, AiInferenceParameters, DEFAULT_AI_PARAMETERS, applyThemeToDocument, PromptTemplate } from './components/PreferencesModal';
+import { DEFAULT_SYSTEM_PROMPTS } from './components/PromptLibraryModal';
+import { GithubConfig } from './components/GithubIntegrationModal';
 import { GithubSyncStatusIndicator, GitHubSyncStatus } from './components/GithubSyncStatusIndicator';
-import { SSOTGeneratorModal, SSOTGeneratorConfig } from './components/SSOTGeneratorModal';
-import { WorkspaceConnectionModal } from './components/WorkspaceConnectionModal';
-import { SaveUntitledModal } from './components/SaveUntitledModal';
-import { DocumentConverterModal } from './components/DocumentConverterModal';
+import { SSOTGeneratorConfig } from './components/SSOTGeneratorModal';
 import type { DocumentConversionResult } from './services/documentConverterService';
 import {
   ActiveWorkspace,
@@ -27,14 +23,12 @@ import {
   syncDocToGithub,
   pullDocumentsFromGithub,
   purgeGuestSession,
-<<<<<<< HEAD
-=======
   purgeGuestWorkspaceData,
   createInitialEmptySession,
   getCleanGuestSampleWorkspace,
   getCleanGuestSampleFolders,
   blockStorageWrites,
->>>>>>> main
+
   workspaceStorageService,
   createProject,
   generateProjectTitleFromPrompt,
@@ -71,13 +65,8 @@ import { TableGridPicker } from './components/TableGridPicker';
 import { MarkdownHelpPopover } from './components/MarkdownHelpPopover';
 import { TiptapWysiwygEditorRef } from './components/TiptapWysiwygEditor';
 import { generateEmptyTable } from './utils/markdownTableHelper';
-import { SSOTDriftAuditor } from './components/SSOTDriftAuditor';
 import { FreeformDrawingOverlay } from './components/FreeformDrawingOverlay';
 import { analyzeSSOTDriftLocally } from './utils/ssotDriftEngine';
-import { CouncilOfCriticsModal } from './components/CouncilOfCriticsModal';
-import { GhostDiffModal } from './components/GhostDiffModal';
-import { AiRoleAssignmentModal } from './components/AiRoleAssignmentModal';
-import { AiEngineOnboardingModal } from './components/AiEngineOnboardingModal';
 import { LinkAttachmentInput } from './components/LinkAttachmentInput';
 import { AiMessageBubble } from './components/AiMessageBubble';
 import { evaluateDocumentLocally } from './utils/criticsEngine';
@@ -109,6 +98,7 @@ import {
   getLoadedWebLLMEngine,
   streamWebLLMCompletion
 } from './utils/webllmService';
+import { parseTocItems, TocItem } from './utils/tocHelper';
 import type {
   ChatAttachment,
   ChatMessage,
@@ -132,28 +122,19 @@ import {
   isEncryptedPayload,
   clearSensitiveClipboard,
   hasMasterPinConfigured,
-<<<<<<< HEAD
-  purgeGuestWorkspaceData,
-=======
->>>>>>> main
+
 } from './utils/securityCrypto';
 import {
   aiClient,
   clearAiDecryptedKeyMemory,
   verifyGeminiApiKeyDetailed,
-<<<<<<< HEAD
-} from './services/ai';
-=======
 } from './services/aiPodiumIntegration';
->>>>>>> main
+
 import {
   Brain,
   Cpu,
   Route,
-<<<<<<< HEAD
-  Bot,
-=======
->>>>>>> main
+
   User,
   Send,
   Trash2,
@@ -233,16 +214,11 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   PanelRight,
-<<<<<<< HEAD
-  PanelRightClose,
-=======
->>>>>>> main
-  PanelRightOpen
+  PanelRightOpen,
+  MessageSquare
 } from 'lucide-react';
 
-const UnifiedEditor = React.lazy(() =>
-  import('./components/editor/UnifiedEditor').then(({ UnifiedEditor: component }) => ({ default: component }))
-);
+
 const ChatPanel = React.lazy(() =>
   import('./components/chat/ChatPanel').then(({ ChatPanel: component }) => ({ default: component }))
 );
@@ -251,6 +227,51 @@ const WorkspaceDrawer = React.lazy(() =>
 );
 const PdfViewer = React.lazy(() =>
   import('./components/PdfViewer').then(({ PdfViewer: component }) => ({ default: component }))
+);
+const UnifiedEditor = React.lazy(() =>
+  import('./components/editor/UnifiedEditor').then(({ UnifiedEditor: component }) => ({ default: component }))
+);
+const GoogleDrivePickerModal = React.lazy(() =>
+  import('./components/GoogleDrivePickerModal').then(({ GoogleDrivePickerModal: component }) => ({ default: component }))
+);
+const GoogleAccountModal = React.lazy(() =>
+  import('./components/GoogleAccountModal').then(({ GoogleAccountModal: component }) => ({ default: component }))
+);
+const GithubIntegrationModal = React.lazy(() =>
+  import('./components/GithubIntegrationModal').then(({ GithubIntegrationModal: component }) => ({ default: component }))
+);
+const PromptLibraryModal = React.lazy(() =>
+  import('./components/PromptLibraryModal').then(({ PromptLibraryModal: component }) => ({ default: component }))
+);
+const PreferencesModal = React.lazy(() =>
+  import('./components/PreferencesModal').then(({ PreferencesModal: component }) => ({ default: component }))
+);
+const SSOTGeneratorModal = React.lazy(() =>
+  import('./components/SSOTGeneratorModal').then(({ SSOTGeneratorModal: component }) => ({ default: component }))
+);
+const WorkspaceConnectionModal = React.lazy(() =>
+  import('./components/WorkspaceConnectionModal').then(({ WorkspaceConnectionModal: component }) => ({ default: component }))
+);
+const DocumentConverterModal = React.lazy(() =>
+  import('./components/DocumentConverterModal').then(({ DocumentConverterModal: component }) => ({ default: component }))
+);
+const SaveUntitledModal = React.lazy(() =>
+  import('./components/SaveUntitledModal').then(({ SaveUntitledModal: component }) => ({ default: component }))
+);
+const CouncilOfCriticsModal = React.lazy(() =>
+  import('./components/CouncilOfCriticsModal').then(({ CouncilOfCriticsModal: component }) => ({ default: component }))
+);
+const AiRoleAssignmentModal = React.lazy(() =>
+  import('./components/AiRoleAssignmentModal').then(({ AiRoleAssignmentModal: component }) => ({ default: component }))
+);
+const GhostDiffModal = React.lazy(() =>
+  import('./components/GhostDiffModal').then(({ GhostDiffModal: component }) => ({ default: component }))
+);
+const AiEngineOnboardingModal = React.lazy(() =>
+  import('./components/AiEngineOnboardingModal').then(({ AiEngineOnboardingModal: component }) => ({ default: component }))
+);
+const SSOTDriftAuditor = React.lazy(() =>
+  import('./components/SSOTDriftAuditor').then(({ SSOTDriftAuditor: component }) => ({ default: component }))
 );
 
 type MarkdownRenderer = typeof import('./utils/markdownParser').renderMarkdownToHtml;
@@ -542,7 +563,7 @@ export default function App() {
   });
 
   const [selectedModel, setSelectedModel] = useState<string>(() => {
-    const raw = roleModels.chat || preferences.defaultModel || DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-2.5-flash';
+    const raw = preferences.defaultModel || roleModels.chat || DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-2.5-flash';
     return raw === 'gemini-3.8-flash' ? 'gemini-2.5-flash' : raw;
   });
   const [aiParameters, setAiParameters] = useState<AiInferenceParameters>(() => {
@@ -578,6 +599,18 @@ export default function App() {
     } catch {}
     showToast('역할별 AI 모델 배치가 성공적으로 저장되었습니다.', 'success');
   }, [preferences, showToast]);
+
+  const handleSelectModel = useCallback((modelId: string) => {
+    setSelectedModel(modelId);
+    setPreferences((prev) => {
+      const updated = { ...prev, defaultModel: modelId };
+      saveSafePreferences(updated);
+      return updated;
+    });
+    if (auth?.setDefaultModel) {
+      auth.setDefaultModel(modelId);
+    }
+  }, [auth]);
 
   useEffect(() => {
     try {
@@ -684,35 +717,41 @@ export default function App() {
 
   // Unified available models for chat panel (Single, Routing, Multi)
   const availableChatModels = useMemo(() => {
-    const cloudModels: { id: string; name: string; desc: string; group: 'cloud' | 'local' }[] = [];
+    const cloudModels: { id: string; name: string; desc: string; group: 'cloud' | 'local'; vendor?: any; hasApiKey?: boolean }[] = [];
 
     // 1. Include dynamically fetched active vendor models
-    Object.entries(dynamicProviderModels).forEach(([_vendor, models]) => {
+    Object.entries(dynamicProviderModels).forEach(([vendor, models]) => {
       models.forEach((m) => {
         if (!cloudModels.some((cm) => cm.id === m.id)) {
           cloudModels.push({
             id: m.id,
             name: m.name,
-            desc: '활성 프로바이더',
-            group: 'cloud'
+            desc: (m as any).desc || '활성 프로바이더',
+            group: 'cloud',
+            vendor: vendor as any,
+            hasApiKey: Boolean(apiKeys[vendor]?.trim())
           });
         }
       });
     });
 
-    // 2. Include default fallback cloud models
+    // 2. Include default fallback cloud models with vendor & hasApiKey metadata
     DEFAULT_FALLBACK_MODELS.filter((m) => m.group === 'cloud').forEach((m) => {
       if (!cloudModels.some((cm) => cm.id === m.id)) {
+        const v = m.vendor || 'gemini';
+        const hasKey = Boolean(apiKeys[v]?.trim());
         cloudModels.push({
           id: m.id,
           name: m.name,
           desc: m.desc || '',
-          group: 'cloud'
+          group: 'cloud',
+          vendor: v,
+          hasApiKey: hasKey
         });
       }
     });
 
-    const localModels: { id: string; name: string; desc: string; group: 'cloud' | 'local' }[] = [];
+    const localModels: { id: string; name: string; desc: string; group: 'cloud' | 'local'; vendor?: any }[] = [];
 
     if (discoveredLocalModels.length > 0) {
       discoveredLocalModels.forEach((dm) => {
@@ -720,7 +759,8 @@ export default function App() {
           id: dm.id,
           name: dm.name,
           desc: 'Ollama 감지',
-          group: 'local'
+          group: 'local',
+          vendor: 'ollama'
         });
       });
     } else {
@@ -730,7 +770,8 @@ export default function App() {
             id: dl.id,
             name: dl.name,
             desc: dl.desc || '',
-            group: 'local'
+            group: 'local',
+            vendor: dl.vendor || 'ollama'
           });
         }
       });
@@ -741,7 +782,8 @@ export default function App() {
         id: WEB_LLM_MODEL_ID,
         name: WEB_LLM_MODEL_DISPLAY_NAME,
         desc: '브라우저 WebGPU',
-        group: 'local'
+        group: 'local',
+        vendor: 'webllm'
       });
     }
 
@@ -751,12 +793,13 @@ export default function App() {
         id: selectedModel,
         name: selectedModel,
         desc: provider === 'cloud' ? '커스텀 클라우드' : '커스텀 로컬',
-        group: provider === 'cloud' ? 'cloud' : 'local'
+        group: provider === 'cloud' ? 'cloud' : 'local',
+        vendor: provider === 'cloud' ? getVendorForModel(selectedModel) : 'ollama'
       });
     }
 
     return all;
-  }, [dynamicProviderModels, discoveredLocalModels, selectedModel, provider, webllmProgress.isReady]);
+  }, [dynamicProviderModels, discoveredLocalModels, selectedModel, provider, webllmProgress.isReady, apiKeys]);
 
   // Dynamic model options for Ghost Writer synchronized with available models
   const ghostWriterModelOptions = useMemo(() => {
@@ -770,43 +813,26 @@ export default function App() {
   }, [availableChatModels]);
 
   const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState<boolean>(false);
-  const [preferencesInitialTab, setPreferencesInitialTab] = useState<'ai-engine' | 'persona' | 'integrations' | 'storage' | 'security' | 'ghost-writer'>('ai-engine');
+  const [preferencesInitialTab, setPreferencesInitialTab] = useState<PreferencesTab>('ai');
   const [isPromptLibraryModalOpen, setIsPromptLibraryModalOpen] = useState<boolean>(false);
 
   // Chat Sessions State (Projects)
   const [sessions, setSessions] = useState<ChatSession[]>([
-<<<<<<< HEAD
-    {
-      id: 'session-default',
-      title: 'AI 지식 비서',
-      createdAt: '방금 전',
-      fileName: 'Untitled-1',
-      editorTab: 'wysiwyg',
-      editorContent: '',
-      messages: []
-    }
-=======
     createInitialEmptySession()
->>>>>>> main
+
   ]);
   const [activeSessionId, setActiveSessionId] = useState<string>('session-default');
   const activeProjectId = activeSessionId;
   const setActiveProjectId = setActiveSessionId;
   const [isProjectListOpen, setIsProjectListOpen] = useState<boolean>(() => {
     try {
-<<<<<<< HEAD
-      const saved = localStorage.getItem('aipodium_project_drawer_open');
-      return saved !== null ? saved === 'true' : false; // default collapsed or respect user choice
-    } catch {
-      return false;
-=======
       const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 1280 : true;
       const saved = localStorage.getItem('aipodium_project_drawer_open');
       // On desktop screens (>= 1280px), initialize with open project list cleanly visible
       return saved !== null ? saved === 'true' : isDesktop;
     } catch {
       return true;
->>>>>>> main
+
     }
   });
 
@@ -1093,8 +1119,6 @@ export default function App() {
   const lastPushedContentRef = useRef<Record<string, string>>({});
   const isPushingGithubRef = useRef(false);
 
-<<<<<<< HEAD
-=======
   // Auto-Save debounced timer ref & storage blocking ref for clean guest purge
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isStorageWriteBlockedRef = useRef<boolean>(false);
@@ -1123,7 +1147,7 @@ export default function App() {
     blockStorageWrites(true);
   }, []);
 
->>>>>>> main
+
   const handleGoogleSignIn = async () => {
     try {
       const { profile } = await googleDriveService.signIn();
@@ -1441,6 +1465,8 @@ export default function App() {
   const [editorContent, setEditorContent] = useState<string>('');
   const [editorTab, setEditorTab] = useState<'wysiwyg' | 'edit' | 'split' | 'preview'>('wysiwyg');
   const [isTocOpen, setIsTocOpen] = useState<boolean>(false);
+  const [activeTocIndex, setActiveTocIndex] = useState<number>(0);
+  const tocItemRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const [isSsotAuditorOpen, setIsSsotAuditorOpen] = useState<boolean>(false);
   const [showMarkdownHelp, setShowMarkdownHelp] = useState<boolean>(false);
   const [showTablePicker, setShowTablePicker] = useState<boolean>(false);
@@ -1503,73 +1529,20 @@ export default function App() {
   }, []);
 
   // Multi-Tab Document States (Single Unified VS Code-like Tab Bar)
-<<<<<<< HEAD
-  const [openTabs, setOpenTabs] = useState<string[]>(['Untitled-1']);
-  // In-Memory Untitled Document States (Temporary tabs without physical files)
-  const [untitledDocs, setUntitledDocs] = useState<Record<string, string>>({ 'Untitled-1': '' });
-=======
   const [openTabs, setOpenTabs] = useState<string[]>(['Untitled-1.md']);
   // In-Memory Untitled Document States (Temporary tabs without physical files)
   const [untitledDocs, setUntitledDocs] = useState<Record<string, string>>({ 'Untitled-1.md': '' });
->>>>>>> main
+
   const untitledCounterRef = useRef<number>(2);
   const [isSaveUntitledModalOpen, setIsSaveUntitledModalOpen] = useState<boolean>(false);
 
   // File Explorer State
-<<<<<<< HEAD
-  const [files, setFiles] = useState<Record<string, string>>({
-    'architecture_overview.md': `# 시스템 아키텍처 개요\n\n## 프론트엔드\n- Tailwind CSS 기반 3-Pane Split UI\n- 빠르고 직관적인 고속 에디터 & 챗\n\n## 백엔드 & 2차 가공\n- Express Server & AI 2차 가공 파이프라인 (Word, Excel, Code, Slides, Manual)`,
-    'api_specifications.md': `# API 스펙 문서\n\n## POST /api/chat\n- Description: AI 대화 요청 처리\n- Headers: Authorization Bearer API_KEY`,
-    'AI_Podium_word_doc.html': `<!DOCTYPE html>
-<html lang="ko">
-<head><meta charset="UTF-8"><title>AI Podium Report</title></head>
-<body style="font-family: sans-serif; padding: 2rem; color: #1e293b; background: #f8fafc;">
-  <div style="max-width: 800px; margin: 0 auto; background: #fff; padding: 2rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-    <h1 style="color: #4f46e5;">📄 AI Podium 기술 보고서</h1>
-    <p>본 문서는 프로젝트 폴더 내 원본 대화 및 수집 노트를 기반으로 AI에 의해 생성된 편집 가능한 HTML 문서입니다.</p>
-    <hr style="border: 0; border-top: 1px solid #cbd5e1; margin: 1.5rem 0;" />
-    <h2>1. 프로젝트 개요</h2>
-    <p>속도와 직관성에 중점을 둔 통합 AI 아키텍처 작업공간입니다.</p>
-  </div>
-</body>
-</html>`,
-    'project_analysis_sheet.html': `<!DOCTYPE html>
-<html lang="ko">
-<head><meta charset="UTF-8"><title>Project Sheet</title></head>
-<body style="font-family: sans-serif; padding: 2rem; background: #0f172a; color: #f8fafc;">
-  <div style="max-width: 900px; margin: 0 auto; background: #1e293b; padding: 1.5rem; border-radius: 8px;">
-    <h2 style="color: #38bdf8;">📊 프로젝트 마일스톤 및 예산 시트</h2>
-    <table style="width: 100%; border-collapse: collapse; margin-top: 1rem; color: #e2e8f0;">
-      <thead><tr style="background: #334155;"><th style="padding: 8px; border: 1px solid #475569;">항목</th><th style="padding: 8px; border: 1px solid #475569;">담당</th><th style="padding: 8px; border: 1px solid #475569;">진척도</th></tr></thead>
-      <tbody>
-        <tr><td style="padding: 8px; border: 1px solid #475569;">SSOT 지식 수집</td><td style="padding: 8px; border: 1px solid #475569;">AI Podium</td><td style="padding: 8px; border: 1px solid #475569; color: #4ade80;">100% 완료</td></tr>
-        <tr><td style="padding: 8px; border: 1px solid #475569;">2차 가공 파이프라인</td><td style="padding: 8px; border: 1px solid #475569;">AI Engine</td><td style="padding: 8px; border: 1px solid #475569; color: #4ade80;">100% 가동중</td></tr>
-      </tbody>
-    </table>
-  </div>
-</body>
-</html>`,
-    'README.md': `# AI Podium 3-Pane AI Architecture\n\nAI 대화, SSOT 지식 수집, 그리고 2차 가공(Word, Sheets, Slides, Manual, Code)을 하나의 통합 워크스페이스에서 제공합니다.`,
-    'AI_Architecture_Whitepaper.pdf': SAMPLE_PDF_DATA_URL
-  });
-  const [currentActiveFile, setCurrentActiveFile] = useState<string>('Untitled-1');
-
-  // File Explorer Folder Assignments & Drag-and-Drop State
-  const [fileFolders, setFileFolders] = useState<Record<string, string>>({
-    'architecture_overview.md': 'AI 지식 비서',
-    'api_specifications.md': 'AI 지식 비서',
-    'AI_Architecture_Whitepaper.pdf': '문서 라이브러리',
-    'AI_Podium_word_doc.html': 'AI 지식 비서',
-    'project_analysis_sheet.html': 'AI 지식 비서',
-    'README.md': 'AI 지식 비서'
-  });
-=======
   const [files, setFiles] = useState<Record<string, string>>(() => getCleanGuestSampleWorkspace());
   const [currentActiveFile, setCurrentActiveFile] = useState<string>('Untitled-1.md');
 
   // File Explorer Folder Assignments & Drag-and-Drop State
   const [fileFolders, setFileFolders] = useState<Record<string, string>>(() => getCleanGuestSampleFolders());
->>>>>>> main
+
   const [draggedType, setDraggedType] = useState<'project' | 'file' | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverTargetId, setDragOverTargetId] = useState<string | null>(null);
@@ -2420,15 +2393,6 @@ export default function App() {
   }, []);
 
   // Persist toggle states in localStorage:
-<<<<<<< HEAD
-  // aipodium_left_panel_visible: boolean
-  // aipodium_right_panel_visible: boolean
-  const [isLeftPanelVisible, setIsLeftPanelVisible] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    const saved = localStorage.getItem('aipodium_left_panel_visible');
-    if (saved !== null) return saved === 'true';
-    return window.innerWidth >= 1024;
-=======
   // aipodium_left_drawer_open: boolean
   // aipodium_right_drawer_open: boolean
   const [isLeftPanelVisible, setIsLeftPanelVisible] = useState<boolean>(() => {
@@ -2437,20 +2401,15 @@ export default function App() {
     if (window.innerWidth >= 1280) return true;
     const saved = localStorage.getItem('aipodium_left_drawer_open') ?? localStorage.getItem('aipodium_left_panel_visible');
     return saved === 'true';
->>>>>>> main
+
   });
 
   const [isRightPanelVisible, setIsRightPanelVisible] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true;
-<<<<<<< HEAD
-    const saved = localStorage.getItem('aipodium_right_panel_visible');
-    if (saved !== null) return saved === 'true';
-    return window.innerWidth >= 1024;
-=======
     if (window.innerWidth >= 1280) return true;
     const saved = localStorage.getItem('aipodium_right_drawer_open') ?? localStorage.getItem('aipodium_right_panel_visible');
     return saved === 'true';
->>>>>>> main
+
   });
 
   const [isSection2Collapsed, setIsSection2Collapsed] = useState<boolean>(false);
@@ -2464,10 +2423,8 @@ export default function App() {
       const nextCollapsed = typeof collapsed === 'function' ? collapsed(!prevVisible) : collapsed;
       const nextVisible = !nextCollapsed;
       try {
-<<<<<<< HEAD
-=======
         localStorage.setItem('aipodium_left_drawer_open', String(nextVisible));
->>>>>>> main
+
         localStorage.setItem('aipodium_left_panel_visible', String(nextVisible));
       } catch {}
       return nextVisible;
@@ -2479,10 +2436,8 @@ export default function App() {
       const nextCollapsed = typeof collapsed === 'function' ? collapsed(!prevVisible) : collapsed;
       const nextVisible = !nextCollapsed;
       try {
-<<<<<<< HEAD
-=======
         localStorage.setItem('aipodium_right_drawer_open', String(nextVisible));
->>>>>>> main
+
         localStorage.setItem('aipodium_right_panel_visible', String(nextVisible));
       } catch {}
       return nextVisible;
@@ -2493,10 +2448,8 @@ export default function App() {
     setIsLeftPanelVisible((prev) => {
       const next = typeof force === 'boolean' ? force : !prev;
       try {
-<<<<<<< HEAD
-=======
         localStorage.setItem('aipodium_left_drawer_open', String(next));
->>>>>>> main
+
         localStorage.setItem('aipodium_left_panel_visible', String(next));
       } catch {}
       return next;
@@ -2507,10 +2460,8 @@ export default function App() {
     setIsRightPanelVisible((prev) => {
       const next = typeof force === 'boolean' ? force : !prev;
       try {
-<<<<<<< HEAD
-=======
         localStorage.setItem('aipodium_right_drawer_open', String(next));
->>>>>>> main
+
         localStorage.setItem('aipodium_right_panel_visible', String(next));
       } catch {}
       return next;
@@ -2518,15 +2469,6 @@ export default function App() {
   }, []);
 
   const applyDefaultPanelsForCurrentDevice = useCallback(() => {
-<<<<<<< HEAD
-    const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 1024 : true;
-    if (isDesktop) {
-      setIsLeftPanelVisible(true);
-      setIsRightPanelVisible(true);
-      try {
-        localStorage.setItem('aipodium_left_panel_visible', 'true');
-        localStorage.setItem('aipodium_right_panel_visible', 'true');
-=======
     const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 1280 : true;
     if (isDesktop) {
       setIsLeftPanelVisible(true);
@@ -2538,19 +2480,16 @@ export default function App() {
         localStorage.setItem('aipodium_right_drawer_open', 'true');
         localStorage.setItem('aipodium_right_panel_visible', 'true');
         localStorage.setItem('aipodium_project_drawer_open', 'true');
->>>>>>> main
+
       } catch {}
     } else {
       setIsLeftPanelVisible(false);
       setIsRightPanelVisible(false);
       try {
-<<<<<<< HEAD
-        localStorage.setItem('aipodium_left_panel_visible', 'false');
-=======
         localStorage.setItem('aipodium_left_drawer_open', 'false');
         localStorage.setItem('aipodium_left_panel_visible', 'false');
         localStorage.setItem('aipodium_right_drawer_open', 'false');
->>>>>>> main
+
         localStorage.setItem('aipodium_right_panel_visible', 'false');
       } catch {}
     }
@@ -2560,15 +2499,10 @@ export default function App() {
   // Responsive fallback on mobile/tablet viewport resize and default golden ratio calculation
   useEffect(() => {
     const handleResize = () => {
-<<<<<<< HEAD
-      if (window.innerWidth < 1024) {
-        const savedLeft = localStorage.getItem('aipodium_left_panel_visible');
-        const savedRight = localStorage.getItem('aipodium_right_panel_visible');
-=======
       if (window.innerWidth < 1280) {
         const savedLeft = localStorage.getItem('aipodium_left_drawer_open') ?? localStorage.getItem('aipodium_left_panel_visible');
         const savedRight = localStorage.getItem('aipodium_right_drawer_open') ?? localStorage.getItem('aipodium_right_panel_visible');
->>>>>>> main
+
         if (savedLeft === null) setIsLeftPanelVisible(false);
         if (savedRight === null) setIsRightPanelVisible(false);
       } else {
@@ -2612,16 +2546,7 @@ export default function App() {
     }
   }, [currentActiveFile]);
 
-<<<<<<< HEAD
-  // Initial check on mount if active file is a PDF
-  useEffect(() => {
-    if (currentActiveFile.toLowerCase().endsWith('.pdf')) {
-      setIsLeftPanelVisible(false);
-    }
-  }, []);
 
-=======
->>>>>>> main
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const tiptapEditorRef = useRef<TiptapWysiwygEditorRef>(null);
@@ -3229,14 +3154,6 @@ export default function App() {
 
   // Auto-save sessions, active session, editor content & files to IndexedDB & localStorage on change (Debounced 400ms)
   useEffect(() => {
-<<<<<<< HEAD
-    // CRITICAL: Prevent saving wiped/sanitized empty states to persistent storage while locked
-    if (isLocked) {
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-=======
     // CRITICAL: Prevent saving wiped/sanitized empty states to persistent storage while locked or write-blocked
     if (isLocked || isStorageWriteBlockedRef.current) {
       return;
@@ -3250,7 +3167,7 @@ export default function App() {
       if (isLocked || isStorageWriteBlockedRef.current) {
         return;
       }
->>>>>>> main
+
       try {
         const vaultKey = activeVaultKeyRef.current;
         if (vaultKey) {
@@ -3302,16 +3219,13 @@ export default function App() {
       }
     }, 400);
 
-<<<<<<< HEAD
-    return () => clearTimeout(timer);
-=======
     return () => {
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
         autoSaveTimerRef.current = null;
       }
     };
->>>>>>> main
+
   }, [sessions, activeSessionId, trashSessions, editorContent, files, currentActiveFile, fileFolders, openTabs, isLocked]);
 
   // Drag and Drop Handlers for Project Folders & Files in Explorer & Sidebar
@@ -5707,37 +5621,153 @@ export default function App() {
 
 
 
-  // Table of Contents (TOC) Heading Parser & Navigator
-  const getTocItems = (content: string) => {
-    const lines = content.split('\n');
-    const items: { text: string; level: 1 | 2 | 3; lineIndex: number; charOffset: number }[] = [];
-    let charOffset = 0;
+  // Real-time optimized Table of Contents (TOC) Heading List
+  const tocItems = useMemo(() => {
+    return parseTocItems(editorContent);
+  }, [editorContent]);
 
-    lines.forEach((line, index) => {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('# ')) {
-        items.push({ text: trimmed.replace(/^#\s+/, ''), level: 1, lineIndex: index, charOffset });
-      } else if (trimmed.startsWith('## ')) {
-        items.push({ text: trimmed.replace(/^##\s+/, ''), level: 2, lineIndex: index, charOffset });
-      } else if (trimmed.startsWith('### ')) {
-        items.push({ text: trimmed.replace(/^###\s+/, ''), level: 3, lineIndex: index, charOffset });
+  // Backward-compatible helper for legacy references
+  const getTocItems = useCallback((content: string) => {
+    return parseTocItems(content);
+  }, []);
+
+  // Real-time Scroll Synchronization: Detect active heading in view as editor scrolls
+  useEffect(() => {
+    if (!isTocOpen || tocItems.length === 0) return;
+
+    let rafId: number | null = null;
+
+    const syncActiveHeading = (target: HTMLElement | Window | Document) => {
+      // 1. Markdown / Split Mode Textarea
+      const textarea = document.getElementById('markdown-editor') as HTMLTextAreaElement | null;
+      if (textarea && (target === textarea || (target as HTMLElement).contains?.(textarea))) {
+        const totalLines = editorContent.split('\n').length || 1;
+        const maxScroll = textarea.scrollHeight - textarea.clientHeight;
+        const scrollRatio = maxScroll > 0 ? textarea.scrollTop / maxScroll : 0;
+        const approxLine = Math.floor(scrollRatio * totalLines);
+
+        let activeIdx = 0;
+        for (let i = 0; i < tocItems.length; i++) {
+          if (tocItems[i].lineIndex <= approxLine) {
+            activeIdx = i;
+          } else {
+            break;
+          }
+        }
+        setActiveTocIndex(activeIdx);
+        return;
       }
-      charOffset += line.length + 1;
-    });
 
-    return items;
-  };
+      // 2. WYSIWYG (.tiptap-prosemirror-body) or Preview (#markdown-preview, #markdown-preview-split)
+      const container =
+        document.querySelector('.tiptap-prosemirror-body') ||
+        document.querySelector('.ProseMirror') ||
+        document.getElementById('markdown-preview') ||
+        document.getElementById('markdown-preview-split');
 
-  const jumpToTocItem = (charOffset: number, lineIndex: number) => {
-    if (editorRef.current) {
-      const textarea = editorRef.current;
-      textarea.focus();
-      textarea.setSelectionRange(charOffset, charOffset);
-      const totalLines = editorContent.split('\n').length || 1;
-      const scrollRatio = lineIndex / totalLines;
-      textarea.scrollTop = scrollRatio * textarea.scrollHeight;
-      showToast(`🎯 헤더 위치로 이동했습니다.`);
+      if (container) {
+        const headings = Array.from(
+          container.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6')
+        );
+        if (headings.length > 0) {
+          const containerRect = container.getBoundingClientRect();
+          let activeIdx = 0;
+          for (let i = 0; i < headings.length; i++) {
+            const rect = headings[i].getBoundingClientRect();
+            // Relative distance from top of editor container
+            if (rect.top - containerRect.top <= 100) {
+              activeIdx = i;
+            } else {
+              break;
+            }
+          }
+          if (activeIdx < tocItems.length) {
+            setActiveTocIndex(activeIdx);
+          }
+        }
+      }
+    };
+
+    const handleScrollSync = (event: Event) => {
+      const target = event.target as HTMLElement;
+      if (!target) return;
+
+      // Ignore scroll events originating from within the TOC drawer itself
+      if (target.closest?.('#table-of-contents-drawer')) return;
+
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        syncActiveHeading(target);
+      });
+    };
+
+    // Perform an initial sync check when TOC opens
+    syncActiveHeading(window);
+
+    window.addEventListener('scroll', handleScrollSync, { capture: true, passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScrollSync, { capture: true });
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [isTocOpen, tocItems, editorContent]);
+
+  // Keep active TOC item visible inside the TOC drawer
+  useEffect(() => {
+    if (isTocOpen && tocItemRefs.current[activeTocIndex]) {
+      tocItemRefs.current[activeTocIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+      });
     }
+  }, [activeTocIndex, isTocOpen]);
+
+  // Jump to TOC item in editor with multi-mode support (Markdown textarea, WYSIWYG, Preview)
+  const jumpToTocItem = (itemOrOffset: TocItem | number, lineIndex?: number) => {
+    let item: TocItem | undefined;
+    let idx = 0;
+
+    if (typeof itemOrOffset === 'object' && 'charOffset' in itemOrOffset) {
+      item = itemOrOffset;
+      idx = tocItems.findIndex((t) => t.id === item!.id);
+      if (idx === -1) idx = 0;
+    } else {
+      const offset = itemOrOffset;
+      item = tocItems.find((t) => t.charOffset === offset) || tocItems[0];
+      idx = tocItems.findIndex((t) => t.charOffset === offset);
+      if (idx === -1) idx = 0;
+    }
+
+    if (!item) return;
+
+    setActiveTocIndex(idx);
+
+    // 1. Textarea Navigation (Markdown / Split modes)
+    const textarea = (editorRef.current || document.getElementById('markdown-editor')) as HTMLTextAreaElement | null;
+    if (textarea) {
+      textarea.focus();
+      textarea.setSelectionRange(item.charOffset, item.charOffset);
+      const totalLines = editorContent.split('\n').length || 1;
+      const maxScroll = textarea.scrollHeight - textarea.clientHeight;
+      const targetScroll = maxScroll > 0 ? (item.lineIndex / totalLines) * maxScroll : 0;
+      textarea.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
+    }
+
+    // 2. DOM Headings Navigation (WYSIWYG / Preview modes)
+    const container =
+      document.querySelector('.tiptap-prosemirror-body') ||
+      document.querySelector('.ProseMirror') ||
+      document.getElementById('markdown-preview') ||
+      document.getElementById('markdown-preview-split');
+
+    if (container) {
+      const headings = Array.from(container.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6'));
+      const targetHeading = headings[idx] || headings.find((h) => h.textContent?.trim().includes(item!.text));
+      if (targetHeading) {
+        targetHeading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    showToast(`'${item.text}' 위치로 이동했습니다.`, 'info');
   };
 
   // Provider change handler
@@ -8405,8 +8435,6 @@ ${projectEvents
     return g === 'off' ? 'Off' : `${g}%`;
   }, [preferences.ghostWriterLevel, ghostWriterLevel]);
 
-<<<<<<< HEAD
-=======
   // Active AI Engine Provider (cloud | local-pc | webllm)
   const activeAiEngineProvider: 'webllm' | 'cloud' | 'local-pc' = useMemo(() => {
     if (selectedModel === WEB_LLM_MODEL_ID) return 'webllm';
@@ -8493,7 +8521,7 @@ ${projectEvents
     webllmProgress.isLoading,
   ]);
 
->>>>>>> main
+
   // Authentication & Local Lock Guard: If locked or not logged in, route to AuthPage
   if (!currentUser || isLocked) {
     return (
@@ -8505,24 +8533,6 @@ ${projectEvents
           if (vaultKey) {
             activeVaultKeyRef.current = vaultKey;
           }
-<<<<<<< HEAD
-          await reloadSecureWorkspaceData(vaultKey);
-          if (user.provider === 'guest' && !localStorage.getItem('aipodium_guest_init_v2')) {
-            setFiles(GUEST_SAMPLE_FILES);
-            setFileFolders(GUEST_SAMPLE_FOLDERS);
-            setCurrentActiveFile('Untitled-1');
-            setFileName('Untitled-1');
-            setEditorContent('');
-            setOpenTabs(['Untitled-1']);
-            setUntitledDocs({ 'Untitled-1': '' });
-            setEditorTab('wysiwyg');
-            localStorage.setItem('notebooklm_files', JSON.stringify(GUEST_SAMPLE_FILES));
-            localStorage.setItem('notebooklm_file_folders', JSON.stringify(GUEST_SAMPLE_FOLDERS));
-            localStorage.setItem('notebooklm_active_file', 'Untitled-1');
-            localStorage.setItem('notebooklm_open_tabs', JSON.stringify(['Untitled-1']));
-            localStorage.setItem('notebooklm_editor_content', '');
-            localStorage.setItem('aipodium_guest_init_v2', 'true');
-=======
           const isGuestUser = user.provider === 'guest' || user.isGuest === true || !hasMasterPinConfigured();
           if (isGuestUser) {
             cancelPendingAutoSaveTimers();
@@ -8544,7 +8554,7 @@ ${projectEvents
             } catch {}
           } else {
             await reloadSecureWorkspaceData(vaultKey);
->>>>>>> main
+
           }
           const shouldShowOnboarding = localStorage.getItem('aipodium_engine_dont_show') !== 'true';
           if (shouldShowOnboarding) {
@@ -8575,20 +8585,14 @@ ${projectEvents
       >
         <div className="flex items-center gap-2">
           {/* Logo / App Name & Semantic Version Badge */}
-<<<<<<< HEAD
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => showToast('AI Podium v0.0.8')}>
-=======
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => showToast('AI Podium v0.1.0')}>
->>>>>>> main
+
             <span className="text-xs font-bold text-slate-100 font-mono tracking-normal">
               AI Podium
             </span>
             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-white/5">
-<<<<<<< HEAD
-              v0.0.8
-=======
               v0.1.0
->>>>>>> main
+
             </span>
           </div>
 
@@ -8664,6 +8668,8 @@ ${projectEvents
             setIsShortcutsModalOpen={setIsShortcutsModalOpen}
             setIsAboutModalOpen={setIsAboutModalOpen}
             showToast={showToast}
+            mode={mode}
+            onModeChange={setMode}
           />
         </div>
 
@@ -8691,13 +8697,9 @@ ${projectEvents
           className="hidden"
         />
 
-<<<<<<< HEAD
-        {/* Right Controls: Command Palette & Status */}
-        <div className="flex items-center gap-2">
-=======
         {/* Right Controls: Command Palette, Status, & Persistent Fixed-Position Right Workspace Drawer Toggle */}
         <div className="flex items-center gap-1.5">
->>>>>>> main
+
           {/* GitHub Connection & Real-time Auto-Push Sync Status Indicator */}
           {((githubConfig?.token && githubConfig?.repo) || (workspaceRootType === 'github' && Boolean(githubConfig))) && (
             <GithubSyncStatusIndicator
@@ -8715,16 +8717,6 @@ ${projectEvents
               variant="header"
               onSignOut={async () => {
                 const isGuestUser = auth.isGuest || currentUser?.provider === 'guest' || currentUser?.isGuest === true || !hasMasterPinConfigured();
-<<<<<<< HEAD
-                if (isGuestUser) {
-                  await purgeGuestSession();
-                  setEditorContent('');
-                  setFiles({});
-                  setFileFolders({});
-                  setOpenTabs([]);
-                  setSessions([]);
-                  setActiveSessionId(null);
-=======
                 
                 // 1. Immediately cancel pending auto-save timers and block storage writes
                 cancelPendingAutoSaveTimers();
@@ -8741,16 +8733,14 @@ ${projectEvents
                   setOpenTabs(['Untitled-1.md']);
                   setUntitledDocs({ 'Untitled-1.md': '' });
                   setActiveSessionId('session-default');
->>>>>>> main
+
                 }
                 await auth.logout();
                 setCurrentUser(null);
                 setIsLocked(true);
-<<<<<<< HEAD
-=======
                 isStorageWriteBlockedRef.current = false;
                 blockStorageWrites(false);
->>>>>>> main
+
                 showToast(
                   isGuestUser
                     ? '게스트 세션이 종료되고 임시 데이터가 모두 삭제되었습니다.'
@@ -8812,50 +8802,51 @@ ${projectEvents
 
         {/* ==================== LEFT PANE: AI Chat Area ==================== */}
         <section
-          style={isLeftPanelVisible ? { width: `${panelWidths.chat}px` } : undefined}
-          className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 ${
+          style={{ width: isLeftPanelVisible ? `${panelWidths.chat}px` : '40px' }}
+          className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 max-w-[calc(100vw-32px)] sm:max-w-none ${
             activeResizer === 'chat'
               ? 'transition-none'
-              : isInitialAnimating
-              ? `transition-[opacity,transform] duration-200 ease-out delay-0 ${
-                  hasInitialMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
-                }`
-<<<<<<< HEAD
-              : 'transition-all duration-200 ease-in-out'
+              : 'transition-[width] duration-200 ease-out'
           } z-40 lg:z-10 ${
             isLeftPanelVisible
               ? 'opacity-100 pointer-events-auto border-r border-[#222226] fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/80 lg:shadow-none'
-              : 'w-0 opacity-0 pointer-events-none overflow-hidden border-r-0'
+              : 'w-10 shrink-0 bg-[#121214] border-r border-[#222226] flex flex-col items-center py-3 justify-between z-20 select-none transition-all duration-200'
           }`}
         >
-          <div style={{ width: `${panelWidths.chat}px` }} className="max-w-full h-full flex flex-col min-h-0 overflow-hidden">
-            {/* Header */}
-            <div className="bg-[#0f0f12] border-b border-[#222226] px-2 h-8 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0">
-                {/* Unified Persistent Project Drawer Toggle Button */}
-=======
-              : 'transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]'
-          } z-40 lg:z-10 ${
-            isLeftPanelVisible
-              ? 'opacity-100 pointer-events-auto border-r border-white/5 fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/80 lg:shadow-none'
-              : 'w-0 opacity-0 pointer-events-none overflow-hidden border-r border-white/5'
-          }`}
-        >
-          <div style={{ width: `${panelWidths.chat}px` }} className="max-w-full h-full flex flex-col min-h-0 overflow-hidden">
+          {!isLeftPanelVisible ? (
+            <div
+              id="chat-activity-rail"
+              className="w-10 h-full flex flex-col items-center py-3 justify-between select-none"
+            >
+              <div className="flex flex-col items-center gap-3">
+                <button
+                  type="button"
+                  id="chat-rail-open-btn"
+                  onClick={() => toggleLeftPanel(true)}
+                  className="p-2 rounded-md hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
+                  title="대화창 열기"
+                  aria-label="대화창 열기"
+                >
+                  <MessageSquare className="w-4 h-4 text-zinc-400 hover:text-zinc-100" />
+                </button>
+              </div>
+              <div className="flex flex-col items-center gap-2 pb-1" title="AI 엔진 활성">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              </div>
+            </div>
+          ) : (
+            <div style={{ width: `${panelWidths.chat}px` }} className="max-w-full h-full flex flex-col min-h-0 overflow-hidden">
             {/* Header: Anchored strictly at top-left at all times */}
             <div className="bg-[#0f0f12] border-b border-white/5 px-2 h-8 flex items-center justify-between shrink-0 select-none">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0">
                 {/* Unified Persistent Project Drawer Toggle Button - Strictly Anchored at Top-Left */}
->>>>>>> main
+
                 <button
                   type="button"
                   id="project-drawer-toggle"
                   onClick={() => setIsProjectListOpen((prev) => !prev)}
-<<<<<<< HEAD
-                  className={`p-1 rounded-xs transition cursor-pointer flex items-center justify-center shrink-0 ${
-=======
                   className={`p-1 rounded-xs transition-colors duration-150 cursor-pointer flex items-center justify-center shrink-0 ${
->>>>>>> main
+
                     isProjectListOpen
                       ? 'bg-[#18181b] text-indigo-400 hover:text-indigo-300'
                       : 'text-slate-400 hover:text-white hover:bg-[#18181b]'
@@ -8865,24 +8856,9 @@ ${projectEvents
                 >
                   <PanelLeft className="w-3.5 h-3.5" />
                 </button>
-<<<<<<< HEAD
-                <Bot className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                <span className="truncate max-w-[130px] sm:max-w-[190px] font-medium text-slate-200 text-xs" title={activeSession?.title}>
-                  {isOnboardingMode ? 'AI 지식 비서 · 가이드 v0.0.8' : (activeSession?.title || 'AI 프로젝트')}
-                </span>
-                {/* Clean, minimal read-only model indicator */}
-                <span
-                  className="text-[0.6875rem] text-slate-400 font-mono flex items-center gap-1 shrink-0 select-none pointer-events-none"
-                  title="현재 활성 AI 모델 (선택 및 변경은 하단 프롬프트 툴바에서 지원)"
-                >
-                  <span className="text-slate-600" aria-hidden="true">·</span>
-                  <span className="text-slate-400">
-                    {selectedModel === WEB_LLM_MODEL_ID ? 'WebGPU Qwen2.5' : (getModelDisplayName(selectedModel) || selectedModel)}
-                  </span>
-=======
                 <span className="truncate max-w-[200px] sm:max-w-[260px] font-medium text-slate-200 text-xs" title={activeSession?.title}>
                   {isOnboardingMode ? 'AI 지식 비서 · 가이드 v0.1.0' : (activeSession?.title || 'AI 프로젝트')}
->>>>>>> main
+
                 </span>
               </div>
 
@@ -8906,10 +8882,8 @@ ${projectEvents
                 {/* Close/Collapse Left Panel Button */}
                 <button
                   type="button"
-<<<<<<< HEAD
-=======
                   id="left-drawer-collapse-btn"
->>>>>>> main
+
                   onClick={() => toggleLeftPanel(false)}
                   className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-white transition cursor-pointer"
                   title="좌측 AI 대화 패널 접기"
@@ -8929,11 +8903,8 @@ ${projectEvents
                 <aside
                   id="project-list-panel"
                   aria-label="프로젝트 목록"
-<<<<<<< HEAD
-                  className={`bg-[#121214] border-r border-[#222226] flex flex-col shrink-0 transition-all duration-300 ease-in-out transform z-10 h-full ${
-=======
-                  className={`bg-[#121214] border-r border-white/5 flex flex-col shrink-0 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] transform z-10 h-full ${
->>>>>>> main
+                  className={`bg-[#121214] border-r border-white/5 flex flex-col shrink-0 transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] transform z-10 h-full ${
+
                     isProjectListOpen
                       ? 'w-52 sm:w-60 opacity-100 translate-x-0'
                       : 'w-0 opacity-0 -translate-x-full overflow-hidden border-r-0 pointer-events-none'
@@ -9188,7 +9159,7 @@ ${projectEvents
               allMentionItems={allMentionItems}
               renderFormattedMessageText={renderFormattedMessageText}
               selectedModel={selectedModel}
-              onSelectModel={setSelectedModel}
+              onSelectModel={handleSelectModel}
               selectedMultiModels={selectedMultiModels}
               onSelectMultiModels={setSelectedMultiModels}
               mode={mode}
@@ -9202,7 +9173,7 @@ ${projectEvents
               }}
               localEndpointAddress={localEndpointAddress}
               onSelectDefaultLocalTag={(tag) => {
-                setSelectedModel(tag);
+                handleSelectModel(tag);
                 setProvider('local-pc');
               }}
               onOpenRoleModal={() => setIsAiRoleModalOpen(true)}
@@ -9234,24 +9205,22 @@ ${projectEvents
               onInputFocus={() => {
                 lastActiveTextTargetRef.current = 'chat';
               }}
-<<<<<<< HEAD
-=======
               isProjectDrawerOpen={isProjectListOpen}
               onToggleProjectDrawer={() => setIsProjectListOpen((prev) => !prev)}
->>>>>>> main
+
             />
             </React.Suspense>
           </div>
-
         </div>
-        </section>
+      )}
+      </section>
 
         {/* ==================== RESIZE HANDLE: ChatPanel <-> UnifiedEditor ==================== */}
         {isLeftPanelVisible && (
           <div
             id="chat-resizer-handle"
             onMouseDown={handleLeftResizeStart}
-            className={`hidden lg:flex w-1 hover:w-1.5 -ml-0.5 z-30 cursor-col-resize items-center justify-center transition-all select-none group ${
+            className={`hidden lg:flex w-1 hover:w-1.5 -ml-0.5 z-30 cursor-col-resize items-center justify-center transition-colors select-none group ${
               activeResizer === 'chat' ? 'bg-[#6366f1] w-1.5' : 'hover:bg-[#6366f1] bg-transparent'
             }`}
             title="드래그하여 대화 패널 너비 조절 (280px ~ 520px)"
@@ -9288,14 +9257,10 @@ ${projectEvents
                 {!isLeftPanelVisible && (
                   <button
                     type="button"
-<<<<<<< HEAD
-                    onClick={() => toggleLeftPanel(true)}
-                    className="p-1 mr-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-indigo-400 border border-[#222226] transition flex items-center justify-center shrink-0 cursor-pointer"
-=======
                     id="editor-left-drawer-toggle"
                     onClick={() => toggleLeftPanel(true)}
                     className="p-1 mr-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-indigo-400 border border-white/5 transition-colors duration-150 flex items-center justify-center shrink-0 cursor-pointer"
->>>>>>> main
+
                     title="좌측 AI 대화 패널 펼치기"
                     aria-label="좌측 AI 대화 패널 펼치기"
                   >
@@ -9378,14 +9343,10 @@ ${projectEvents
                     {!isRightPanelVisible && (
                       <button
                         type="button"
-<<<<<<< HEAD
-                        onClick={() => toggleRightPanel(true)}
-                        className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-indigo-400 border border-[#222226] transition flex items-center justify-center shrink-0 cursor-pointer ml-0.5"
-=======
                         id="editor-workspace-drawer-toggle"
                         onClick={() => toggleRightPanel(true)}
                         className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-indigo-400 border border-white/5 transition-colors duration-150 flex items-center justify-center shrink-0 cursor-pointer ml-0.5"
->>>>>>> main
+
                         title="우측 파일 탐색기 패널 펼치기"
                         aria-label="우측 파일 탐색기 패널 펼치기"
                       >
@@ -9669,17 +9630,25 @@ ${projectEvents
 
                     {/* Table of Contents Floating Sidebar / Drawer Overlay */}
                     {isTocOpen && (
-                      <div className="absolute top-0 right-0 bottom-0 w-64 bg-[#0f0f12] border-l border-[#222226] z-20 flex flex-col transition-all">
+                      <div
+                        id="table-of-contents-drawer"
+                        className="absolute top-0 right-0 bottom-0 w-72 bg-[#121214] border-l border-[#222226] z-20 flex flex-col shadow-2xl transition-[transform,opacity] duration-200 select-none text-zinc-200 font-sans"
+                      >
                         {/* TOC Header */}
-                        <div className="p-2.5 bg-[#121214] border-b border-[#222226] flex items-center justify-between shrink-0">
-                          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200">
-                            <ListTree className="w-3.5 h-3.5 text-[#6366f1]" />
-                            <span>문서 목차</span>
+                        <div className="px-4 py-3 bg-[#121214] border-b border-[#222226] flex items-center justify-between shrink-0">
+                          <div className="flex items-center gap-2">
+                            <ListTree className="w-3.5 h-3.5 text-indigo-400" />
+                            <span className="text-xs font-medium text-zinc-100">문서 목차</span>
+                            {tocItems.length > 0 && (
+                              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/[0.04] text-zinc-400 border border-[#222226]">
+                                {tocItems.length}개
+                              </span>
+                            )}
                           </div>
                           <button
                             type="button"
                             onClick={() => setIsTocOpen(false)}
-                            className="text-slate-400 hover:text-slate-200 p-1 rounded-xs hover:bg-[#18181b] transition cursor-pointer"
+                            className="p-1 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] rounded-md transition-colors cursor-pointer"
                             title="목차 닫기"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -9687,29 +9656,61 @@ ${projectEvents
                         </div>
 
                         {/* TOC Content List */}
-                        <div className="flex-1 overflow-y-auto p-2 space-y-1 text-xs custom-scrollbar">
-                          {getTocItems(editorContent).length === 0 ? (
-                            <div className="p-4 text-center text-slate-400 text-[0.6875rem]">
-                              <p>문서에 제목 서식이 없습니다.</p>
-                              <p className="mt-1 text-[0.625rem] text-slate-500">`#`, `##`, `###` 등으로 제목을 추가하세요.</p>
+                        <div className="flex-1 overflow-y-auto p-2 space-y-0.5 text-xs custom-scrollbar">
+                          {tocItems.length === 0 ? (
+                            <div className="p-6 text-center text-zinc-500 space-y-1 my-auto">
+                              <ListTree className="w-7 h-7 mx-auto mb-2 text-zinc-600 opacity-60" />
+                              <p className="text-xs font-medium text-zinc-400">문서에 제목 서식이 없습니다</p>
+                              <p className="text-[11px] text-zinc-500 leading-relaxed">
+                                # 또는 ## 서식으로 제목을 추가하면 목차가 실시간으로 구성됩니다.
+                              </p>
                             </div>
                           ) : (
-                            getTocItems(editorContent).map((item, idx) => (
-                              <div
-                                key={idx}
-                                onClick={() => jumpToTocItem(item.charOffset, item.lineIndex)}
-                                className={`group flex items-center gap-1.5 px-2 py-1.5 rounded-xs hover:bg-[#18181b] hover:text-slate-100 cursor-pointer transition text-slate-300 border border-transparent hover:border-[#222226] ${
-                                  item.level === 1
-                                    ? 'font-semibold pl-2 text-indigo-300 bg-[#121214]'
-                                    : item.level === 2
-                                    ? 'pl-5 text-slate-300'
-                                    : 'pl-8 text-slate-400 text-[0.6875rem]'
-                                }`}
-                              >
-                                <span className="text-[0.625rem] text-[#6366f1] font-mono shrink-0">H{item.level}</span>
-                                <span className="truncate flex-1">{item.text}</span>
-                              </div>
-                            ))
+                            tocItems.map((item, idx) => {
+                              const isActive = activeTocIndex === idx;
+                              const indentPx = Math.max(8, (item.level - 1) * 12 + 8);
+                              return (
+                                <div
+                                  key={item.id}
+                                  ref={(el) => {
+                                    tocItemRefs.current[idx] = el;
+                                  }}
+                                  onClick={() => jumpToTocItem(item, idx)}
+                                  className={`group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md cursor-pointer transition-all text-xs ${
+                                    isActive
+                                      ? 'bg-indigo-500/10 text-indigo-300 font-medium border-l-2 border-indigo-500 rounded-l-none'
+                                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+                                  }`}
+                                  style={{ paddingLeft: `${indentPx}px` }}
+                                  title={`${item.text} (${item.lineIndex + 1}번째 줄)`}
+                                >
+                                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                    <span
+                                      className={`text-[10px] font-mono shrink-0 select-none ${
+                                        isActive ? 'text-indigo-400 font-semibold' : 'text-zinc-500'
+                                      }`}
+                                    >
+                                      H{item.level}
+                                    </span>
+                                    <span className="truncate flex-1">{item.text}</span>
+                                  </div>
+                                  {isActive && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
+                                  )}
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+
+                        {/* TOC Footer with Scroll Sync Status */}
+                        <div className="px-3 py-2 bg-[#09090b] border-t border-[#222226] flex items-center justify-between text-[11px] text-zinc-500 shrink-0 font-mono">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                            <span>스크롤 동기화</span>
+                          </span>
+                          {tocItems.length > 0 && (
+                            <span>{Math.min(activeTocIndex + 1, tocItems.length)} / {tocItems.length}</span>
                           )}
                         </div>
                       </div>
@@ -9717,17 +9718,19 @@ ${projectEvents
 
                     {/* SSOT Drift & Consistency Auditor Floating Drawer Overlay */}
                     {isSsotAuditorOpen && (
-                      <div className="absolute top-0 right-0 bottom-0 z-30 shadow-2xl flex transition-all">
-                        <SSOTDriftAuditor
-                          content={editorContent}
-                          onUpdateContent={handleEditorChange}
-                          onJumpToLine={handleJumpToLine}
-                          onClose={() => setIsSsotAuditorOpen(false)}
-                          apiKey={cloudApiKey}
-                          model={roleModels.architect}
-                          isDarkTheme={preferences.themeMode !== 'light'}
-                        />
-                      </div>
+                      <React.Suspense fallback={null}>
+                        <div className="absolute top-0 right-0 bottom-0 z-30 shadow-2xl flex transition-[transform,opacity] duration-200">
+                          <SSOTDriftAuditor
+                            content={editorContent}
+                            onUpdateContent={handleEditorChange}
+                            onJumpToLine={handleJumpToLine}
+                            onClose={() => setIsSsotAuditorOpen(false)}
+                            apiKey={cloudApiKey}
+                            model={roleModels.architect}
+                            isDarkTheme={preferences.themeMode !== 'light'}
+                          />
+                        </div>
+                      </React.Suspense>
                     )}
                   </div>
                 </div>
@@ -9739,7 +9742,7 @@ ${projectEvents
           <div
             id="explorer-resizer-handle"
             onMouseDown={handleRightResizeStart}
-            className={`hidden lg:flex w-1 hover:w-1.5 -mr-0.5 z-30 cursor-col-resize items-center justify-center transition-all select-none group ${
+            className={`hidden lg:flex w-1 hover:w-1.5 -mr-0.5 z-30 cursor-col-resize items-center justify-center transition-colors select-none group ${
               activeResizer === 'explorer' ? 'bg-[#6366f1] w-1.5' : 'hover:bg-[#6366f1] bg-transparent'
             }`}
             title="드래그하여 파일 탐색기 너비 조절 (200px ~ 420px)"
@@ -9752,9 +9755,9 @@ ${projectEvents
         <React.Suspense
           fallback={
             <div
-              style={isRightPanelVisible ? { width: `${panelWidths.explorer}px` } : undefined}
-              className={`h-full min-h-0 shrink-0 bg-[#121214] ${
-                isRightPanelVisible ? '' : 'w-0 overflow-hidden'
+              style={{ width: isRightPanelVisible ? `${panelWidths.explorer}px` : '40px' }}
+              className={`h-full min-h-0 shrink-0 bg-[#121214] border-l border-[#222226] ${
+                isRightPanelVisible ? '' : 'w-10'
               }`}
               aria-busy="true"
             />
@@ -9828,21 +9831,6 @@ ${projectEvents
         </div>
 
         <div className="flex items-center gap-3 shrink-0 text-slate-400 text-[0.625rem]">
-<<<<<<< HEAD
-          {/* Local AI Resource Monitor (Podium style VRAM & CPU indicator) */}
-          <LocalAiResourceMonitor
-            endpoint={localEndpointAddress}
-            isGenerating={isAiLoading}
-            activeModel={selectedModel}
-            provider={provider}
-            variant="statusbar"
-            onOpenSettings={() => {
-              setPreferencesInitialTab('ai-engine');
-              setIsPreferencesModalOpen(true);
-            }}
-          />
-          <span className="text-slate-600">|</span>
-=======
           {/* Local AI Resource Monitor (VRAM & CPU indicator) - rendered only for webllm or local-pc */}
           {(activeAiEngineProvider === 'webllm' || activeAiEngineProvider === 'local-pc') && (
             <>
@@ -9861,7 +9849,7 @@ ${projectEvents
               <span className="text-slate-600">|</span>
             </>
           )}
->>>>>>> main
+
 
           {currentActiveFile && (
             <>
@@ -9873,11 +9861,8 @@ ${projectEvents
           )}
           <span className="hidden sm:inline">총 {Object.keys(files).length}개 파일</span>
           <span className="text-slate-600 hidden sm:inline">|</span>
-<<<<<<< HEAD
-          <span className="uppercase">{activeWorkspace.type}</span>
-=======
           <span className="text-slate-300">{storageTargetLabel}</span>
->>>>>>> main
+
           <span className="text-slate-600">|</span>
           {githubConfig?.token && githubConfig?.repo && (
             <>
@@ -9907,12 +9892,6 @@ ${projectEvents
               <span className="text-slate-600">|</span>
             </>
           )}
-<<<<<<< HEAD
-          <span className="text-slate-300 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/80 shadow-[0_0_5px_rgba(52,211,153,0.4)]" />
-            연결됨
-          </span>
-=======
           {/* Dynamic AI Engine Readiness Status Indicator */}
           <button
             type="button"
@@ -9926,7 +9905,7 @@ ${projectEvents
             <span className={`w-1.5 h-1.5 rounded-full ${aiEngineStatus.dotClass}`} />
             <span>{aiEngineStatus.label}</span>
           </button>
->>>>>>> main
+
         </div>
       </footer>
 
@@ -10540,6 +10519,7 @@ ${projectEvents
         </div>
       )}
 
+      <React.Suspense fallback={null}>
       {/* Google Drive SSOT & File Picker Modal */}
       <GoogleDrivePickerModal
         isOpen={isGdrivePickerOpen}
@@ -10771,9 +10751,13 @@ ${projectEvents
         onClose={() => setIsPreferencesModalOpen(false)}
         initialTab={preferencesInitialTab}
         preferences={preferences}
+        apiKeys={apiKeys}
         onSave={(prefs) => {
           setPreferences(prefs);
           setSelectedModel(prefs.defaultModel);
+          if (auth?.setDefaultModel) {
+            auth.setDefaultModel(prefs.defaultModel);
+          }
           if (prefs.roleModels) {
             setRoleModels(prefs.roleModels);
             try {
@@ -10782,6 +10766,7 @@ ${projectEvents
           }
           if (prefs.apiKeys) {
             setApiKeys((prev) => ({ ...prev, ...prefs.apiKeys }));
+            auth.setApiKeys(prefs.apiKeys);
           }
           if (prefs.ghostWriterLevel) {
             setGhostWriterLevel(prefs.ghostWriterLevel);
@@ -10810,9 +10795,7 @@ ${projectEvents
         provider={provider}
         onSelectProvider={handleProviderSelect}
         selectedModel={selectedModel}
-        onSelectModel={(modelId) => {
-          setSelectedModel(modelId);
-        }}
+        onSelectModel={handleSelectModel}
         currentApiKey={cloudApiKey}
         onUpdateApiKey={setCloudApiKey}
         currentEndpoint={localEndpointAddress}
@@ -11033,6 +11016,7 @@ ${projectEvents
           }
         }}
       />
+      </React.Suspense>
 
       {/* File Tree Context Menu (Right Click) */}
       <FileTreeContextMenu

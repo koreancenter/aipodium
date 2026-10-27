@@ -106,10 +106,6 @@ export async function getDbItem<T>(key: string): Promise<T | null> {
   }
 }
 
-<<<<<<< HEAD
-// Set item in IndexedDB
-export async function setDbItem<T>(key: string, value: T): Promise<void> {
-=======
 let isStorageWritesBlockedFlag = false;
 
 /**
@@ -128,7 +124,6 @@ export async function setDbItem<T>(key: string, value: T): Promise<void> {
   if (isStorageWritesBlockedFlag) {
     return;
   }
->>>>>>> main
   try {
     const db = await openIndexedDB();
     return new Promise((resolve, reject) => {
@@ -185,8 +180,6 @@ export async function clearDb(): Promise<void> {
   }
 }
 
-<<<<<<< HEAD
-=======
 /**
  * Clear all items in primary IndexedDB store.
  * Explicit API alias for clearDb() required for guest data purge.
@@ -195,7 +188,6 @@ export async function clearAll(): Promise<void> {
   await clearDb();
 }
 
->>>>>>> main
 // List all keys stored in IndexedDB
 export async function getAllDbKeys(): Promise<string[]> {
   try {
@@ -350,12 +342,9 @@ export async function saveHybridStorage<T>(
   value: T,
   mirrorToLocalStorage = true
 ): Promise<void> {
-<<<<<<< HEAD
-=======
   if (isStorageWritesBlockedFlag) {
     return;
   }
->>>>>>> main
   // 1. Primary save to IndexedDB (Reliable, high-capacity, non-blocking)
   try {
     await setDbItem(key, value);
@@ -461,8 +450,6 @@ export async function migrateFromLocalStorageIfAvailable(): Promise<{ migratedCo
   return { migratedCount };
 }
 
-<<<<<<< HEAD
-=======
 export const indexedDbService = {
   openIndexedDB,
   getDbItem,
@@ -484,4 +471,3 @@ export const indexedDbService = {
 
 export default indexedDbService;
 
->>>>>>> main

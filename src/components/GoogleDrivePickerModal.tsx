@@ -562,39 +562,36 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('open')}
-                className={`px-3.5 py-2 font-medium flex items-center gap-1.5 transition cursor-pointer border-b-2 -mb-[1px] ${
+                className={`px-3.5 py-2 font-medium flex items-center transition cursor-pointer border-b-2 -mb-[1px] ${
                   activeTab === 'open'
                     ? 'border-indigo-500 text-indigo-300 bg-[#09090b]/50'
                     : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-[#09090b]/25'
                 }`}
               >
-                <Download className="w-3.5 h-3.5" />
                 <span>파일 불러오기</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('save')}
-                className={`px-3.5 py-2 font-medium flex items-center gap-1.5 transition cursor-pointer border-b-2 -mb-[1px] ${
+                className={`px-3.5 py-2 font-medium flex items-center transition cursor-pointer border-b-2 -mb-[1px] ${
                   activeTab === 'save'
                     ? 'border-indigo-500 text-indigo-300 bg-[#09090b]/50'
                     : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-[#09090b]/25'
                 }`}
               >
-                <Upload className="w-3.5 h-3.5" />
                 <span>드라이브에 저장</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('folders')}
-                className={`px-3.5 py-2 font-medium flex items-center gap-1.5 transition cursor-pointer border-b-2 -mb-[1px] ${
+                className={`px-3.5 py-2 font-medium flex items-center transition cursor-pointer border-b-2 -mb-[1px] ${
                   activeTab === 'folders'
                     ? 'border-indigo-500 text-indigo-300 bg-[#09090b]/50'
                     : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-[#09090b]/25'
                 }`}
               >
-                <FolderOpen className="w-3.5 h-3.5" />
                 <span>기본 폴더 설정</span>
               </button>
             </div>
@@ -651,9 +648,8 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
               id="google-drive-connect-btn"
               onClick={handleOnDemandConnect}
               disabled={isConnecting}
-              className="px-4 py-2 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center justify-center cursor-pointer"
             >
-              <HardDrive className="w-4 h-4" />
               <span>{isConnecting ? '연동 진행 중...' : '구글 드라이브 연결하기'}</span>
             </button>
           </div>
@@ -712,10 +708,9 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     id="google-picker-launch-btn"
                     onClick={() => openGooglePicker()}
                     disabled={isConnecting}
-                    className="btn-secondary text-xs flex items-center gap-1.5 px-3 py-1 bg-[#18181b] border-indigo-500/40 hover:border-indigo-400 text-indigo-300 shrink-0"
+                    className="btn-secondary text-xs flex items-center justify-center px-3 py-1 bg-[#18181b] border-indigo-500/40 hover:border-indigo-400 text-indigo-300 shrink-0 cursor-pointer"
                     title="구글 공식 피커 대화창 열기"
                   >
-                    <HardDrive className="w-3.5 h-3.5 text-indigo-400" />
                     <span>구글 피커로 파일 선택</span>
                   </button>
                 </div>
@@ -796,7 +791,6 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                       onClick={handleImportFile}
                       className="btn-primary text-xs"
                     >
-                      <Download className="w-3.5 h-3.5" />
                       <span>에디터로 불러오기</span>
                     </button>
                   </div>
@@ -895,7 +889,6 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     onClick={handleSaveToDrive}
                     className="btn-primary text-xs"
                   >
-                    <Upload className="w-3.5 h-3.5" />
                     <span>{isLoading ? '저장 중...' : '구글 드라이브에 저장'}</span>
                   </button>
                 </div>
@@ -920,7 +913,6 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     onClick={() => setIsCreatingFolder(!isCreatingFolder)}
                     className="btn-secondary text-xs"
                   >
-                    <FolderPlus className="w-3.5 h-3.5 text-indigo-400" />
                     <span>새 폴더</span>
                   </button>
                 </div>
@@ -1027,7 +1019,6 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     onClick={handleConfirmFolder}
                     className="btn-primary text-xs"
                   >
-                    <Check className="w-3.5 h-3.5" />
                     <span>기본 폴더로 지정</span>
                   </button>
                 </div>

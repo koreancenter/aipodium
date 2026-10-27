@@ -16,7 +16,8 @@ import {
   FileText,
   Ghost,
   Globe,
-  Loader2
+  Loader2,
+  MessageSquare
 } from 'lucide-react';
 import type { ChatMessage, ChatAttachment, GhostWriterLevel, MentionItem } from '../../types';
 import { AiMessageBubble } from '../AiMessageBubble';
@@ -24,18 +25,58 @@ import { WebLlmBanner } from '../WebLlmBanner';
 import { UniversalPromptInput } from './UniversalPromptInput';
 import { WEB_LLM_MODEL_ID, WEB_LLM_MODEL_DISPLAY_NAME } from '../../utils/webllmService';
 
+export interface ChatActivityRailProps {
+  onOpen: () => void;
+  isEngineActive?: boolean;
+  className?: string;
+}
+
+export const ChatActivityRail: React.FC<ChatActivityRailProps> = ({
+  onOpen,
+  isEngineActive = true,
+  className = ''
+}) => {
+  return (
+    <div
+      id="chat-activity-rail"
+      className={`w-10 shrink-0 bg-[#121214] border-r border-[#222226] flex flex-col items-center py-3 justify-between z-20 select-none transition-all duration-200 h-full ${className}`}
+    >
+      {/* Top item: Clean ghost button with MessageSquare */}
+      <div className="flex flex-col items-center gap-3">
+        <button
+          type="button"
+          id="chat-rail-open-btn"
+          onClick={onOpen}
+          className="p-2 rounded-md hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
+          title="대화창 열기"
+          aria-label="대화창 열기"
+        >
+          <MessageSquare className="w-4 h-4 text-zinc-400 hover:text-zinc-100" />
+        </button>
+      </div>
+
+      {/* Bottom item: Active engine status indicator dot */}
+      <div className="flex flex-col items-center gap-2 pb-1" title="AI 엔진 활성">
+        <span
+          className={`w-2 h-2 rounded-full ${
+            isEngineActive ? 'bg-emerald-400' : 'bg-zinc-600'
+          }`}
+        />
+      </div>
+    </div>
+  );
+};
+
 export interface ChatPanelProps {
   // Project Drawer slot & Container
   projectDrawer?: React.ReactNode;
   children?: React.ReactNode;
-<<<<<<< HEAD
-=======
   isProjectDrawerOpen?: boolean;
   onToggleProjectDrawer?: () => void;
   headerLeft?: React.ReactNode;
   headerRight?: React.ReactNode;
   header?: React.ReactNode;
->>>>>>> main
+
 
   // Session & Message Data
   activeSessionId: string;
@@ -79,6 +120,7 @@ export interface ChatPanelProps {
   localEndpointAddress?: string;
   onSelectDefaultLocalTag?: (tag: string) => void;
   onOpenRoleModal?: () => void;
+  apiKeys?: Record<string, string>;
   isOnboardingMode?: boolean;
 
   // WebLLM State
@@ -113,19 +155,21 @@ export interface ChatPanelProps {
   chatInputRef?: React.RefObject<HTMLTextAreaElement | null>;
   onInputFocus?: () => void;
   className?: string;
+
+  // Collapsible Activity Rail Support
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({
   projectDrawer,
   children,
-<<<<<<< HEAD
-=======
   isProjectDrawerOpen,
   onToggleProjectDrawer,
   headerLeft,
   headerRight,
   header,
->>>>>>> main
+
   activeSessionId,
   sessionTitle,
   messages,
@@ -159,6 +203,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   localEndpointAddress,
   onSelectDefaultLocalTag,
   onOpenRoleModal,
+  apiKeys,
   isOnboardingMode = false,
   webllmProgress,
   onStartWebLlmDownload,
@@ -181,7 +226,19 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   chatInputRef,
   onInputFocus,
   className = '',
+  isCollapsed = false,
+  onToggleCollapse,
 }) => {
+  if (isCollapsed) {
+    return (
+      <ChatActivityRail
+        onOpen={onToggleCollapse || (() => {})}
+        isEngineActive={!isAiLoading}
+        className={className}
+      />
+    );
+  }
+
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const isUserScrolledUpRef = useRef<boolean>(false);
   const [isScrolledUp, setIsScrolledUp] = useState<boolean>(false);
@@ -218,12 +275,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
   return (
     <div className={`flex-1 flex flex-col min-w-0 bg-transparent relative overflow-hidden h-full ${className}`}>
-<<<<<<< HEAD
-=======
       {/* Top Header: Rendered only when explicit header is provided */}
       {header !== undefined ? header : null}
 
->>>>>>> main
+
       {/* Middle Message Viewport & Confined Project Drawer Flex Container */}
       <div className="flex-1 min-h-0 relative flex flex-row overflow-hidden">
         {/* Confined Project Drawer Container / Aside */}
@@ -264,8 +319,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                     {/* 0~100% 게이지 바 */}
                     <div className="w-full bg-[#09090b] border border-[#222226] rounded-full h-2 overflow-hidden mb-2.5">
                       <div
-                        className="bg-[#6366f1] h-full transition-all duration-200 rounded-full"
-                        style={{ width: `${Math.max(2, Math.min(100, webllmProgress.progressPercent ?? 0))}%` }}
+                        className="bg-[#6366f1] h-full w-full rounded-full origin-left transition-transform duration-200 ease-out"
+                        style={{ transform: `scaleX(${Math.max(0.02, Math.min(1, (webllmProgress.progressPercent ?? 0) / 100))})` }}
                       />
                     </div>
 
@@ -306,8 +361,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                       </div>
                       <div className="w-full bg-[#09090b] border border-[#222226] rounded-full h-1.5 overflow-hidden">
                         <div
-                          className="bg-[#6366f1] h-full transition-all duration-200 rounded-full"
-                          style={{ width: `${Math.max(2, Math.min(100, webllmProgress.progressPercent ?? 0))}%` }}
+                          className="bg-[#6366f1] h-full w-full rounded-full origin-left transition-transform duration-200 ease-out"
+                          style={{ transform: `scaleX(${Math.max(0.02, Math.min(1, (webllmProgress.progressPercent ?? 0) / 100))})` }}
                         />
                       </div>
                     </div>
@@ -440,7 +495,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               setIsScrolledUp(false);
               scrollToChatBottom(true);
             }}
-            className="absolute bottom-4 right-6 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#121214]/95 border border-[#222226] text-[0.6875rem] text-slate-300 hover:text-white shadow-lg hover:border-[#6366f1] transition-all cursor-pointer group select-none"
+            className="absolute bottom-4 right-6 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#121214]/95 border border-[#222226] text-[0.6875rem] text-slate-300 hover:text-white shadow-lg hover:border-[#6366f1] transition-colors cursor-pointer group select-none"
           >
             <ArrowDown className="w-3 h-3 text-[#6366f1] group-hover:translate-y-0.5 transition-transform" />
             <span>아래로 스크롤</span>
@@ -473,6 +528,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         localEndpointAddress={localEndpointAddress}
         onSelectDefaultLocalTag={onSelectDefaultLocalTag}
         onOpenRoleModal={onOpenRoleModal}
+        onOpenSettings={onOpenSettings}
+        apiKeys={apiKeys}
         ghostWriterLevel={ghostWriterLevel}
         ghostTargetEnglish={ghostTargetEnglish}
         ghostTemplateText={ghostTemplateText}

@@ -478,11 +478,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
   };
 
   return (
-<<<<<<< HEAD
-    <div className="w-full min-h-screen min-h-[100dvh] bg-[#09090b] text-zinc-200 font-['Plus_Jakarta_Sans',Inter,-apple-system,BlinkMacSystemFont,sans-serif] antialiased selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] flex flex-col justify-between relative overflow-x-hidden overflow-y-auto">
-=======
     <div className="w-full min-h-screen min-h-[100dvh] bg-[#09090b] text-zinc-200 font-sans antialiased selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] flex flex-col justify-between relative overflow-x-hidden overflow-y-auto">
->>>>>>> main
       {/* Subtle ambient lighting adhering strictly to Clean Dark rules */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(99,102,241,0.06),transparent_70%)] pointer-events-none" />
 
@@ -1082,10 +1078,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
           <div className="w-full lg:col-span-7 lg:col-start-1 lg:row-start-1 order-3 lg:order-none space-y-3 sm:space-y-4 lg:space-y-8 hidden sm:block">
             {/* Desktop Full Hero Header (hidden on mobile/tablet since displayed above action card) */}
             <div className="hidden lg:block space-y-3">
-              <h1 className="text-2xl sm:text-3xl xl:text-4xl font-semibold tracking-tight leading-snug text-zinc-100 break-keep">
+              <h1 className="text-2xl sm:text-3xl xl:text-4xl font-semibold tracking-tight leading-snug text-zinc-100 break-keep mb-0 ml-[53px]">
                 {t.heroTitle}
               </h1>
-              <p className="text-sm sm:text-base text-zinc-400 leading-relaxed max-w-xl break-keep">
+              <p className="text-sm sm:text-base text-zinc-400 leading-relaxed max-w-xl break-keep pt-0 ml-[53px]">
                 {t.heroDesc}
               </p>
             </div>

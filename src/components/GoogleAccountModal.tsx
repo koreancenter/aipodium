@@ -99,8 +99,7 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
             {/* Storage Quota */}
             <div className="p-3 bg-[#09090b] border border-[#222226] rounded-md space-y-2">
               <div className="flex items-center justify-between text-slate-300">
-                <span className="flex items-center gap-1.5 font-normal text-xs text-slate-400">
-                  <HardDrive className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="font-normal text-xs text-slate-400">
                   구글 드라이브 저장 공간
                 </span>
                 <span className="font-mono text-[11px] text-slate-400">
@@ -127,7 +126,6 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
                 }}
                 className="btn-secondary text-xs text-rose-400 hover:text-rose-300 border-rose-900/50 hover:bg-rose-950/40"
               >
-                <LogOut className="w-3.5 h-3.5" />
                 <span>로그아웃</span>
               </button>
               <button

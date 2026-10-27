@@ -78,19 +78,14 @@ test('purgeGuestSession truncates all guest localStorage keys and dynamic draft 
   localStorage.setItem('aipodium_github_config', JSON.stringify({ token: 'ghp_secret' }));
   localStorage.setItem('aipodium_project_events', JSON.stringify([{ id: 'ev1' }]));
 
-<<<<<<< HEAD
-  // Dynamic keys matching draft_*, vault_*, buffer_*, temp_*
-=======
   // Dynamic keys matching draft_*, vault_*, buffer_*, temp_*, unsaved_*
->>>>>>> main
+
   localStorage.setItem('draft_note_1', 'temporary note buffer');
   localStorage.setItem('vault_temp_file', 'temp cache');
   localStorage.setItem('buffer_active', 'editor buffer');
   localStorage.setItem('temp_data', 'misc temp');
-<<<<<<< HEAD
-=======
   localStorage.setItem('unsaved_buffer_1', 'buffer data');
->>>>>>> main
+
 
   sessionStorage.setItem('aipodium_api_keys', JSON.stringify({ gemini: 'AIzaSy12345' }));
 
@@ -108,10 +103,8 @@ test('purgeGuestSession truncates all guest localStorage keys and dynamic draft 
   assert.equal(localStorage.getItem('vault_temp_file'), null);
   assert.equal(localStorage.getItem('buffer_active'), null);
   assert.equal(localStorage.getItem('temp_data'), null);
-<<<<<<< HEAD
-=======
   assert.equal(localStorage.getItem('unsaved_buffer_1'), null);
->>>>>>> main
+
   assert.equal(sessionStorage.getItem('aipodium_api_keys'), null);
 });
 
@@ -136,11 +129,6 @@ test('purgeGuestSession with resetToSampleWorkspace: true restores pristine defa
   assert.equal(localStorage.getItem('notebooklm_active_file'), 'welcome.md');
 });
 
-<<<<<<< HEAD
-test('AuthContext logout triggers purgeGuestSession when isGuest is true', async () => {
-  const { AuthContext, AuthProvider } = await import('../src/context/AuthContext.tsx');
-  const { authService } = await import('../src/services/authService.ts');
-=======
 test('purgeGuestWorkspaceData performs full storage wipe and invokes clearAll on IndexedDB', async () => {
   const { purgeGuestWorkspaceData } = await import('../src/services/workspaceStorageService.ts');
   const { indexedDbService, isStorageWritesBlocked, blockStorageWrites } = await import('../src/services/indexedDbService.ts');
@@ -321,7 +309,7 @@ test('React in-memory state resets upon guest logout and fresh guest login (re-e
 test('AuthContext logout triggers purgeGuestWorkspaceData when isGuest is true', async () => {
   const { authService } = await import('../src/services/authService.ts');
   const { purgeGuestWorkspaceData } = await import('../src/services/workspaceStorageService.ts');
->>>>>>> main
+
   const { LOCAL_PIN_HASH_KEY } = await import('../src/utils/securityCrypto.ts');
 
   localStorage.removeItem(LOCAL_PIN_HASH_KEY);
@@ -331,21 +319,10 @@ test('AuthContext logout triggers purgeGuestWorkspaceData when isGuest is true',
   localStorage.setItem('notebooklm_editor_content', 'Sensitive Guest Notes');
   localStorage.setItem('notebooklm_files', JSON.stringify({ 'guest.md': 'content' }));
 
-<<<<<<< HEAD
-  // Call purgeGuestSession (same as invoked during guest logout/auto-lock)
-  const { purgeGuestSession } = await import('../src/services/workspaceStorageService.ts');
-  await purgeGuestSession({ resetToSampleWorkspace: true });
-
-  const files = JSON.parse(localStorage.getItem('notebooklm_files') || '{}');
-  assert.equal(files['guest.md'], undefined);
-  assert.ok(files['welcome.md']);
-});
-
-=======
   // Call purgeGuestWorkspaceData (same as invoked during guest logout/auto-lock)
   await purgeGuestWorkspaceData();
 
   assert.equal(localStorage.getItem('notebooklm_editor_content'), null);
   assert.equal(localStorage.getItem('notebooklm_files'), null);
 });
->>>>>>> main
+

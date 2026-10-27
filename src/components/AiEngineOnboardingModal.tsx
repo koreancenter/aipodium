@@ -5,14 +5,9 @@ import {
   saveAiEnginePreference,
   AiEngineChoice,
   verifyGeminiApiKeyDetailed,
-<<<<<<< HEAD
-  aiClient
-} from '../services/ai';
-=======
   isValidGeminiKeyFormat,
   aiClient
 } from '../services/aiPodiumIntegration';
->>>>>>> main
 
 export interface AiEngineOnboardingModalProps {
   isOpen: boolean;
@@ -97,15 +92,11 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
       return;
     }
 
-<<<<<<< HEAD
-=======
     if (!isValidGeminiKeyFormat(sanitizedKey)) {
       setCloudKeyResult('failed');
       setCloudKeyError('올바른 Gemini API 키 형식을 입력해 주세요.');
       return;
     }
-
->>>>>>> main
     setIsVerifyingCloudKey(true);
     setCloudKeyResult(null);
     setCloudKeyError('');
@@ -152,15 +143,11 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
     const rawKey = apiKey;
     const sanitizedKey = rawKey.trim();
 
-<<<<<<< HEAD
-=======
     if (selectedOption === 'cloud' && sanitizedKey && !isValidGeminiKeyFormat(sanitizedKey)) {
       setCloudKeyResult('failed');
       setCloudKeyError('올바른 Gemini API 키 형식을 입력해 주세요.');
       return;
     }
-
->>>>>>> main
     // 1. Save engine preference to aiEngineCore configuration
     saveAiEnginePreference({
       engineType: selectedOption,
@@ -395,8 +382,8 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                     </div>
                     <div className="h-1 bg-white/5 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-indigo-500 transition-all duration-200"
-                        style={{ width: `${webllmProgress.progressPercent}%` }}
+                        className="h-full w-full bg-indigo-500 origin-left transition-transform duration-200 ease-out"
+                        style={{ transform: `scaleX(${Math.max(0.01, (webllmProgress.progressPercent || 0) / 100)})` }}
                       />
                     </div>
                   </div>

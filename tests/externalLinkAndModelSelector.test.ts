@@ -8,15 +8,12 @@ import {
   convertGitHubUrlToRaw,
   formatLinkReferenceBlock
 } from '../src/services/externalLinkService.js';
-<<<<<<< HEAD
-=======
 import {
   appendModelIfMissing,
   getModelSelectorLabel,
   isModelSelected,
   normalizeModelIds,
 } from '../src/utils/modelSelectorUtils.js';
->>>>>>> main
 import type { ChatAttachment } from '../src/types.js';
 
 // Helper matching handleSendMessage in App.tsx
@@ -137,32 +134,6 @@ test('External Link Ingestion Pipeline & Model Selector', async (t) => {
   });
 
   await t.test('Inline model selector label generation logic', () => {
-<<<<<<< HEAD
-    // Helper function matching InlineModelSelector label logic
-    const getChipLabel = (
-      selectedModel: string,
-      selectedMultiModels: string[],
-      mode: 'single' | 'routing' | 'multi'
-    ) => {
-      const isMulti = mode === 'multi' || selectedMultiModels.length >= 2;
-      if (isMulti && selectedMultiModels.length >= 2) {
-        return `${selectedMultiModels[0]} +${selectedMultiModels.length - 1}`;
-      }
-      return selectedModel;
-    };
-
-    // Single model
-    assert.equal(getChipLabel('gemini-2.5-flash', ['gemini-2.5-flash'], 'single'), 'gemini-2.5-flash');
-
-    // Multiple models
-    assert.equal(
-      getChipLabel('gemini-2.5-flash', ['gemini-2.5-flash', 'gemini-2.5-pro'], 'multi'),
-      'gemini-2.5-flash +1'
-    );
-    assert.equal(
-      getChipLabel('gemini-2.5-flash', ['gemini-2.5-flash', 'ollama-qwen', 'webllm'], 'multi'),
-      'gemini-2.5-flash +2'
-=======
     assert.equal(getModelSelectorLabel('single', 1, 'Gemini 2.5 Flash'), 'Gemini 2.5 Flash');
     assert.equal(getModelSelectorLabel('multi', 2, 'Gemini 2.5 Flash'), 'Gemini 2.5 Flash +1');
     assert.equal(getModelSelectorLabel('multi', 3, 'Gemini 2.5 Flash'), 'Gemini 2.5 Flash +2');
@@ -190,7 +161,7 @@ test('External Link Ingestion Pipeline & Model Selector', async (t) => {
     assert.deepEqual(
       appendModelIfMissing(['llama3.2:latest'], 'qwen2.5:latest'),
       { modelIds: ['llama3.2:latest', 'qwen2.5:latest'], added: true }
->>>>>>> main
+
     );
   });
 
@@ -225,8 +196,8 @@ test('External Link Ingestion Pipeline & Model Selector', async (t) => {
     // Verify fixed dimensions on outer popover
     assert.match(
       selectorFile,
-      /w-\[340px\]\s+h-\[380px\]\s+flex\s+flex-col\s+bg-\[#16161a\]\s+border\s+border-white\/10\s+rounded-xl\s+shadow-2xl\s+overflow-hidden/,
-      'Outer popover container must enforce fixed 340px by 380px boundary'
+      /w-\[370px\]\s+h-\[380px\]\s+flex\s+flex-col\s+bg-\[#121214\]\s+border\s+border-\[#222226\]\s+backdrop-blur-md\s+rounded-xl\s+shadow-2xl\s+overflow-hidden/,
+      'Outer popover container must enforce fixed 370px by 380px boundary'
     );
 
     // Verify header slot

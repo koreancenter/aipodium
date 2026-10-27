@@ -353,7 +353,7 @@ export const VirtualizedMarkdownPreview = forwardRef<
       {/* Main Preview Container */}
       <div
         className={`${
-          isSplitMode ? 'p-5' : 'max-w-3xl mx-auto px-6 py-8'
+          isSplitMode ? 'p-5' : 'max-w-3xl mx-auto px-8 py-10'
         } min-h-full markdown-preview`}
       >
         {/* Top Spacer to preserve scroll position */}

@@ -48,12 +48,30 @@ export default defineConfig(() => {
         { find: '@', replacement: path.resolve(__dirname, '.') },
       ],
     },
+    worker: {
+      format: 'es',
+    },
     build: {
       target: 'es2020',
       minify: 'esbuild' as const,
       cssMinify: true,
       sourcemap: false,
       chunkSizeWarningLimit: 1500,
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            if (id.includes('node_modules')) {
+              if (id.includes('@mlc-ai')) return 'vendor-webllm';
+              if (id.includes('katex')) return 'vendor-katex';
+              if (id.includes('@tiptap') || id.includes('prosemirror')) return 'vendor-editor';
+              if (id.includes('pdfjs-dist') || id.includes('pdf-lib') || id.includes('tesseract.js')) return 'vendor-pdf';
+              if (id.includes('xlsx') || id.includes('jszip') || id.includes('mammoth') || id.includes('turndown')) return 'vendor-converters';
+              if (id.includes('lucide-react')) return 'vendor-icons';
+              if (id.includes('motion')) return 'vendor-motion';
+            }
+          },
+        },
+      },
     },
     server: {
       allowedHosts: true as const,

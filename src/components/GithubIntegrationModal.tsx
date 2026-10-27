@@ -501,9 +501,8 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 type="button"
                 onClick={handlePushActiveDocument}
                 disabled={isPushing || isTesting || isPulling}
-                className="px-2.5 py-1.5 rounded text-xs font-medium bg-white/5 hover:bg-white/10 text-zinc-200 border border-white/10 transition-colors inline-flex items-center gap-1.5 shrink-0 cursor-pointer"
+                className="px-2.5 py-1.5 rounded text-xs font-medium bg-white/5 hover:bg-white/10 text-zinc-200 border border-white/10 transition-colors inline-flex items-center justify-center shrink-0 cursor-pointer"
               >
-                <Upload className={`w-3.5 h-3.5 ${isPushing ? 'animate-spin text-indigo-400' : 'text-zinc-400'}`} />
                 <span>{isPushing ? '푸시 중...' : '즉시 푸시'}</span>
               </button>
             </div>
@@ -553,9 +552,8 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 type="button"
                 onClick={handleTestConnection}
                 disabled={isTesting || isPulling || isPushing}
-                className="px-3 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer inline-flex items-center justify-center"
               >
-                <RotateCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin text-indigo-400' : 'text-zinc-400'}`} />
                 <span>{isTesting ? '테스트 중...' : '연결 테스트'}</span>
               </button>
 
@@ -564,10 +562,9 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                   type="button"
                   onClick={onDisconnect}
                   disabled={isPulling || isPushing}
-                  className="px-3 py-1.5 rounded-md text-xs font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-md text-xs font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 transition-colors cursor-pointer inline-flex items-center justify-center"
                   title="현재 연결된 저장소 설정을 해제합니다."
                 >
-                  <Unlink className="w-3.5 h-3.5" />
                   <span>연동 해제</span>
                 </button>
               )}
@@ -585,18 +582,12 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
               <button
                 type="submit"
                 disabled={isPulling || isTesting || isPushing}
-                className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center justify-center cursor-pointer"
               >
                 {isPulling ? (
-                  <>
-                    <RotateCw className="w-3.5 h-3.5 animate-spin text-white" />
-                    <span>문서 동기화 중...</span>
-                  </>
+                  <span>문서 동기화 중...</span>
                 ) : (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>{isConnected ? '설정 저장' : '저장소 연결'}</span>
-                  </>
+                  <span>{isConnected ? '설정 저장' : '저장소 연결'}</span>
                 )}
               </button>
             </div>

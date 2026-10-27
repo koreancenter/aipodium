@@ -39,11 +39,7 @@ import { TiptapWysiwygEditor, TiptapWysiwygEditorRef } from './TiptapWysiwygEdit
 import { getTextareaSelectionCoordinates } from '../../utils/caretCoordinates';
 import { sanitizeHtml } from '../../utils/securitySanitizer';
 import { VirtualizedMarkdownPreview } from '../VirtualizedMarkdownPreview';
-<<<<<<< HEAD
-import { getEphemeralDecryptedApiKey } from '../../services/ai';
-=======
 import { getEphemeralDecryptedApiKey } from '../../services/aiPodiumIntegration';
->>>>>>> main
 
 export interface OptimizedEditorProps {
   value: string;
@@ -2081,77 +2077,79 @@ ${targetText}
   return (
     <div
       style={{ background: 'var(--bg-editor)' }}
-      className="relative w-full h-full flex flex-col"
+      className="relative w-full h-full flex flex-col overflow-hidden"
     >
-      <textarea
-        id="markdown-editor"
-        ref={refToUse}
-        value={localValue}
-        onFocus={(e) => {
-          onFocus?.();
-          updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
-        }}
-        onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
-        onChange={handleChange}
-        onScroll={handleEditorScroll}
-        onClick={(e) => {
-          updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
-        }}
-        onKeyUp={(e) => updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd)}
-        onMouseUp={(e) => {
-          updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
-        }}
-        onSelect={(e) => {
-          updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
-        }}
-        placeholder={placeholder || "마크다운을 입력하세요. '/'를 입력하여 자동 완성 메뉴를 열거나 단축키를 사용할 수 있습니다."}
-        spellCheck={false}
-        style={{
-          background: 'var(--bg-editor)',
-          color: 'var(--text-main)',
-          fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 12px)',
-          lineHeight: 1.65
-        }}
-        className="w-full flex-1 font-mono px-3.5 pt-9 pb-12 resize-none border-none focus:outline-none leading-[1.65] selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] placeholder:opacity-40 whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] custom-scrollbar"
-      />
-
-      {/* Floating Slash Command / Markdown Autocomplete Menu */}
-      {showSlashMenu && renderSlashMenu()}
-
-      {/* Floating Inline Table Bubble Menu */}
-      {currentTableInfo && (
-        <TableFloatingBubbleMenu
-          tableInfo={currentTableInfo}
-          position={tableBubblePos}
-          onInsertRow={handleInsertRow}
-          onDeleteRow={handleDeleteRow}
-          onInsertCol={handleInsertCol}
-          onDeleteCol={handleDeleteCol}
-          onSetAlign={handleSetAlign}
-          onToggleBold={handleToggleTableBold}
-          onToggleItalic={handleToggleTableItalic}
-          onFormatTable={handleFormatTable}
-          onClearSelectedCells={handleClearSelectedCells}
-          onOpenVisualModal={() => setIsVisualModalOpen(true)}
-          onAiEditTable={handleAiTableEdit}
-          isAiLoading={isAiTableLoading}
+      <div className="w-full h-full flex flex-col max-w-3xl mx-auto px-8 py-10 relative flex-1 min-h-0">
+        <textarea
+          id="markdown-editor"
+          ref={refToUse}
+          value={localValue}
+          onFocus={(e) => {
+            onFocus?.();
+            updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
+          }}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          onChange={handleChange}
+          onScroll={handleEditorScroll}
+          onClick={(e) => {
+            updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
+          }}
+          onKeyUp={(e) => updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd)}
+          onMouseUp={(e) => {
+            updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
+          }}
+          onSelect={(e) => {
+            updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
+          }}
+          placeholder={placeholder || "마크다운을 입력하세요. '/'를 입력하여 자동 완성 메뉴를 열거나 단축키를 사용할 수 있습니다."}
+          spellCheck={false}
+          style={{
+            background: 'var(--bg-editor)',
+            color: 'var(--text-main)',
+            fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 12px)',
+            lineHeight: 1.65
+          }}
+          className="w-full flex-1 font-mono resize-none border-none focus:outline-none leading-[1.65] selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] placeholder:opacity-40 whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] custom-scrollbar"
         />
-      )}
 
-      {/* Floating Inline General Text Bubble Menu */}
-      {!currentTableInfo && isTextBubbleVisible && (
-        <TextFloatingBubbleMenu
-          position={textBubblePos}
-          selectedText={selectedText}
-          hasSelection={hasSelection}
-          onApplyFormat={handleApplyTextFormat}
-          onCleanText={handleCleanText}
-          onClose={handleCloseTextBubble}
-          onAiEditText={handleAiTextEdit}
-          isAiLoading={isAiTextLoading}
-        />
-      )}
+        {/* Floating Slash Command / Markdown Autocomplete Menu */}
+        {showSlashMenu && renderSlashMenu()}
+
+        {/* Floating Inline Table Bubble Menu */}
+        {currentTableInfo && (
+          <TableFloatingBubbleMenu
+            tableInfo={currentTableInfo}
+            position={tableBubblePos}
+            onInsertRow={handleInsertRow}
+            onDeleteRow={handleDeleteRow}
+            onInsertCol={handleInsertCol}
+            onDeleteCol={handleDeleteCol}
+            onSetAlign={handleSetAlign}
+            onToggleBold={handleToggleTableBold}
+            onToggleItalic={handleToggleTableItalic}
+            onFormatTable={handleFormatTable}
+            onClearSelectedCells={handleClearSelectedCells}
+            onOpenVisualModal={() => setIsVisualModalOpen(true)}
+            onAiEditTable={handleAiTableEdit}
+            isAiLoading={isAiTableLoading}
+          />
+        )}
+
+        {/* Floating Inline General Text Bubble Menu */}
+        {!currentTableInfo && isTextBubbleVisible && (
+          <TextFloatingBubbleMenu
+            position={textBubblePos}
+            selectedText={selectedText}
+            hasSelection={hasSelection}
+            onApplyFormat={handleApplyTextFormat}
+            onCleanText={handleCleanText}
+            onClose={handleCloseTextBubble}
+            onAiEditText={handleAiTextEdit}
+            isAiLoading={isAiTextLoading}
+          />
+        )}
+      </div>
 
       {/* Visual Table Modal if opened in edit mode */}
       {isVisualModalOpen && currentTableInfo && (

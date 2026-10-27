@@ -18,11 +18,7 @@ import {
 } from 'lucide-react';
 import { renderMarkdownToHtml, cleanAiContentText, sanitizeHtml } from '../utils/markdownParser';
 import type { ChatMessage } from '../types';
-<<<<<<< HEAD
-import { aiClient } from '../services/ai';
-=======
 import { aiClient } from '../services/aiPodiumIntegration';
->>>>>>> main
 
 interface AiMessageBubbleProps {
   msg: ChatMessage;

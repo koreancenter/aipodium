@@ -88,18 +88,25 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
     }
   }, [isOpen, roleModels]);
 
-  // Close dropdown on outside click
+  // Close dropdown on outside click or Escape key
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setOpenDropdownKey(null);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpenDropdownKey(null);
+      }
+    };
     if (openDropdownKey) {
       document.addEventListener('mousedown', handleOutsideClick);
+      document.addEventListener('keydown', handleKeyDown);
     }
     return () => {
       document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [openDropdownKey]);
 
@@ -297,31 +304,29 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
                     onClick={() => {
                       setOpenDropdownKey(isDropdownOpen ? null : meta.key);
                     }}
-                    className={`w-full h-8 bg-[#09090b] text-xs text-slate-200 border rounded-md px-2.5 flex items-center justify-between transition cursor-pointer text-left focus:outline-none ${
-                      isDropdownOpen
-                        ? 'border-[#6366f1] bg-[#18181b]'
-                        : 'border-[#222226] hover:border-[#333338] hover:bg-[#18181b]'
+                    className={`w-full bg-[#09090b] border border-[#222226] hover:border-zinc-700 rounded-md px-3 py-1.5 text-xs text-zinc-200 flex items-center justify-between transition-colors cursor-pointer text-left focus:outline-none ${
+                      isDropdownOpen ? 'border-zinc-700' : ''
                     }`}
                   >
                     <span className="truncate font-sans leading-none">
                       {getModelDisplayName(currentModelId)}
                     </span>
                     <ChevronDown
-                      className={`w-3.5 h-3.5 text-slate-400 shrink-0 ml-1.5 transition-transform duration-150 ${
+                      className={`w-3.5 h-3.5 text-zinc-400 shrink-0 ml-1.5 transition-transform duration-150 ${
                         isDropdownOpen ? 'rotate-180 text-indigo-400' : ''
                       }`}
                     />
                   </button>
 
-                  {/* 드롭다운 옵션 레이어: 회색(#18181b) 마우스 호버 하이라이트 */}
+                  {/* 드롭다운 옵션 레이어 */}
                   {isDropdownOpen && (
                     <div
                       className={`absolute right-0 ${
-                        openUpward ? 'bottom-full mb-1' : 'top-full mt-1'
-                      } w-full bg-[#121214] border border-[#222226] rounded-md shadow-2xl p-1 text-xs text-slate-200 z-50 max-h-56 overflow-y-auto`}
+                        openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+                      } w-full bg-[#16181d] border border-white/[0.08] rounded-lg shadow-2xl p-1 z-50 max-h-56 overflow-y-auto`}
                     >
                       {/* 클라우드 모델 섹션 */}
-                      <div className="px-2 py-1 text-[10px] font-medium text-slate-400">
+                      <div className="px-2.5 py-1 text-[10px] text-zinc-500 font-medium select-none">
                         클라우드 모델
                       </div>
                       <div className="space-y-0.5">
@@ -336,10 +341,10 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
                                 setLocalRoles((prev) => ({ ...prev, [meta.key]: m.id }));
                                 setOpenDropdownKey(null);
                               }}
-                              className={`w-full text-left px-2.5 py-1.5 rounded text-xs transition cursor-pointer flex items-center justify-between ${
+                              className={`w-full px-2.5 py-1.5 rounded-md text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
                                 isSelected
-                                  ? 'bg-[#18181b] text-indigo-300 font-medium'
-                                  : 'text-slate-300 hover:bg-[#18181b] hover:text-slate-100'
+                                  ? 'bg-indigo-500/10 text-indigo-300 font-medium'
+                                  : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
                               }`}
                             >
                               <span className="truncate">{cleanName}</span>
@@ -353,9 +358,9 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
 
                       {/* 로컬 모델 섹션 */}
                       {localModels.length > 0 && (
-                        <div className="mt-1 pt-1 border-t border-[#222226]">
-                          <div className="px-2 py-1 text-[10px] font-medium text-slate-400">
-                            로컬 모델
+                        <div className="mt-1 pt-1 border-t border-white/[0.06]">
+                          <div className="px-2.5 py-1 text-[10px] text-zinc-500 font-medium select-none">
+                            로컬 AI
                           </div>
                           <div className="space-y-0.5">
                             {localModels.map((m) => {
@@ -369,10 +374,10 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
                                     setLocalRoles((prev) => ({ ...prev, [meta.key]: m.id }));
                                     setOpenDropdownKey(null);
                                   }}
-                                  className={`w-full text-left px-2.5 py-1.5 rounded text-xs transition cursor-pointer flex items-center justify-between ${
+                                  className={`w-full px-2.5 py-1.5 rounded-md text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
                                     isSelected
-                                      ? 'bg-[#18181b] text-indigo-300 font-medium'
-                                      : 'text-slate-300 hover:bg-[#18181b] hover:text-slate-100'
+                                      ? 'bg-indigo-500/10 text-indigo-300 font-medium'
+                                      : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
                                   }`}
                                 >
                                   <span className="truncate">{cleanName}</span>

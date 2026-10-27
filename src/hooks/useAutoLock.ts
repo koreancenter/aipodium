@@ -7,11 +7,7 @@ import {
   hasMasterPinConfigured,
   purgeGuestWorkspaceData
 } from '../utils/securityCrypto';
-<<<<<<< HEAD
-import { clearAiDecryptedKeyMemory } from '../services/ai';
-=======
 import { clearAiDecryptedKeyMemory } from '../services/aiPodiumIntegration';
->>>>>>> main
 
 export interface UseAutoLockOptions {
   /**
@@ -330,7 +326,4 @@ export function useAutoLock(options: UseAutoLockOptions = {}): UseAutoLockReturn
     clearFailedUnlocks: resetFailedAttempts
   };
 }
-<<<<<<< HEAD
 
-=======
->>>>>>> main

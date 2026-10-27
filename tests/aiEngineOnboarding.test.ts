@@ -1,10 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-<<<<<<< HEAD
-import { saveAiEnginePreference, getAiEnginePreference } from '../src/services/ai';
-=======
 import { saveAiEnginePreference, getAiEnginePreference } from '../src/services/aiPodiumIntegration';
->>>>>>> main
+
 
 // Mock localStorage for Node test environment
 if (typeof globalThis.localStorage === 'undefined') {

@@ -29,8 +29,6 @@ export type {
   ChatSession,
 };
 
-<<<<<<< HEAD
-=======
 import {
   clearAll,
   clearDb,
@@ -66,8 +64,6 @@ export function createInitialEmptySession(): ChatSession {
     messages: []
   };
 }
-
->>>>>>> main
 const DB_NAME = 'aipodium_vault_db';
 const DB_VERSION = 1;
 const STORE_FILES = 'vault_files';
@@ -116,12 +112,9 @@ export async function saveVaultToIndexedDB(
   fileFolders: Record<string, string>,
   vaultName: string = '내 브라우저 Vault'
 ): Promise<void> {
-<<<<<<< HEAD
-=======
   if (isStorageWritesBlocked()) {
     return;
   }
->>>>>>> main
   try {
     const db = await openVaultDB();
     const tx = db.transaction([STORE_FILES, STORE_METADATA], 'readwrite');
@@ -559,21 +552,6 @@ export async function clearVaultIndexedDB(): Promise<void> {
 }
 
 /**
-<<<<<<< HEAD
- * Complete Data Purge Pipeline for Guest Sessions upon Termination:
- * 1. Truncates and clears all tables in IndexedDB (primary app db and vault db).
- * 2. Clears in-memory directory handles.
- * 3. Batch-removes all guest-related keys from localStorage and sessionStorage.
- * 4. Clears sensitive clipboard memory.
- * 5. Resets storage state to the initial default sample workspace.
- */
-export async function purgeGuestSession(
-  options: PurgeGuestSessionOptions = { resetToSampleWorkspace: true }
-): Promise<void> {
-  const shouldResetToSample = options.resetToSampleWorkspace !== false;
-
-  // 1. Truncate all tables in Vault DB if indexedDB is supported
-=======
  * Full Storage Wipe for Guest Mode:
  * 1. Blocks any ongoing or incoming storage write operations.
  * 2. Truncates and clears all records in IndexedDB (indexedDbService.clearAll()).
@@ -598,7 +576,6 @@ export async function purgeGuestWorkspaceData(
   }
 
   // 3. Truncate all stores in Vault DB
->>>>>>> main
   try {
     if (typeof indexedDB !== 'undefined' && indexedDB) {
       await clearVaultIndexedDB();
@@ -607,27 +584,10 @@ export async function purgeGuestWorkspaceData(
     console.warn('[workspaceStorageService] clearVaultIndexedDB error:', err);
   }
 
-<<<<<<< HEAD
-  // 2. Truncate all tables in Primary App DB if indexedDB is supported
-  try {
-    if (typeof indexedDB !== 'undefined' && indexedDB) {
-      const { clearDb } = await import('./indexedDbService');
-      await clearDb();
-    }
-  } catch (err) {
-    console.warn('[workspaceStorageService] clearDb error:', err);
-  }
-
-  // 3. Clear in-memory directory handles
-  setMemoryDirectoryHandle(null);
-
-  // 4. Batch-remove all guest-related keys from localStorage & sessionStorage
-=======
   // 4. Clear in-memory directory handles
   setMemoryDirectoryHandle(null);
 
   // 5. Batch-remove all guest-related keys from localStorage & sessionStorage
->>>>>>> main
   const guestKeysToRemove = [
     // Active project, sessions & workspaces
     'aipodium_active_workspace',
@@ -696,11 +656,7 @@ export async function purgeGuestWorkspaceData(
     for (const key of guestKeysToRemove) {
       localStorage.removeItem(key);
     }
-<<<<<<< HEAD
-    // Dynamically remove any keys matching vault_*, draft_*, aipodium_draft_*, buffer_*, temp_*
-=======
     // Dynamically remove any keys matching vault_*, draft_*, aipodium_draft_*, buffer_*, temp_*, unsaved_*
->>>>>>> main
     const dynamicKeysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
@@ -710,12 +666,8 @@ export async function purgeGuestWorkspaceData(
           k.startsWith('draft_') ||
           k.startsWith('aipodium_draft_') ||
           k.startsWith('buffer_') ||
-<<<<<<< HEAD
-          k.startsWith('temp_'))
-=======
           k.startsWith('temp_') ||
           k.startsWith('unsaved_'))
->>>>>>> main
       ) {
         dynamicKeysToRemove.push(k);
       }
@@ -734,11 +686,7 @@ export async function purgeGuestWorkspaceData(
     sessionStorage.removeItem('aipodium_local_endpoint');
   }
 
-<<<<<<< HEAD
-  // 5. Clear sensitive clipboard memory and in-memory decrypted keys
-=======
   // 6. Clear sensitive clipboard memory and in-memory decrypted keys
->>>>>>> main
   try {
     const { clearSensitiveClipboard } = await import('../utils/securityCrypto');
     await clearSensitiveClipboard();
@@ -748,9 +696,6 @@ export async function purgeGuestWorkspaceData(
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('aipodium:auto_lock'));
   }
-<<<<<<< HEAD
-=======
-
   if (storagePurgeHook) {
     try {
       await storagePurgeHook();
@@ -770,25 +715,16 @@ export async function purgeGuestSession(
 
   await purgeGuestWorkspaceData();
 
->>>>>>> main
   if (options.onClearKeys) {
     try {
       options.onClearKeys();
     } catch {}
   }
 
-<<<<<<< HEAD
-  // 6. Reset the storage state to the initial default sample workspace
-  if (shouldResetToSample) {
-    try {
-      const { GUEST_SAMPLE_FILES, GUEST_SAMPLE_FOLDERS } = await import('../data/guestSampleWorkspace');
-
-=======
   // Reset the storage state to the initial default sample workspace
   if (shouldResetToSample) {
     blockStorageWrites(false);
     try {
->>>>>>> main
       // Seed IndexedDB app_state_store if supported
       if (typeof indexedDB !== 'undefined' && indexedDB) {
         try {
@@ -1195,13 +1131,9 @@ export async function createProject(
     ...initialData,
   };
 
-<<<<<<< HEAD
-=======
   if (isStorageWritesBlocked()) {
     return newProject;
   }
-
->>>>>>> main
   try {
     if (typeof window !== 'undefined' && (window as any).indexedDB) {
       const { getDbItem, setDbItem, STORAGE_KEYS } = await import('./indexedDbService');
@@ -1249,13 +1181,10 @@ export class WorkspaceStorageService {
   renameFileInLocalDirectory = renameFileInLocalDirectory;
   rescanLocalDirectory = rescanLocalDirectory;
   purgeGuestSession = purgeGuestSession;
-<<<<<<< HEAD
-=======
   purgeGuestWorkspaceData = purgeGuestWorkspaceData;
   createInitialEmptySession = createInitialEmptySession;
   getCleanGuestSampleWorkspace = getCleanGuestSampleWorkspace;
   getCleanGuestSampleFolders = getCleanGuestSampleFolders;
->>>>>>> main
   sanitizeGithubRepo = sanitizeGithubRepo;
   generateConventionalCommitMessage = generateConventionalCommitMessage;
   syncDocToGithub = syncDocToGithub;

@@ -116,8 +116,8 @@ export const WebLlmBanner: React.FC<WebLlmBannerProps> = ({
         {/* 0~100% 게이지 바 */}
         <div className="w-full bg-[#09090b] border border-[#222226] rounded-full h-1.5 overflow-hidden mb-2">
           <div
-            className="bg-[#6366f1] h-full transition-all duration-200 rounded-full"
-            style={{ width: `${Math.max(2, Math.min(100, percent))}%` }}
+            className="bg-[#6366f1] h-full w-full rounded-full origin-left transition-transform duration-200 ease-out"
+            style={{ transform: `scaleX(${Math.max(0.02, Math.min(1, percent / 100))})` }}
           />
         </div>
 

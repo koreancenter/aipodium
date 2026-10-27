@@ -76,11 +76,7 @@ code::selection,
 body {
   background: var(--bg-main, #09090b);
   color: var(--text-main, #e2e8f0);
-<<<<<<< HEAD
-  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Consolas, monospace, sans-serif;
-=======
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
->>>>>>> main
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
   font-size: 12px;
   line-height: 1.4;
   min-height: 100vh;
@@ -468,11 +464,7 @@ body,
 
 .markdown-preview code,
 .markdown-body code {
-<<<<<<< HEAD
-  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
-=======
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
->>>>>>> main
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', ui-monospace, Consolas, monospace;
 }
 
 /* Polished High-Readability Markdown Table */
@@ -677,11 +669,7 @@ body,
 
 /* Inline Code & Code Blocks */
 .tiptap-prosemirror-body.ProseMirror code {
-<<<<<<< HEAD
-  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
-=======
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
->>>>>>> main
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', ui-monospace, Consolas, monospace;
   font-size: 0.8em;
   padding: 0.15rem 0.35rem;
   background-color: #121214;
@@ -907,7 +895,4 @@ body,
 }
 
 
-<<<<<<< HEAD
 
-=======
->>>>>>> main

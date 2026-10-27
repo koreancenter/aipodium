@@ -234,26 +234,21 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
       {/* Row 1: AES-256 Storage Encryption */}
       <div className="py-3.5 space-y-2.5 first:pt-0">
         <div className="flex items-center justify-between gap-4">
-          <div>
-            <div className="text-xs font-medium text-zinc-200 flex items-center gap-2">
-              <span>저장소 암호화</span>
-              {securityConfig.isEncryptionEnabled ? (
-                <span className="text-[10px] font-mono text-zinc-400 bg-white/[0.06] border border-white/[0.08] px-1.5 py-0.5 rounded">
-                  {isUnlocked ? '암호화 활성' : '잠김'}
-                </span>
-              ) : (
-                <span className="text-[10px] font-mono text-zinc-500 bg-white/[0.04] px-1.5 py-0.5 rounded">
-                  비활성
-                </span>
-              )}
-              <HelpTooltip
-                title="저장소 암호화 안내"
-                content="API 키 및 접속 주소를 로컬에 저장할 때 마스터 PIN 기반의 고강도 AES-256 알고리즘으로 안전하게 암호화합니다."
-              />
-            </div>
-            <div className="text-[11px] text-zinc-400 mt-0.5">
-              마스터 PIN 기반 AES-256 알고리즘으로 민감 정보를 암호화하여 로컬 보관
-            </div>
+          <div className="text-xs font-medium text-zinc-200 flex items-center gap-2">
+            <span>저장소 암호화</span>
+            {securityConfig.isEncryptionEnabled ? (
+              <span className="text-[10px] font-mono text-zinc-400 bg-white/[0.06] border border-white/[0.08] px-1.5 py-0.5 rounded">
+                {isUnlocked ? '암호화 활성' : '잠김'}
+              </span>
+            ) : (
+              <span className="text-[10px] font-mono text-zinc-500 bg-white/[0.04] px-1.5 py-0.5 rounded">
+                비활성
+              </span>
+            )}
+            <HelpTooltip
+              title="저장소 암호화 안내"
+              content="API 키 및 접속 주소를 로컬에 저장할 때 마스터 PIN 기반의 고강도 AES-256 알고리즘으로 안전하게 암호화합니다."
+            />
           </div>
 
           <button
@@ -294,9 +289,8 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
               type="button"
               onClick={handleUnlockVault}
               title="보관함 잠금 해제"
-              className="px-3 py-1.5 rounded-md text-xs text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-colors cursor-pointer inline-flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-md text-xs text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-colors cursor-pointer inline-flex items-center justify-center"
             >
-              <Unlock className="w-3.5 h-3.5" />
               <span>잠금 해제</span>
             </button>
           </div>
@@ -314,18 +308,16 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
                 type="button"
                 onClick={() => setIsSettingPasscode(true)}
                 title="PIN 번호 변경"
-                className="px-2.5 py-1 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                className="px-2.5 py-1 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center justify-center cursor-pointer"
               >
-                <KeyRound className="w-3.5 h-3.5 text-zinc-400" />
                 <span>PIN 변경</span>
               </button>
               <button
                 type="button"
                 onClick={handleLockVault}
                 title="지금 즉시 잠금"
-                className="px-2.5 py-1 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                className="px-2.5 py-1 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center justify-center cursor-pointer"
               >
-                <Lock className="w-3.5 h-3.5 text-zinc-400" />
                 <span>즉시 잠금</span>
               </button>
             </div>
@@ -409,17 +401,12 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
 
       {/* Row 2: Lock on Startup (Zero-Trust Startup Gate) */}
       <div className="py-3.5 flex items-center justify-between gap-4">
-        <div>
-          <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
-            <span>접속 시 항상 잠금 화면 표시</span>
-            <HelpTooltip
-              title="접속 시 잠금 안내"
-              content="브라우저를 새로 열거나 새로고침할 때 이전 세션과 무관하게 항상 마스터 PIN 잠금 화면부터 시작합니다."
-            />
-          </div>
-          <div className="text-[11px] text-zinc-400 mt-0.5">
-            새로고침 또는 새 탭 열람 시 이전 세션과 무관하게 항상 PIN 인증 요청
-          </div>
+        <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
+          <span>접속 시 항상 잠금 화면 표시</span>
+          <HelpTooltip
+            title="접속 시 잠금 안내"
+            content="브라우저를 새로 열거나 새로고침할 때 이전 세션과 무관하게 항상 마스터 PIN 잠금 화면부터 시작합니다."
+          />
         </div>
 
         <button
@@ -452,17 +439,12 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
 
       {/* Row 3: Auto-Lock Inactivity Timeout */}
       <div className="py-3.5 flex items-center justify-between gap-4">
-        <div>
-          <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
-            <span>자동 잠금 대기 시간</span>
-            <HelpTooltip
-              title="자동 잠금 안내"
-              content="사용자 입력이 없을 때 자동으로 작업 화면을 잠그고 메모리 내 데이터를 격리합니다."
-            />
-          </div>
-          <div className="text-[11px] text-zinc-400 mt-0.5">
-            지정된 유휴 시간 동안 키보드/마우스 입력이 없으면 화면을 자동 잠금
-          </div>
+        <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
+          <span>자동 잠금 대기 시간</span>
+          <HelpTooltip
+            title="자동 잠금 안내"
+            content="사용자 입력이 없을 때 자동으로 작업 화면을 잠그고 메모리 내 데이터를 격리합니다."
+          />
         </div>
 
         <select
@@ -489,17 +471,12 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
 
       {/* Row 4: Clear Session on Browser Close */}
       <div className="py-3.5 flex items-center justify-between gap-4">
-        <div>
-          <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
-            <span>브라우저 종료 시 인증 세션 자동 삭제</span>
-            <HelpTooltip
-              title="인증 세션 자동 파기"
-              content="창이나 탭을 닫을 때 로그인 인증 토큰을 즉시 파기하여 재접속 시 전체 재로그인을 요구합니다."
-            />
-          </div>
-          <div className="text-[11px] text-zinc-400 mt-0.5">
-            브라우저 탭을 닫을 때 메모리 내 세션 토큰을 삭제하여 보안 유지
-          </div>
+        <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
+          <span>브라우저 종료 시 인증 세션 자동 삭제</span>
+          <HelpTooltip
+            title="인증 세션 자동 파기"
+            content="창이나 탭을 닫을 때 로그인 인증 토큰을 즉시 파기하여 재접속 시 전체 재로그인을 요구합니다."
+          />
         </div>
 
         <button
@@ -532,13 +509,12 @@ export const SecuritySettings: React.FC<SecuritySettingsProps> = ({
 
       {/* Row 5: Streamlined Danger Zone (Discreet final setting row per DESIGN.md v2.1) */}
       <div className="py-3.5 flex items-center justify-between gap-4">
-        <div>
-          <div className="text-xs font-medium text-rose-400 flex items-center gap-1.5">
-            <span>로컬 워크스페이스 데이터 초기화</span>
-          </div>
-          <div className="text-[11px] text-zinc-400 mt-0.5">
-            로컬에 저장된 문서, 대화 기록 및 암호화 키를 완전히 삭제합니다 (복구 불가)
-          </div>
+        <div className="text-xs font-medium text-rose-400 flex items-center gap-1.5">
+          <span>로컬 워크스페이스 데이터 초기화</span>
+          <HelpTooltip
+            title="데이터 초기화 안내"
+            content="로컬에 저장된 문서, 대화 기록 및 암호화 키를 완전히 삭제합니다. 복구할 수 없습니다."
+          />
         </div>
         <button
           type="button"

@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Cpu } from 'lucide-react';
 
-<<<<<<< HEAD
-interface LocalAiResourceMonitorProps {
-  endpoint: string;
-  isGenerating: boolean;
-  activeModel?: string;
-  provider: 'cloud' | 'local-pc' | 'local-server';
-=======
 export type AiEngineProviderType = 'cloud' | 'local-pc' | 'local-server' | 'webllm';
 
 export interface LocalAiResourceMonitorProps {
@@ -16,7 +9,7 @@ export interface LocalAiResourceMonitorProps {
   activeModel?: string;
   provider: AiEngineProviderType;
   activeProvider?: AiEngineProviderType;
->>>>>>> main
+
   variant?: 'statusbar' | 'header';
   onOpenSettings?: () => void;
 }
@@ -36,22 +29,14 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
   isGenerating,
   activeModel = '',
   provider,
-<<<<<<< HEAD
-=======
   activeProvider,
->>>>>>> main
+
   variant = 'statusbar',
   onOpenSettings,
 }) => {
   const [loadedModel, setLoadedModel] = useState<LoadedModelInfo | null>(null);
   const [cpuPercent, setCpuPercent] = useState<number>(0);
 
-<<<<<<< HEAD
-  // Normalize endpoint to always include http:// or https:// protocol
-  const rawEndpoint = (endpoint || 'http://localhost:11434').trim().replace(/\/+$/, '');
-  const cleanEndpoint = /^https?:\/\//i.test(rawEndpoint) ? rawEndpoint : `http://${rawEndpoint}`;
-  const isLocalActive = provider === 'local-pc' || provider === 'local-server';
-=======
   const effectiveProvider = activeProvider || provider;
   const isCloudProvider = effectiveProvider === 'cloud';
   const isLocalActive = !isCloudProvider && (effectiveProvider === 'local-pc' || effectiveProvider === 'local-server' || effectiveProvider === 'webllm');
@@ -59,7 +44,7 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
   // Normalize endpoint to always include http:// or https:// protocol
   const rawEndpoint = (endpoint || 'http://localhost:11434').trim().replace(/\/+$/, '');
   const cleanEndpoint = /^https?:\/\//i.test(rawEndpoint) ? rawEndpoint : `http://${rawEndpoint}`;
->>>>>>> main
+
 
   // Helper to render micro segment LED bar: 10 segments (width: 2px, height: 7px, gap: 1.5px, rounded: 0.5px)
   const renderSegmentBar = (percent: number) => {
@@ -184,9 +169,6 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
 
   // Poll intervals: fast during generation, moderate during idle
   useEffect(() => {
-<<<<<<< HEAD
-    if (!isLocalActive) return;
-=======
     if (effectiveProvider === 'webllm') {
       const fallback = estimateVramFromModelName(activeModel || 'Llama-3.2-3B');
       setLoadedModel({
@@ -200,18 +182,15 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
     }
 
     if (effectiveProvider !== 'local-pc' && effectiveProvider !== 'local-server') return;
->>>>>>> main
+
 
     fetchOllamaProcessStatus();
     const intervalMs = isGenerating ? 1200 : 8000;
     const timer = setInterval(fetchOllamaProcessStatus, intervalMs);
 
     return () => clearInterval(timer);
-<<<<<<< HEAD
-  }, [cleanEndpoint, isGenerating, isLocalActive, activeModel]);
-=======
   }, [cleanEndpoint, isGenerating, effectiveProvider, activeModel]);
->>>>>>> main
+
 
   // CPU telemetry simulation based on generation state and model weight
   useEffect(() => {
@@ -252,10 +231,6 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
   const hasWarning = isVramWarning || isCpuWarning;
 
   const getTooltipText = () => {
-<<<<<<< HEAD
-    if (!isLocalActive) {
-      return '로컬 AI 리소스 모니터 (현재 클라우드 AI 모드)\n클릭하여 로컬 Ollama 또는 전용 추론 서버로 전환할 수 있습니다.';
-=======
     if (effectiveProvider === 'webllm') {
       const modelDisplay = activeModel || 'WebLLM 브라우저 엔진';
       let text = `[WebGPU 브라우저 로컬 AI]\nVRAM: ${vramPercent}% (${vramText}) | CPU: ${cpuPercent}%\n활성 모델: ${modelDisplay}`;
@@ -266,32 +241,20 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
         text += '\n클릭하여 AI 엔진 설정 열기';
       }
       return text;
->>>>>>> main
+
     }
     const modelDisplay = loadedModel?.name || activeModel || '대기 중';
     let text = `[로컬 AI 리소스 모니터 - ${cleanEndpoint}]\nVRAM: ${vramPercent}% (${vramText}) | CPU: ${cpuPercent}%\n활성 모델: ${modelDisplay}`;
     if (hasWarning) {
-<<<<<<< HEAD
-      text += '\n⚠️ 주의: 자원 사용량 85% 초과 (부하 경고 모드)';
-    }
-    if (onOpenSettings) {
-      text += '\n(클릭하여 AI 엔진 및 엔드포인트 설정 열기)';
-=======
       text += '\n주의: 자원 사용량 85% 초과';
     }
     if (onOpenSettings) {
       text += '\n클릭하여 AI 엔진 및 엔드포인트 설정 열기';
->>>>>>> main
+
     }
     return text;
   };
 
-<<<<<<< HEAD
-  // Header variant (compact indicator)
-  if (variant === 'header') {
-    if (!isLocalActive) return null;
-
-=======
   // Only render VRAM and CPU bar meters when activeProvider is 'webllm' or 'local-pc'.
   // Hide them when using 'cloud' so it doesn't show meaningless 0% bars.
   if (!isLocalActive || isCloudProvider) {
@@ -300,7 +263,7 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
 
   // Header variant (compact indicator)
   if (variant === 'header') {
->>>>>>> main
+
     return (
       <div className="local-ai-resource-monitor relative inline-flex items-center">
         <button

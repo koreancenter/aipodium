@@ -78,10 +78,8 @@ test('3. ChatPanel.tsx unifies download progress into centered empty state view 
 test('4. WebLLM service and adapter support consecutive calls without resetting', async () => {
   const serviceFile = fs.readFileSync(path.resolve(process.cwd(), 'src/utils/webllmService.ts'), 'utf-8');
   const adapterFile = fs.readFileSync(path.resolve(process.cwd(), 'src/services/ai/adapters/WebLlmAdapter.ts'), 'utf-8');
-<<<<<<< HEAD
-=======
   const integrationFile = fs.readFileSync(path.resolve(process.cwd(), 'src/services/aiPodiumIntegration.ts'), 'utf-8');
->>>>>>> main
+
 
   // Verify initPromise exists to prevent concurrent duplicate worker creation
   assert.ok(
@@ -89,17 +87,10 @@ test('4. WebLLM service and adapter support consecutive calls without resetting'
     'webllmService should track initPromise for consecutive/concurrent calls'
   );
 
-<<<<<<< HEAD
-  // Verify WebLlmAdapter checks getLoadedWebLLMEngine before calling init
-  assert.ok(
-    adapterFile.includes('if (!getLoadedWebLLMEngine())'),
-    'WebLlmAdapter should only initialize if engine is not already loaded'
-  );
-=======
   assert.match(adapterFile, /this\.runtime\.isLoaded\(\)/);
   assert.match(adapterFile, /this\.runtime\.initialize\(/);
   assert.match(adapterFile, /interface WebLlmRuntime/);
   assert.doesNotMatch(adapterFile, /from ['"].*webllmService/);
   assert.match(integrationFile, /new WebLlmAdapter\(webLlmRuntime\)/);
->>>>>>> main
+
 });

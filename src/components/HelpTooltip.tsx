@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { HelpCircle } from 'lucide-react';
 
 interface HelpTooltipProps {
-  content: string | React.ReactNode;
+  content?: string | React.ReactNode;
+  text?: string | React.ReactNode;
   title?: string;
   side?: 'top' | 'bottom' | 'left' | 'right';
   align?: 'center' | 'left' | 'right';
@@ -13,11 +14,13 @@ interface HelpTooltipProps {
 
 export const HelpTooltip: React.FC<HelpTooltipProps> = ({
   content,
+  text,
   title,
   side = 'top',
   align = 'center',
   className = ''
 }) => {
+  const resolvedContent = content ?? text;
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -291,7 +294,7 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
 
                 {/* Body Content */}
                 <div className="p-2.5 text-[11.5px] leading-relaxed text-slate-300 font-normal break-words">
-                  {content}
+                  {resolvedContent}
                 </div>
               </motion.div>
             )}
