@@ -1938,7 +1938,6 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           <CustomSelectDropdown
                             value={currentVal}
                             onChange={(val) => setLocalPrefs({ ...localPrefs, ghostWriterModel: val })}
-                            openUpward={true}
                             groups={cloudOpts.length > 0 && localOpts.length > 0 ? [
                               {
                                 label: '클라우드 모델',

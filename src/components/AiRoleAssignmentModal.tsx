@@ -343,7 +343,7 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
                               }}
                               className={`w-full px-2.5 py-1.5 rounded-md text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
                                 isSelected
-                                  ? 'bg-indigo-500/10 text-indigo-300 font-medium'
+                                  ? 'bg-white/[0.06] text-zinc-100 font-medium'
                                   : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
                               }`}
                             >
@@ -376,7 +376,7 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
                                   }}
                                   className={`w-full px-2.5 py-1.5 rounded-md text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
                                     isSelected
-                                      ? 'bg-indigo-500/10 text-indigo-300 font-medium'
+                                      ? 'bg-white/[0.06] text-zinc-100 font-medium'
                                       : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
                                   }`}
                                 >

@@ -10,7 +10,6 @@ import {
   EyeOff,
   ExternalLink,
   Unlink,
-  Sparkles,
   Upload,
 } from 'lucide-react';
 import { HelpTooltip } from './HelpTooltip';
@@ -330,12 +329,9 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 )}
                 <HelpTooltip
                   title="GitHub 로컬 연동 안내"
-                  content="사용자의 개인 액세스 토큰을 통해 브라우저에서 GitHub API와 직접 통신합니다. 토큰은 외부 서버에 전송되지 않으며 로컬 브라우저 세션에만 안전하게 보관됩니다."
+                  content="마크다운 문서와 작업 내역을 개인 GitHub 저장소와 실시간으로 동기화합니다. 사용자의 개인 액세스 토큰을 통해 브라우저에서 GitHub API와 직접 통신하며, 토큰은 외부 서버에 전송되지 않고 로컬 브라우저 세션에만 안전하게 보관됩니다."
                 />
               </div>
-              <p className="text-[11px] text-zinc-400 mt-0.5">
-                마크다운 문서와 작업 내역을 개인 GitHub 저장소와 실시간으로 동기화합니다.
-              </p>
             </div>
           </div>
 
@@ -451,10 +447,13 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
           <div className="py-2 border-b border-white/[0.06]">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-medium text-zinc-200">자동 커밋 메시지 생성</span>
-                <p className="text-[11px] text-zinc-500 mt-0.5">
-                  문서 저장 시 표준 커밋 메시지(docs: update...)를 자동으로 생성합니다.
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-medium text-zinc-200">자동 커밋 메시지 생성</span>
+                  <HelpTooltip
+                    title="자동 커밋 메시지 생성"
+                    content="문서 저장 시 표준 커밋 메시지(docs: update...)를 자동으로 생성합니다."
+                  />
+                </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-3">
                 <input
@@ -489,13 +488,14 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
               <div className="min-w-0 pr-2">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-medium text-zinc-200">현재 활성 문서 커밋 및 푸시</span>
+                  <HelpTooltip
+                    title="현재 활성 문서 커밋 및 푸시"
+                    content="현재 에디터에서 작성 중인 문서를 원격 저장소에 즉시 동기화합니다."
+                  />
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-zinc-400 font-mono truncate max-w-[140px]">
                     {currentActiveFile}
                   </span>
                 </div>
-                <p className="text-[11px] text-zinc-500 mt-0.5">
-                  현재 에디터에서 작성 중인 문서를 원격 저장소에 즉시 동기화합니다.
-                </p>
               </div>
               <button
                 type="button"
@@ -511,10 +511,13 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
           {/* Initial Pull Option on Connect - Clean Flat Row */}
           <div className="flex items-center justify-between py-2 border-b border-white/[0.06]">
             <div>
-              <span className="text-xs font-medium text-zinc-200">저장소 문서 워크스페이스 동기화</span>
-              <p className="text-[11px] text-zinc-500 mt-0.5">
-                연결 시 대상 브랜치의 마크다운 문서를 현재 작업 공간으로 불러옵니다.
-              </p>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-zinc-200">저장소 문서 워크스페이스 동기화</span>
+                <HelpTooltip
+                  title="저장소 문서 워크스페이스 동기화"
+                  content="연결 시 대상 브랜치의 마크다운 문서를 현재 작업 공간으로 불러옵니다."
+                />
+              </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-3">
               <input
@@ -591,23 +594,6 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 )}
               </button>
             </div>
-          </div>
-
-          {/* Integration Connection Status Footer Banner */}
-          <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between text-[11px] text-zinc-400">
-            <span className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-              <span>GitHub 연동 상태</span>
-            </span>
-            {isGithubConnected ? (
-              <span className="text-[11px] px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
-                연결됨
-              </span>
-            ) : (
-              <span className="text-[11px] px-2 py-0.5 rounded bg-white/5 text-zinc-400 border border-white/5">
-                미연동
-              </span>
-            )}
           </div>
         </form>
       </div>

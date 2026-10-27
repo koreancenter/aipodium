@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { HelpTooltip } from './HelpTooltip';
 import {
   Folder,
   FolderPlus,
@@ -26,6 +27,8 @@ import {
   GoogleUserProfile,
 } from '../services/googleDriveService';
 import { convertDocumentToMarkdown } from '../services/documentConverterService';
+
+const DRIVE_UNAVAILABLE_MESSAGE = '이 버전에서는 구글 드라이브 연동을 사용할 수 없습니다. 로컬 파일 열기와 저장은 그대로 사용할 수 있습니다.';
 
 export interface GoogleDrivePickerModalProps {
   isOpen: boolean;
@@ -83,6 +86,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [missingConfigWarning, setMissingConfigWarning] = useState<string | null>(null);
+  const isDriveConfigured = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
   const [authStatus, setAuthStatus] = useState<'connected' | 'expired' | 'disconnected'>(
     googleDriveService.getTokenStatus()
   );
@@ -257,9 +261,8 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
   const openGooglePicker = async (existingToken?: string) => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) {
-      const warningMsg = 'Google Cloud Client ID가 설정되지 않았습니다. .env 환경변수를 확인하세요.';
-      setMissingConfigWarning(warningMsg);
-      onToast(warningMsg, 'warn');
+      console.warn('VITE_GOOGLE_CLIENT_ID is not set; Google Drive is disabled.');
+      setMissingConfigWarning(DRIVE_UNAVAILABLE_MESSAGE);
       return;
     }
     setMissingConfigWarning(null);
@@ -317,9 +320,8 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
   const handleOnDemandConnect = async () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) {
-      const warningMsg = 'Google Cloud Client ID가 설정되지 않았습니다. .env 환경변수를 확인하세요.';
-      setMissingConfigWarning(warningMsg);
-      onToast(warningMsg, 'warn');
+      console.warn('VITE_GOOGLE_CLIENT_ID is not set; Google Drive is disabled.');
+      setMissingConfigWarning(DRIVE_UNAVAILABLE_MESSAGE);
       return;
     }
     setMissingConfigWarning(null);
@@ -516,11 +518,13 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     미연동
                   </span>
                 )}
+                <HelpTooltip
+                  title="구글 드라이브 파일 탐색기"
+                  content="계정 로그인 여부와 무관하게 구글 드라이브 파일을 안전하게 열고 저장합니다."
+                  side="bottom"
+                />
               </h2>
             </div>
-            <p className="text-xs text-zinc-400">
-              계정 로그인 여부와 무관하게 구글 드라이브 파일을 안전하게 열고 저장합니다.
-            </p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -647,11 +651,15 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
               type="button"
               id="google-drive-connect-btn"
               onClick={handleOnDemandConnect}
-              disabled={isConnecting}
-              className="px-4 py-2 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center justify-center cursor-pointer"
+              disabled={isConnecting || !isDriveConfigured}
+              title={isDriveConfigured ? undefined : DRIVE_UNAVAILABLE_MESSAGE}
+              className="px-4 py-2 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center justify-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-indigo-600"
             >
               <span>{isConnecting ? '연동 진행 중...' : '구글 드라이브 연결하기'}</span>
             </button>
+            {!isDriveConfigured && (
+              <p className="text-[11px] text-zinc-500 max-w-sm">{DRIVE_UNAVAILABLE_MESSAGE}</p>
+            )}
           </div>
         ) : (
           <>

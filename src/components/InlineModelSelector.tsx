@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Zap, ChevronDown, Search, SlidersHorizontal, RefreshCw, Star, Check, KeyRound } from 'lucide-react';
+import { ChevronDown, Search, SlidersHorizontal, RefreshCw, Star, Check, KeyRound } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { fetchOllamaTags, DEFAULT_FALLBACK_MODELS, getModelDisplayName } from '../config/models.config';
 import { useAuth } from '../context/AuthContext';
@@ -532,7 +532,6 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
         }`}
         title={`AI 모델 선택: ⚡ ${chipLabel} (클릭하여 열기)`}
       >
-        <Zap className="w-3 h-3 text-amber-400 shrink-0" />
         <span className="truncate text-left font-normal">{chipLabel}</span>
         <ChevronDown
           className={`w-3 h-3 text-zinc-400 shrink-0 transition-transform duration-150 ${

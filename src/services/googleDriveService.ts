@@ -325,7 +325,7 @@ class GoogleDriveService {
     const envClientId = typeof import.meta !== 'undefined' && (import.meta as any)?.env?.VITE_GOOGLE_CLIENT_ID;
     const cid = options.clientId || envClientId || '';
     if (!cid) {
-      throw new Error('Google Cloud Client ID가 설정되지 않았습니다. .env 환경변수를 확인하세요.');
+      throw new Error('이 버전에서는 구글 드라이브 연동을 사용할 수 없습니다.');
     }
 
     return google.accounts.oauth2.initTokenClient({
@@ -352,7 +352,7 @@ class GoogleDriveService {
       const envClientId = typeof import.meta !== 'undefined' && (import.meta as any)?.env?.VITE_GOOGLE_CLIENT_ID;
       const cid = clientId || envClientId || '';
       if (!cid) {
-        reject(new Error('Google Cloud Client ID가 설정되지 않았습니다. .env 환경변수를 확인하세요.'));
+        reject(new Error('이 버전에서는 구글 드라이브 연동을 사용할 수 없습니다.'));
         return;
       }
 

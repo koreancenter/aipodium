@@ -64,4 +64,16 @@ AI Podium is a **next-generation knowledge engineering & AI orchestration worksp
 
 ---
 
+## 🔧 Operator Setup: Google Drive (one-time)
+
+End users never configure this. The deployer sets it once:
+
+1. In Google Cloud Console, enable the **Google Drive API** (and **Google Picker API**) and create an **OAuth client ID** of type *Web application*.
+2. Add `http://localhost:3000` and your production origin to *Authorized JavaScript origins*. Keep the consent screen in *Testing* with test users, or publish it for public use.
+3. Set `VITE_GOOGLE_CLIENT_ID` (see `.env.example`) in `.env.local` for development and in the Cloudflare build environment variables for production, then rebuild. The client ID is public; never add a client secret.
+
+If the variable is missing, the Google Drive connect button is disabled and users see a plain notice, while local file open/save keeps working.
+
+---
+
 *💡 Any work done in Guest Mode will be preserved and linked to your account once you sign up or log in via the profile menu at the top.*

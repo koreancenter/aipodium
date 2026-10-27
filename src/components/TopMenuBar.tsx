@@ -197,7 +197,7 @@ const SUBMENU_POPOVER_CLASS =
 const MENU_ITEM_CLASS =
   'w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-md text-xs text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100 text-left transition-colors cursor-pointer';
 const MENU_ITEM_ACTIVE_CLASS =
-  'w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-md text-xs bg-indigo-500/10 text-indigo-300 font-medium text-left transition-colors cursor-pointer';
+  'w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-md text-xs bg-white/[0.06] text-zinc-100 font-medium text-left transition-colors cursor-pointer';
 const MENU_HEADER_CLASS =
   'px-2.5 py-1 text-[10px] text-zinc-500 font-medium select-none';
 const MENU_DIVIDER_CLASS =
