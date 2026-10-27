@@ -600,7 +600,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
         </div>
 
         {/* Right Section: Grouped Formatting Actions (Icon-only) */}
-        <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-0.5 min-w-0 overflow-x-auto whitespace-nowrap scrollbar-none">
           {/* Headings: Heading1, Heading2, Heading3 */}
           <button
             type="button"

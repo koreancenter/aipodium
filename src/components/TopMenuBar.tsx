@@ -3,7 +3,8 @@ import {
   ChevronRight,
   Check,
   ZoomIn,
-  ZoomOut
+  ZoomOut,
+  Settings
 } from 'lucide-react';
 
 export interface TopMenuBarProps {
@@ -138,6 +139,15 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
   const [activeMenu, setActiveMenu] = useState<MenuKey>(null);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [windowWidth, setWindowWidth] = useState<number>(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1280
+  );
+
+  useEffect(() => {
+    const onResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   // Close menus on outside click or Escape
   useEffect(() => {
@@ -192,6 +202,23 @@ const MENU_HEADER_CLASS =
   'px-2.5 py-1 text-[10px] text-zinc-500 font-medium select-none';
 const MENU_DIVIDER_CLASS =
   'h-px bg-white/[0.06] my-1';
+
+  if (windowWidth < 768) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setPreferencesInitialTab('ai-engine');
+          setIsPreferencesModalOpen(true);
+        }}
+        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06] transition-colors cursor-pointer"
+        title="설정"
+        aria-label="설정"
+      >
+        <Settings className="w-4 h-4" />
+      </button>
+    );
+  }
 
   return (
     <div ref={containerRef} className="flex items-center select-none text-xs gap-0.5">

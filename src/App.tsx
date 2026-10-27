@@ -210,11 +210,9 @@ import {
   Maximize2,
   Upload,
   Loader2,
-  PanelLeft,
   PanelLeftClose,
   PanelLeftOpen,
   PanelRight,
-  PanelRightOpen,
   MessageSquare
 } from 'lucide-react';
 
@@ -2411,6 +2409,17 @@ export default function App() {
     return saved === 'true';
 
   });
+
+  const [windowWidth, setWindowWidth] = useState<number>(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1440
+  );
+  useEffect(() => {
+    const onResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  const isMobile = windowWidth < 768;
+  const [mobileTab, setMobileTab] = useState<'chat' | 'editor' | 'explorer'>('chat');
 
   const [isSection2Collapsed, setIsSection2Collapsed] = useState<boolean>(false);
 
@@ -8577,11 +8586,11 @@ ${projectEvents
         background: 'var(--bg-app-gradient, var(--bg-app))',
         color: 'var(--text-primary)'
       }}
-      className="h-screen max-h-screen overflow-hidden flex flex-col font-sans select-none"
+      className="h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col font-sans select-none"
     >
       {/* Top Navigation Bar / Header */}
       <header
-        className="h-11 bg-[#111114] border-b border-white/[0.08] px-3 flex items-center justify-between z-50 shrink-0"
+        className={`${isMobile ? 'h-[38px] relative whitespace-nowrap overflow-hidden' : 'h-11'} bg-[#111114] border-b border-white/[0.08] px-3 flex items-center justify-between z-50 shrink-0`}
       >
         <div className="flex items-center gap-2">
           {/* Logo / App Name & Semantic Version Badge */}
@@ -8590,7 +8599,7 @@ ${projectEvents
             <span className="text-xs font-bold text-slate-100 font-mono tracking-normal">
               AI Podium
             </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-white/5">
+            <span className={`${isMobile ? 'hidden' : ''} text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-white/5`}>
               v0.1.0
 
             </span>
@@ -8698,7 +8707,7 @@ ${projectEvents
         />
 
         {/* Right Controls: Command Palette, Status, & Persistent Fixed-Position Right Workspace Drawer Toggle */}
-        <div className="flex items-center gap-1.5">
+        <div className={`${isMobile ? 'hidden' : 'flex'} items-center gap-1.5`}>
 
           {/* GitHub Connection & Real-time Auto-Push Sync Status Indicator */}
           {((githubConfig?.token && githubConfig?.repo) || (workspaceRootType === 'github' && Boolean(githubConfig))) && (
@@ -8789,10 +8798,10 @@ ${projectEvents
       )}
 
       {/* MAIN AREA: 3-PANE FIXED GOLDEN RATIO LAYOUT WITH COLLAPSIBLE SIDEBARS */}
-      <main ref={mainContainerRef} className="flex-1 flex items-stretch h-full min-h-0 overflow-hidden relative w-full">
+      <main ref={mainContainerRef} className={`flex-1 flex items-stretch min-h-0 overflow-hidden relative w-full ${isMobile ? '' : 'h-full'}`}>
 
         {/* Mobile / Tablet Overlay Backdrop for Left Pane (< lg) */}
-        {isLeftPanelVisible && (
+        {isLeftPanelVisible && !isMobile && (
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-xs z-30 lg:hidden"
             onClick={() => toggleLeftPanel(false)}
@@ -8802,32 +8811,34 @@ ${projectEvents
 
         {/* ==================== LEFT PANE: AI Chat Area ==================== */}
         <section
-          style={{ width: isLeftPanelVisible ? `${panelWidths.chat}px` : '40px' }}
+          style={{ width: isMobile ? '100%' : isLeftPanelVisible ? `${panelWidths.chat}px` : '40px' }}
           className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 max-w-[calc(100vw-32px)] sm:max-w-none ${
+            isMobile ? `!relative !w-full !max-w-none !flex-1 !shrink !inset-auto !shadow-none !border-r-0 ${mobileTab === 'chat' ? '' : '!hidden'} ` : ''
+          }${
             activeResizer === 'chat'
               ? 'transition-none'
               : 'transition-[width] duration-200 ease-out'
           } z-40 lg:z-10 ${
-            isLeftPanelVisible
+            (isLeftPanelVisible || isMobile)
               ? 'opacity-100 pointer-events-auto border-r border-[#222226] fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/80 lg:shadow-none'
-              : 'w-10 shrink-0 bg-[#121214] border-r border-[#222226] flex flex-col items-center py-3 justify-between z-20 select-none transition-all duration-200'
+              : 'w-10 shrink-0 bg-[#121214] border-r border-[#222226] flex flex-col z-20 select-none transition-all duration-200'
           }`}
         >
-          {!isLeftPanelVisible ? (
+          {!isLeftPanelVisible && !isMobile ? (
             <div
               id="chat-activity-rail"
-              className="w-10 h-full flex flex-col items-center py-3 justify-between select-none"
+              className="w-10 h-full flex flex-col items-center pt-1 pb-3 justify-between select-none"
             >
-              <div className="flex flex-col items-center gap-3">
+              <div className="flex flex-col items-start gap-3 self-start pl-2">
                 <button
                   type="button"
                   id="chat-rail-open-btn"
                   onClick={() => toggleLeftPanel(true)}
-                  className="p-2 rounded-md hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
-                  title="대화창 열기"
-                  aria-label="대화창 열기"
+                  className="p-1 rounded-xs hover:bg-[#18181b] transition-colors duration-150 flex items-center justify-center cursor-pointer"
+                  title="대화창 펼치기"
+                  aria-label="대화창 펼치기"
                 >
-                  <MessageSquare className="w-4 h-4 text-zinc-400 hover:text-zinc-100" />
+                  <PanelLeftOpen className="w-4 h-4 text-zinc-400 hover:text-indigo-400" />
                 </button>
               </div>
               <div className="flex flex-col items-center gap-2 pb-1" title="AI 엔진 활성">
@@ -8839,22 +8850,15 @@ ${projectEvents
             {/* Header: Anchored strictly at top-left at all times */}
             <div className="bg-[#0f0f12] border-b border-white/5 px-2 h-8 flex items-center justify-between shrink-0 select-none">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0">
-                {/* Unified Persistent Project Drawer Toggle Button - Strictly Anchored at Top-Left */}
-
                 <button
                   type="button"
-                  id="project-drawer-toggle"
-                  onClick={() => setIsProjectListOpen((prev) => !prev)}
-                  className={`p-1 rounded-xs transition-colors duration-150 cursor-pointer flex items-center justify-center shrink-0 ${
-
-                    isProjectListOpen
-                      ? 'bg-[#18181b] text-indigo-400 hover:text-indigo-300'
-                      : 'text-slate-400 hover:text-white hover:bg-[#18181b]'
-                  }`}
-                  title={isProjectListOpen ? '프로젝트 목록 접기' : '프로젝트 목록 펼치기'}
-                  aria-label={isProjectListOpen ? '프로젝트 목록 접기' : '프로젝트 목록 펼치기'}
+                  id="left-drawer-collapse-btn"
+                  onClick={() => toggleLeftPanel(false)}
+                  className="p-1 rounded-xs hover:bg-[#18181b] transition-colors duration-150 flex items-center justify-center shrink-0 cursor-pointer"
+                  title="대화창 접기"
+                  aria-label="대화창 접기"
                 >
-                  <PanelLeft className="w-3.5 h-3.5" />
+                  <PanelLeftClose className="w-4 h-4 text-zinc-400 hover:text-zinc-100" />
                 </button>
                 <span className="truncate max-w-[200px] sm:max-w-[260px] font-medium text-slate-200 text-xs" title={activeSession?.title}>
                   {isOnboardingMode ? 'AI 지식 비서 · 가이드 v0.1.0' : (activeSession?.title || 'AI 프로젝트')}
@@ -8878,19 +8882,6 @@ ${projectEvents
                     <ArrowRight className="w-3 h-3 text-amber-400" />
                   </button>
                 )}
-
-                {/* Close/Collapse Left Panel Button */}
-                <button
-                  type="button"
-                  id="left-drawer-collapse-btn"
-
-                  onClick={() => toggleLeftPanel(false)}
-                  className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-white transition cursor-pointer"
-                  title="좌측 AI 대화 패널 접기"
-                  aria-label="좌측 AI 대화 패널 접기"
-                >
-                  <PanelLeftClose className="w-3.5 h-3.5" />
-                </button>
               </div>
             </div>
 
@@ -8903,11 +8894,10 @@ ${projectEvents
                 <aside
                   id="project-list-panel"
                   aria-label="프로젝트 목록"
-                  className={`bg-[#121214] border-r border-white/5 flex flex-col shrink-0 transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] transform z-10 h-full ${
-
+                  className={`bg-[#121214] border-r border-white/5 flex flex-col shrink-0 overflow-hidden transition-[width,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] z-10 h-full [&>*]:min-w-52 sm:[&>*]:min-w-60 ${
                     isProjectListOpen
-                      ? 'w-52 sm:w-60 opacity-100 translate-x-0'
-                      : 'w-0 opacity-0 -translate-x-full overflow-hidden border-r-0 pointer-events-none'
+                      ? 'w-52 sm:w-60 opacity-100'
+                      : 'w-0 opacity-0 pointer-events-none border-r-0'
                   }`}
                 >
                   {/* Sidebar Header */}
@@ -9140,7 +9130,10 @@ ${projectEvents
               onAddAttachment={(att) => setChatAttachments((prev) => [...prev, att])}
               onAddFiles={(files) => processFiles(files)}
               onSendMessage={handleSendMessage}
-              onSendToEditor={handleSendToEditor}
+              onSendToEditor={(text: string) => {
+                handleSendToEditor(text);
+                if (isMobile) setMobileTab('editor');
+              }}
               onDiff={(text, model) => {
                 setDiffModalData({
                   isOpen: true,
@@ -9216,7 +9209,7 @@ ${projectEvents
       </section>
 
         {/* ==================== RESIZE HANDLE: ChatPanel <-> UnifiedEditor ==================== */}
-        {isLeftPanelVisible && (
+        {isLeftPanelVisible && !isMobile && (
           <div
             id="chat-resizer-handle"
             onMouseDown={handleLeftResizeStart}
@@ -9237,7 +9230,7 @@ ${projectEvents
                   hasInitialMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
                 }`
               : ''
-          } ${isSection2Collapsed ? 'hidden' : ''}`}
+          } ${isMobile ? (mobileTab === 'editor' ? 'w-full' : 'hidden') : isSection2Collapsed ? 'hidden' : ''}`}
           onDragOver={(e) => {
             if (e.dataTransfer.types.includes('Files')) {
               e.preventDefault();
@@ -9253,20 +9246,6 @@ ${projectEvents
         >
           {/* Multi-Tab Document Bar */}
               <div className="bg-[#0c0c0e] border-b border-white/[0.06] flex items-center justify-between px-1.5 pt-1 select-none min-h-[34px] z-20 w-full min-w-0 relative">
-                {/* Left Panel Quick Toggle when collapsed */}
-                {!isLeftPanelVisible && (
-                  <button
-                    type="button"
-                    id="editor-left-drawer-toggle"
-                    onClick={() => toggleLeftPanel(true)}
-                    className="p-1 mr-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-indigo-400 border border-white/5 transition-colors duration-150 flex items-center justify-center shrink-0 cursor-pointer"
-
-                    title="좌측 AI 대화 패널 펼치기"
-                    aria-label="좌측 AI 대화 패널 펼치기"
-                  >
-                    <PanelLeftOpen className="w-3.5 h-3.5" />
-                  </button>
-                )}
                 <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-2">
                   {openTabs.map((tabFileName) => {
                     const isActive = tabFileName === currentActiveFile;
@@ -9336,21 +9315,6 @@ ${projectEvents
                         <Sparkles className="w-3 h-3 text-[#6366f1] shrink-0" />
                         <span className="font-bold text-indigo-200 hidden sm:inline">최근 AI 변경</span>
                         <X className="w-3 h-3 text-[#6366f1] hover:text-white shrink-0 ml-0.5" />
-                      </button>
-                    )}
-
-                    {/* Right Panel Quick Toggle when collapsed */}
-                    {!isRightPanelVisible && (
-                      <button
-                        type="button"
-                        id="editor-workspace-drawer-toggle"
-                        onClick={() => toggleRightPanel(true)}
-                        className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-indigo-400 border border-white/5 transition-colors duration-150 flex items-center justify-center shrink-0 cursor-pointer ml-0.5"
-
-                        title="우측 파일 탐색기 패널 펼치기"
-                        aria-label="우측 파일 탐색기 패널 펼치기"
-                      >
-                        <PanelRightOpen className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
@@ -9738,7 +9702,7 @@ ${projectEvents
         </section>
 
         {/* ==================== RESIZE HANDLE: UnifiedEditor <-> WorkspaceDrawer ==================== */}
-        {isRightPanelVisible && (
+        {isRightPanelVisible && !isMobile && (
           <div
             id="explorer-resizer-handle"
             onMouseDown={handleRightResizeStart}
@@ -9765,9 +9729,12 @@ ${projectEvents
         >
           <WorkspaceDrawer
             width={panelWidths.explorer}
+            isMobile={isMobile}
             isResizing={activeResizer === 'explorer'}
             className={
-              isInitialAnimating
+              isMobile
+                ? (mobileTab === 'explorer' ? '' : '!hidden')
+                : isInitialAnimating
                 ? `transition-[opacity,transform] duration-200 ease-out delay-[80ms] ${
                     hasInitialMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
                   }`
@@ -9775,13 +9742,16 @@ ${projectEvents
             }
             files={files}
             currentFile={currentActiveFile}
-            onSelectFile={handleOpenFile}
+            onSelectFile={(fname) => {
+              handleOpenFile(fname);
+              if (isMobile) setMobileTab('editor');
+            }}
             onCreateFile={handleCreateNewFile}
             onDeleteFile={handleDeleteFile}
             onRenameFile={handleRenameFile}
             onOpenSSOTModal={handleOpenSSOTGeneratorModal}
             onOpenDriftModal={() => setIsSsotAuditorOpen(true)}
-            isOpen={isRightPanelVisible}
+            isOpen={isMobile || isRightPanelVisible}
             onToggleOpen={() => toggleRightPanel()}
             sessions={sessions}
             activeSessionId={activeSessionId}
@@ -9812,6 +9782,32 @@ ${projectEvents
         </React.Suspense>
 
       </main>
+
+      {isMobile && (
+        <nav
+          id="mobile-bottom-dock"
+          className="h-13 shrink-0 bg-[#121214] border-t border-[#222226] flex items-center justify-around z-40 select-none pb-[env(safe-area-inset-bottom)]"
+        >
+          {([
+            { id: 'chat', label: '💬 대화' },
+            { id: 'editor', label: '📝 문서' },
+            { id: 'explorer', label: '📁 파일' },
+          ] as const).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setMobileTab(tab.id)}
+              className={`flex-1 h-full text-xs transition-colors cursor-pointer ${
+                mobileTab === tab.id
+                  ? 'text-indigo-400 font-semibold border-t-2 border-[#6366f1]'
+                  : 'text-zinc-400 hover:text-zinc-100'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      )}
 
       {/* Global Bottom Status Bar - Clean Workspace Path Display */}
       <footer className="h-6 bg-[#09090b]/90 backdrop-blur-md border-t border-[#222226] px-3 flex items-center justify-between text-[0.6875rem] text-slate-300 font-mono shrink-0 select-none z-30">

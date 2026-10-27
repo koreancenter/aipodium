@@ -17,6 +17,7 @@ import {
   Ghost,
   Globe,
   Loader2,
+  ChevronRight,
   MessageSquare
 } from 'lucide-react';
 import type { ChatMessage, ChatAttachment, GhostWriterLevel, MentionItem } from '../../types';
@@ -282,7 +283,27 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       {/* Middle Message Viewport & Confined Project Drawer Flex Container */}
       <div className="flex-1 min-h-0 relative flex flex-row overflow-hidden">
         {/* Confined Project Drawer Container / Aside */}
-        {projectDrawer || children}
+        <div className="relative shrink-0 h-full z-20 flex">
+          {projectDrawer || children}
+          {/* Bookmark tab protruding from the drawer's right edge: always visible */}
+          {projectDrawer && onToggleProjectDrawer && (
+            <button
+              type="button"
+              id="project-drawer-edge-tab"
+              onClick={onToggleProjectDrawer}
+              className={`absolute left-full top-3 w-4 h-12 flex items-center justify-center rounded-r-md border border-l-0 border-[#222226] transition-colors duration-200 cursor-pointer hover:w-5 ${
+                isProjectDrawerOpen
+                  ? 'bg-[#121214] text-indigo-400 hover:text-indigo-300'
+                  : 'bg-[#18181b] text-zinc-400 hover:text-indigo-400'
+              }`}
+              title="프로젝트 서랍 열기/접기"
+              aria-label="프로젝트 서랍 열기/접기"
+              aria-pressed={!!isProjectDrawerOpen}
+            >
+              <ChevronRight className={`w-3 h-3 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isProjectDrawerOpen ? 'rotate-180' : 'rotate-0'}`} />
+            </button>
+          )}
+        </div>
 
         {/* Scrollable Message List View */}
         <div

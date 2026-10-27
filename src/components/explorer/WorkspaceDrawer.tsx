@@ -17,6 +17,7 @@ import {
   Globe,
   FileUp,
   PanelRightClose,
+  PanelRightOpen,
   ChevronDown,
   ChevronRight,
   GripVertical,
@@ -101,6 +102,7 @@ export interface WorkspaceDrawerProps {
   isOpen: boolean;
   onToggleOpen: () => void;
   width?: number;
+  isMobile?: boolean;
   isResizing?: boolean;
   className?: string;
 
@@ -139,6 +141,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
   isOpen,
   onToggleOpen,
   width = 240,
+  isMobile = false,
   isResizing = false,
   className = '',
   sessions = [],
@@ -296,7 +299,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
   return (
     <>
       {/* Mobile / Tablet Overlay Backdrop for Right Pane (< lg) */}
-      {isOpen && (
+      {isOpen && !isMobile && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-xs z-30 lg:hidden"
           onClick={onToggleOpen}
@@ -306,13 +309,15 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
 
       {/* Explorer Drawer Container */}
       <section
-        style={{ width: isOpen ? `${width}px` : '40px' }}
+        style={{ width: isMobile ? '100%' : isOpen ? `${width}px` : '40px' }}
         className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 max-w-[calc(100vw-32px)] sm:max-w-none ${
+          isMobile ? '!relative !w-full !max-w-none !flex-1 !shrink !shadow-none !border-l-0 ' : ''
+        }${
           isResizing ? 'transition-none' : 'transition-[width] duration-200 ease-out'
         } z-40 lg:z-10 ${
           isOpen
             ? 'opacity-100 pointer-events-auto border-l border-[#222226] fixed lg:relative inset-y-0 right-0 shadow-2xl shadow-black/80 lg:shadow-none'
-            : 'w-10 shrink-0 bg-[#121214] border-l border-[#222226] flex flex-col items-center py-3 justify-between z-20 select-none transition-all duration-200'
+            : 'relative w-10 shrink-0 bg-[#121214] border-l border-[#222226] flex flex-col items-center py-3 justify-between z-20 select-none transition-all duration-200'
         } ${className}`}
         onDragOver={(e) => {
           if (e.dataTransfer.types.includes('Files')) {
@@ -327,12 +332,29 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
           }
         }}
       >
+        {/* Persistent toggle: same top-right slot in both open and collapsed states */}
+        {!isMobile && (
+          <button
+            type="button"
+            id="workspace-drawer-toggle-btn"
+            onClick={onToggleOpen}
+            className="absolute top-[5px] right-2 z-10 w-6 h-6 rounded-xs hover:bg-[#18181b] transition flex items-center justify-center cursor-pointer"
+            title={isOpen ? '우측 탐색기 접기' : '우측 탐색기 펼치기'}
+            aria-label={isOpen ? '우측 탐색기 접기' : '우측 탐색기 펼치기'}
+          >
+            {isOpen ? (
+              <PanelRightClose className="w-4 h-4 text-zinc-400 hover:text-zinc-100" />
+            ) : (
+              <PanelRightOpen className="w-4 h-4 text-zinc-400 hover:text-indigo-400" />
+            )}
+          </button>
+        )}
         {!isOpen ? (
-          <WorkspaceActivityRail onOpen={onToggleOpen} />
+          <WorkspaceActivityRail onOpen={onToggleOpen} className="!pt-10" />
         ) : (
           <div style={{ width: `${width}px` }} className="max-w-full h-full flex flex-col min-h-0 overflow-hidden">
             {/* Explorer Header Toolbar (Row 1 - perfectly aligned with Editor Multi-Tab Bar & Chat Header) */}
-            <div className="flex items-center justify-between h-[34px] px-2 bg-[#0c0c0e] border-b border-white/5 shrink-0 text-slate-300 select-none">
+            <div className={`flex items-center justify-between h-[34px] pl-2 ${isMobile ? 'pr-2' : 'pr-9'} bg-[#0c0c0e] border-b border-white/5 shrink-0 text-slate-300 select-none`}>
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="text-[0.6875rem] font-semibold text-slate-300 uppercase tracking-wider pl-0.5">
                 파일 탐색기
@@ -419,18 +441,6 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                   <FileUp className="w-3.5 h-3.5 text-indigo-400 group-hover:text-indigo-300" />
                 </button>
               )}
-
-              {/* [Collapse Right Panel Button - anchored at top-right corner] */}
-              <button
-                type="button"
-                id="workspace-drawer-collapse-btn"
-                onClick={onToggleOpen}
-                className="p-1 rounded-xs hover:bg-[#18181b] hover:text-white text-slate-400 transition cursor-pointer ml-0.5"
-                title="우측 파일 탐색기 패널 접기"
-                aria-label="우측 파일 탐색기 패널 접기"
-              >
-                <PanelRightClose className="w-3.5 h-3.5" />
-              </button>
             </div>
           </div>
 
