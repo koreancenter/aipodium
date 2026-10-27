@@ -25,6 +25,8 @@ import { AiMessageBubble } from '../AiMessageBubble';
 import { WebLlmBanner } from '../WebLlmBanner';
 import { UniversalPromptInput } from './UniversalPromptInput';
 import { WEB_LLM_MODEL_ID, WEB_LLM_MODEL_DISPLAY_NAME } from '../../utils/webllmService';
+import { useLanguage } from '../../context/LanguageContext';
+import { getCoreTranslations } from '../../locales/coreLocale';
 
 export interface ChatActivityRailProps {
   onOpen: () => void;
@@ -37,6 +39,9 @@ export const ChatActivityRail: React.FC<ChatActivityRailProps> = ({
   isEngineActive = true,
   className = ''
 }) => {
+  const { language } = useLanguage();
+  const t = getCoreTranslations(language).chat;
+
   return (
     <div
       id="chat-activity-rail"
@@ -49,15 +54,15 @@ export const ChatActivityRail: React.FC<ChatActivityRailProps> = ({
           id="chat-rail-open-btn"
           onClick={onOpen}
           className="p-2 rounded-md hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
-          title="대화창 열기"
-          aria-label="대화창 열기"
+          title={t.open}
+          aria-label={t.open}
         >
           <MessageSquare className="w-4 h-4 text-zinc-400 hover:text-zinc-100" />
         </button>
       </div>
 
       {/* Bottom item: Active engine status indicator dot */}
-      <div className="flex flex-col items-center gap-2 pb-1" title="AI 엔진 활성">
+      <div className="flex flex-col items-center gap-2 pb-1" title={t.engineActive}>
         <span
           className={`w-2 h-2 rounded-full ${
             isEngineActive ? 'bg-emerald-400' : 'bg-zinc-600'
@@ -230,16 +235,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   isCollapsed = false,
   onToggleCollapse,
 }) => {
-  if (isCollapsed) {
-    return (
-      <ChatActivityRail
-        onOpen={onToggleCollapse || (() => {})}
-        isEngineActive={!isAiLoading}
-        className={className}
-      />
-    );
-  }
-
+  const { language } = useLanguage();
+  const t = getCoreTranslations(language).chat;
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const isUserScrolledUpRef = useRef<boolean>(false);
   const [isScrolledUp, setIsScrolledUp] = useState<boolean>(false);
@@ -274,6 +271,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     }
   }, [messages, isAiLoading, activeSessionId]);
 
+  if (isCollapsed) {
+    return (
+      <ChatActivityRail
+        onOpen={onToggleCollapse || (() => {})}
+        isEngineActive={!isAiLoading}
+        className={className}
+      />
+    );
+  }
+
   return (
     <div className={`flex-1 flex flex-col min-w-0 bg-transparent relative overflow-hidden h-full ${className}`}>
       {/* Top Header: Rendered only when explicit header is provided */}
@@ -296,8 +303,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   ? 'bg-[#121214] text-indigo-400 hover:text-indigo-300'
                   : 'bg-[#18181b] text-zinc-400 hover:text-indigo-400'
               }`}
-              title="프로젝트 서랍 열기/접기"
-              aria-label="프로젝트 서랍 열기/접기"
+              title={t.toggleProjectDrawer}
+              aria-label={t.toggleProjectDrawer}
               aria-pressed={!!isProjectDrawerOpen}
             >
               <ChevronRight className={`w-3 h-3 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isProjectDrawerOpen ? 'rotate-180' : 'rotate-0'}`} />
@@ -331,10 +338,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                       <Loader2 className="w-6 h-6 animate-spin text-[#6366f1]" />
                     </div>
                     <h3 className="text-sm font-semibold text-zinc-100 mb-1">
-                      브라우저 내장 로컬 AI 가중치 다운로드 및 초기화 중
+                      {t.downloadTitle}
                     </h3>
                     <p className="text-xs text-zinc-400 mb-5 leading-relaxed break-keep">
-                      Qwen2.5-0.5B 모델 가중치(약 1.5GB)를 브라우저 로컬 캐시에 다운로드하고 있습니다. 최초 1회 완료 후 완전 오프라인에서도 무료로 실행됩니다.
+                      {t.downloadDescription}
                     </p>
 
                     {/* 0~100% 게이지 바 */}
@@ -347,23 +354,23 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
                     <div className="flex items-center justify-between w-full text-xs text-zinc-400 font-mono">
                       <span className="truncate max-w-[75%] text-left text-[11px]" title={webllmProgress.progressText}>
-                        {webllmProgress.progressText || '가중치 다운로드 및 WebGPU 컴파일 중...'}
+                        {webllmProgress.progressText || t.downloadProgress}
                       </span>
                       <span className="font-bold text-[#6366f1] text-xs shrink-0">
                         {webllmProgress.progressPercent ?? 0}%
                       </span>
                     </div>
                     <div className="mt-3 text-[10px] text-zinc-500 font-mono">
-                      권장 메모리: 4GB 이상 · 가중치 캐싱 약 1.5GB
+                      {t.memoryRecommendation}
                     </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center min-h-[360px] h-full text-center px-4 py-16 select-none">
                     <p className="text-sm font-medium text-zinc-300">
-                      AI 어시스턴트와 대화를 시작하거나 프롬프트를 입력하세요
+                      {t.startConversation}
                     </p>
                     <p className="text-xs text-zinc-500 mt-1.5 max-w-xs leading-relaxed">
-                      질문, 문서 요약, 코드 생성 및 번역 작업을 지원합니다
+                      {t.supportedTasks}
                     </p>
                   </div>
                 )
@@ -374,7 +381,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                       <div className="flex items-center justify-between text-xs mb-1.5">
                         <span className="flex items-center gap-1.5 text-zinc-200 font-medium">
                           <Loader2 className="w-3.5 h-3.5 text-[#6366f1] animate-spin" />
-                          가중치 다운로드 중
+                          {t.downloading}
                         </span>
                         <span className="font-mono font-bold text-[#6366f1]">
                           {webllmProgress.progressPercent ?? 0}%
@@ -397,12 +404,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                         selectedModel === WEB_LLM_MODEL_ID
                           ? WEB_LLM_MODEL_DISPLAY_NAME
                           : isOnboardingMode
-                          ? 'AI 지식 비서'
+                          ? t.onboardingAssistant
                           : selectedModel
                       }
                       onCopy={(text) => {
                         navigator.clipboard.writeText(text);
-                        onToast('✓ AI 답변 내용이 클립보드에 복사되었습니다.');
+                        onToast(t.copySuccess);
                       }}
                       onDiff={(text, model) => {
                         onDiff(text, model);
@@ -457,12 +464,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                               </span>
                               <span className="text-[0.625rem] text-[#38bdf8] font-mono flex items-center gap-1">
                                 <Globe className="w-3 h-3 text-[#0ea5e9]" />
-                                영문 프롬프트
+                                {t.englishPrompt}
                               </span>
                             </div>
                             {msg.originalText && msg.originalText !== msg.text && (
                               <div className="text-[0.6875rem] text-slate-300 flex items-start gap-1 font-sans pt-0.5">
-                                <span className="font-medium text-slate-400 shrink-0">🇰🇷 한국어 원문:</span>
+                                <span className="font-medium text-slate-400 shrink-0">{t.koreanOriginal}</span>
                                 <span className="italic text-slate-200">{msg.originalText}</span>
                               </div>
                             )}
@@ -497,8 +504,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                     </div>
                     <span className="text-slate-400 text-xs">
                       {isOnboardingMode
-                        ? 'AI 지식 비서가 답변을 준비하고 있습니다...'
-                        : 'AI 모델이 응답을 준비하고 있습니다...'}
+                        ? t.onboardingPreparing
+                        : t.modelPreparing}
                     </span>
                   </div>
                 </div>
@@ -519,7 +526,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             className="absolute bottom-4 right-6 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#121214]/95 border border-[#222226] text-[0.6875rem] text-slate-300 hover:text-white shadow-lg hover:border-[#6366f1] transition-colors cursor-pointer group select-none"
           >
             <ArrowDown className="w-3 h-3 text-[#6366f1] group-hover:translate-y-0.5 transition-transform" />
-            <span>아래로 스크롤</span>
+            <span>{t.scrollDown}</span>
           </button>
         )}
       </div>

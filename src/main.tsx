@@ -3,6 +3,7 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { AuthProvider } from './context/AuthContext.tsx';
+import { LanguageProvider } from './context/LanguageContext.tsx';
 import './index.css';
 
 const preloadedStylesheet = document.querySelector<HTMLLinkElement>('link[rel="preload"][as="style"]');
@@ -28,7 +29,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <AuthProvider>
-        <App />
+        <LanguageProvider>
+          <App />
+        </LanguageProvider>
       </AuthProvider>
     </ErrorBoundary>
   </StrictMode>,

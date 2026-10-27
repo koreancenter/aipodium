@@ -6,6 +6,8 @@ import {
   ZoomOut,
   Settings
 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { getCoreTranslations } from '../locales/coreLocale';
 
 export interface TopMenuBarProps {
   handleCreateNewSession: () => void;
@@ -136,6 +138,8 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
   mode = 'single',
   onModeChange,
 }) => {
+  const { language } = useLanguage();
+  const t = getCoreTranslations(language).menu;
   const [activeMenu, setActiveMenu] = useState<MenuKey>(null);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -212,8 +216,8 @@ const MENU_DIVIDER_CLASS =
           setIsPreferencesModalOpen(true);
         }}
         className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06] transition-colors cursor-pointer"
-        title="설정"
-        aria-label="설정"
+        title={t.settings}
+        aria-label={t.settings}
       >
         <Settings className="w-4 h-4" />
       </button>
@@ -222,7 +226,7 @@ const MENU_DIVIDER_CLASS =
 
   return (
     <div ref={containerRef} className="flex items-center select-none text-xs gap-0.5">
-      {/* 1. 파일 (File) */}
+      {/* 1. File */}
       <div className="relative">
         <button
           type="button"
@@ -234,7 +238,7 @@ const MENU_DIVIDER_CLASS =
               : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06]'
           }`}
         >
-          파일
+          {t.file}
         </button>
 
         {activeMenu === 'file' && (
@@ -250,7 +254,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>새 프로젝트</span>
+              <span>{t.newProject}</span>
               <span className="text-[10px] text-zinc-500 font-mono shrink-0">Ctrl+Shift+N</span>
             </button>
 
@@ -262,7 +266,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>새 마크다운 문서</span>
+              <span>{t.newMarkdown}</span>
               <span className="text-[10px] text-zinc-500 font-mono shrink-0">Ctrl+N</span>
             </button>
 
@@ -276,7 +280,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>로컬 파일 열기</span>
+              <span>{t.openLocalFile}</span>
               <span className="text-[10px] text-zinc-500 font-mono shrink-0">Ctrl+O</span>
             </button>
 
@@ -288,7 +292,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>문서 일괄 가져오기</span>
+              <span>{t.importDocuments}</span>
             </button>
 
             <button
@@ -299,18 +303,18 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>문서 저장</span>
+              <span>{t.saveDocument}</span>
               <span className="text-[10px] text-zinc-500 font-mono shrink-0">Ctrl+S</span>
             </button>
 
-            {/* 내보내기 하위 메뉴 */}
+            {/* Export submenu */}
             <div
               className="relative"
               onMouseEnter={() => setActiveSubmenu('export')}
               onMouseLeave={() => setActiveSubmenu(null)}
             >
               <div className="w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-md text-xs text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100 text-left cursor-pointer transition-colors">
-                <span>다른 형식으로 내보내기</span>
+                <span>{t.exportOther}</span>
                 <ChevronRight className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
               </div>
 
@@ -324,7 +328,7 @@ const MENU_DIVIDER_CLASS =
                     }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <span>마크다운 문서</span>
+                    <span>{t.markdownDocument}</span>
                   </button>
                   <button
                     type="button"
@@ -334,7 +338,7 @@ const MENU_DIVIDER_CLASS =
                     }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <span>HTML 웹 문서</span>
+                    <span>{t.htmlDocument}</span>
                   </button>
                   <button
                     type="button"
@@ -344,7 +348,7 @@ const MENU_DIVIDER_CLASS =
                     }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <span>텍스트 파일</span>
+                    <span>{t.textFile}</span>
                   </button>
                   <button
                     type="button"
@@ -354,7 +358,7 @@ const MENU_DIVIDER_CLASS =
                     }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <span>JSON 데이터</span>
+                    <span>{t.jsonData}</span>
                   </button>
                   <div className={MENU_DIVIDER_CLASS} />
                   <button
@@ -365,7 +369,7 @@ const MENU_DIVIDER_CLASS =
                     }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <span>PDF 문서</span>
+                    <span>{t.pdfDocument}</span>
                   </button>
                   <button
                     type="button"
@@ -375,7 +379,7 @@ const MENU_DIVIDER_CLASS =
                     }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <span>Word 문서</span>
+                    <span>{t.wordDocument}</span>
                   </button>
                   <button
                     type="button"
@@ -385,7 +389,7 @@ const MENU_DIVIDER_CLASS =
                     }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <span>발표 슬라이드</span>
+                    <span>{t.slides}</span>
                   </button>
                   <button
                     type="button"
@@ -395,7 +399,7 @@ const MENU_DIVIDER_CLASS =
                     }}
                     className={MENU_ITEM_CLASS}
                   >
-                    <span>CSV 스프레드시트</span>
+                    <span>{t.spreadsheet}</span>
                   </button>
                 </div>
               )}
@@ -411,8 +415,8 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>워크스페이스 연동</span>
-              <span className="text-[10px] text-zinc-500 shrink-0">{activeWorkspace?.type || '로컬'}</span>
+              <span>{t.workspaceIntegration}</span>
+              <span className="text-[10px] text-zinc-500 shrink-0">{activeWorkspace?.type || t.local}</span>
             </button>
 
             <button
@@ -423,8 +427,8 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>Google Drive 연결</span>
-              {googleUser && <span className="text-[10px] text-emerald-400 shrink-0">연결됨</span>}
+              <span>Google Drive</span>
+              {googleUser && <span className="text-[10px] text-emerald-400 shrink-0">{t.connected}</span>}
             </button>
 
             <button
@@ -435,9 +439,9 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>휴지통 열기</span>
+              <span>{t.openTrash}</span>
               {trashSessionsCount > 0 && (
-                <span className="text-[10px] text-zinc-500 shrink-0">{trashSessionsCount}개</span>
+                <span className="text-[10px] text-zinc-500 shrink-0">{t.count(trashSessionsCount)}</span>
               )}
             </button>
 
@@ -450,14 +454,14 @@ const MENU_DIVIDER_CLASS =
                 }}
                 className="w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-md text-xs hover:bg-rose-950/40 hover:text-rose-300 text-left text-rose-400 transition-colors cursor-pointer"
               >
-                <span>현재 문서 삭제</span>
+                <span>{t.currentFileDelete}</span>
               </button>
             )}
           </div>
         )}
       </div>
 
-      {/* 2. 편집 (Edit) */}
+      {/* 2. Edit */}
       <div className="relative">
         <button
           type="button"
@@ -469,7 +473,7 @@ const MENU_DIVIDER_CLASS =
               : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06]'
           }`}
         >
-          편집
+          {t.edit}
         </button>
 
         {activeMenu === 'edit' && (
@@ -485,7 +489,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>본문 전체 복사</span>
+              <span>{t.copyBody}</span>
               <span className="text-[10px] text-zinc-500 font-mono shrink-0">Ctrl+A, Ctrl+C</span>
             </button>
 
@@ -497,7 +501,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>마크다운 서식 자동 정리</span>
+              <span>{t.formatMarkdown}</span>
               <span className="text-[10px] text-zinc-500 font-mono shrink-0">Alt+Shift+F</span>
             </button>
 
@@ -511,7 +515,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>프롬프트 보관함 열기</span>
+              <span>{t.promptLibrary}</span>
               <span className="text-[10px] text-zinc-500 font-mono shrink-0">Alt+P</span>
             </button>
 
@@ -523,16 +527,16 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>대화 기록 비우기</span>
+              <span>{t.clearChat}</span>
               {messagesCount > 0 && (
-                <span className="text-[10px] text-zinc-500 shrink-0">{messagesCount}개</span>
+                <span className="text-[10px] text-zinc-500 shrink-0">{t.count(messagesCount)}</span>
               )}
             </button>
           </div>
         )}
       </div>
 
-      {/* 3. 보기 (View) */}
+      {/* 3. View */}
       <div className="relative">
         <button
           type="button"
@@ -544,7 +548,7 @@ const MENU_DIVIDER_CLASS =
               : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06]'
           }`}
         >
-          보기
+          {t.view}
         </button>
 
         {activeMenu === 'view' && (
@@ -560,8 +564,8 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>좌측 대화 패널 토글</span>
-              <span className="text-[10px] text-zinc-500 shrink-0">{isSection1Collapsed ? '숨김' : '표시'}</span>
+              <span>{t.leftChatPanel}</span>
+              <span className="text-[10px] text-zinc-500 shrink-0">{isSection1Collapsed ? t.hide : t.show}</span>
             </button>
 
             <button
@@ -572,8 +576,8 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>우측 탐색기 패널 토글</span>
-              <span className="text-[10px] text-zinc-500 shrink-0">{isSection3Collapsed ? '숨김' : '표시'}</span>
+              <span>{t.rightExplorerPanel}</span>
+              <span className="text-[10px] text-zinc-500 shrink-0">{isSection3Collapsed ? t.hide : t.show}</span>
             </button>
 
             <button
@@ -584,8 +588,8 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>문서 목차 내비게이션</span>
-              <span className="text-[10px] text-zinc-500 shrink-0">{isTocOpen ? '열림' : '닫힘'}</span>
+              <span>{t.documentToc}</span>
+              <span className="text-[10px] text-zinc-500 shrink-0">{isTocOpen ? t.open : t.closed}</span>
             </button>
 
             <button
@@ -596,20 +600,20 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>기본 3단 분할 레이아웃 복원</span>
+              <span>{t.restoreLayout}</span>
             </button>
 
             <div className={MENU_DIVIDER_CLASS} />
 
             <div className={MENU_HEADER_CLASS}>
-              에디터 뷰 모드
+              {t.editorViewMode}
             </div>
 
             {[
-              { id: 'wysiwyg', label: '위지윅 에디터' },
-              { id: 'markdown', label: '마크다운 에디터' },
-              { id: 'split', label: '분할 에디터' },
-              { id: 'vibe', label: '바이브 캔버스' },
+              { id: 'wysiwyg', label: t.wysiwygEditor },
+              { id: 'markdown', label: t.markdownEditor },
+              { id: 'split', label: t.splitEditor },
+              { id: 'vibe', label: t.vibeCanvas },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -628,7 +632,7 @@ const MENU_DIVIDER_CLASS =
             <div className={MENU_DIVIDER_CLASS} />
 
             <div className={MENU_HEADER_CLASS}>
-              글꼴 크기
+              {t.fontSize}
             </div>
 
             <div className="flex items-center justify-between px-2.5 py-1">
@@ -636,7 +640,7 @@ const MENU_DIVIDER_CLASS =
                 type="button"
                 onClick={handleEditorZoomOut}
                 className="p-1 hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-100 rounded-md transition-colors cursor-pointer"
-                title="글꼴 축소"
+                title={t.decreaseFont}
               >
                 <ZoomOut className="w-3.5 h-3.5" />
               </button>
@@ -647,7 +651,7 @@ const MENU_DIVIDER_CLASS =
                 type="button"
                 onClick={handleEditorZoomIn}
                 className="p-1 hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-100 rounded-md transition-colors cursor-pointer"
-                title="글꼴 확대"
+                title={t.increaseFont}
               >
                 <ZoomIn className="w-3.5 h-3.5" />
               </button>
@@ -664,7 +668,7 @@ const MENU_DIVIDER_CLASS =
                 className={editorFontSize === size ? MENU_ITEM_ACTIVE_CLASS : MENU_ITEM_CLASS}
               >
                 <span>
-                  {size === 'sm' ? '작게' : size === 'md' ? '보통' : size === 'lg' ? '크게' : '아주 크게'}
+                  {size === 'sm' ? t.small : size === 'md' ? t.normal : size === 'lg' ? t.large : t.extraLarge}
                 </span>
                 {editorFontSize === size && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
               </button>
@@ -680,16 +684,16 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>레이아웃 밀도 토글</span>
+              <span>{t.layoutDensity}</span>
               <span className="text-[10px] text-zinc-500 shrink-0">
-                {preferences?.compactness === 'dense' ? '조밀하게' : '여유롭게'}
+                {preferences?.compactness === 'dense' ? t.compact : t.spacious}
               </span>
             </button>
           </div>
         )}
       </div>
 
-      {/* 4. 도구 (Tools) */}
+      {/* 4. Tools */}
       <div className="relative">
         <button
           type="button"
@@ -701,7 +705,7 @@ const MENU_DIVIDER_CLASS =
               : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06]'
           }`}
         >
-          도구
+          {t.tools}
         </button>
 
         {activeMenu === 'tools' && (
@@ -717,7 +721,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>기준 문서 생성기</span>
+              <span>{t.ssotGenerator}</span>
               <span className="text-[10px] text-zinc-500 font-mono shrink-0">Alt+C</span>
             </button>
 
@@ -729,7 +733,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>문서 정합성 감사</span>
+              <span>{t.documentAudit}</span>
             </button>
 
             <button
@@ -740,7 +744,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>전문가 위원회 다면 평가</span>
+              <span>{t.councilReview}</span>
             </button>
 
             <div className={MENU_DIVIDER_CLASS} />
@@ -752,18 +756,18 @@ const MENU_DIVIDER_CLASS =
                 if (pdfViewerRef?.current?.triggerOptimize) {
                   pdfViewerRef.current.triggerOptimize();
                 } else {
-                  showToast('PDF 뷰어가 열려있을 때 최적화를 실행할 수 있습니다.', 'info');
+                  showToast(t.pdfViewerRequired, 'info');
                 }
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>PDF 최적화 및 경량화</span>
+              <span>{t.pdfOptimize}</span>
             </button>
           </div>
         )}
       </div>
 
-      {/* 5. AI (AI 도우미) */}
+      {/* 5. AI */}
       <div className="relative">
         <button
           type="button"
@@ -791,7 +795,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>AI 역할 분담 설정...</span>
+              <span>{t.aiRoles}</span>
             </button>
 
             <button
@@ -803,12 +807,12 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>AI 엔진 및 API 키 설정...</span>
+              <span>{t.aiEngine}</span>
             </button>
 
             <div className="border-t border-white/5 my-1" />
 
-            {/* 고스트 라이터 하위 메뉴 및 토글 */}
+            {/* Ghostwriter submenu and toggle */}
             <div
               className="relative"
               onMouseEnter={() => setActiveSubmenu('ghost-writer')}
@@ -821,16 +825,16 @@ const MENU_DIVIDER_CLASS =
                   const nextLevel = isOff ? '50' : 'off';
                   handleQuickGhostWriter(nextLevel);
                   showToast(
-                    isOff ? '고스트 라이터가 켜졌습니다.' : '고스트 라이터가 꺼졌습니다.',
+                    isOff ? t.ghostWriterOn : t.ghostWriterOff,
                     'info'
                   );
                 }}
                 className="w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-md text-xs text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100 text-left cursor-pointer transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <span>고스트 라이터</span>
+                  <span>{t.ghostWriter}</span>
                   <span className="text-[10px] text-zinc-500 font-mono">
-                    {ghostWriterLevel && ghostWriterLevel !== 'off' ? '켜짐' : '꺼짐'}
+                    {ghostWriterLevel && ghostWriterLevel !== 'off' ? t.enabled : t.disabled}
                   </span>
                 </div>
                 <ChevronRight className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
@@ -843,11 +847,11 @@ const MENU_DIVIDER_CLASS =
                     onClick={() => {
                       closeMenu();
                       handleQuickGhostWriter('off');
-                      showToast('고스트 라이터가 꺼졌습니다.', 'info');
+                      showToast(t.ghostWriterOff, 'info');
                     }}
                     className={!ghostWriterLevel || ghostWriterLevel === 'off' ? MENU_ITEM_ACTIVE_CLASS : MENU_ITEM_CLASS}
                   >
-                    <span>끄기</span>
+                    <span>{t.turnOff}</span>
                     {(!ghostWriterLevel || ghostWriterLevel === 'off') && (
                       <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                     )}
@@ -857,11 +861,11 @@ const MENU_DIVIDER_CLASS =
                     onClick={() => {
                       closeMenu();
                       handleQuickGhostWriter('50');
-                      showToast('고스트 라이터가 켜졌습니다.', 'info');
+                      showToast(t.ghostWriterOn, 'info');
                     }}
                     className={ghostWriterLevel && ghostWriterLevel !== 'off' ? MENU_ITEM_ACTIVE_CLASS : MENU_ITEM_CLASS}
                   >
-                    <span>켜기</span>
+                    <span>{t.turnOn}</span>
                     {ghostWriterLevel && ghostWriterLevel !== 'off' && (
                       <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                     )}
@@ -873,7 +877,7 @@ const MENU_DIVIDER_CLASS =
         )}
       </div>
 
-      {/* 6. 설정 (Settings) */}
+      {/* 6. Settings */}
       <div className="relative">
         <button
           type="button"
@@ -885,7 +889,7 @@ const MENU_DIVIDER_CLASS =
               : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06]'
           }`}
         >
-          설정
+          {t.settings}
         </button>
 
         {activeMenu === 'settings' && (
@@ -902,8 +906,20 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>환경설정</span>
+              <span>{t.preferences}</span>
               <span className="text-[10px] text-zinc-500 font-mono shrink-0">Ctrl+,</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                closeMenu();
+                setPreferencesInitialTab('language');
+                setIsPreferencesModalOpen(true);
+              }}
+              className={MENU_ITEM_CLASS}
+            >
+              <span>{t.languagePreference}</span>
             </button>
 
             <button
@@ -915,7 +931,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>AI 엔진 및 API 키 설정</span>
+              <span>{t.aiEngine}</span>
             </button>
 
             <button
@@ -927,7 +943,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>저장소 및 백업 관리</span>
+              <span>{t.storageBackup}</span>
             </button>
 
             <button
@@ -939,7 +955,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>보안 및 PIN 잠금 관리</span>
+              <span>{t.securityPin}</span>
             </button>
 
             <div className={MENU_DIVIDER_CLASS} />
@@ -952,13 +968,13 @@ const MENU_DIVIDER_CLASS =
               }}
               className="w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-md text-xs hover:bg-amber-950/40 hover:text-amber-300 text-left text-amber-400 transition-colors cursor-pointer"
             >
-              <span>워크스페이스 즉시 잠금</span>
+              <span>{t.lockWorkspace}</span>
             </button>
           </div>
         )}
       </div>
 
-      {/* 7. 도움말 (Help) */}
+      {/* 7. Help */}
       <div className="relative">
         <button
           type="button"
@@ -970,7 +986,7 @@ const MENU_DIVIDER_CLASS =
               : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06]'
           }`}
         >
-          도움말
+          {t.help}
         </button>
 
         {activeMenu === 'help' && (
@@ -986,7 +1002,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>키보드 단축키 안내</span>
+              <span>{t.shortcuts}</span>
               <span className="text-[10px] text-zinc-500 font-mono shrink-0">Ctrl+/</span>
             </button>
 
@@ -998,7 +1014,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>시작 가이드 문서 열기</span>
+              <span>{t.startGuide}</span>
             </button>
 
             <button
@@ -1009,7 +1025,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>AI 활용 가이드 열기</span>
+              <span>{t.aiGuide}</span>
             </button>
 
             <div className={MENU_DIVIDER_CLASS} />
@@ -1022,7 +1038,7 @@ const MENU_DIVIDER_CLASS =
               }}
               className={MENU_ITEM_CLASS}
             >
-              <span>AI Podium 정보</span>
+              <span>{t.about}</span>
               <span className="text-[10px] text-zinc-500 font-mono shrink-0">v0.1.0</span>
             </button>
           </div>

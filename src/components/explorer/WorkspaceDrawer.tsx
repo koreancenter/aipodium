@@ -34,6 +34,8 @@ import type { ChatSession } from '../../types';
 import type { GoogleUserProfile } from '../../services/googleDriveService';
 import type { GithubConfig } from '../GithubIntegrationModal';
 import type { GitHubSyncStatus } from '../GithubSyncStatusIndicator';
+import { useLanguage } from '../../context/LanguageContext';
+import { getCoreTranslations } from '../../locales/coreLocale';
 
 export interface WorkspaceActivityRailProps {
   onOpen: () => void;
@@ -44,6 +46,9 @@ export const WorkspaceActivityRail: React.FC<WorkspaceActivityRailProps> = ({
   onOpen,
   className = ''
 }) => {
+  const { language } = useLanguage();
+  const t = getCoreTranslations(language).explorer;
+
   return (
     <div
       id="explorer-activity-rail"
@@ -56,8 +61,8 @@ export const WorkspaceActivityRail: React.FC<WorkspaceActivityRailProps> = ({
           id="explorer-rail-open-btn"
           onClick={onOpen}
           className="p-2 rounded-md hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
-          title="탐색기 열기"
-          aria-label="탐색기 열기"
+          title={t.open}
+          aria-label={t.open}
         >
           <FolderTree className="w-4 h-4 text-zinc-400 hover:text-zinc-100" />
         </button>
@@ -70,8 +75,8 @@ export const WorkspaceActivityRail: React.FC<WorkspaceActivityRailProps> = ({
           id="explorer-rail-file-btn"
           onClick={onOpen}
           className="p-2 rounded-md hover:bg-white/[0.06] text-zinc-500 hover:text-zinc-200 transition-colors cursor-pointer"
-          title="문서 탐색"
-          aria-label="문서 탐색"
+          title={t.browseDocuments}
+          aria-label={t.browseDocuments}
         >
           <FileText className="w-4 h-4 text-zinc-500 hover:text-zinc-200" />
         </button>
@@ -165,6 +170,9 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
   onImportDocumentFiles,
   onContextMenu: externalContextMenu,
 }) => {
+  const { language } = useLanguage();
+  const t = getCoreTranslations(language).explorer;
+
   // Sync collapsed state to localStorage
   useEffect(() => {
     try {
@@ -339,8 +347,8 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
             id="workspace-drawer-toggle-btn"
             onClick={onToggleOpen}
             className="absolute top-[5px] right-2 z-10 w-6 h-6 rounded-xs hover:bg-[#18181b] transition flex items-center justify-center cursor-pointer"
-            title={isOpen ? '우측 탐색기 접기' : '우측 탐색기 펼치기'}
-            aria-label={isOpen ? '우측 탐색기 접기' : '우측 탐색기 펼치기'}
+            title={isOpen ? t.collapse : t.expand}
+            aria-label={isOpen ? t.collapse : t.expand}
           >
             {isOpen ? (
               <PanelRightClose className="w-4 h-4 text-zinc-400 hover:text-zinc-100" />
@@ -357,7 +365,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
             <div className={`flex items-center justify-between h-[34px] pl-2 ${isMobile ? 'pr-2' : 'pr-9'} bg-[#0c0c0e] border-b border-white/5 shrink-0 text-slate-300 select-none`}>
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="text-[0.6875rem] font-semibold text-slate-300 uppercase tracking-wider pl-0.5">
-                파일 탐색기
+                {t.title}
               </span>
             </div>
 
@@ -368,7 +376,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                 type="button"
                 onClick={() => onCreateSession?.()}
                 className="p-1 rounded-xs hover:bg-[#18181b] hover:text-white transition cursor-pointer"
-                title="새 폴더 추가"
+                title={t.addFolder}
               >
                 <FolderPlus className="w-3.5 h-3.5 text-indigo-400" />
               </button>
@@ -378,7 +386,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                 type="button"
                 onClick={() => onCreateFile()}
                 className="p-1 rounded-xs hover:bg-[#18181b] hover:text-white transition cursor-pointer"
-                title="새 파일 추가"
+                title={t.addFile}
               >
                 <FilePlus className="w-3.5 h-3.5 text-[#6366f1]" />
               </button>
@@ -388,7 +396,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                 type="button"
                 onClick={() => onOpenWorkspaceModal?.()}
                 className="p-1 rounded-xs hover:bg-[#18181b] hover:text-white transition cursor-pointer"
-                title="프로젝트 폴더 연결 및 관리"
+                title={t.manageWorkspace}
               >
                 <FolderOpen className="w-3.5 h-3.5 text-indigo-300" />
               </button>
@@ -398,7 +406,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                 type="button"
                 onClick={() => onOpenSSOTModal(activeSession?.title)}
                 className="p-1 rounded-xs hover:bg-[#18181b] hover:text-[#6366f1] transition cursor-pointer"
-                title="단일 진실 공급원 문서 생성기"
+                title={t.createSsot}
               >
                 <Sparkles className="w-3.5 h-3.5 text-[#6366f1]" />
               </button>
@@ -409,7 +417,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                   type="button"
                   onClick={onOpenDriftModal}
                   className="p-1 rounded-xs hover:bg-[#18181b] hover:text-amber-400 transition cursor-pointer"
-                  title="문서 일관성 및 정합성 검사"
+                  title={t.auditDocuments}
                 >
                   <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
                 </button>
@@ -421,7 +429,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                   type="button"
                   onClick={() => onOpenGoogleDrive('open')}
                   className="p-1 rounded-xs hover:bg-[#18181b] hover:text-white transition cursor-pointer relative group"
-                  title="구글 드라이브 파일 탐색 및 연동"
+                  title={t.googleDrive}
                 >
                   <Globe className="w-3.5 h-3.5 text-indigo-400 group-hover:text-indigo-300" />
                   {googleUser && (
@@ -436,7 +444,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                   type="button"
                   onClick={() => docFileInputRef.current?.click()}
                   className="p-1 rounded-xs hover:bg-[#18181b] hover:text-white transition cursor-pointer relative group"
-                  title="오피스 및 PDF 문서 가져오기"
+                  title={t.importOfficePdf}
                 >
                   <FileUp className="w-3.5 h-3.5 text-indigo-400 group-hover:text-indigo-300" />
                 </button>
@@ -452,7 +460,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                 type="text"
                 value={activeSearchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="파일 검색..."
+                placeholder={t.searchPlaceholder}
                 className="w-full bg-[#121214] border border-[#222226] focus:border-[#6366f1] rounded pl-6 pr-6 py-0.5 text-[0.6875rem] text-slate-200 placeholder:text-slate-500 outline-none transition"
               />
               {activeSearchQuery && (
@@ -460,7 +468,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                   type="button"
                   onClick={() => handleSearchChange('')}
                   className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-0.5 cursor-pointer"
-                  title="검색어 지우기"
+                  title={t.clearSearch}
                 >
                   <X className="w-2.5 h-2.5" />
                 </button>
@@ -479,7 +487,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
               handleOpenContextMenu(e, {
                 type: 'root',
                 path: activeSession?.title || 'docs',
-                name: activeSession?.title || '프로젝트 탐색기',
+                name: activeSession?.title || t.title,
                 sessionId: activeSession?.id,
                 folder: activeSession?.title || 'docs',
               });
@@ -491,13 +499,13 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                 f.toLowerCase().includes(activeSearchQuery.trim().toLowerCase())
               ).length === 0 && (
                 <div className="py-8 text-center text-slate-400 text-xs space-y-2">
-                  <p>'{activeSearchQuery}' 검색 결과가 없습니다.</p>
+                  <p>{t.noResults(activeSearchQuery)}</p>
                   <button
                     type="button"
                     onClick={() => handleSearchChange('')}
                     className="text-[#6366f1] hover:underline text-xs cursor-pointer"
                   >
-                    검색 초기화
+                    {t.resetSearch}
                   </button>
                 </div>
               )}
@@ -612,7 +620,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                             onOpenSSOTModal(session.title);
                           }}
                           className="p-1 rounded-xs hover:bg-[#18181b] hover:text-[#6366f1] transition cursor-pointer"
-                          title="통합 문서 생성"
+                          title={t.createSsot}
                         >
                           <Sparkles className="w-3 h-3 text-[#6366f1]" />
                         </button>
@@ -630,7 +638,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                             });
                           }}
                           className="p-1 rounded-xs hover:bg-[#18181b] hover:text-slate-100 transition cursor-pointer"
-                          title="이름 변경"
+                          title={t.rename}
                         >
                           <Pencil className="w-3 h-3" />
                         </button>
@@ -641,7 +649,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                             onDeleteSession?.(session.id);
                           }}
                           className="p-1 rounded-xs hover:bg-[#18181b] hover:text-rose-400 transition cursor-pointer"
-                          title="삭제"
+                          title={t.delete}
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
@@ -654,7 +662,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                     <div className="relative pl-5 before:absolute before:left-3 before:top-0 before:bottom-1 before:w-[1px] before:bg-[#222226]">
                       {matchingFiles.length === 0 ? (
                         <div className="text-[0.6875rem] text-slate-500 py-1 pl-3 font-mono select-none">
-                          문서 없음
+                          {t.noDocuments}
                         </div>
                       ) : (
                         (() => {
@@ -770,7 +778,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                         <Folder className="w-4 h-4 text-indigo-400/80 shrink-0" />
                       )}
                       <span className="truncate text-xs font-medium text-slate-200 group-hover:text-white">
-                        가이드 & 도움말
+                        {t.guideHelp}
                       </span>
                     </div>
                     <span className="text-[0.625rem] text-slate-400 font-mono">
@@ -871,7 +879,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                     className="px-3 py-1 text-[0.625rem] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 cursor-pointer hover:text-slate-200"
                   >
                     <Folder className="w-3.5 h-3.5 text-slate-400" />
-                    <span>기타 파일 ({unassignedFiles.length})</span>
+                    <span>{t.otherFilesCount(unassignedFiles.length)}</span>
                   </div>
                   <div className="mt-0.5 px-1">
                     <RecursiveFolderTree
@@ -936,7 +944,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
           onClose={handleCloseContextMenu}
           onNewFile={(targetFolder) => {
             handleCloseContextMenu();
-            onCreateFile(targetFolder ? `${targetFolder}/새 문서.md` : undefined);
+            onCreateFile(targetFolder ? `${targetFolder}/${t.newDocument}.md` : undefined);
           }}
           onNewFolder={() => {
             handleCloseContextMenu();

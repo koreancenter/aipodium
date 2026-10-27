@@ -28,6 +28,8 @@ import {
 import type { ChatAttachment, GhostWriterLevel, MentionItem } from '../../types';
 import { InlineModelSelector } from '../InlineModelSelector';
 import { LinkAttachmentInput } from '../LinkAttachmentInput';
+import { useLanguage } from '../../context/LanguageContext';
+import { getCoreTranslations } from '../../locales/coreLocale';
 
 export interface UniversalPromptInputProps {
   chatInput: string;
@@ -126,6 +128,8 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
   chatInputRef: externalChatInputRef,
   className = '',
 }) => {
+  const { language } = useLanguage();
+  const t = getCoreTranslations(language).chat;
   const internalChatInputRef = useRef<HTMLTextAreaElement>(null);
   const chatInputRef = externalChatInputRef || internalChatInputRef;
   const ghostInputRef = useRef<HTMLTextAreaElement>(null);
@@ -238,7 +242,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
       setMentionQuery('');
       setMentionStartIndex(-1);
 
-      onToast(`🔗 워크스페이스 ${item.type === 'folder' ? '폴더' : '파일'} '${item.name}' 참조 추가됨`);
+      onToast(t.referenceAdded(item.type, item.name));
 
       setTimeout(() => {
         if (chatInputRef.current) {
@@ -248,7 +252,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
         }
       }, 15);
     },
-    [chatInput, mentionStartIndex, onChatInputChange, onToast, chatInputRef]
+    [chatInput, mentionStartIndex, onChatInputChange, onToast, chatInputRef, t]
   );
 
   const handleChatInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -390,7 +394,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                 type="button"
                 onClick={() => onRemoveAttachment(att.id)}
                 className="text-slate-400 hover:text-rose-400 p-0.5 rounded transition cursor-pointer ml-0.5"
-                title="첨부 파일 제거"
+                title={t.attachmentRemoved}
               >
                 <X className="w-3 h-3" />
               </button>
@@ -414,21 +418,25 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
             <div className="flex items-center justify-between px-3 py-2 border-b border-[#222226] bg-[#0c0c0e]">
               <span className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
                 <AtSign className="w-3.5 h-3.5 text-[#6366f1]" />
-                <span>참조 추가</span>
+                <span>{t.addReference}</span>
               </span>
               <div className="flex items-center gap-1">
-                {(['all', 'file', 'folder'] as const).map((t) => (
+                {(['all', 'file', 'folder'] as const).map((filterType) => (
                   <button
-                    key={t}
+                    key={filterType}
                     type="button"
-                    onClick={() => setMentionFilterType(t)}
+                    onClick={() => setMentionFilterType(filterType)}
                     className={`px-1.5 py-0.5 text-[0.625rem] rounded transition cursor-pointer ${
-                      mentionFilterType === t
+                      mentionFilterType === filterType
                         ? 'bg-[#6366f1] text-white font-medium'
                         : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
-                    {t === 'all' ? '전체' : t === 'file' ? '문서' : '폴더'}
+                    {filterType === 'all'
+                      ? t.allReferences
+                      : filterType === 'file'
+                      ? t.documentReference
+                      : t.folderReference}
                   </button>
                 ))}
               </div>
@@ -439,7 +447,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
               {filteredMentionItems.length === 0 ? (
                 <div className="py-6 text-center text-zinc-500 text-xs flex flex-col items-center gap-2">
                   <Info className="w-4 h-4 text-zinc-500" />
-                  <span>'{mentionQuery}'에 해당하는 항목이 없습니다.</span>
+                  <span>{t.noMatchingReferences(mentionQuery)}</span>
                 </div>
               ) : (
                 filteredMentionItems.map((item, index) => {
@@ -503,13 +511,13 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                     if (chatInput.trim()) {
                       onGenerateGhostText?.();
                     } else {
-                      onToast('⚠️ 한국어 질문 또는 개념을 먼저 입력해주세요.', 'warn');
+                      onToast(`⚠️ ${t.koreanPromptRequired}`, 'warn');
                     }
                     return;
                   }
                   handleChatInputKeyDown(e);
                 }}
-                placeholder="한국어로 입력 (예: REST API vs GraphQL)... Enter로 영작 생성"
+                placeholder={t.koreanPromptPlaceholder}
                 className="w-full bg-transparent p-0 text-[0.625rem] text-slate-100 placeholder:text-slate-400 border-0 focus:ring-0 focus:outline-none resize-none min-h-[72px] max-h-[260px] overflow-y-auto outline-none font-sans leading-relaxed transition"
               />
             </div>
@@ -524,7 +532,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                   {isGhostLoading ? (
                     <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-slate-400 gap-2">
                       <Sparkles className="w-4 h-4 text-[#6366f1] animate-spin" />
-                      <span className="text-[0.625rem] text-emerald-300 font-medium animate-pulse">Ghost Text 생성 중...</span>
+                      <span className="text-[0.625rem] text-emerald-300 font-medium animate-pulse">{t.ghostGenerating}</span>
                     </div>
                   ) : ghostTargetEnglish ? (
                     <div>
@@ -538,7 +546,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                     <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-slate-400 gap-1.5 pointer-events-auto">
                       <div className="flex items-center gap-1.5 text-emerald-300 text-[0.625rem] font-medium">
                         <Sparkles className="w-3.5 h-3.5 text-[#6366f1] animate-pulse" />
-                        <span>한국어 입력 완료 대기 중</span>
+                        <span>{t.waitingForKorean}</span>
                       </div>
                       <button
                         type="button"
@@ -547,14 +555,14 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                         className="mt-0.5 px-2 py-0.5 rounded-xs bg-indigo-600 hover:bg-indigo-500 text-white text-[0.625rem] font-medium flex items-center gap-1 transition cursor-pointer"
                       >
                         <Ghost className="w-2.5 h-2.5" />
-                        <span>지금 Ghost Text 생성</span>
+                        <span>{t.generateGhostNow}</span>
                       </button>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-slate-400 gap-1">
                       <Ghost className="w-4 h-4 text-slate-500 mb-0.5" />
                       <p className="text-[0.625rem] text-slate-400 font-sans">
-                        왼쪽에 한국어 프롬프트를 입력하면 여기에 영작 고스트 텍스트가 표시됩니다.
+                        {t.ghostWriterHint}
                       </p>
                     </div>
                   )}
@@ -587,7 +595,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
           onChange={handleChatInputChange}
           onPaste={handlePaste}
           onKeyDown={handleChatInputKeyDown}
-          placeholder="질문 또는 요청 입력, '@'로 워크스페이스 폴더 및 문서 참조..."
+          placeholder={t.promptPlaceholder}
           className="w-full bg-transparent px-3 py-2.5 text-xs text-slate-100 placeholder:text-slate-400 resize-none min-h-[72px] max-h-[260px] overflow-y-auto outline-none font-sans leading-relaxed border-0 focus:ring-0"
         />
       )}
@@ -600,7 +608,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className="p-1 hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 rounded transition flex items-center justify-center cursor-pointer"
-            title="이미지 또는 파일 첨부하기"
+            title={t.attachFile}
           >
             <Paperclip className="w-3.5 h-3.5" />
           </button>
@@ -612,7 +620,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
             className={`p-1 hover:bg-white/[0.06] rounded transition flex items-center justify-center cursor-pointer ${
               isLinkInputOpen ? 'bg-white/[0.1] text-indigo-400' : 'text-slate-400 hover:text-slate-200'
             }`}
-            title="웹 링크 또는 GitHub URL 첨부"
+            title={t.attachLink}
           >
             <Link2 className="w-3.5 h-3.5" />
           </button>
@@ -622,7 +630,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
             type="button"
             onClick={handleTriggerMention}
             className="p-1 hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 rounded transition flex items-center justify-center cursor-pointer"
-            title="워크스페이스 폴더 및 파일 참조"
+            title={t.referenceWorkspace}
           >
             <AtSign className="w-3.5 h-3.5" />
           </button>
@@ -664,13 +672,13 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
               type="button"
               onClick={() => {
                 onSetGhostUserInput?.(ghostTargetEnglish);
-                onToast('✨ 영작 자동 완성');
+                onToast(`✨ ${t.ghostWriterComplete}`);
               }}
               className="px-1.5 py-0.5 rounded hover:bg-white/[0.06] text-indigo-400 hover:text-indigo-300 text-[0.625rem] font-mono flex items-center gap-1 transition cursor-pointer border border-white/[0.08]"
-              title="정답 문장 자동 완성"
+              title={t.completeAnswer}
             >
               <Sparkles className="w-2.5 h-2.5 text-indigo-400" />
-              <span>Tab 완성</span>
+              <span>{t.tabComplete}</span>
             </button>
           )}
         </div>
@@ -690,7 +698,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                 }
               }}
               className="hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed text-slate-400 hover:text-slate-200 h-6 w-6 flex items-center justify-center rounded transition cursor-pointer"
-              title="한국어 원문으로 직접 전송"
+              title={t.sendKoreanOriginal}
             >
               <Languages className="w-3.5 h-3.5" />
             </button>
@@ -713,10 +721,10 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
             }`}
             title={
               chatAttachments.some((a) => a.isParsing)
-                ? '파일 분석 중...'
+                ? t.analyzingFile
                 : ghostWriterLevel !== 'off'
-                ? '영작된 영어 프롬프트로 AI 전송'
-                : '메시지 전송'
+                ? t.sendEnglishPrompt
+                : t.sendMessage
             }
           >
             {chatAttachments.some((a) => a.isParsing) ? (

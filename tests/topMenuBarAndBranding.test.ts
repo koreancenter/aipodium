@@ -18,9 +18,12 @@ test('TopMenuBar component extraction & v0.1.0 branding verification', async (t)
     const content = fs.readFileSync(topMenuBarPath, 'utf-8');
     assert.ok(content.includes('export const TopMenuBar'), 'Must export TopMenuBar component');
     assert.ok(content.includes('export interface TopMenuBarProps'), 'Must export TopMenuBarProps');
-    assert.ok(content.includes('새 프로젝트'), 'Must contain file menu actions');
-    assert.ok(content.includes('문서 정합성 감사'), 'Must contain SSOT actions');
-    assert.ok(content.includes('PDF 최적화 및 경량화'), 'Must contain PDF actions');
+    assert.ok(content.includes('getCoreTranslations'), 'Menu labels must use locale resources');
+    const localeContent = fs.readFileSync(path.resolve('./src/locales/coreLocale.ts'), 'utf-8');
+    assert.ok(localeContent.includes("newProject: '새 프로젝트'"), 'Korean file menu translation must exist');
+    assert.ok(localeContent.includes("documentAudit: '문서 정합성 감사'"), 'Korean SSOT action translation must exist');
+    assert.ok(localeContent.includes("pdfOptimize: 'PDF 최적화 및 경량화'"), 'Korean PDF action translation must exist');
+    assert.ok(localeContent.includes("newProject: 'New project'"), 'English file menu translation must exist');
   });
 
   await t.test('3. App.tsx mounts TopMenuBar and displays v0.1.0 semantic version badge', () => {

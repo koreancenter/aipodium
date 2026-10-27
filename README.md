@@ -77,3 +77,11 @@ If the variable is missing, the Google Drive connect button is disabled and user
 ---
 
 *💡 Any work done in Guest Mode will be preserved and linked to your account once you sign up or log in via the profile menu at the top.*
+
+## 언어 설정
+
+앱은 브라우저의 우선 언어 목록에서 지원되는 첫 번째 언어를 기본값으로 사용합니다. 환경 설정의 **언어** 항목에서 브라우저 설정을 계속 따르거나 한국어·영어를 직접 고정할 수 있습니다. 로그인 화면의 `AUTO` 선택으로 브라우저 설정으로 돌아갈 수도 있습니다.
+
+Language preference
+
+The app defaults to the first supported language in your browser’s preferred language list. In Preferences → Language, follow browser settings or pin Korean or English. Select `AUTO` on the sign-in screen to return to the browser default.

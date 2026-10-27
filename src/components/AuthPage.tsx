@@ -52,31 +52,18 @@ import {
   LOCAL_VAULT_KEY_PIN_ENC
 } from '../utils/securityCrypto';
 import { AUTH_TRANSLATIONS, AuthLang } from '../locales/authLocale';
+import { useLanguage } from '../context/LanguageContext';
 
 export interface AuthPageProps {
   onAuthenticated: (user: AuthUser, vaultKey?: string) => void;
 }
 
 export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
-  // Language State: Defaults to Korean for Korean users, togglable between [KR] and [ENG]
-  const [lang, setLang] = useState<AuthLang>(() => {
-    try {
-      const saved = localStorage.getItem('aipodium_auth_lang');
-      if (saved === 'KR' || saved === 'ENG') return saved;
-      if (typeof navigator !== 'undefined' && navigator.language && navigator.language.startsWith('ko')) {
-        return 'KR';
-      }
-      return 'KR';
-    } catch {
-      return 'KR';
-    }
-  });
+  const { language, preference, setPreference } = useLanguage();
+  const lang: AuthLang = language === 'ko' ? 'KR' : 'ENG';
 
   const handleSetLang = (newLang: AuthLang) => {
-    setLang(newLang);
-    try {
-      localStorage.setItem('aipodium_auth_lang', newLang);
-    } catch {}
+    setPreference(newLang === 'KR' ? 'ko' : 'en');
   };
 
   const t = AUTH_TRANSLATIONS[lang];
@@ -499,17 +486,30 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
           <div
             className="inline-flex items-center rounded-md bg-[#121214] border border-white/[0.08] p-0.5"
             role="group"
-            aria-label="Language selector"
+            aria-label={lang === 'KR' ? '언어 선택' : 'Language selector'}
           >
+            <button
+              type="button"
+              onClick={() => setPreference('system')}
+              className={`px-2.5 py-1 text-xs rounded-sm transition-colors cursor-pointer ${
+                preference === 'system'
+                  ? 'bg-indigo-600 text-white font-medium'
+                  : 'text-zinc-400 hover:text-zinc-200 font-normal'
+              }`}
+              aria-pressed={preference === 'system'}
+              title={lang === 'KR' ? '브라우저 설정 따르기' : 'Follow browser settings'}
+            >
+              AUTO
+            </button>
             <button
               type="button"
               onClick={() => handleSetLang('KR')}
               className={`px-2.5 py-1 text-xs rounded-sm transition-colors cursor-pointer ${
-                lang === 'KR'
+                preference === 'ko'
                   ? 'bg-indigo-600 text-white font-medium'
                   : 'text-zinc-400 hover:text-zinc-200 font-normal'
               }`}
-              aria-pressed={lang === 'KR'}
+              aria-pressed={preference === 'ko'}
               title="한국어"
             >
               KR
@@ -518,11 +518,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
               type="button"
               onClick={() => handleSetLang('ENG')}
               className={`px-2.5 py-1 text-xs rounded-sm transition-colors cursor-pointer ${
-                lang === 'ENG'
+                preference === 'en'
                   ? 'bg-indigo-600 text-white font-medium'
                   : 'text-zinc-400 hover:text-zinc-200 font-normal'
               }`}
-              aria-pressed={lang === 'ENG'}
+              aria-pressed={preference === 'en'}
               title="English"
             >
               ENG

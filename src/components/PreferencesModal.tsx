@@ -50,6 +50,7 @@ import {
   isValidGeminiKeyFormat
 } from '../services/aiPodiumIntegration';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import {
   VENDOR_MODELS_MAP,
   CLOUD_MODEL_OPTIONS,
@@ -254,7 +255,7 @@ export const CLOUD_VENDORS: CloudVendorMeta[] = [
   }
 ];
 
-export type PreferencesTab = 'ai' | 'ai-engine' | 'persona' | 'integrations' | 'storage' | 'security' | 'ghost-writer';
+export type PreferencesTab = 'ai' | 'ai-engine' | 'persona' | 'integrations' | 'storage' | 'security' | 'ghost-writer' | 'language';
 
 export interface PreferencesModalProps {
   isOpen: boolean;
@@ -335,6 +336,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   onUpdateDynamicModels
 }) => {
   const auth = useAuth();
+  const { language, preference: languagePreference, setPreference: setLanguagePreference } = useLanguage();
   const [localPrefs, setLocalPrefs] = useState<UserPreferences>(preferences);
   const [activeTab, setActiveTab] = useState<PreferencesTab>('ai');
 
@@ -517,6 +519,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
       else if (initialTab === 'storage') targetTab = 'storage';
       else if (initialTab === 'security') targetTab = 'security';
       else if (initialTab === 'ghost-writer') targetTab = 'ghost-writer';
+      else if (initialTab === 'language') targetTab = 'language';
       else targetTab = 'ai';
 
       setActiveTab(targetTab);
@@ -946,6 +949,21 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                 <span className="truncate">보안 및 볼트</span>
               </button>
 
+              <button
+                type="button"
+                onClick={() => setActiveTab('language')}
+                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
+                  activeTab === 'language'
+                    ? 'bg-white/[0.08] text-white font-medium'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+                }`}
+              >
+                <span className="flex items-center gap-2 truncate">
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>{language === 'ko' ? '언어' : 'Language'}</span>
+                </span>
+              </button>
+
               {/* System Status & Environment Info Widget */}
               <div className="mt-auto pt-3 border-t border-white/[0.08] px-2 py-1.5 text-[11px] text-zinc-400 space-y-1.5 select-none">
                 <div className="flex items-center justify-between text-[10px]">
@@ -965,7 +983,61 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             {/* Tab Content Area */}
             <div className="flex-1 min-w-0 overflow-y-auto p-6 bg-[#16161a]">
               {/* TAB 0: AI Engine & Provider (Default fallback if not any other tab) */}
-              {(activeTab === 'ai' || activeTab === 'ai-engine' || !['persona', 'integrations', 'storage', 'security', 'ghost-writer'].includes(activeTab)) && (
+              {activeTab === 'language' && (
+                <section className="max-w-xl space-y-4 animate-in fade-in duration-150">
+                  <div className="border-b border-white/[0.06] pb-3">
+                    <h3 className="text-sm font-semibold text-zinc-100">
+                      {language === 'ko' ? '표시 언어' : 'Display language'}
+                    </h3>
+                    <p className="mt-1 text-xs leading-relaxed text-zinc-400">
+                      {language === 'ko'
+                        ? '기본값은 브라우저의 우선 언어를 따릅니다. 직접 선택하면 브라우저 설정과 관계없이 선택한 언어를 유지합니다.'
+                        : 'By default, the app follows your browser’s preferred languages. Choose a language to keep it regardless of browser settings.'}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    {([
+                      {
+                        value: 'system',
+                        title: language === 'ko' ? '브라우저 설정 따르기' : 'Follow browser settings',
+                        description: language === 'ko'
+                          ? '브라우저에서 지원하는 첫 번째 언어를 사용합니다.'
+                          : 'Use the first language supported by your browser.'
+                      },
+                      {
+                        value: 'ko',
+                        title: '한국어',
+                        description: language === 'ko' ? '앱을 한국어로 표시합니다.' : 'Display the app in Korean.'
+                      },
+                      {
+                        value: 'en',
+                        title: 'English',
+                        description: language === 'ko' ? '앱을 영어로 표시합니다.' : 'Display the app in English.'
+                      }
+                    ] as const).map((option) => (
+                      <label
+                        key={option.value}
+                        className="flex items-start gap-3 rounded-md border border-white/[0.08] bg-[#0c0c0e] p-3 hover:bg-white/[0.03] cursor-pointer"
+                      >
+                        <input
+                          type="radio"
+                          name="app-language"
+                          value={option.value}
+                          checked={languagePreference === option.value}
+                          onChange={() => setLanguagePreference(option.value)}
+                          className="mt-0.5 accent-indigo-500"
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-xs font-medium text-zinc-200">{option.title}</span>
+                          <span className="mt-1 block text-[11px] leading-relaxed text-zinc-500">{option.description}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {(activeTab === 'ai' || activeTab === 'ai-engine' || !['persona', 'integrations', 'storage', 'security', 'ghost-writer', 'language'].includes(activeTab)) && (
                 <div className="space-y-0 animate-in fade-in duration-150">
                   {/* 1. Mode Switcher: Cloud API vs Local Ollama */}
                   <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.06]">
