@@ -363,13 +363,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
           <div style={{ width: `${width}px` }} className="max-w-full h-full flex flex-col min-h-0 overflow-hidden">
             {/* Explorer Header Toolbar (Row 1 - perfectly aligned with Editor Multi-Tab Bar & Chat Header) */}
             <div className={`flex items-center justify-between h-[34px] pl-2 ${isMobile ? 'pr-2' : 'pr-9'} bg-[#0c0c0e] border-b border-white/5 shrink-0 text-slate-300 select-none`}>
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-[0.6875rem] font-semibold text-slate-300 uppercase tracking-wider pl-0.5">
-                {t.title}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-1 shrink-0 ml-auto">
 
               {/* [📁+ New Folder] */}
               <button

@@ -1,0 +1,346 @@
+2743 resolvedFolders[fKey] = 'AI 지식 비서';
+2757 title: 'AI 지식 비서',
+2758 createdAt: '방금 전',
+3096 loadedFolders[k] = 'AI 지식 비서';
+3117 title: 'AI 지식 비서',
+3118 createdAt: '방금 전',
+3411 const headerTitle = `AI 응답 수집 - ${timestamp}`;
+3419 fileFolders[currentActiveFile] === '가이드 & 도움말';
+3422 const currentFolder = activeSession?.title || 'AI 지식 비서';
+3502 source: 'AI 대화 응답 수집',
+3611 <div class="meta-info">NotebookLM AI 지식 노트 • 생성일: ${new Date().toLocaleDateString('ko-KR')}</div>
+3653 const initialContent = `# ${name.replace(/\.[^/.]+$/, '')}\n\n새로운 마크다운 문서입니다.`;
+3810 const targetFolder = preferredFolder || activeSession?.title || '문서 라이브러리 (Documents)';
+4447 (k) => k !== 'welcome.md' && k !== 'ai_guide.md' && !k.startsWith('guide/') && fileFolders[k] !== '가이드 & 도움말'
+4566 /^새 프로젝트(\s*\d*)?\.md$/i.test(targetFile) ||
+4567 targetFile === '새 문서.md' ||
+4688 showToast(res.error || 'GitHub 동기화에 실패했습니다.', 'error');
+4715 /^새 프로젝트(\s*\d*)?\.md$/i.test(currentActiveFile) ||
+4716 currentActiveFile === '새 문서.md' ||
+4766 /^새 프로젝트(\s*\d*)?\.md$/i.test(currentActiveFile) ||
+4767 currentActiveFile === '새 문서.md';
+4844 (/^새 프로젝트(\s*\d*)?\.md$/i.test(oldActive) ||
+4846 oldActive === '새 문서.md')
+4890 (/^새 프로젝트(\s*\d*)?\.md$/i.test(oldActive) ||
+4892 oldActive === '새 문서.md')
+4956 const inner = selectedText || '굵은 텍스트';
+4967 const inner = selectedText || '기울임 텍스트';
+4978 const inner = selectedText || '코드';
+4984 const inner = selectedText || '링크 텍스트';
+4989 const inner = selectedText || '이미지 설명';
+5027 const inner = selectedText || '코드 작성...';
+5070 return `${indent}- ${cleanText || '목록 항목'}`;
+5084 const item = `${indent}${numCounter}. ${cleanText || '목록 항목'}`;
+5101 return `${indent}- [ ] ${cleanText || '할 일 항목'}`;
+5110 return `> ${line.replace(/^(\s*)>\s?/, '$1') || '인용문'}`;
+5114 const defaultTitle = formatType === 'h1' ? '제목 1' : formatType === 'h2' ? '제목 2' : '제목 3';
+5224 const markdownImage = `\n\n![자유 형식 메모](${dataUrl})\n\n`;
+5226 tiptapEditorRef.current.insertFormattedMarkdown(markdownImage, '자유 형식 메모');
+5606 cleaned = cleaned.replace(/---\s*> 📌 \[AI 응답 수집 - .*?\]\n+/g, '');
+5608 cleaned = cleaned.replace(/^(안녕하세요[^\n]*|질의하신[^\n]*|다음은[^\n]*분석[^\n]*입니다:?|네,[^\n]*요청하신[^\n]*입니다:?)\n+/gm, '');
+5610 cleaned = cleaned.replace(/# \[Gemini.*?\] .*? 분석 및 답변\n+질의하신 .*? 기술 분석 및 솔루션 제안입니다\.\n+## 핵심 요약\n+.*?(?=\n##|\n#|$)/gs, '');
+5611 cleaned = cleaned.replace(/# \[.*?\] .*?\n+## 개요\n+/g, '## 개요\n');
+5612 cleaned = cleaned.replace(/# AI Podium 스타일 AI 지식 비서에 오신 것을 환영합니다\n+## 개요\n+.*?\n+## 주요 기능\n+.*?(?=\n##|\n#|$)/gs, '');
+5811 title: '프로젝트 개요 (Project Notes)',
+5812 createdAt: '방금 전',
+5815 editorContent: '# 🚀 AI Podium Vibe Coding Workspace\n\n새로운 프로젝트를 시작하세요.\n- 좌측 패널: 프로젝트 세션 및 파일 탐색기\n- 중앙 패널: Single Source of Truth (SSOT) 마크다운 에디터\n- 우측 패널: AI 어시스턴트 & Vibe Multi-Engine\n',
+5820 text: '모든 로컬 저장소 및 캐시 데이터가 안전하게 파기되었습니다. 깨끗한 상태에서 작업을 다시 시작할 수 있습니다.',
+5829 const initialDoc = '# 🚀 AI Podium Vibe Coding Workspace\n\n새로운 프로젝트를 시작하세요.\n- 좌측 패널: 프로젝트 세션 및 파일 탐색기\n- 중앙 패널: Single Source of Truth (SSOT) 마크다운 에디터\n- 우측 패널: AI 어시스턴트 & Vibe Multi-Engine\n';
+5831 setFileFolders({ 'project_notes.md': '프로젝트 개요 (Project Notes)' });
+6002 /^새 프로젝트(\s*\d*)?\.md$/i.test(newFileName) ||
+6003 newFileName === '새 문서.md';
+6052 const defaultTitle = `새 프로젝트 ${sessions.length + 1}`;
+6070 createdAt: '방금 전',
+6233 : `# ${nextSession.title}\n\n프로젝트 노트`;
+6254 const memoContent = target.editorContent || `# ${target.title}\n\n복구된 프로젝트 노트`;
+6362 .map((fn) => `### 📄 [참조 소스 파일] ${fn}\n\n${files[fn] || ''}`)
+6384 ? `${sourceTextsCombined}\n\n### 💬 [대화 컨텍스트]\n${chatContext.trim()}`
+6385 : `### 💬 [대화 컨텍스트]\n${chatContext.trim()}`;
+6392 `# ${targetFname.replace(/\.md$/i, '')}\n\n> **작성일:** ${timeStr} | **대상 소스 폴더:** ${targetFolder}\n\n## 1. 프로젝트 개요\n\n## 2. 주요 내용 종합\n\n---\n\n## 3. 참조 소스 파일 요약\n${sourceTextsCombined}`;
+6397 templateSupplement = `\n\n다음 [기준 템플릿]의 목차 위계, 표 서식, 제목 스타일을 엄격히 본떠서 결과물을 작성하세요:\n\n${config.templateMarkdownContent.trim()}`;
+6401 templateSupplement = `\n\n다음 [기준 템플릿]의 목차 위계, 표 서식, 제목 스타일을 엄격히 본떠서 결과물을 작성하세요:\n\n${tContent.trim()}`;
+6405 const prompt = `당신은 프로젝트의 단일 진실 공급원(SSOT)을 구축하는 전문 수석 테크니컬 라이터 및 기획자입니다.
+6406 다음 원본 문서 자료들을 바탕으로 사용자의 지시사항에 맞추어 일관되고 완결성 높은 SSOT 마크다운 문서를 작성하세요.
+6408 [핵심 작성 원칙]:
+6409 1. 대화형 미사여구(인사말, 맺음말, 안내 멘트)를 일절 배제하고 반드시 마크다운 헤더(#)로 즉시 시작하세요.
+6410 2. 원본 소스 간 중복되거나 상충하는 내용은 논리적으로 정합화하여 단일 진실 공급원(SSOT) 기준의 확정된 내용만을 기술하세요.
+6411 3. 표준 마크다운 문법(#, ##, -, **, 표 |---|)을 활용하여 전문적이고 가독성 높은 구조로 완성하세요.
+6413 [작성 톤 & 스타일]: ${config.designTone}
+6414 [사용자 지시사항]: ${config.instruction || '선택된 소스 문서들의 핵심 내용을 종합하여 프로젝트의 명확한 기준이 되는 SSOT 문서로 작성해 줘.'}${templateSupplement}
+6416 [분석할 원본 문서 자료들]:
+6419 위 소스 자료를 빠짐없이 종합하여, 누락 없이 완결성 있는 고품질 마크다운 SSOT 문서를 작성해 주세요.`;
+6430 { role: 'system', content: '당신은 단일 진실 공급원(SSOT) 기준 문서를 작성하는 전문 수석 테크니컬 라이터입니다.' },
+6501 const scaffold = `# ${targetFname.replace(/\.md$/i, '')}\n\n> **작성일:** ${timeStr} | **대상 폴더:** ${targetFolder}\n\n## 1. 프로젝트 개요\n\n## 2. 주요 내용 종합\n` +
+6502 (sourceTextsCombined ? `\n\n---\n\n## 3. 참조 소스 파일 데이터\n${sourceTextsCombined}` : '');
+6528 const safeTitle = currentTitle.replace(/[^a-zA-Z0-9가-힣_-]/g, '_');
+6536 <title>${activeSession?.title || '데이터 시트'} - AI Spreadsheet</title>
+6766 <span>📊 ${activeSession?.title || 'AI 프로젝트 데이터 분석 시트'}</span>
+6769 <span>생성일시: ${timeStr} ${timeFull}</span>
+6781 placeholder="실시간 테이블 행 필터링 (항목명, 구분, 우선순위, 상태, 비용 등 검색)..."
+6785 <button type="button" id="sheet-filter-clear" class="filter-clear-btn" title="검색어 지우기">✕</button>
+6790 <button type="button" class="quick-chip active" data-filter="">전체</button>
+6791 <button type="button" class="quick-chip" data-filter="완료">완료</button>
+6792 <button type="button" class="quick-chip" data-filter="진행중">진행중</button>
+6793 <button type="button" class="quick-chip" data-filter="대기">대기</button>
+6794 <button type="button" class="quick-chip" data-filter="높음">높음</button>
+6796 <span id="sheet-filter-count" class="filter-count-badge">총 5개 행</span>
+6805 <th>모듈 / 작업 항목</th>
+6806 <th>구분</th>
+6807 <th>우선순위</th>
+6808 <th>진행 상태</th>
+6809 <th class="num">예상 공수 (hrs)</th>
+6810 <th class="num">진척률 (%)</th>
+6811 <th class="num">산정 비용 (₩)</th>
+6817 <td><strong>SSOT 프로젝트 폴더 지식 수집</strong></td>
+6819 <td>높음</td>
+6820 <td><span class="badge badge-done">완료</span></td>
+6827 <td><strong>AI Word Processor & 매뉴얼 빌더</strong></td>
+6829 <td>높음</td>
+6830 <td><span class="badge badge-done">완료</span></td>
+6837 <td><strong>AI Spreadsheet & Slide Builder 2차 가공</strong></td>
+6839 <td>높음</td>
+6840 <td><span class="badge badge-done">완료</span></td>
+6847 <td><strong>Event Manager 일정 & 마일스톤 연동</strong></td>
+6849 <td>보통</td>
+6850 <td><span class="badge badge-prog">진행중</span></td>
+6857 <td><strong>다국어 및 로컬/원격 연결 최종 검증</strong></td>
+6859 <td>보통</td>
+6860 <td><span class="badge badge-wait">대기</span></td>
+6868 <td colspan="5">합계 (Total Sum) / 평균 (Average)</td>
+6878 <span>* 실시간 행 검색: 임의의 셀 텍스트 일치 시 동적 필터링 및 집계 재계산</span>
+6879 <span>* 엑셀/Google Sheets 호환 CSV 내보내기 지원</span>
+6904 noMatchRow.innerHTML = '<td colspan="8" style="text-align: center; padding: 2rem 1rem; color: #94a3b8; font-style: italic;">🔍 일치하는 데이터 행이 없습니다.</td>';
+6962 countBadge.textContent = matchCount + ' / ' + totalRows + ' 행 표시';
+6965 countBadge.textContent = '총 ' + totalRows + '개 행';
+6977 footTds[0].textContent = '필터 집계 (' + matchCount + '개 항목 일치)';
+6982 footTds[0].textContent = '합계 (Total Sum) / 평균 (Average)';
+7041 preview: `'${sheetFileName}' 스프레드시트가 에디터에 로드되었습니다.`
+7049 const safeTitle = currentTitle.replace(/[^a-zA-Z0-9가-힣_-]/g, '_');
+7057 <title>${activeSession?.title || '발표 슬라이드'} - AI Slide Builder</title>
+7174 <div style="font-size: 0.8rem; color: #64748b; font-family: monospace;">생성일: ${timeStr}</div>
+7182 <h2>${activeSession?.title || 'AI Podium 통합 아키텍처'}</h2>
+7184 단일 진실 공급원(SSOT) 기반 AI 대화 수집 및 2차 가공 시스템
+7189 <h4>⚡ 1차 수집</h4>
+7190 <p>AI 멀티 모델 대화 ➔ SSOT 즉시 수집</p>
+7193 <h4>📁 SSOT 오거나이저</h4>
+7194 <p>프로젝트 폴더별 연동 및 지식 자산화</p>
+7208 <h2>핵심 2차 산출물 생성 체계</h2>
+7211 <li><strong>AI Word Processor:</strong> 편집 가능한 정식 HTML/DOCX 문서 자동 생성</li>
+7212 <li><strong>AI Spreadsheet:</strong> 수식 집계 및 CSV 호환 데이터 테이블 도출</li>
+7213 <li><strong>AI Slide Builder:</strong> 프레젠테이션 덱 및 PPTX 내보내기 제공</li>
+7214 <li><strong>Event Manager:</strong> 프로젝트 대화로부터 일정 및 마일스톤 자동 추출</li>
+7229 <h2>프로젝트 내용 발췌 및 분석</h2>
+7247 <h2>차기 마일스톤 및 릴리즈 계획</h2>
+7250 <h4>🚀 1단계: 배포 안정화</h4>
+7251 <p>Multi-Model 연결 검증 및 고속 렌더링 유지</p>
+7254 <h4>🌐 2단계: 외부 연동</h4>
+7255 <p>Google Workspace & iCal 캘린더 동기화 확장</p>
+7281 preview: `'${slideFileName}' 슬라이드 덱이 에디터에 로드되었습니다.`
+7289 const mdTable = `# 📅 [${activeSession?.title || '프로젝트'}] 통합 일정 & 마일스톤 계획표
+7291 > 생성 일시: ${timeStr} | 총 등록 일정: ${projectEvents.length}건
+7293 | 상태 | 일자 | 유형 | 우선순위 | 일정 / 마일스톤 명칭 | 비고 |
+7298 `| ${e.completed ? '✅ 완료' : '⏳ 진행'} | \`${e.date}\` | **${e.type.toUpperCase()}** | ${e.priority === 'high' ? '🔴 높음' : e.priority === 'medium' ? '🟡 보통' : '🟢 낮음'} | ${e.title} | ${e.notes || '-'} |`
+7356 const parentFolder = prev[currentActiveFile] || activeSession?.title || '문서 라이브러리 (Documents)';
+7405 const targetFolder = fileFolders[currentActiveFile] || activeSession?.title || '문서 라이브러리 (Documents)';
+7466 title={isFile ? `클릭하여 '${refName}' 파일 열기` : `클릭하여 '[${refName}]' 폴더 열기`}
+7501 text: queryText || (filesToAttach.length > 0 ? `[첨부 파일: ${filesToAttach.map((a) => a.name).join(', ')}]` : ''),
+7541 model: 'AI 지식 비서',
+7650 if (chipType === 'gemini-key') queryText = 'Gemini API 키 등록 방법';
+7651 else if (chipType === 'ollama-guide') queryText = 'Ollama 로컬 AI 연결 가이드';
+7652 else if (chipType === 'demo-knowledge') queryText = '가상 지식 정리 체험';
+7664 setWebllmProgress((prev) => ({ ...prev, isLoading: true, progressPercent: 0, progressText: 'WebGPU 가속 어댑터 확인 중...' }));
+7680 progressText: report.text || '가중치 다운로드 중...',
+7687 progressText: '로컬 AI 엔진 준비 완료',
+7702 if (!userFriendlyMsg || userFriendlyMsg.includes('알 수 없는') || userFriendlyMsg.includes('Error')) {
+7703 userFriendlyMsg = '네트워크 연결 상태 및 브라우저 그래픽 가속 설정을 확인해 주세요. (새 탭 권장)';
+7811 text: userMessageText || (attachedFiles.length > 0 ? `[첨부 파일: ${attachedFiles.map((a) => a.name).join(', ')}]` : ''),
+7835 const rawFirstText = userMessageText || attachedFiles[0]?.name || '새 프로젝트';
+7905 fileFolders[currentActiveFile] === '가이드 & 도움말';
+7908 const currentFolder = currentActiveSession?.title || 'AI 지식 비서';
+7949 const formattingDirectives = `\n\n[출력 서식 엄격 준수 규칙]:\n1. 이모지 및 아이콘 사용 절대 금지: 제목, 목록, 본문 어디에도 이모지(📌, 📋, 💡, 🚀, 🤖, ✅, 📝, 🎯, 📊, ⚡ 등)나 장식용 아이콘을 일절 넣지 마세요. 사용자가 문서로 바로 가져가므로 순수 텍스트로만 작성해야 합니다.\n2. 단일 폰트 크기 및
+7964 /```|code|function|class|algorithm|refactor|architecture|typescript|python|sql|math|calcul|regex|구조|설계|리팩토링|아키텍처|성능 최적화/i.test(combined);
+7967 /번역|요약|맞춤법|오타|간단히|한줄|translate|summarize|proofread/i.test(userMessageText);
+7981 targetsToExecute = [{ modelKey: 'gemini-2.5-pro', labelSuffix: ' [Auto-Routed: Gemini 2.5 Pro (심층 추론·코드 특화)]' }];
+7983 targetsToExecute = [{ modelKey: 'gemini-2.5-flash', labelSuffix: ' [Auto-Routed: Gemini 2.5 Flash (초고속 종합)]' }];
+7986 targetsToExecute = [{ modelKey: defaultCloudId, labelSuffix: ` [Auto-Routed: ${getModelDisplayName(defaultCloudId)} (고속 범용)]` }];
+8178 pushChunk('브라우저 WebLLM 엔진을 초기화하는 중입니다. 완료 후 답변이 이어집니다...\n\n');
+8234 errorText = `⚠️ **로컬 Ollama 연결 차단 (브라우저 CORS 제한)**\n\n브라우저 보안 정책으로 인해 로컬 Ollama(\`${localEndpointAddress || 'http://localhost:11434'}\`) 호출이 차단되었습니다.\n\n### 🛠️ 즉시 해결 방법 (CORS 허용 실행):\n**Windows (Power
+8236 errorText = `⚠️ **로컬 Ollama 응답 시간 초과 (60초)**\n\n모델 추론 시간이 60초를 초과했습니다. 더 가벼운 양자화 모델을 사용하거나 로컬 리소스를 확인하세요.`;
+8238 errorText = `⚠️ **로컬 Ollama 호출 실패**: ${e.message}\n\n*터미널에서 'OLLAMA_ORIGINS="*" ollama serve' 실행 여부 및 로컬 모델 설치 상태를 확인하세요.*`;
+8241 errorText = `⚠️ Network Error: ${e.message}\n\n*백엔드 서버 또는 AI API 연결에 실패했습니다.*`;
+8388 const sizeLabels: Record<string, string> = { sm: '작게 (14px)', md: '보통 (16px)', lg: '크게 (18px)', xl: '아주 크게 (20px)' };
+8462 return '게스트 임시 저장소';
+8465 return 'GitHub 동기화';
+8468 return '로컬 폴더 연동됨';
+8470 return '브라우저 저장소';
+8483 label: 'Cloud AI 준비됨',
+8488 label: 'API 키 필요',
+8496 label: 'Ollama 연결됨',
+8501 label: 'Ollama 오프라인',
+8509 label: 'WebGPU 활성',
+8514 label: '모델 준비 중...',
+8520 label: 'AI 준비 안 됨',
+8756 ? '게스트 세션이 종료되고 임시 데이터가 모두 삭제되었습니다.'
+8757 : '로그아웃되었습니다.'
+8785 memoryGuide="권장 메모리: 4GB 이상 · 가중치 캐싱 약 1.5GB"
+8839 title="대화창 펼치기"
+8840 aria-label="대화창 펼치기"
+8845 <div className="flex flex-col items-center gap-2 pb-1" title="AI 엔진 활성">
+8859 title="대화창 접기"
+8860 aria-label="대화창 접기"
+8867 <span className="font-semibold tracking-wider text-[0.6875rem] uppercase text-indigo-300 truncate">프로젝트 목록</span>
+8872 title="새 프로젝트 생성"
+8873 aria-label="새 프로젝트 생성"
+8890 title="AI가 에디터 내용을 수정했습니다. 에디터로 이동하여 확인하세요."
+8893 <span className="hidden md:inline">최근 AI 변경</span>
+8908 aria-label="프로젝트 목록"
+8924 placeholder="프로젝트 검색..."
+8932 title="검색어 초기화"
+8960 {sessionSearchQuery ? `'${sessionSearchQuery}' 검색 결과 없음` : '프로젝트가 없습니다.'}
+8968 검색어 초기화
+9020 title="드래그하여 프로젝트 순서 변경"
+9076 title="프로젝트 이름 변경"
+9087 title="JSON으로 내보내기"
+9095 title="프로젝트 삭제"
+9134 title: 'AI 응답과 현재 문서 시맨틱 Diff',
+9135 sourceLabel: `${model || 'AI Assistant'} 제안본`,
+9212 title="드래그하여 대화 패널 너비 조절 (280px ~ 520px)"
+9268 title="저장되지 않은 변경사항 있음"
+9278 title="탭 닫기"
+9291 title="새로운 메모 탭 추가"
+9306 title="AI가 최근 내용을 수정했습니다. 클릭 시 확인 완료."
+9309 <span className="font-bold text-indigo-200 hidden sm:inline">최근 AI 변경</span>
+9325 title="마크다운 추출 실행"
+9333 {pdfViewerState?.isExtracting ? '추출 중...' : '마크다운 추출'}
+9347 title="PDF 및 추출 설정"
+9348 aria-label="PDF 및 추출 설정"
+9357 추출 설정
+9362 <span className="text-zinc-300">추출 범위</span>
+9373 현재 쪽
+9384 전체
+9391 <span className="text-zinc-300 block mb-1">파서 엔진</span>
+9394 { id: 'fast', name: '고속 텍스트' },
+9395 { id: 'gemini', name: '클라우드 AI' },
+9396 { id: 'ollama', name: '로컬 비전' },
+9397 { id: 'ocr', name: '문자 인식' },
+9425 <span>분할 편집 화면 전환</span>
+9426 <span className="text-[10px] text-zinc-500">{pdfViewerState?.isSplitView ? '분할 모드' : '단일 뷰'}</span>
+9437 캐시 초기화 및 재파싱
+9448 PDF 최적화 및 용량 줄이기...
+9459 다른 PDF 파일 열기...
+9470 현재 PDF 다운로드
+9487 <span className="font-bold text-indigo-300">최근 AI 변경 알림</span>
+9508 <span>확인</span>
+9564 placeholder="# 마크다운 노트&#10;&#10;AI 답변의 [에디터로 내용 전송] 또는 직접 작성..."
+9598 <span className="text-xs font-medium text-zinc-100">문서 목차</span>
+9601 {tocItems.length}개
+9609 title="목차 닫기"
+9620 <p className="text-xs font-medium text-zinc-400">문서에 제목 서식이 없습니다</p>
+9622 # 또는 ## 서식으로 제목을 추가하면 목차가 실시간으로 구성됩니다.
+9642 title={`${item.text} (${item.lineIndex + 1}번째 줄)`}
+9667 <span>스크롤 동기화</span>
+9705 title="드래그하여 파일 탐색기 너비 조절 (200px ~ 420px)"
+9785 { id: 'chat', label: '💬 대화' },
+9786 { id: 'editor', label: '📝 문서' },
+9787 { id: 'explorer', label: '📁 파일' },
+9812 title={`클릭하여 프로젝트 폴더 연결 및 관리 열기 (${getCurrentDisplayPath()})`}
+9815 <span className="text-slate-400">프로젝트:</span>
+9846 줄: {(editorContent || '').split('\n').length} | 글자: {(editorContent || '').length}
+9851 <span className="hidden sm:inline">총 {Object.keys(files).length}개 파일</span>
+9862 <span>동기화 중...</span>
+9867 <span>GitHub 동기화 완료</span>
+9872 <span>충돌 사본 생성됨</span>
+9877 <span>GitHub 연동됨</span>
+9892 title="클릭하여 AI 엔진 및 엔드포인트 설정 열기"
+9907 프로젝트 삭제 경고
+9910 '<span className="font-medium text-amber-200">{deleteConfirmSession.title}</span>' 프로젝트를 삭제하시겠습니까?
+9913 프로젝트를 삭제하면 좌측 대화, 중앙 메모, 우측 폴더 연동 항목이 모두 휴지통으로 이동합니다. 휴지통에서 언제든지 복구할 수 있습니다.
+9923 취소
+9931 <span>휴지통으로 이동</span>
+9945 <h3 className="text-sm font-bold text-slate-200">휴지통</h3>
+9947 {trashSessions.length}개 항목
+9957 휴지통 전체 비우기
+9974 <p className="text-xs text-slate-400 font-medium">휴지통이 비어 있습니다.</p>
+9975 <p className="text-[0.6875rem] text-slate-400">삭제한 프로젝트는 여기에 임시 보관되며 복구할 수 있습니다.</p>
+9989 <span>삭제 시각: {session.deletedAt || session.createdAt}</span>
+9990 <span>대화 {session.messages.length}건</span>
+9999 title="프로젝트, 대화, 메모, 폴더 복구"
+10002 <span>복구</span>
+10008 title="영구 삭제"
+10011 <span>영구 삭제</span>
+10025 닫기
+10040 title="닫기"
+10046 <h2 className="text-base font-semibold text-indigo-300">단축키 안내</h2>
+10047 <p className="text-xs text-slate-400">워크스페이스 작업 효율을 높이는 단축키 목록입니다.</p>
+10052 <span className="text-slate-300">메시지 전송</span>
+10056 <span className="text-slate-300">마크다운 파일 저장</span>
+10060 <span className="text-slate-300">새 프로젝트 생성</span>
+10064 <span className="text-slate-300">새 마크다운 노트</span>
+10068 <span className="text-slate-300">로컬 파일 불러오기</span>
+10072 <span className="text-slate-300">PDF / 인쇄 출력</span>
+10076 <span className="text-slate-300">이미지/파일 붙여넣기</span>
+10080 <span className="text-slate-300">전체 마크다운 복사</span>
+10084 <span className="text-slate-300">탐색기 파일 검색</span>
+10095 닫기
+10107 <h2 className="text-base font-semibold text-indigo-300">저장되지 않은 변경 사항</h2>
+10109 현재 에디터에 저장되지 않은 변경 사항이 있습니다. 계속 진행하시면 변경 사항이 유실될 수 있습니다.
+10118 취소 (계속 편집)
+10129 무시하고 진행
+10141 <h2 className="text-base font-semibold text-rose-300">파일 삭제 확인</h2>
+10145 </span> 파일을 정말 삭제하시겠습니까?
+10148 이 작업은 되돌릴 수 없으며 워크스페이스에서 즉시 제거됩니다.
+10157 취소
+10165 삭제
+10177 <h2 className="text-base font-semibold text-rose-300">폴더 삭제 확인</h2>
+10181 </span> 폴더 및 포함된 모든 문서를 정말 삭제하시겠습니까?
+10184 이 작업은 되돌릴 수 없으며 워크스페이스에서 즉시 제거됩니다.
+10193 취소
+10201 삭제
+10216 title="닫기"
+10233 AI Podium은 지능형 Multi-AI 평가 라우팅, 실시간 마크다운 노트 및 목차 네비게이터, 프로젝트-메모-폴더 연동 시스템, 차세대 다중 포맷 내보내기 엔진을 제공하는 통합 워크스테이션입니다.
+10250 닫기
+10266 <h3 className="font-bold text-slate-100 text-sm">프로젝트 일정 및 마일스톤 관리</h3>
+10268 프로젝트: <strong className="text-indigo-300">'{activeSession?.title || 'AI 지식 비서'}'</strong> 기반 일정 관리
+10276 title="닫기"
+10296 <span>AI 일정 자동 추출</span>
+10305 title="에디터에 마크다운 일정표로 삽입"
+10308 <span>에디터로 전송</span>
+10314 title="캘린더 파일 다운로드"
+10317 <span>캘린더 파일 내보내기</span>
+10326 <span>새 일정 / 마일스톤 추가</span>
+10334 placeholder="일정 또는 마일스톤 명칭 입력..."
+10348 <option value="task">작업</option>
+10349 <option value="milestone">마일스톤</option>
+10350 <option value="meeting">회의</option>
+10351 <option value="deadline">마감</option>
+10358 <option value="high">🔴 높음</option>
+10359 <option value="medium">🟡 보통</option>
+10360 <option value="low">🟢 낮음</option>
+10369 placeholder="상세 메모 또는 설명 (선택사항)..."
+10378 <span>추가</span>
+10397 {filterKey === 'all' && `전체 (${projectEvents.length})`}
+10398 {filterKey === 'milestone' && `마일스톤 (${projectEvents.filter((e) => e.type === 'milestone').length})`}
+10399 {filterKey === 'task' && `작업 (${projectEvents.filter((e) => e.type === 'task').length})`}
+10400 {filterKey === 'meeting' && `회의 (${projectEvents.filter((e) => e.type === 'meeting').length})`}
+10401 {filterKey === 'deadline' && `마감일 (${projectEvents.filter((e) => e.type === 'deadline').length})`}
+10406 완료: {projectEvents.filter((e) => e.completed).length} / {projectEvents.length}
+10414 등록된 프로젝트 일정이 없습니다. 상단의 'AI 일정 자동 추출'을 눌러보세요.
+10484 title="일정 삭제"
+10497 Google Calendar 및 iCal 표준 포맷 완벽 호환
+10504 닫기
+10570 title="닫기"
+10576 <h2 className="text-base font-bold text-white">새 마크다운 노트 생성</h2>
+10577 <p className="text-xs text-slate-400">워크스페이스에 새로운 마크다운 문서를 추가합니다.</p>
+10584 <span>문서 파일명</span>
+10591 placeholder="예: design_specs.md, meeting_notes.md"
+10600 <span>소속 프로젝트 / 대상 폴더</span>
+10609 📁 {s.title} (현재 프로젝트)
+10612 <option value="docs" className="bg-[#121214] text-slate-200">📁 docs (공용 문서 폴더)</option>
+10613 <option value="src" className="bg-[#121214] text-slate-200">📁 src (소스 폴더)</option>
+10614 <option value="root" className="bg-[#121214] text-slate-200">📁 루트 (기본 디렉토리)</option>
+10624 취소
+10630 문서 생성
+10727 title: '프롬프트',
+10915 /^새 프로젝트(\s*\d*)?\.md$/i.test(currentActiveFile) ||
+10916 currentActiveFile === '새 문서.md'
+10917 ? '새 문서.md'

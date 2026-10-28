@@ -28,7 +28,8 @@ import {
 } from '../services/googleDriveService';
 import { convertDocumentToMarkdown } from '../services/documentConverterService';
 
-const DRIVE_UNAVAILABLE_MESSAGE = '이 버전에서는 구글 드라이브 연동을 사용할 수 없습니다. 로컬 파일 열기와 저장은 그대로 사용할 수 있습니다.';
+import { useLanguage } from '../context/LanguageContext';
+import { getDriveSecurityTranslations } from '../locales/driveSecurityLocale';
 
 export interface GoogleDrivePickerModalProps {
   isOpen: boolean;
@@ -62,6 +63,9 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
   onSignIn,
   onSignOut,
 }) => {
+  const { language } = useLanguage();
+  const t = getDriveSecurityTranslations(language).drivePicker;
+  const DRIVE_UNAVAILABLE_MESSAGE = t.unavailable;
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -69,7 +73,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
   // Folder state
   const [folders, setFolders] = useState<DriveItem[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string>(currentFolder?.id || 'root');
-  const [selectedFolderName, setSelectedFolderName] = useState<string>(currentFolder?.name || '구글 드라이브 최상위 폴더');
+  const [selectedFolderName, setSelectedFolderName] = useState<string>(currentFolder?.name || t.rootFolder);
   const [newFolderName, setNewFolderName] = useState<string>('');
   const [isCreatingFolder, setIsCreatingFolder] = useState<boolean>(false);
 
@@ -156,10 +160,10 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
     try {
       const token = tokenOverride || googleDriveService.getAccessToken();
       if (!token) {
-        throw new Error('Google Drive 인증 토큰이 유효하지 않습니다.');
+        throw new Error(t.errInvalidToken);
       }
 
-      onToast(`'${fileName}' 문서를 가져오는 중입니다...`, 'info');
+      onToast(t.fetching(fileName), 'info');
 
       let fileBlob: Blob;
 
@@ -177,7 +181,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
             `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
-          if (!mediaRes.ok) throw new Error(`Google Drive 파일 다운로드 실패 (HTTP ${mediaRes.status})`);
+          if (!mediaRes.ok) throw new Error(t.downloadFailed(mediaRes.status));
           fileBlob = await mediaRes.blob();
         }
       } else {
@@ -186,7 +190,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (!mediaRes.ok) {
-          throw new Error(`Google Drive 파일 다운로드 실패 (HTTP ${mediaRes.status})`);
+          throw new Error(t.downloadFailed(mediaRes.status));
         }
         fileBlob = await mediaRes.blob();
       }
@@ -203,11 +207,11 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
         onOpenFile(finalName, finalMarkdown);
       }
 
-      onToast(`✨ '${finalName}' 문서를 작업 공간에 성공적으로 불러왔습니다.`, 'success');
+      onToast(t.imported(finalName), 'success');
       onClose();
     } catch (e: any) {
       console.error('File ingestion failed:', e);
-      onToast(`문서 변환 실패: ${e?.message || '파일을 불러올 수 없습니다.'}`, 'error');
+      onToast(t.convertFailed(e?.message || t.fileLoadFallback), 'error');
     } finally {
       setIsLoading(false);
     }
@@ -219,7 +223,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
   const createAndShowPicker = (accessToken: string) => {
     const google = (window as any).google;
     if (!google?.picker) {
-      onToast('Google Picker API가 준비되지 않았습니다.', 'error');
+      onToast(t.pickerNotReady, 'error');
       return;
     }
 
@@ -232,7 +236,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
         .addView(docsView)
         .setOAuthToken(accessToken)
         .setLocale('ko')
-        .setTitle('구글 드라이브 문서 선택')
+        .setTitle(t.pickerDocTitle)
         .setCallback(async (data: any) => {
           if (data.action === google.picker.Action.PICKED) {
             const doc = data.docs?.[0];
@@ -251,7 +255,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
       picker.setVisible(true);
     } catch (err: any) {
       console.error('Failed to create Google Picker:', err);
-      onToast(`피커 생성 오류: ${err?.message || '대화창을 열 수 없습니다.'}`, 'error');
+      onToast(t.pickerCreateError(err?.message || t.pickerOpenFallback), 'error');
     }
   };
 
@@ -283,7 +287,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
       }
 
       if (!google?.accounts?.oauth2) {
-        throw new Error('Google Identity Services(GIS) 스크립트를 로드할 수 없습니다.');
+        throw new Error(t.errScriptLoad);
       }
 
       const tokenClient = google.accounts.oauth2.initTokenClient({
@@ -292,7 +296,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
         callback: async (response: any) => {
           if (response.error) {
             console.error('Google Auth Error:', response);
-            onToast(`인증 오류: ${response.error_description || response.error}`, 'error');
+            onToast(t.authError(response.error_description || response.error), 'error');
             setIsConnecting(false);
             return;
           }
@@ -312,7 +316,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
       tokenClient.requestAccessToken({ prompt: 'consent' });
     } catch (err: any) {
       console.error('Google Picker initialization failed:', err);
-      onToast(`Google 연결 오류: ${err?.message || '스크립트 로드 실패'}`, 'error');
+      onToast(t.connectError(err?.message || t.scriptLoadFallback), 'error');
       setIsConnecting(false);
     }
   };
@@ -338,7 +342,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
           callback: async (response: any) => {
             if (response.error) {
               console.error('Google Auth Error:', response);
-              onToast(`Google 인증 오류: ${response.error_description || response.error}`, 'error');
+              onToast(t.googleAuthError(response.error_description || response.error), 'error');
               setIsConnecting(false);
               return;
             }
@@ -349,7 +353,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                 const profile = await googleDriveService.fetchUserProfile();
                 setCurrentUserProfile(profile);
               } catch (e) {}
-              onToast('✨ 구글 드라이브 연동이 완료되었습니다!', 'success');
+              onToast(t.connectDone, 'success');
               await Promise.all([loadFolders(), loadFiles()]);
               createAndShowPicker(response.access_token);
             }
@@ -367,13 +371,13 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
         const { profile } = await googleDriveService.signIn();
         setCurrentUserProfile(profile);
         setAuthStatus('connected');
-        onToast('✨ 구글 드라이브 연동이 완료되었습니다!', 'success');
+        onToast(t.connectDone, 'success');
         await Promise.all([loadFolders(), loadFiles()]);
         setIsConnecting(false);
       }
     } catch (e: any) {
       console.error('Google Drive On-Demand Connect failed:', e);
-      onToast(`연동 오류: ${e.message || '인증에 실패했습니다.'}`, 'error');
+      onToast(t.linkError(e.message || t.authFallback), 'error');
       setIsConnecting(false);
     }
   };
@@ -388,13 +392,13 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
     setCurrentUserProfile(null);
     setFiles([]);
     setFolders([]);
-    onToast('구글 드라이브 연동이 해제되었습니다.', 'info');
+    onToast(t.disconnected, 'info');
   };
 
   // Import file to editor
   const handleImportFile = async () => {
     if (!selectedFile) {
-      onToast('불러올 파일을 선택해주세요.', 'warn');
+      onToast(t.pickFile, 'warn');
       return;
     }
 
@@ -404,7 +408,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
   // Save current editor content to Drive
   const handleSaveToDrive = async () => {
     if (!saveFileName.trim()) {
-      onToast('저장할 파일 이름을 입력해주세요.', 'warn');
+      onToast(t.enterFileName, 'warn');
       return;
     }
 
@@ -422,12 +426,12 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
         currentEditorContent,
         saveTargetFolderId
       );
-      onToast(`💾 '${saved.name}' 파일이 구글 드라이브에 안전하게 저장되었습니다!`, 'success');
+      onToast(t.saved(saved.name), 'success');
       await loadFiles();
       onClose();
     } catch (e: any) {
       console.error('Failed to save file to Drive:', e);
-      onToast('구글 드라이브 파일 저장에 실패했습니다.', 'error');
+      onToast(t.saveFailed, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -441,14 +445,14 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
     setIsLoading(true);
     try {
       const created = await googleDriveService.createFolder(newFolderName.trim(), 'root');
-      onToast(`'${created.name}' 폴더가 생성되었습니다.`, 'success');
+      onToast(t.folderCreated(created.name), 'success');
       setNewFolderName('');
       setIsCreatingFolder(false);
       await loadFolders();
       setSelectedFolderId(created.id);
       setSelectedFolderName(created.name);
     } catch (e) {
-      onToast('폴더 생성에 실패했습니다.', 'error');
+      onToast(t.folderCreateFailed, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -465,7 +469,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
     if (onSelectFolder) {
       onSelectFolder(folderInfo);
     }
-    onToast(`구글 드라이브 기본 작업 폴더가 [${selectedFolderName}] (으)로 설정되었습니다.`, 'success');
+    onToast(t.defaultFolderSet(selectedFolderName), 'success');
     onClose();
   };
 
@@ -508,19 +512,19 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                 <HardDrive className="w-4 h-4 text-indigo-400" />
               </div>
               <h2 className="text-sm font-medium text-zinc-200 tracking-tight flex items-center gap-2">
-                구글 드라이브 파일 탐색기
+                {t.heading}
                 {authStatus === 'connected' ? (
                   <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    연결됨
+                    {t.statusConnected}
                   </span>
                 ) : (
                   <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-white/5 text-zinc-400 border border-white/10">
-                    미연동
+                    {t.statusDisconnected}
                   </span>
                 )}
                 <HelpTooltip
-                  title="구글 드라이브 파일 탐색기"
-                  content="계정 로그인 여부와 무관하게 구글 드라이브 파일을 안전하게 열고 저장합니다."
+                  title={t.heading}
+                  content={t.helpContent}
                   side="bottom"
                 />
               </h2>
@@ -533,17 +537,17 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#09090b] border border-white/10 text-xs">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <span className="text-zinc-300 font-medium truncate max-w-[140px]">
-                    {currentUserProfile?.name || currentUserProfile?.email || '연동됨'}
+                    {currentUserProfile?.name || currentUserProfile?.email || t.linked}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={handleDisconnect}
                   className="px-2.5 py-1 rounded text-xs font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 transition-colors cursor-pointer inline-flex items-center gap-1.5"
-                  title="구글 드라이브 연동 해제"
+                  title={t.disconnectTitle}
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span>해제</span>
+                  <span>{t.disconnect}</span>
                 </button>
               </div>
             )}
@@ -552,7 +556,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
               type="button"
               onClick={onClose}
               className="text-zinc-400 hover:text-zinc-200 p-1.5 rounded hover:bg-white/5 transition cursor-pointer"
-              title="닫기"
+              title={t.close}
             >
               <X className="w-4 h-4" />
             </button>
@@ -572,7 +576,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-[#09090b]/25'
                 }`}
               >
-                <span>파일 불러오기</span>
+                <span>{t.tabOpen}</span>
               </button>
 
               <button
@@ -584,7 +588,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-[#09090b]/25'
                 }`}
               >
-                <span>드라이브에 저장</span>
+                <span>{t.tabSave}</span>
               </button>
 
               <button
@@ -596,7 +600,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-[#09090b]/25'
                 }`}
               >
-                <span>기본 폴더 설정</span>
+                <span>{t.tabFolder}</span>
               </button>
             </div>
 
@@ -607,7 +611,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                 loadFiles();
               }}
               className="p-1.5 text-zinc-400 hover:text-white rounded hover:bg-white/5 transition cursor-pointer"
-              title="새로고침"
+              title={t.refresh}
             >
               <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-indigo-400' : ''}`} />
             </button>
@@ -628,7 +632,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
               type="button"
               onClick={() => setMissingConfigWarning(null)}
               className="text-amber-400 hover:text-amber-200 p-0.5 rounded cursor-pointer"
-              title="닫기"
+              title={t.close}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -642,9 +646,9 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
               <HardDrive className="w-6 h-6 text-zinc-300" />
             </div>
             <div className="space-y-1.5 max-w-sm">
-              <h3 className="text-sm font-medium text-zinc-200">구글 드라이브 연동이 필요합니다</h3>
+              <h3 className="text-sm font-medium text-zinc-200">{t.needLinkTitle}</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                클라우드에 저장된 마크다운 및 HTML 문서를 즉시 불러오거나 현재 작성 중인 문서를 드라이브에 안전하게 보관할 수 있습니다.
+                {t.needLinkDesc}
               </p>
             </div>
             <button
@@ -655,7 +659,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
               title={isDriveConfigured ? undefined : DRIVE_UNAVAILABLE_MESSAGE}
               className="px-4 py-2 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center justify-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-indigo-600"
             >
-              <span>{isConnecting ? '연동 진행 중...' : '구글 드라이브 연결하기'}</span>
+              <span>{isConnecting ? t.connecting : t.connect}</span>
             </button>
             {!isDriveConfigured && (
               <p className="text-[11px] text-zinc-500 max-w-sm">{DRIVE_UNAVAILABLE_MESSAGE}</p>
@@ -676,7 +680,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                         filterType === 'all' ? 'bg-[#18181b] text-white font-medium' : 'text-slate-400 hover:text-white'
                       }`}
                     >
-                      전체 {files.length}
+                      {t.filterAll(files.length)}
                     </button>
                     <button
                       type="button"
@@ -686,7 +690,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                       }`}
                     >
                       <FileText className="w-3 h-3 text-indigo-400" />
-                      마크다운
+                      {t.filterMarkdown}
                     </button>
                     <button
                       type="button"
@@ -696,7 +700,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                       }`}
                     >
                       <FileCode className="w-3 h-3 text-amber-400" />
-                      HTML 문서
+                      {t.filterHtml}
                     </button>
                   </div>
 
@@ -706,7 +710,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="드라이브 파일 검색..."
+                      placeholder={t.searchPlaceholder}
                       className="w-full bg-[#09090b] border border-[#222226] rounded px-2.5 py-1 pl-8 text-xs font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-400 transition"
                     />
                   </div>
@@ -717,9 +721,9 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     onClick={() => openGooglePicker()}
                     disabled={isConnecting}
                     className="btn-secondary text-xs flex items-center justify-center px-3 py-1 bg-[#18181b] border-indigo-500/40 hover:border-indigo-400 text-indigo-300 shrink-0 cursor-pointer"
-                    title="구글 공식 피커 대화창 열기"
+                    title={t.openPicker}
                   >
-                    <span>구글 피커로 파일 선택</span>
+                    <span>{t.pickWithPicker}</span>
                   </button>
                 </div>
 
@@ -748,9 +752,9 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                           <div className="min-w-0">
                             <div className="font-medium truncate">{file.name}</div>
                             <div className="text-[0.625rem] text-slate-500 font-mono flex items-center gap-2">
-                              <span>크기: {formatFileSize(file.size)}</span>
+                              <span>{t.size(formatFileSize(file.size))}</span>
                               {file.modifiedTime && (
-                                <span>수정: {new Date(file.modifiedTime).toLocaleDateString()}</span>
+                                <span>{t.modified(new Date(file.modifiedTime).toLocaleDateString())}</span>
                               )}
                             </div>
                           </div>
@@ -764,9 +768,9 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                   {filteredFiles.length === 0 && !isLoading && (
                     <div className="py-12 text-center text-slate-500 text-xs">
                       <FileText className="w-6 h-6 mx-auto mb-2 opacity-40 text-slate-400" />
-                      <p>{searchQuery ? '검색어와 일치하는 파일이 없습니다.' : '드라이브에 저장된 파일이 없습니다.'}</p>
+                      <p>{searchQuery ? t.noMatch : t.noFiles}</p>
                       <p className="text-[11px] text-slate-500 mt-1">
-                        '드라이브에 저장' 탭에서 현재 문서를 먼저 업로드할 수 있습니다.
+                        {t.uploadHint}
                       </p>
                     </div>
                   )}
@@ -778,10 +782,10 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     {selectedFile ? (
                       <span className="flex items-center gap-1.5 text-slate-200">
                         <Check className="w-3.5 h-3.5 text-indigo-400" />
-                        선택됨: <span className="font-mono text-indigo-300">{selectedFile.name}</span>
+                        {t.selected} <span className="font-mono text-indigo-300">{selectedFile.name}</span>
                       </span>
                     ) : (
-                      <span>불러올 파일을 목록에서 선택하세요</span>
+                      <span>{t.selectFromList}</span>
                     )}
                   </div>
 
@@ -791,7 +795,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                       onClick={onClose}
                       className="btn-ghost text-xs"
                     >
-                      취소
+                      {t.cancel}
                     </button>
                     <button
                       type="button"
@@ -799,7 +803,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                       onClick={handleImportFile}
                       className="btn-primary text-xs"
                     >
-                      <span>에디터로 불러오기</span>
+                      <span>{t.loadIntoEditor}</span>
                     </button>
                   </div>
                 </div>
@@ -812,13 +816,13 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                 <div className="space-y-3 bg-[#09090b] border border-[#222226] p-3.5 rounded">
                   {/* File Name Input */}
                   <div className="space-y-1">
-                    <label className="text-xs text-slate-300 font-medium">저장할 파일 이름</label>
+                    <label className="text-xs text-slate-300 font-medium">{t.fileNameLabel}</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
                         value={saveFileName}
                         onChange={(e) => setSaveFileName(e.target.value)}
-                        placeholder="예: architecture_notes.md"
+                        placeholder={t.fileNamePlaceholder}
                         className="flex-1 bg-[#0c0c0e] border border-[#222226] rounded px-2.5 py-1.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-400"
                       />
                       <div className="flex items-center gap-1 bg-[#0c0c0e] p-1 rounded border border-[#222226] text-xs shrink-0">
@@ -836,7 +840,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                               : 'text-slate-400 hover:text-white'
                           }`}
                         >
-                          마크다운
+                          {t.filterMarkdown}
                         </button>
                         <button
                           type="button"
@@ -860,13 +864,13 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
 
                   {/* Target Folder Selector */}
                   <div className="space-y-1">
-                    <label className="text-xs text-slate-300 font-medium">저장 대상 폴더</label>
+                    <label className="text-xs text-slate-300 font-medium">{t.targetFolder}</label>
                     <select
                       value={saveTargetFolderId}
                       onChange={(e) => setSaveTargetFolderId(e.target.value)}
                       className="w-full bg-[#0c0c0e] border border-[#222226] rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-400"
                     >
-                      <option value="root">구글 드라이브 최상위 폴더</option>
+                      <option value="root">{t.rootFolder}</option>
                       {folders.map((f) => (
                         <option key={f.id} value={f.id}>
                           📁 {f.name}
@@ -877,8 +881,8 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
 
                   {/* Content Preview Details */}
                   <div className="p-2.5 bg-[#0c0c0e] rounded border border-[#222226] text-[11px] text-slate-400 flex items-center justify-between">
-                    <span>에디터 현재 내용: {currentEditorContent.length} 글자</span>
-                    <span>형식: {saveFormat === 'markdown' ? '마크다운 문서' : 'HTML 웹 문서'}</span>
+                    <span>{t.editorLength(currentEditorContent.length)}</span>
+                    <span>{t.format(saveFormat === 'markdown')}</span>
                   </div>
                 </div>
 
@@ -889,7 +893,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     onClick={onClose}
                     className="btn-ghost text-xs"
                   >
-                    취소
+                    {t.cancel}
                   </button>
                   <button
                     type="button"
@@ -897,7 +901,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     onClick={handleSaveToDrive}
                     className="btn-primary text-xs"
                   >
-                    <span>{isLoading ? '저장 중...' : '구글 드라이브에 저장'}</span>
+                    <span>{isLoading ? t.saving : t.saveToDrive}</span>
                   </button>
                 </div>
               </div>
@@ -910,7 +914,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                 <div className="bg-[#09090b] border border-[#222226] rounded px-3 py-2 flex items-center justify-between text-xs shrink-0">
                   <div className="flex items-center gap-2 text-slate-300 truncate">
                     <HardDrive className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                    <span className="text-slate-400 text-xs shrink-0">선택된 폴더:</span>
+                    <span className="text-slate-400 text-xs shrink-0">{t.selectedFolder}</span>
                     <span className="font-mono text-slate-200 truncate flex items-center gap-1">
                       <FolderOpen className="w-3 h-3 text-indigo-400" />
                       {selectedFolderName}
@@ -921,7 +925,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     onClick={() => setIsCreatingFolder(!isCreatingFolder)}
                     className="btn-secondary text-xs"
                   >
-                    <span>새 폴더</span>
+                    <span>{t.newFolder}</span>
                   </button>
                 </div>
 
@@ -936,7 +940,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                       type="text"
                       value={newFolderName}
                       onChange={(e) => setNewFolderName(e.target.value)}
-                      placeholder="새 폴더 이름 입력..."
+                      placeholder={t.newFolderPlaceholder}
                       autoFocus
                       className="flex-1 bg-[#0c0c0e] border border-[#222226] rounded px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-indigo-400"
                     />
@@ -945,14 +949,14 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                       disabled={!newFolderName.trim() || isLoading}
                       className="btn-primary text-xs"
                     >
-                      생성
+                      {t.create}
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsCreatingFolder(false)}
                       className="btn-ghost text-xs"
                     >
-                      취소
+                      {t.cancel}
                     </button>
                   </form>
                 )}
@@ -963,7 +967,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                   <div
                     onClick={() => {
                       setSelectedFolderId('root');
-                      setSelectedFolderName('구글 드라이브 최상위 폴더');
+                      setSelectedFolderName(t.rootFolder);
                     }}
                     className={`flex items-center justify-between p-2 rounded cursor-pointer border transition ${
                       selectedFolderId === 'root'
@@ -974,8 +978,8 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     <div className="flex items-center gap-2">
                       <HardDrive className="w-3.5 h-3.5 text-indigo-400" />
                       <div>
-                        <div className="text-xs font-normal">구글 드라이브 최상위 폴더</div>
-                        <div className="text-[0.625rem] text-slate-500 font-mono">최상위 폴더</div>
+                        <div className="text-xs font-normal">{t.rootFolder}</div>
+                        <div className="text-[0.625rem] text-slate-500 font-mono">{t.rootFolderShort}</div>
                       </div>
                     </div>
                     {selectedFolderId === 'root' && (
@@ -1020,14 +1024,14 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     onClick={onClose}
                     className="btn-ghost text-xs"
                   >
-                    취소
+                    {t.cancel}
                   </button>
                   <button
                     type="button"
                     onClick={handleConfirmFolder}
                     className="btn-primary text-xs"
                   >
-                    <span>기본 폴더로 지정</span>
+                    <span>{t.setAsDefault}</span>
                   </button>
                 </div>
               </div>

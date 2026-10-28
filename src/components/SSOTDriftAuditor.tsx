@@ -19,6 +19,8 @@ import {
   Copy,
   ChevronRight
 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { getDocModalsTranslations } from '../locales/docModalsLocale';
 import {
   SSOTDriftIssue,
   SSOTAuditSummary,
@@ -45,6 +47,8 @@ export const SSOTDriftAuditor: React.FC<SSOTDriftAuditorProps> = ({
   model,
   isDarkTheme = true
 }) => {
+  const { language } = useLanguage();
+  const t = getDocModalsTranslations(language).driftAuditor;
   const [filterType, setFilterType] = useState<string>('all');
   const [isAiScanning, setIsAiScanning] = useState<boolean>(false);
   const [auditResult, setAuditResult] = useState<SSOTAuditSummary>(() =>
@@ -145,21 +149,21 @@ export const SSOTDriftAuditor: React.FC<SSOTDriftAuditorProps> = ({
   // Copy Markdown Report
   const handleCopyReport = () => {
     const activeIssues = auditResult.issues.filter((iss) => !dismissedIds.has(iss.id));
-    const reportMd = `# 문서 정합성 검사 보고서
-- **점검 일시**: ${auditResult.analyzedAt}
-- **정합성 점수**: ${auditResult.score} / 100점
-- **감지 항목**: 총 ${activeIssues.length}건 (치명적: ${auditResult.criticalCount}, 주의: ${auditResult.warningCount})
+    const reportMd = `# ${t.reportTitle}
+- **${t.reportDate}**: ${auditResult.analyzedAt}
+- **${t.reportScore}**: ${t.reportScoreValue(auditResult.score)}
+- **${t.reportCount}**: ${t.reportCountValue(activeIssues.length, auditResult.criticalCount, auditResult.warningCount)}
 
-## 감지된 불일치 내역
+## ${t.reportIssuesHeading}
 ${
   activeIssues.length === 0
-    ? '- 감지된 불일치가 없습니다. 문서가 단일 진실 공급원 기준을 충족합니다.'
+    ? t.reportNoIssues
     : activeIssues
         .map(
-          (iss, idx) => `### ${idx + 1}. [${iss.severity === 'critical' ? '치명적' : iss.severity === 'warning' ? '주의' : '권고'}] ${iss.title}
-- **위치**: ${iss.location.line}행 (\`${iss.location.text}\`)
-- **설명**: ${iss.description}
-- **권장 조치**: ${iss.suggestedFix}
+          (iss, idx) => `### ${idx + 1}. [${iss.severity === 'critical' ? t.severityCritical : iss.severity === 'warning' ? t.severityWarning : t.severityInfo}] ${iss.title}
+- **${t.reportLocation}**: ${t.reportLine(iss.location.line)} (\`${iss.location.text}\`)
+- **${t.reportDescription}**: ${iss.description}
+- **${t.reportFix}**: ${iss.suggestedFix}
 `
         )
         .join('\n')
@@ -185,22 +189,22 @@ ${
     pristine: {
       dot: 'bg-emerald-400',
       color: 'text-emerald-400',
-      label: '일관성 우수'
+      label: t.statusPristine
     },
     healthy: {
       dot: 'bg-sky-400',
       color: 'text-sky-400',
-      label: '양호'
+      label: t.statusHealthy
     },
     warning: {
       dot: 'bg-amber-400',
       color: 'text-amber-400',
-      label: '주의'
+      label: t.severityWarning
     },
     critical: {
       dot: 'bg-rose-400',
       color: 'text-rose-400',
-      label: '치명적'
+      label: t.severityCritical
     }
   }[auditResult.status];
 
@@ -226,22 +230,22 @@ ${
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-medium text-zinc-100 flex items-center gap-1.5">
-              문서 정합성 검사
+              {t.title}
               {auditResult.isAiEnhanced && (
                 <span className="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.2 rounded font-sans">
-                  인공지능 정밀
+                  {t.aiBadge}
                 </span>
               )}
             </h3>
           </div>
-          <p className="text-xs text-zinc-400 mt-0.5">단일 진실 공급원 정합성 및 무결성 검사</p>
+          <p className="text-xs text-zinc-400 mt-0.5">{t.subtitle}</p>
         </div>
 
         <button
           type="button"
           onClick={onClose}
           className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-[#18181b] transition cursor-pointer"
-          title="닫기"
+          title={t.close}
         >
           <X className="w-4 h-4" />
         </button>
@@ -252,7 +256,7 @@ ${
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-baseline gap-1.5">
             <span className="text-2xl font-bold text-zinc-100 font-mono">{auditResult.score}</span>
-            <span className="text-xs text-zinc-400 font-mono">/ 100점</span>
+            <span className="text-xs text-zinc-400 font-mono">{t.scoreSuffix}</span>
           </div>
 
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/[0.04] border border-[#222226] text-xs text-zinc-300">
@@ -280,21 +284,21 @@ ${
           <div className="bg-[#121214] border border-[#222226] p-2 rounded-md text-center">
             <div className="flex items-center justify-center gap-1 text-zinc-400 text-[11px] mb-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-              <span>치명적</span>
+              <span>{t.severityCritical}</span>
             </div>
             <span className="font-semibold text-zinc-100 text-xs">{auditResult.criticalCount}</span>
           </div>
           <div className="bg-[#121214] border border-[#222226] p-2 rounded-md text-center">
             <div className="flex items-center justify-center gap-1 text-zinc-400 text-[11px] mb-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              <span>주의</span>
+              <span>{t.severityWarning}</span>
             </div>
             <span className="font-semibold text-zinc-100 text-xs">{auditResult.warningCount}</span>
           </div>
           <div className="bg-[#121214] border border-[#222226] p-2 rounded-md text-center">
             <div className="flex items-center justify-center gap-1 text-zinc-400 text-[11px] mb-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-              <span>권고</span>
+              <span>{t.severityInfo}</span>
             </div>
             <span className="font-semibold text-zinc-100 text-xs">{auditResult.infoCount}</span>
           </div>
@@ -307,24 +311,24 @@ ${
             onClick={handleDeepAiScan}
             disabled={isAiScanning}
             className="flex-1 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium py-1.5 px-2.5 rounded-md text-xs transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
-            title="인공지능 정밀 검사"
+            title={t.aiScanTitle}
           >
             {isAiScanning ? (
               <RefreshCw className="w-3 h-3 animate-spin" />
             ) : (
               <Sparkles className="w-3 h-3 text-indigo-200" />
             )}
-            <span>{isAiScanning ? '심층 분석 중...' : '인공지능 정밀 검사'}</span>
+            <span>{isAiScanning ? t.aiScanning : t.aiScanTitle}</span>
           </button>
 
           <button
             type="button"
             onClick={handleLocalRescan}
             className="bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 py-1.5 px-2.5 rounded-md text-xs transition flex items-center justify-center gap-1 border border-[#222226] cursor-pointer"
-            title="즉시 재검사"
+            title={t.rescan}
           >
             <Zap className="w-3 h-3 text-amber-400" />
-            <span>즉시 재검사</span>
+            <span>{t.rescan}</span>
           </button>
 
           {auditResult.issues.some((i) => !dismissedIds.has(i.id) && i.reconciliationPatch) && (
@@ -332,10 +336,10 @@ ${
               type="button"
               onClick={handleApplyAllFixes}
               className="bg-emerald-600 hover:bg-emerald-500 text-white py-1.5 px-2.5 rounded-md text-xs transition flex items-center justify-center gap-1 font-medium cursor-pointer shadow-xs"
-              title="모든 권장 수정사항을 문서에 일괄 반영합니다"
+              title={t.applyAllTitle}
             >
               <Check className="w-3 h-3" />
-              <span>일괄 해결</span>
+              <span>{t.applyAll}</span>
             </button>
           )}
         </div>
@@ -344,12 +348,12 @@ ${
       {/* Filter Tabs */}
       <div className="px-4 py-2 bg-[#121214] border-b border-[#222226] flex items-center gap-1.5 overflow-x-auto shrink-0 scrollbar-none text-xs">
         {[
-          { id: 'all', label: '전체' },
-          { id: 'critical', label: '치명적' },
-          { id: 'timeline', label: '타임라인' },
-          { id: 'metric', label: '수치 및 예산' },
-          { id: 'task', label: '작업 항목' },
-          { id: 'ambiguity', label: '모호성' }
+          { id: 'all', label: t.filterAll },
+          { id: 'critical', label: t.filterCritical },
+          { id: 'timeline', label: t.filterTimeline },
+          { id: 'metric', label: t.filterMetric },
+          { id: 'task', label: t.filterTask },
+          { id: 'ambiguity', label: t.filterAmbiguity }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -370,10 +374,10 @@ ${
             type="button"
             onClick={handleCopyReport}
             className="px-2 py-1 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] rounded-md transition flex items-center gap-1 text-xs"
-            title="마크다운 검사 보고서 복사"
+            title={t.copyReportTitle}
           >
             <Copy className="w-3 h-3" />
-            <span>{copiedReport ? '복사 완료' : '보고서'}</span>
+            <span>{copiedReport ? t.copied : t.report}</span>
           </button>
         </div>
       </div>
@@ -386,10 +390,10 @@ ${
               <FileCheck2 className="w-5 h-5 text-emerald-400" />
             </div>
             <h4 className="text-xs font-medium text-zinc-200 mb-1">
-              정합성 불일치가 감지되지 않았습니다
+              {t.emptyTitle}
             </h4>
             <p className="text-xs text-zinc-400 max-w-xs leading-relaxed">
-              현재 필터 기준 문서가 단일 진실 공급원 기준을 충족하고 있습니다.
+              {t.emptyDesc}
             </p>
           </div>
         ) : (
@@ -412,7 +416,7 @@ ${
                   />
                   <h4 className="text-xs font-medium text-zinc-200 truncate">{issue.title}</h4>
                   <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/[0.04] text-zinc-400 shrink-0 font-medium border border-[#222226]">
-                    {issue.severity === 'critical' ? '치명적' : issue.severity === 'warning' ? '주의' : '권고'}
+                    {issue.severity === 'critical' ? t.severityCritical : issue.severity === 'warning' ? t.severityWarning : t.severityInfo}
                   </span>
                 </div>
 
@@ -422,9 +426,9 @@ ${
                       type="button"
                       onClick={() => onJumpToLine?.(issue.location.line)}
                       className="text-[10px] font-mono bg-white/[0.05] hover:bg-white/[0.1] text-zinc-300 px-1.5 py-0.5 rounded transition flex items-center gap-0.5 cursor-pointer border border-[#222226]"
-                      title="해당 줄로 이동"
+                      title={t.jumpToLine}
                     >
-                      <span>{issue.location.line}줄</span>
+                      <span>{t.lineLabel(issue.location.line)}</span>
                       <ChevronRight className="w-2.5 h-2.5" />
                     </button>
                   )}
@@ -432,7 +436,7 @@ ${
                     type="button"
                     onClick={() => handleDismiss(issue.id)}
                     className="text-zinc-500 hover:text-zinc-300 p-0.5 rounded transition cursor-pointer"
-                    title="무시"
+                    title={t.dismiss}
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -447,7 +451,7 @@ ${
               {/* Location Snippet */}
               {issue.location.text && (
                 <div className="bg-[#09090b] border border-[#222226] rounded-md p-2 font-mono text-[11px] text-zinc-400 truncate">
-                  <span className="text-zinc-500 mr-1 select-none">문서 발췌:</span>
+                  <span className="text-zinc-500 mr-1 select-none">{t.excerpt}</span>
                   <span className="text-amber-200/90">{issue.location.text}</span>
                 </div>
               )}
@@ -456,7 +460,7 @@ ${
               <div className="bg-[#09090b] border border-[#222226] rounded-md p-2.5 space-y-2">
                 <div className="text-xs text-zinc-300 font-medium flex items-center gap-1.5">
                   <Sparkles className="w-3 h-3 text-indigo-400" />
-                  <span>권장 해결 방안</span>
+                  <span>{t.suggestedFixHeading}</span>
                 </div>
                 <p className="text-xs text-zinc-400 leading-relaxed">
                   {issue.suggestedFix}
@@ -466,15 +470,15 @@ ${
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#222226]">
                     <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1 truncate">
                       <Check className="w-3 h-3 shrink-0" />
-                      수정 패치 준비 완료
+                      {t.patchReady}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleApplyFix(issue)}
                       className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2.5 py-1 rounded-md transition flex items-center gap-1 shrink-0 shadow-xs cursor-pointer"
-                      title="해결안을 본문에 즉시 치환 반영합니다"
+                      title={t.applyFixTitle}
                     >
-                      <span>즉시 반영</span>
+                      <span>{t.applyFix}</span>
                       <ArrowRight className="w-3 h-3" />
                     </button>
                   </div>
@@ -487,8 +491,8 @@ ${
 
       {/* Footer info */}
       <div className="p-2.5 bg-[#09090b] border-t border-[#222226] flex items-center justify-between text-[11px] text-zinc-500 shrink-0 font-mono">
-        <span>최근 점검: {auditResult.analyzedAt}</span>
-        <span>문서 정합성 검사 엔진</span>
+        <span>{t.lastChecked(auditResult.analyzedAt)}</span>
+        <span>{t.engineName}</span>
       </div>
     </div>
   );

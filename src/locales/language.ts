@@ -35,3 +35,14 @@ export function resolveAppLanguage(
 
   return 'ko';
 }
+
+let activeLanguage: AppLanguage = 'ko';
+
+/** Module-level mirror of the UI language for code that runs outside React render, such as toast callbacks. */
+export function setActiveLanguage(language: AppLanguage): void {
+  activeLanguage = language;
+}
+
+export function getActiveLanguage(): AppLanguage {
+  return activeLanguage;
+}

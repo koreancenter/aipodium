@@ -1,0 +1,164 @@
+8756 ? '게스트 세션이 종료되고 임시 데이터가 모두 삭제되었습니다.'
+8757 : '로그아웃되었습니다.'
+8785 memoryGuide="권장 메모리: 4GB 이상 · 가중치 캐싱 약 1.5GB"
+8839 title="대화창 펼치기"
+8840 aria-label="대화창 펼치기"
+8845 <div className="flex flex-col items-center gap-2 pb-1" title="AI 엔진 활성">
+8859 title="대화창 접기"
+8860 aria-label="대화창 접기"
+8867 <span className="font-semibold tracking-wider text-[0.6875rem] uppercase text-indigo-300 truncate">프로젝트 목록</span>
+8872 title="새 프로젝트 생성"
+8873 aria-label="새 프로젝트 생성"
+8890 title="AI가 에디터 내용을 수정했습니다. 에디터로 이동하여 확인하세요."
+8893 <span className="hidden md:inline">최근 AI 변경</span>
+8908 aria-label="프로젝트 목록"
+8924 placeholder="프로젝트 검색..."
+8932 title="검색어 초기화"
+8960 {sessionSearchQuery ? `'${sessionSearchQuery}' 검색 결과 없음` : '프로젝트가 없습니다.'}
+8968 검색어 초기화
+9020 title="드래그하여 프로젝트 순서 변경"
+9076 title="프로젝트 이름 변경"
+9087 title="JSON으로 내보내기"
+9095 title="프로젝트 삭제"
+9134 title: 'AI 응답과 현재 문서 시맨틱 Diff',
+9135 sourceLabel: `${model || 'AI Assistant'} 제안본`,
+9212 title="드래그하여 대화 패널 너비 조절 (280px ~ 520px)"
+9268 title="저장되지 않은 변경사항 있음"
+9278 title="탭 닫기"
+9291 title="새로운 메모 탭 추가"
+9306 title="AI가 최근 내용을 수정했습니다. 클릭 시 확인 완료."
+9309 <span className="font-bold text-indigo-200 hidden sm:inline">최근 AI 변경</span>
+9325 title="마크다운 추출 실행"
+9333 {pdfViewerState?.isExtracting ? '추출 중...' : '마크다운 추출'}
+9347 title="PDF 및 추출 설정"
+9348 aria-label="PDF 및 추출 설정"
+9357 추출 설정
+9362 <span className="text-zinc-300">추출 범위</span>
+9373 현재 쪽
+9384 전체
+9391 <span className="text-zinc-300 block mb-1">파서 엔진</span>
+9394 { id: 'fast', name: '고속 텍스트' },
+9395 { id: 'gemini', name: '클라우드 AI' },
+9396 { id: 'ollama', name: '로컬 비전' },
+9397 { id: 'ocr', name: '문자 인식' },
+9425 <span>분할 편집 화면 전환</span>
+9426 <span className="text-[10px] text-zinc-500">{pdfViewerState?.isSplitView ? '분할 모드' : '단일 뷰'}</span>
+9437 캐시 초기화 및 재파싱
+9448 PDF 최적화 및 용량 줄이기...
+9459 다른 PDF 파일 열기...
+9470 현재 PDF 다운로드
+9487 <span className="font-bold text-indigo-300">최근 AI 변경 알림</span>
+9508 <span>확인</span>
+9564 placeholder="# 마크다운 노트&#10;&#10;AI 답변의 [에디터로 내용 전송] 또는 직접 작성..."
+9598 <span className="text-xs font-medium text-zinc-100">문서 목차</span>
+9601 {tocItems.length}개
+9609 title="목차 닫기"
+9620 <p className="text-xs font-medium text-zinc-400">문서에 제목 서식이 없습니다</p>
+9622 # 또는 ## 서식으로 제목을 추가하면 목차가 실시간으로 구성됩니다.
+9642 title={`${item.text} (${item.lineIndex + 1}번째 줄)`}
+9667 <span>스크롤 동기화</span>
+9705 title="드래그하여 파일 탐색기 너비 조절 (200px ~ 420px)"
+9785 { id: 'chat', label: '💬 대화' },
+9786 { id: 'editor', label: '📝 문서' },
+9787 { id: 'explorer', label: '📁 파일' },
+9812 title={`클릭하여 프로젝트 폴더 연결 및 관리 열기 (${getCurrentDisplayPath()})`}
+9815 <span className="text-slate-400">프로젝트:</span>
+9846 줄: {(editorContent || '').split('\n').length} | 글자: {(editorContent || '').length}
+9851 <span className="hidden sm:inline">총 {Object.keys(files).length}개 파일</span>
+9862 <span>동기화 중...</span>
+9867 <span>GitHub 동기화 완료</span>
+9872 <span>충돌 사본 생성됨</span>
+9877 <span>GitHub 연동됨</span>
+9892 title="클릭하여 AI 엔진 및 엔드포인트 설정 열기"
+9907 프로젝트 삭제 경고
+9910 '<span className="font-medium text-amber-200">{deleteConfirmSession.title}</span>' 프로젝트를 삭제하시겠습니까?
+9913 프로젝트를 삭제하면 좌측 대화, 중앙 메모, 우측 폴더 연동 항목이 모두 휴지통으로 이동합니다. 휴지통에서 언제든지 복구할 수 있습니다.
+9923 취소
+9931 <span>휴지통으로 이동</span>
+9945 <h3 className="text-sm font-bold text-slate-200">휴지통</h3>
+9947 {trashSessions.length}개 항목
+9957 휴지통 전체 비우기
+9974 <p className="text-xs text-slate-400 font-medium">휴지통이 비어 있습니다.</p>
+9975 <p className="text-[0.6875rem] text-slate-400">삭제한 프로젝트는 여기에 임시 보관되며 복구할 수 있습니다.</p>
+9989 <span>삭제 시각: {session.deletedAt || session.createdAt}</span>
+9990 <span>대화 {session.messages.length}건</span>
+9999 title="프로젝트, 대화, 메모, 폴더 복구"
+10002 <span>복구</span>
+10008 title="영구 삭제"
+10011 <span>영구 삭제</span>
+10025 닫기
+10040 title="닫기"
+10046 <h2 className="text-base font-semibold text-indigo-300">단축키 안내</h2>
+10047 <p className="text-xs text-slate-400">워크스페이스 작업 효율을 높이는 단축키 목록입니다.</p>
+10052 <span className="text-slate-300">메시지 전송</span>
+10056 <span className="text-slate-300">마크다운 파일 저장</span>
+10060 <span className="text-slate-300">새 프로젝트 생성</span>
+10064 <span className="text-slate-300">새 마크다운 노트</span>
+10068 <span className="text-slate-300">로컬 파일 불러오기</span>
+10072 <span className="text-slate-300">PDF / 인쇄 출력</span>
+10076 <span className="text-slate-300">이미지/파일 붙여넣기</span>
+10080 <span className="text-slate-300">전체 마크다운 복사</span>
+10084 <span className="text-slate-300">탐색기 파일 검색</span>
+10095 닫기
+10107 <h2 className="text-base font-semibold text-indigo-300">저장되지 않은 변경 사항</h2>
+10109 현재 에디터에 저장되지 않은 변경 사항이 있습니다. 계속 진행하시면 변경 사항이 유실될 수 있습니다.
+10118 취소 (계속 편집)
+10129 무시하고 진행
+10141 <h2 className="text-base font-semibold text-rose-300">파일 삭제 확인</h2>
+10145 </span> 파일을 정말 삭제하시겠습니까?
+10148 이 작업은 되돌릴 수 없으며 워크스페이스에서 즉시 제거됩니다.
+10157 취소
+10165 삭제
+10177 <h2 className="text-base font-semibold text-rose-300">폴더 삭제 확인</h2>
+10181 </span> 폴더 및 포함된 모든 문서를 정말 삭제하시겠습니까?
+10184 이 작업은 되돌릴 수 없으며 워크스페이스에서 즉시 제거됩니다.
+10193 취소
+10201 삭제
+10216 title="닫기"
+10233 AI Podium은 지능형 Multi-AI 평가 라우팅, 실시간 마크다운 노트 및 목차 네비게이터, 프로젝트-메모-폴더 연동 시스템, 차세대 다중 포맷 내보내기 엔진을 제공하는 통합 워크스테이션입니다.
+10250 닫기
+10266 <h3 className="font-bold text-slate-100 text-sm">프로젝트 일정 및 마일스톤 관리</h3>
+10268 프로젝트: <strong className="text-indigo-300">'{activeSession?.title || 'AI 지식 비서'}'</strong> 기반 일정 관리
+10276 title="닫기"
+10296 <span>AI 일정 자동 추출</span>
+10305 title="에디터에 마크다운 일정표로 삽입"
+10308 <span>에디터로 전송</span>
+10314 title="캘린더 파일 다운로드"
+10317 <span>캘린더 파일 내보내기</span>
+10326 <span>새 일정 / 마일스톤 추가</span>
+10334 placeholder="일정 또는 마일스톤 명칭 입력..."
+10348 <option value="task">작업</option>
+10349 <option value="milestone">마일스톤</option>
+10350 <option value="meeting">회의</option>
+10351 <option value="deadline">마감</option>
+10358 <option value="high">🔴 높음</option>
+10359 <option value="medium">🟡 보통</option>
+10360 <option value="low">🟢 낮음</option>
+10369 placeholder="상세 메모 또는 설명 (선택사항)..."
+10378 <span>추가</span>
+10397 {filterKey === 'all' && `전체 (${projectEvents.length})`}
+10398 {filterKey === 'milestone' && `마일스톤 (${projectEvents.filter((e) => e.type === 'milestone').length})`}
+10399 {filterKey === 'task' && `작업 (${projectEvents.filter((e) => e.type === 'task').length})`}
+10400 {filterKey === 'meeting' && `회의 (${projectEvents.filter((e) => e.type === 'meeting').length})`}
+10401 {filterKey === 'deadline' && `마감일 (${projectEvents.filter((e) => e.type === 'deadline').length})`}
+10406 완료: {projectEvents.filter((e) => e.completed).length} / {projectEvents.length}
+10414 등록된 프로젝트 일정이 없습니다. 상단의 'AI 일정 자동 추출'을 눌러보세요.
+10484 title="일정 삭제"
+10497 Google Calendar 및 iCal 표준 포맷 완벽 호환
+10504 닫기
+10570 title="닫기"
+10576 <h2 className="text-base font-bold text-white">새 마크다운 노트 생성</h2>
+10577 <p className="text-xs text-slate-400">워크스페이스에 새로운 마크다운 문서를 추가합니다.</p>
+10584 <span>문서 파일명</span>
+10591 placeholder="예: design_specs.md, meeting_notes.md"
+10600 <span>소속 프로젝트 / 대상 폴더</span>
+10609 📁 {s.title} (현재 프로젝트)
+10612 <option value="docs" className="bg-[#121214] text-slate-200">📁 docs (공용 문서 폴더)</option>
+10613 <option value="src" className="bg-[#121214] text-slate-200">📁 src (소스 폴더)</option>
+10614 <option value="root" className="bg-[#121214] text-slate-200">📁 루트 (기본 디렉토리)</option>
+10624 취소
+10630 문서 생성
+10727 title: '프롬프트',
+10915 /^새 프로젝트(\s*\d*)?\.md$/i.test(currentActiveFile) ||
+10916 currentActiveFile === '새 문서.md'
+10917 ? '새 문서.md'

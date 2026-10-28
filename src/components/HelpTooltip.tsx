@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { HelpCircle } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { getConnectionTranslations } from '../locales/connectionLocale';
 
 interface HelpTooltipProps {
   content?: string | React.ReactNode;
@@ -20,6 +22,8 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
   align = 'center',
   className = ''
 }) => {
+  const { language } = useLanguage();
+  const t = getConnectionTranslations(language).helpTooltip;
   const resolvedContent = content ?? text;
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -233,7 +237,7 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
           }
           setIsOpen((prev) => !prev);
         }}
-        aria-label="도움말 안내"
+        aria-label={t.ariaLabel}
         className={`p-0.5 rounded transition-colors duration-150 inline-flex items-center justify-center align-middle cursor-pointer ${
           isOpen
             ? 'text-indigo-400 bg-[#18181b]'

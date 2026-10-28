@@ -20,6 +20,8 @@ import {
   ChevronDown,
   Loader2,
 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { getDocModalsTranslations } from '../locales/docModalsLocale';
 import {
   DocumentConversionResult,
   PdfParserEngine,
@@ -57,6 +59,8 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
   defaultOllamaModel = 'llama3.2-vision',
   onToast,
 }) => {
+  const { language } = useLanguage();
+  const t = getDocModalsTranslations(language).docConverter;
   const [targetFileName, setTargetFileName] = useState('');
   const [targetFolder, setTargetFolder] = useState(defaultFolder);
   const [editedMarkdown, setEditedMarkdown] = useState('');
@@ -105,7 +109,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
 
   const handleReconvertPdf = async (engineToUse?: PdfParserEngine, modelToUse?: string) => {
     if (!conversionResult.originalFile) {
-      onToast?.('원본 PDF 파일 데이터가 메모리에 유지되지 않아 다시 변환할 수 없습니다.', 'warn');
+      onToast?.(t.noOriginalPdf, 'warn');
       return;
     }
 
@@ -119,10 +123,10 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
     setReconvertProgress(10);
     setReconvertStatus(
       engine === 'gemini'
-        ? '클라우드 AI로 문서 구조 및 서식 정밀 분석 중...'
+        ? t.statusCloud
         : engine === 'ollama'
-        ? '로컬 AI로 PDF 양식을 분석하여 마크다운으로 변환 중...'
-        : '고속 텍스트 추출 엔진으로 변환 중...'
+        ? t.statusLocal
+        : t.statusFast
     );
 
     try {
@@ -147,14 +151,14 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
       }
       setCurrentWarnings(res.warnings || []);
       if (res.parserEngine === 'gemini') {
-        onToast?.('클라우드 AI 정밀 마크다운 변환 완료!', 'success');
+        onToast?.(t.doneCloud, 'success');
       } else if (res.parserEngine === 'ollama') {
-        onToast?.(`로컬 AI (${res.ollamaModel || targetModel}) 파싱 완료!`, 'success');
+        onToast?.(t.doneLocal(res.ollamaModel || targetModel), 'success');
       } else {
-        onToast?.('고속 텍스트 엔진으로 변환되었습니다.', 'info');
+        onToast?.(t.doneFast, 'info');
       }
     } catch (err: any) {
-      onToast?.(`PDF 변환 실패: ${err.message}`, 'error');
+      onToast?.(t.failed(err.message), 'error');
     } finally {
       setIsReconverting(false);
       setReconvertStatus('');
@@ -167,31 +171,31 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
       case 'pdf':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.6875rem] font-semibold bg-rose-950/80 text-rose-300 border border-rose-800/80">
-            <FileText className="w-3 h-3" /> PDF 문서
+            <FileText className="w-3 h-3" /> {t.badgePdf}
           </span>
         );
       case 'docx':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.6875rem] font-semibold bg-blue-950/80 text-blue-300 border border-blue-800/80">
-            <FileText className="w-3 h-3" /> 워드 문서
+            <FileText className="w-3 h-3" /> {t.badgeDocx}
           </span>
         );
       case 'xlsx':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.6875rem] font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-800/80">
-            <FileSpreadsheet className="w-3 h-3" /> 엑셀 스프레드시트
+            <FileSpreadsheet className="w-3 h-3" /> {t.badgeXlsx}
           </span>
         );
       case 'pptx':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.6875rem] font-semibold bg-amber-950/80 text-amber-300 border border-amber-800/80">
-            <Presentation className="w-3 h-3" /> 파워포인트 슬라이드
+            <Presentation className="w-3 h-3" /> {t.badgePptx}
           </span>
         );
       default:
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.6875rem] font-semibold bg-indigo-950/80 text-indigo-300 border border-indigo-800/80">
-            <FileCheck className="w-3 h-3" /> 텍스트 문서
+            <FileCheck className="w-3 h-3" /> {t.badgeText}
           </span>
         );
     }
@@ -208,7 +212,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
 
     let finalMarkdown = editedMarkdown;
     if (includeMetadata) {
-      const metaHeader = `<!--\n[변환 메타데이터]\n- 원본 파일: ${stats.originalFileName}\n- 변환 형식: ${stats.format.toUpperCase()}\n- 원본 크기: ${(stats.originalFileSize / 1024).toFixed(1)} KB\n- 변환 일시: ${stats.convertedAt}\n-->\n\n`;
+      const metaHeader = `<!--\n[${t.metaTitle}]\n- ${t.metaSourceFile}: ${stats.originalFileName}\n- ${t.metaFormat}: ${stats.format.toUpperCase()}\n- ${t.metaSize}: ${(stats.originalFileSize / 1024).toFixed(1)} KB\n- ${t.metaDate}: ${stats.convertedAt}\n-->\n\n`;
       finalMarkdown = metaHeader + finalMarkdown;
     }
 
@@ -247,7 +251,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold text-slate-100 truncate">
-                  문서 마크다운 변환 미리보기
+                  {t.title}
                 </h2>
                 {getFormatBadge()}
               </div>
@@ -262,7 +266,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
               type="button"
               onClick={onClose}
               className="text-slate-400 hover:text-slate-200 p-1.5 rounded-md hover:bg-[#18181b] transition cursor-pointer"
-              title="닫기"
+              title={t.close}
             >
               <X className="w-4 h-4" />
             </button>
@@ -272,27 +276,27 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
         {/* Stats Strip */}
         <div className="px-5 py-2 bg-[#09090b]/70 border-b border-[#222226]/60 flex items-center flex-wrap gap-3 text-xs text-slate-300 shrink-0">
           <div className="flex items-center gap-1 font-mono text-[0.6875rem]">
-            <span className="text-slate-500">통계:</span>
+            <span className="text-slate-500">{t.statsLabel}</span>
             {stats.pageCount !== undefined && (
               <span className="bg-[#121214] px-2 py-0.5 rounded-sm text-indigo-300 border border-[#222226]">
-                📄 {stats.pageCount} 페이지
+                📄 {t.pages(stats.pageCount)}
               </span>
             )}
             {stats.sheetCount !== undefined && (
               <span className="bg-[#121214] px-2 py-0.5 rounded-sm text-emerald-300 border border-[#222226]">
-                📊 {stats.sheetCount}개 시트
+                📊 {t.sheets(stats.sheetCount)}
               </span>
             )}
             {stats.slideCount !== undefined && (
               <span className="bg-[#121214] px-2 py-0.5 rounded-sm text-amber-300 border border-[#222226]">
-                📽️ {stats.slideCount}개 슬라이드
+                📽️ {t.slides(stats.slideCount)}
               </span>
             )}
             <span className="bg-[#121214] px-2 py-0.5 rounded-sm text-slate-300 border border-[#222226]">
-              {stats.wordCount || 0} 단어
+              {t.words(stats.wordCount || 0)}
             </span>
             <span className="bg-[#121214] px-2 py-0.5 rounded-sm text-slate-300 border border-[#222226]">
-              {stats.lineCount || 0} 줄
+              {t.lines(stats.lineCount || 0)}
             </span>
           </div>
 
@@ -308,20 +312,20 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
         <div className="px-5 py-3 bg-[#0c0c0e] border-b border-[#222226]/60 grid grid-cols-1 md:grid-cols-2 gap-3 shrink-0">
           <div>
             <label className="block text-[0.6875rem] font-medium text-slate-400 mb-1">
-              생성할 마크다운 파일명
+              {t.fileNameLabel}
             </label>
             <input
               type="text"
               value={targetFileName}
               onChange={(e) => setTargetFileName(e.target.value)}
-              placeholder="문서_이름.md"
+              placeholder={t.fileNamePlaceholder}
               className="w-full bg-[#09090b] text-slate-200 placeholder-slate-500 text-xs px-2.5 py-1.5 rounded-md border border-[#222226] focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1]/40 focus:outline-none font-mono"
             />
           </div>
 
           <div>
             <label className="block text-[0.6875rem] font-medium text-slate-400 mb-1">
-              워크스페이스 대상 폴더
+              {t.folderLabel}
             </label>
             <div className="relative">
               <select
@@ -331,7 +335,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
               >
                 {uniqueFolders.map((f) => (
                   <option key={f} value={f}>
-                    📁 {f === 'root' ? '최상위 기본 폴더' : f}
+                    📁 {f === 'root' ? t.rootFolder : f}
                   </option>
                 ))}
               </select>
@@ -346,7 +350,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-sky-400" />
-                파싱 엔진:
+                {t.engineLabel}
               </span>
               <div className="inline-flex p-0.5 bg-[#1a1b24] border border-[#222226] rounded-md">
                 <button
@@ -365,7 +369,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                   }`}
                 >
                   <Zap className="w-3 h-3 text-amber-400" />
-                  <span>고속 텍스트 엔진</span>
+                  <span>{t.engineFast}</span>
                 </button>
 
                 <button
@@ -384,7 +388,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                   }`}
                 >
                   <Sparkles className="w-3 h-3 text-indigo-400" />
-                  <span>클라우드 AI 엔진</span>
+                  <span>{t.engineCloud}</span>
                 </button>
 
                 <button
@@ -403,7 +407,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                   }`}
                 >
                   <Server className="w-3 h-3 text-sky-400" />
-                  <span>로컬 AI 엔진</span>
+                  <span>{t.engineLocal}</span>
                 </button>
               </div>
             </div>
@@ -423,7 +427,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                     disabled={isReconverting}
                     className="bg-[#1a1b24] border border-[#222226] focus:border-sky-500 rounded px-2.5 py-1 text-xs text-slate-200 outline-none pr-7 cursor-pointer"
                   >
-                    <optgroup label="추천 파싱 모델">
+                    <optgroup label={t.recommendedModels}>
                       <option value="llama3.2-vision">llama3.2-vision</option>
                       <option value="deepseek-ocr">deepseek-ocr</option>
                       <option value="qwen3.5">qwen3.5</option>
@@ -432,7 +436,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                       <option value="llama3.2:latest">llama3.2:latest</option>
                     </optgroup>
                     {installedOllamaModels.length > 0 && (
-                      <optgroup label="내 PC 설치 모델">
+                      <optgroup label={t.installedModels}>
                         {installedOllamaModels.map((m) => (
                           <option key={m} value={m}>
                             {m}
@@ -440,7 +444,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                         ))}
                       </optgroup>
                     )}
-                    <option value="custom">직접 입력...</option>
+                    <option value="custom">{t.customModel}</option>
                   </select>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
@@ -451,7 +455,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                       type="text"
                       value={customOllamaModel}
                       onChange={(e) => setCustomOllamaModel(e.target.value)}
-                      placeholder="모델 태그..."
+                      placeholder={t.modelTagPlaceholder}
                       className="w-28 bg-[#1a1b24] border border-[#222226] focus:border-sky-500 rounded px-2 py-1 text-xs font-mono text-slate-200 outline-none"
                     />
                     <button
@@ -460,7 +464,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                       disabled={isReconverting || !customOllamaModel.trim()}
                       className="px-2 py-1 rounded bg-sky-800 hover:bg-sky-700 text-white text-xs font-medium transition cursor-pointer"
                     >
-                      적용
+                      {t.apply}
                     </button>
                   </div>
                 )}
@@ -470,10 +474,10 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                   onClick={() => handleReconvertPdf('ollama')}
                   disabled={isReconverting}
                   className="px-2.5 py-1 rounded bg-[#242735] hover:bg-[#222226] text-sky-300 border border-[#3e4258] text-xs font-medium transition cursor-pointer flex items-center gap-1"
-                  title="현재 선택한 로컬 AI 모델로 다시 변환"
+                  title={t.reconvertTitle}
                 >
                   <RotateCcw className={`w-3 h-3 ${isReconverting ? 'animate-spin' : ''}`} />
-                  <span>다시 가공</span>
+                  <span>{t.reconvert}</span>
                 </button>
               </div>
             )}
@@ -487,7 +491,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
             <div className="absolute inset-0 z-30 bg-[#09090b]/90 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-150">
               <Loader2 className="w-8 h-8 text-indigo-400 animate-spin mb-3" />
               <p className="text-sm font-semibold text-slate-100 mb-2">
-                {reconvertStatus || '문서를 분석하여 마크다운으로 변환하는 중입니다...'}
+                {reconvertStatus || t.defaultProgress}
               </p>
               
               {/* Progress Bar */}
@@ -500,10 +504,10 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
 
               <p className="text-xs text-slate-400 font-mono">
                 {selectedEngine === 'gemini'
-                  ? '클라우드 AI 엔진 작동 중'
+                  ? t.runningCloud
                   : selectedEngine === 'ollama'
-                  ? `로컬 AI 모델: ${selectedOllamaModel}`
-                  : '고속 텍스트 엔진 처리 중'}
+                  ? t.runningLocal(selectedOllamaModel)
+                  : t.runningFast}
               </p>
             </div>
           )}
@@ -520,7 +524,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                 }`}
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>렌더링 미리보기</span>
+                <span>{t.tabPreview}</span>
               </button>
 
               <button
@@ -533,7 +537,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                 }`}
               >
                 <Code className="w-3.5 h-3.5" />
-                <span>마크다운 원본 편집</span>
+                <span>{t.tabSource}</span>
               </button>
             </div>
 
@@ -545,7 +549,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                   onChange={(e) => setOpenInEditor(e.target.checked)}
                   className="rounded border-[#222226] text-[#6366f1] focus:ring-0 cursor-pointer"
                 />
-                <span className="text-[0.6875rem]">변환 즉시 에디터에서 열기</span>
+                <span className="text-[0.6875rem]">{t.openInEditor}</span>
               </label>
 
               <label className="flex items-center gap-1.5 cursor-pointer select-none">
@@ -555,7 +559,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                   onChange={(e) => setIncludeMetadata(e.target.checked)}
                   className="rounded border-[#222226] text-[#6366f1] focus:ring-0 cursor-pointer"
                 />
-                <span className="text-[0.6875rem]">변환 출처 헤더 포함</span>
+                <span className="text-[0.6875rem]">{t.includeHeader}</span>
               </label>
             </div>
           </div>
@@ -571,7 +575,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
               <textarea
                 value={editedMarkdown}
                 onChange={(e) => setEditedMarkdown(e.target.value)}
-                placeholder="# 변환된 마크다운 내용..."
+                placeholder={t.sourcePlaceholder}
                 className="w-full h-full min-h-[300px] bg-transparent text-slate-200 font-mono text-xs focus:outline-none resize-none leading-relaxed custom-scrollbar"
                 spellCheck={false}
               />
@@ -582,7 +586,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
         {/* Footer Actions */}
         <div className="px-5 py-3 border-t border-[#222226]/80 bg-[#1a1b24]/90 flex items-center justify-between gap-3 shrink-0">
           <div className="text-[0.6875rem] text-slate-400">
-            순수 브라우저 클라이언트 처리로 외부 서버 전송 없이 안전하게 변환됩니다.
+            {t.privacyNote}
           </div>
 
           <div className="flex items-center gap-2">
@@ -591,16 +595,16 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
               onClick={onClose}
               className="px-3 py-1.5 rounded-md text-xs text-slate-300 hover:text-white hover:bg-[#18181b] transition cursor-pointer"
             >
-              취소
+              {t.cancel}
             </button>
 
             <button
               type="button"
               onClick={() => handleSaveAndOpen(true)}
               className="px-3 py-1.5 rounded-md text-xs bg-[#242735] hover:bg-[#222226] text-indigo-300 border border-[#3e4258] transition cursor-pointer flex items-center gap-1.5"
-              title="워크스페이스 파일 목록에 영구 저장하지 않고 에디터에서만 열람합니다"
+              title={t.openOnlyTitle}
             >
-              <span>에디터에서만 열기</span>
+              <span>{t.openOnly}</span>
             </button>
 
             <button
@@ -609,7 +613,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
               className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition cursor-pointer flex items-center gap-1.5 shadow-xs"
             >
               <Check className="w-3.5 h-3.5" />
-              <span>작업 공간에 저장 및 열기</span>
+              <span>{t.saveAndOpen}</span>
             </button>
           </div>
         </div>

@@ -6,7 +6,8 @@ import {
   LanguagePreference,
   normalizeLanguagePreference,
   resolveAppLanguage,
-  resolveInitialLanguagePreference
+  resolveInitialLanguagePreference,
+  setActiveLanguage
 } from '../locales/language';
 import { getCoreTranslations } from '../locales/coreLocale';
 
@@ -72,6 +73,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const language = resolveAppLanguage(preference, browserLanguages);
+  setActiveLanguage(language);
 
   useEffect(() => {
     document.documentElement.lang = language;

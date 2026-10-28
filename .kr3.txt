@@ -1,0 +1,58 @@
+854 if (!attachment.isParsing && !attachment.content && attachment.size === '실패') {
+966 lastSynced: '방금',
+1202 createdAt: '방금',
+1205 editorContent: loadedFiles[targetFileName] || `# ${projectName}\n\n로컬 프로젝트 문서입니다.`,
+1417 fallbackText = `*(파일 '${file.name}' 내용을 파싱할 수 없습니다.)*`;
+1739 const parentFolder = fileFolders[fname] || 'AI 지식 비서';
+1913 if (/^정말\s*영어로\s*번역이\s*되나\??$/i.test(trimmed) || /^정말\s*영어로\s*번역이\s*되나요\??$/i.test(trimmed)) {
+1916 if (/^영어로\s*번역해줘\??$/i.test(trimmed) || /^영작해줘\??$/i.test(trimmed)) {
+1919 if (/^안녕(하세요)?\??$/i.test(trimmed) || /^반가워(요)?\??$/i.test(trimmed)) {
+1925 (trimmed.includes('REST') && trimmed.includes('GraphQL') && (trimmed.includes('캐싱') || trimmed.includes('caching'))) ||
+1926 trimmed.includes('REST API와 GraphQL의 캐싱 전략 차이점을 비교해줘') ||
+1927 trimmed.includes('REST API와 GraphQL의 캐싱 전략')
+1936 if (trimmed.includes('Redis') || (trimmed.includes('캐시') && trimmed.includes('전략'))) {
+1940 if (trimmed.includes('도커') || trimmed.includes('Docker') || trimmed.includes('컨테이너')) {
+1944 if (trimmed.includes('쿠버네티스') || trimmed.includes('Kubernetes') || trimmed.includes('K8s')) {
+1948 if (trimmed.includes('React') || trimmed.includes('리액트')) {
+1949 if (trimmed.includes('상태') || trimmed.includes('Zustand') || trimmed.includes('Redux')) {
+1952 if (trimmed.includes('성능') || trimmed.includes('최적화')) {
+1958 if (trimmed.includes('OAuth') || trimmed.includes('JWT') || trimmed.includes('인증') || trimmed.includes('로그인')) {
+1962 if (trimmed.includes('마이크로서비스') || trimmed.includes('MSA')) {
+1966 if (trimmed.includes('성능') || trimmed.includes('최적화')) {
+1970 if (trimmed.includes('슬라이드') || trimmed.includes('프레젠테이션') || trimmed.includes('PPT')) {
+1974 if (trimmed.includes('스프레드시트') || trimmed.includes('엑셀') || trimmed.includes('시트')) {
+1978 if (trimmed.includes('매뉴얼') || trimmed.includes('가이드') || trimmed.includes('문서화')) {
+1982 if (trimmed.includes('코드') && (trimmed.includes('리팩토링') || trimmed.includes('개선'))) {
+1988 '데이터베이스': 'database systems',
+1989 '아키텍처': 'system architecture',
+1990 '네트워크': 'network protocols',
+1991 '서버': 'server-side engineering',
+1992 '클라이언트': 'client frontend',
+1993 '비동기': 'asynchronous concurrency',
+1994 '동시성': 'concurrency handling',
+1995 '테스트': 'automated testing',
+1996 '배포': 'CI/CD deployment pipelines',
+1997 '트래픽': 'high-throughput traffic management',
+1998 '설계': 'software design patterns',
+1999 '메모리': 'memory optimization',
+2000 '보안': 'security hardening',
+2001 '인증': 'authentication flows',
+2002 '인가': 'authorization controls',
+2003 '파이프라인': 'data pipelines',
+2004 '웹소켓': 'real-time WebSocket communication',
+2005 '에러': 'error debugging and resolution',
+2006 '버그': 'bug fixing',
+2007 '스토리지': 'persistent storage',
+2008 '스프링': 'Spring Boot backend',
+2009 '노드': 'Node.js runtime',
+2010 '파이썬': 'Python data processing',
+2011 '자바스크립트': 'JavaScript development',
+2012 '타입스크립트': 'TypeScript type safety',
+2013 '클라우드': 'cloud infrastructure'
+2018 if (/비교|차이|versus|vs/i.test(trimmed)) {
+2020 } else if (/구현|작성|만들|개발|코딩/i.test(trimmed)) {
+2022 } else if (/분석|원인|디버깅|해결|고치/i.test(trimmed)) {
+2024 } else if (/장단점|평가|선택|추천/i.test(trimmed)) {
+2026 } else if (/구축|설정|세팅|배치/i.test(trimmed)) {
+2028 } else if (/방법|어떻게|가이드/i.test(trimmed)) {
+2030 } else if (/\?|인가요|되나|할까|있나/i.test(trimmed)) {

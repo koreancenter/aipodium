@@ -114,6 +114,7 @@ import { Toast } from './components/Toast';
 import { useProjectEvents } from './hooks/useProjectEvents';
 import { useAutoLock } from './hooks/useAutoLock';
 import { useAuth } from './context/AuthContext';
+import { translateMessage } from './locales/appMessages';
 import {
   encryptWithVaultKey,
   decryptWithVaultKey,
@@ -391,7 +392,7 @@ export default function App() {
       })
       .catch((error: unknown) => {
         console.error('Failed to load the Markdown renderer:', error);
-        if (isMounted) showToast('마크다운 렌더러를 불러오지 못했습니다.', 'error');
+        if (isMounted) showToast(translateMessage('m000'), 'error');
       });
 
     return () => {
@@ -595,7 +596,7 @@ export default function App() {
       localStorage.setItem('aipodium_ai_role_models', JSON.stringify(newRoles));
       localStorage.setItem('aipodium_ghost_writer_model', newRoles.ghostWriter);
     } catch {}
-    showToast('역할별 AI 모델 배치가 성공적으로 저장되었습니다.', 'success');
+    showToast(translateMessage('m001'), 'success');
   }, [preferences, showToast]);
 
   const handleSelectModel = useCallback((modelId: string) => {
@@ -672,11 +673,11 @@ export default function App() {
           localStorage.setItem('aipodium_discovered_models', JSON.stringify(formatted));
         } catch {}
         setIsVerified(true);
-        showToast(`✓ 로컬 Ollama 모델 ${tags.length}개가 감지되었습니다.`, 'success');
+        showToast(translateMessage('m002', tags.length), 'success');
         return formatted;
       } else {
         setIsVerified(false);
-        showToast('로컬 Ollama 모델을 찾을 수 없습니다. 기본 태그를 확인하세요.', 'info');
+        showToast(translateMessage('m003'), 'info');
         return [];
       }
     } catch (err) {
@@ -724,7 +725,7 @@ export default function App() {
           cloudModels.push({
             id: m.id,
             name: m.name,
-            desc: (m as any).desc || '활성 프로바이더',
+            desc: (m as any).desc || translateMessage('mActiveProvider'),
             group: 'cloud',
             vendor: vendor as any,
             hasApiKey: Boolean(apiKeys[vendor]?.trim())
@@ -756,7 +757,7 @@ export default function App() {
         localModels.push({
           id: dm.id,
           name: dm.name,
-          desc: 'Ollama 감지',
+          desc: translateMessage('mOllamaDetected'),
           group: 'local',
           vendor: 'ollama'
         });
@@ -779,7 +780,7 @@ export default function App() {
       localModels.unshift({
         id: WEB_LLM_MODEL_ID,
         name: WEB_LLM_MODEL_DISPLAY_NAME,
-        desc: '브라우저 WebGPU',
+        desc: translateMessage('mBrowserWebGpu'),
         group: 'local',
         vendor: 'webllm'
       });
@@ -790,7 +791,7 @@ export default function App() {
       all.push({
         id: selectedModel,
         name: selectedModel,
-        desc: provider === 'cloud' ? '커스텀 클라우드' : '커스텀 로컬',
+        desc: provider === 'cloud' ? translateMessage('mCustomCloud') : translateMessage('mCustomLocal'),
         group: provider === 'cloud' ? 'cloud' : 'local',
         vendor: provider === 'cloud' ? getVendorForModel(selectedModel) : 'ollama'
       });
@@ -804,7 +805,7 @@ export default function App() {
     return availableChatModels.map((m) => ({
       id: m.id,
       name: m.name,
-      tier: m.desc || (m.group === 'local' ? '로컬' : '클라우드'),
+      tier: m.desc || (m.group === 'local' ? translateMessage('mLocal') : translateMessage('mCloud')),
       desc: m.desc || '',
       group: m.group
     }));
@@ -1150,10 +1151,10 @@ export default function App() {
     try {
       const { profile } = await googleDriveService.signIn();
       setGoogleUser(profile);
-      showToast(`✨ Google Drive [${profile.name || profile.email}] 단독 연동 완료!`);
+      showToast(translateMessage('m004', profile.name || profile.email));
       return profile;
     } catch (e: any) {
-      showToast(`Google Drive 연동 오류: ${e.message || '인증 실패'}`);
+      showToast(translateMessage('m005', e.message || translateMessage('wAuthFailed')));
       throw e;
     }
   };
@@ -1161,7 +1162,7 @@ export default function App() {
   const handleGoogleSignOut = () => {
     googleDriveService.clearToken();
     setGoogleUser(null);
-    showToast('Google Drive 연결이 해제되었습니다.');
+    showToast(translateMessage('m006'));
   };
 
   const handleSelectActiveWorkspace = (
@@ -1234,21 +1235,21 @@ export default function App() {
             lastSynced: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
             fileCount: Object.keys(rescannedFiles).length,
           }));
-          showToast(`⚡ 로컬 폴더 '${activeWorkspace.name}' 동기화 완료! (${Object.keys(rescannedFiles).length}개 파일)`, 'success');
+          showToast(translateMessage('m007', activeWorkspace.name, Object.keys(rescannedFiles).length), 'success');
         } else {
-          showToast('📂 로컬 디렉토리 핸들을 다시 연결해주세요.', 'info');
+          showToast(translateMessage('m008'), 'info');
           setIsWorkspaceModalOpen(true);
         }
       } else if (activeWorkspace.type === 'gdrive') {
         if (googleDriveService.isAuthenticated()) {
-          showToast(`☁️ Google Drive '${activeWorkspace.name}' 실시간 클라우드 동기화 상태 유지됨`, 'success');
+          showToast(translateMessage('m009', activeWorkspace.name), 'success');
           setActiveWorkspace((prev) => ({
             ...prev,
             lastSynced: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
             fileCount: Object.keys(files).length,
           }));
         } else {
-          showToast('⚠️ Google OAuth 세션 재인증이 필요합니다.', 'warn');
+          showToast(translateMessage('m010'), 'warn');
           setIsGoogleAccountModalOpen(true);
         }
       } else if (activeWorkspace.type === 'github') {
@@ -1256,7 +1257,7 @@ export default function App() {
           const parts = githubConfig.repo.split('/');
           const owner = githubConfig.owner || parts[0];
           const repoName = parts.length > 1 ? parts.slice(1).join('/') : githubConfig.repo;
-          showToast(`🐙 GitHub '${activeWorkspace.name}' 저장소 동기화 중...`, 'info');
+          showToast(translateMessage('m011', activeWorkspace.name), 'info');
           const pullResult = await pullDocumentsFromGithub({
             owner,
             repo: repoName,
@@ -1266,9 +1267,9 @@ export default function App() {
           if (pullResult && Object.keys(pullResult.files).length > 0) {
             setFiles((prev) => ({ ...prev, ...pullResult.files }));
             setFileFolders((prev) => ({ ...prev, ...pullResult.fileFolders }));
-            showToast(`🐙 GitHub 저장소에서 ${pullResult.count}개 문서를 동기화했습니다.`, 'success');
+            showToast(translateMessage('m012', pullResult.count), 'success');
           } else {
-            showToast(`🐙 GitHub '${activeWorkspace.name}' 저장소 최신 상태 확인 완료`, 'success');
+            showToast(translateMessage('m013', activeWorkspace.name), 'success');
           }
           setActiveWorkspace((prev) => ({
             ...prev,
@@ -1276,7 +1277,7 @@ export default function App() {
             fileCount: Object.keys({ ...files, ...(pullResult?.files || {}) }).length,
           }));
         } else {
-          showToast('⚠️ GitHub 연동 설정을 확인해주세요.', 'warn');
+          showToast(translateMessage('m014'), 'warn');
           setIsGithubModalOpen(true);
         }
       } else if (activeWorkspace.type === 'indexeddb') {
@@ -1287,17 +1288,17 @@ export default function App() {
           lastSynced: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
           fileCount: Object.keys(files).length,
         }));
-        showToast(`⚡ 브라우저 Vault '${activeWorkspace.name}' IndexedDB 동기화 완료!`, 'success');
+        showToast(translateMessage('m015', activeWorkspace.name), 'success');
       } else {
         setActiveWorkspace((prev) => ({
           ...prev,
           lastSynced: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
           fileCount: Object.keys(files).length,
         }));
-        showToast(`⚡ 리모트 저장소 '${activeWorkspace.name}' 동기화 확인 완료`, 'success');
+        showToast(translateMessage('m016', activeWorkspace.name), 'success');
       }
     } catch (e: any) {
-      showToast(`동기화 오류: ${e.message}`, 'error');
+      showToast(translateMessage('m017', e.message), 'error');
     } finally {
       setIsResyncingWorkspace(false);
     }
@@ -1374,7 +1375,7 @@ export default function App() {
                 : att
             )
           );
-          showToast(`📷 이미지 '${file.name}' 첨부 완료`);
+          showToast(translateMessage('m018', file.name));
         };
         reader.onerror = () => {
           setChatAttachments((prev) =>
@@ -1407,7 +1408,7 @@ export default function App() {
                 : att
             )
           );
-          showToast(`📄 파일 '${file.name}' 파싱 및 첨부 완료`);
+          showToast(translateMessage('m019', file.name));
         } catch (err: any) {
           let fallbackText = '';
           try {
@@ -1427,7 +1428,7 @@ export default function App() {
                 : att
             )
           );
-          showToast(`📄 파일 '${file.name}' 텍스트 파싱 완료`);
+          showToast(translateMessage('m020', file.name));
         }
       }
     });
@@ -1449,7 +1450,7 @@ export default function App() {
     }
 
     if (hasImage) {
-      showToast('📷 클립보드 이미지 첨부 완료!');
+      showToast(translateMessage('m021'));
     }
   };
 
@@ -1728,7 +1729,7 @@ export default function App() {
         id: `folder-${folderName}`,
         type: 'folder',
         name: folderName,
-        detail: `${containedFiles.length}개 파일`,
+        detail: translateMessage('mFilesCount', containedFiles.length),
         path: folderName
       });
     });
@@ -1787,7 +1788,7 @@ export default function App() {
     setMentionQuery('');
     setMentionStartIndex(-1);
 
-    showToast(`🔗 워크스페이스 ${item.type === 'folder' ? '폴더' : '파일'} '${item.name}' 참조 추가됨`);
+    showToast(translateMessage('m022', translateMessage(item.type === 'folder' ? 'wFolder' : 'wFile'), item.name));
 
     setTimeout(() => {
       if (chatInputRef.current) {
@@ -2111,7 +2112,7 @@ export default function App() {
   const handleGenerateGhostText = useCallback(async (textToTranslate?: string) => {
     const raw = (textToTranslate !== undefined ? textToTranslate : chatInput).trim();
     if (!raw) {
-      showToast('한국어 질문 또는 개념을 먼저 입력해 주세요.');
+      showToast(translateMessage('m023'));
       return;
     }
 
@@ -2202,12 +2203,12 @@ export default function App() {
             targetEn = data.text.trim();
             targetEn = targetEn.replace(/^["'](.*)["']$/s, '$1');
           } else if (data?.error) {
-            showToast(`안내: ${data.error}`);
+            showToast(translateMessage('m024', data.error));
           }
         }
       }
     } catch {
-      showToast('기본 템플릿으로 생성되었습니다.');
+      showToast(translateMessage('m025'));
     }
 
     setGhostTargetEnglish(targetEn);
@@ -2221,7 +2222,7 @@ export default function App() {
       ghostInputRef.current?.focus();
     }, 50);
 
-    showToast('영작 고스트 텍스트가 생성되었습니다. 오른쪽 창에서 영작을 연습하세요.');
+    showToast(translateMessage('m026'));
   }, [chatInput, ghostWriterModel, ghostWriterLevel, availableChatModels, provider, localEndpointAddress, cloudApiKey, translateToEnglishPrompt, generateGhostTemplate, showToast]);
 
   // When ghostWriterLevel changes, update template if ghostTargetEnglish already exists
@@ -2255,7 +2256,7 @@ export default function App() {
     // If 3 typos or more, reveal full correct answer as ghost text
     if (typos >= 3 && !ghostShowFullAnswer) {
       setGhostShowFullAnswer(true);
-      showToast('⚠️ 3회 오타가 감지되어 정답 가이드가 고스트 텍스트로 자동 표시됩니다.');
+      showToast(translateMessage('m027'));
     }
   };
 
@@ -2266,7 +2267,7 @@ export default function App() {
       // Auto-complete or fill next word
       if (ghostTargetEnglish) {
         setGhostUserInput(ghostTargetEnglish);
-            showToast('✨ 영작 가이드 문장이 자동 완성되었습니다.');
+            showToast(translateMessage('m028'));
       }
       return;
     }
@@ -2592,7 +2593,7 @@ export default function App() {
       const after = editorContent.substring(end);
       const newContent = before + textToInsert + after;
       setEditorContent(newContent);
-      showToast(`📝 에디터 커서 위치에 "${prompt.title}" 프롬프트가 주입되었습니다.`, 'success');
+      showToast(translateMessage('m029', prompt.title), 'success');
       setTimeout(() => {
         textarea.focus();
         const newCursor = start + textToInsert.length;
@@ -2611,7 +2612,7 @@ export default function App() {
         const separator = before && !before.endsWith(' ') && !before.endsWith('\n') ? '\n\n' : '';
         const newText = before + separator + textToInsert + after;
         setChatInput(newText);
-        showToast(`💬 AI 채팅창에 "${prompt.title}" 프롬프트가 즉시 주입되었습니다.`, 'success');
+        showToast(translateMessage('m030', prompt.title), 'success');
         setTimeout(() => {
           textarea.focus();
           const newCursor = start + separator.length + textToInsert.length;
@@ -2619,7 +2620,7 @@ export default function App() {
         }, 50);
       } else {
         setChatInput((prev) => (prev ? prev + '\n\n' + textToInsert : textToInsert));
-        showToast(`💬 AI 채팅창에 "${prompt.title}" 프롬프트가 즉시 주입되었습니다.`, 'success');
+        showToast(translateMessage('m030', prompt.title), 'success');
       }
     }
   }, [editorContent, chatInput, isSection1Collapsed, isSection2Collapsed, isSection3Collapsed, showToast, setIsSection1Collapsed, setIsSection3Collapsed]);
@@ -3333,7 +3334,7 @@ export default function App() {
         ...prev,
         [targetSession.title]: true
       }));
-      showToast(`📁 '${currentDraggedId}' 파일이 '${targetSession.title}' 폴더로 이동되었습니다.`);
+      showToast(translateMessage('m031', currentDraggedId, targetSession.title));
       return;
     }
 
@@ -3360,7 +3361,7 @@ export default function App() {
         return copy;
       });
 
-      showToast(`↕️ '${draggedSessionTitle}' 프로젝트 폴더 위치가 재정렬되었습니다.`);
+      showToast(translateMessage('m032', draggedSessionTitle));
     }
   };
 
@@ -3468,7 +3469,7 @@ export default function App() {
         )
       );
 
-      showToast('✓ AI 답변이 서식 모드(워드프로세서)에 서식 그대로 주입되었습니다.');
+      showToast(translateMessage('m033'));
     } else {
       // 2. 마크다운 모드 (edit, split, preview): 마크다운 문법 원문으로 주입
       const isDocEmpty = !baseContent.trim();
@@ -3492,7 +3493,7 @@ export default function App() {
         )
       );
 
-      showToast(`✓ AI 답변이 '${targetFilePath}' 문서에 성공적으로 수집되었습니다.`);
+      showToast(translateMessage('m034', targetFilePath));
     }
 
     const fullTimeStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -3534,7 +3535,7 @@ export default function App() {
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      showToast('팝업 차단이 설정되어 있어 PDF 내보내기를 할 수 없습니다.', 'warn');
+      showToast(translateMessage('m035'), 'warn');
       return;
     }
 
@@ -3623,7 +3624,7 @@ export default function App() {
     `);
 
     printWindow.document.close();
-    showToast('🖨️ PDF 인쇄 대화상자가 실행되었습니다.');
+    showToast(translateMessage('m036'));
   };
 
   // Create New File Modal / Handler
@@ -3638,14 +3639,14 @@ export default function App() {
   const handleConfirmCreateNewFile = () => {
     let name = newFileNameInput.trim();
     if (!name) {
-      showToast('파일 이름을 입력해주세요.', 'warn');
+      showToast(translateMessage('m037'), 'warn');
       return;
     }
     if (!name.includes('.')) {
       name = `${name}.md`;
     }
     if (files[name] !== undefined) {
-      showToast(`'${name}' 파일이 이미 존재합니다.`, 'warn');
+      showToast(translateMessage('m038', name), 'warn');
       return;
     }
     const targetFolder = newFileFolderTarget || activeSession?.title || 'docs';
@@ -3676,7 +3677,7 @@ export default function App() {
       ).catch(console.error);
     }
 
-    showToast(`📄 '${name}' 새 파일이 생성되었습니다.`);
+    showToast(translateMessage('m039', name));
   };
 
   // Context Menu Action Dispatchers
@@ -3719,9 +3720,9 @@ export default function App() {
   const handleContextMenuCopyPath = async (path: string) => {
     try {
       await navigator.clipboard.writeText(path);
-      showToast(`✓ 파일 경로 복사됨: ${path}`, 'success');
+      showToast(translateMessage('m040', path), 'success');
     } catch {
-      showToast(`경로: ${path}`, 'info');
+      showToast(translateMessage('m041', path), 'info');
     }
   };
 
@@ -3798,7 +3799,7 @@ export default function App() {
 
     if (lower.endsWith('.pdf')) {
       if (file.size === 0) {
-        showToast(`⚠️ '${file.name}' 파일이 비어 있습니다 (0 바이트).`, 'warn');
+        showToast(translateMessage('m042', file.name), 'warn');
         return;
       }
       try {
@@ -3814,11 +3815,11 @@ export default function App() {
           if (!openTabs.includes(fname)) {
             setOpenTabs((prev) => [...prev, fname]);
           }
-          showToast(`📄 PDF '${fname}'을 뷰어 모드로 열었습니다.`, 'success');
+          showToast(translateMessage('m043', fname), 'success');
         };
         reader.readAsDataURL(file);
       } catch (err: any) {
-        showToast(`PDF 로드 실패: ${err.message}`, 'error');
+        showToast(translateMessage('m044', err.message), 'error');
       }
       return;
     }
@@ -3844,16 +3845,16 @@ export default function App() {
         if (!openTabs.includes(fname)) {
           setOpenTabs((prev) => [...prev, fname]);
         }
-        showToast(`📂 파일 '${fname}'을 불러왔습니다.`);
+        showToast(translateMessage('m045', fname));
       } catch (err: any) {
-        showToast(`파일 읽기 실패: ${err.message}`, 'error');
+        showToast(translateMessage('m046', err.message), 'error');
       }
       return;
     }
 
     try {
       setIsConvertingDoc(true);
-      showToast(`🔄 '${file.name}'을 클라이언트 엔진으로 변환 중입니다...`, 'info');
+      showToast(translateMessage('m047', file.name), 'info');
       const { convertDocumentToMarkdown } = await import('./services/documentConverterService');
       const result = await convertDocumentToMarkdown(file);
       setIsConvertingDoc(false);
@@ -3873,11 +3874,11 @@ export default function App() {
         if (!openTabs.includes(targetName)) {
           setOpenTabs((prev) => [...prev, targetName]);
         }
-        showToast(`✨ '${file.name}'을 마크다운(${targetName})으로 성공적으로 변환했습니다!`, 'success');
+        showToast(translateMessage('m048', file.name, targetName), 'success');
       }
     } catch (err: any) {
       setIsConvertingDoc(false);
-      showToast(`문서 변환 실패: ${err.message}`, 'error');
+      showToast(translateMessage('m049', err.message), 'error');
     }
   };
 
@@ -3936,7 +3937,7 @@ export default function App() {
       }
     }
 
-    showToast(`✨ 마크다운 문서 '${finalName}'이(가) 준비되었습니다.`, 'success');
+    showToast(translateMessage('m050', finalName), 'success');
   };
 
   // Commit Rename File Handler (Preserves subdirectory paths)
@@ -3952,7 +3953,7 @@ export default function App() {
     const newPath = parts.join('/');
 
     if (files[newPath] !== undefined && newPath !== oldPath) {
-      showToast(`'${trimmed}' 파일이 이미 존재합니다.`, 'warn');
+      showToast(translateMessage('m038', trimmed), 'warn');
       return;
     }
 
@@ -3984,7 +3985,7 @@ export default function App() {
       renameFileInLocalDirectory(dirHandle, oldPath, newPath, oldContent).catch(console.error);
     }
 
-    showToast(`✏️ 파일명이 '${oldFileName}'에서 '${trimmed}'(으)로 변경되었습니다.`);
+    showToast(translateMessage('m051', oldFileName, trimmed));
   };
 
   // Rename File Handler (Triggers inline rename for compatibility)
@@ -4079,7 +4080,7 @@ export default function App() {
       return updated;
     });
 
-    showToast(`📁 폴더명이 '${oldFolderName}'에서 '${trimmed}'(으)로 변경되었습니다.`);
+    showToast(translateMessage('m052', oldFolderName, trimmed));
   };
 
   // Commit Rename Handler (Dispatches to session, folder, or file)
@@ -4139,7 +4140,7 @@ export default function App() {
     }
 
     setDeleteConfirmFolder(null);
-    showToast(`🗑️ 폴더 및 하위 ${matchingFiles.length}개 파일이 삭제되었습니다.`);
+    showToast(translateMessage('m053', matchingFiles.length));
   };
 
   const getFlatVisibleTreeItems = useCallback(() => {
@@ -4363,7 +4364,7 @@ export default function App() {
   const handleDeleteFile = (fname: string) => {
     const fileKeys = Object.keys(files);
     if (fileKeys.length <= 1) {
-      showToast('최소 1개의 파일은 유지되어야 합니다.', 'warn');
+      showToast(translateMessage('m054'), 'warn');
       return;
     }
     setDeleteConfirmFile(fname);
@@ -4403,7 +4404,7 @@ export default function App() {
     }
 
     setDeleteConfirmFile(null);
-    showToast(`🗑️ '${fname}' 파일이 삭제되었습니다.`);
+    showToast(translateMessage('m055', fname));
   };
 
   const isCurrentFileDirty = useMemo(() => {
@@ -4539,7 +4540,7 @@ export default function App() {
     setFileName(newName);
     setEditorContent(initialNoteContent);
     setEditorTab('wysiwyg');
-    showToast(`📝 새 임시 탭 '${newName}'이(가) 열렸습니다 (저장 시 파일 생성).`);
+    showToast(translateMessage('m056', newName));
   };
 
   // Optimized debounced editor state synchronization handler
@@ -4600,7 +4601,7 @@ export default function App() {
           lastPushedContentRef.current[targetFile] = contentToPush;
           setGithubSyncStatus('synced');
           if (options?.showSuccessToast) {
-            showToast(`GitHub 저장소에 '${targetFile}' 파일이 동기화되었습니다.`, 'success');
+            showToast(translateMessage('m057', targetFile), 'success');
           }
           if (syncedTimerRef.current) {
             clearTimeout(syncedTimerRef.current);
@@ -4667,7 +4668,7 @@ export default function App() {
           }
 
           // Clean, non-intrusive toast warning
-          showToast('원격 저장소에 더 최신 문서가 존재하여 충돌 사본이 생성되었습니다.', 'warn');
+          showToast(translateMessage('m058'), 'warn');
           setGithubSyncStatus('conflict');
           if (syncedTimerRef.current) {
             clearTimeout(syncedTimerRef.current);
@@ -4787,7 +4788,7 @@ export default function App() {
           activeWorkspace.name
         ).catch(console.error);
       }
-      showToast(`💾 PDF 마크다운('${mdName}')이 저장되었습니다.`);
+      showToast(translateMessage('m059', mdName));
       return;
     }
 
@@ -4825,7 +4826,7 @@ export default function App() {
       handleSyncDocToGithub(currentActiveFile, editorContent, { isAutoPush: false, showSuccessToast: false });
     }
 
-    showToast(`💾 '${currentActiveFile}' 저장되었습니다.`);
+    showToast(translateMessage('m060', currentActiveFile));
   }, [currentActiveFile, editorContent, activeSessionId, files, activeWorkspace, fileFolders, untitledDocs, githubConfig, handleSyncDocToGithub]);
 
   // Confirm Save Untitled Modal handler
@@ -4909,7 +4910,7 @@ export default function App() {
       handleSyncDocToGithub(newFileName, contentToSave, { isAutoPush: false, showSuccessToast: false });
     }
 
-    showToast(`💾 '${newFileName}' 파일이 [${targetFolder}] 폴더에 저장되었습니다.`);
+    showToast(translateMessage('m061', newFileName, targetFolder));
   };
 
   // Confirm before losing unsaved changes
@@ -5148,7 +5149,7 @@ export default function App() {
       if (editorTab === 'wysiwyg' && tiptapEditorRef.current) {
         tiptapEditorRef.current.insertTable(rows, cols);
         setShowTablePicker(false);
-        showToast(`📊 ${rows}행 × ${cols}열 표가 삽입되었습니다.`);
+        showToast(translateMessage('m062', rows, cols));
         return;
       }
 
@@ -5179,7 +5180,7 @@ export default function App() {
       handleEditorChange(nextVal);
       setShowTablePicker(false);
 
-      showToast(`📊 ${rows}행 × ${cols}열 표가 삽입되었습니다.`);
+      showToast(translateMessage('m062', rows, cols));
 
       setTimeout(() => {
         if (editorRef.current) {
@@ -5244,7 +5245,7 @@ export default function App() {
       const textarea = editorRef.current;
       if (!textarea) {
         handleEditorChange(editorContent ? editorContent + '\n' + snippet : snippet);
-        showToast('✨ 마크다운 서식이 에디터에 삽입되었습니다.');
+        showToast(translateMessage('m063'));
         return;
       }
 
@@ -5258,7 +5259,7 @@ export default function App() {
       textarea.setSelectionRange(newCursor, newCursor);
       handleEditorChange(nextVal);
 
-      showToast('✨ 마크다운 서식이 에디터에 삽입되었습니다.');
+      showToast(translateMessage('m063'));
 
       setTimeout(() => {
         if (editorRef.current) {
@@ -5273,13 +5274,13 @@ export default function App() {
   // Copy Markdown Content to Clipboard
   const handleCopyToClipboard = async () => {
     if (!editorContent.trim()) {
-      showToast('복사할 마크다운 내용이 없습니다.', 'warn');
+      showToast(translateMessage('m064'), 'warn');
       return;
     }
 
     try {
       await navigator.clipboard.writeText(editorContent);
-      showToast('📋 전체 마크다운 내용이 클립보드에 복사되었습니다!');
+      showToast(translateMessage('m065'));
     } catch (err) {
       const textArea = document.createElement('textarea');
       textArea.value = editorContent;
@@ -5287,7 +5288,7 @@ export default function App() {
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      showToast('📋 전체 마크다운 내용이 클립보드에 복사되었습니다!');
+      showToast(translateMessage('m065'));
     }
   };
 
@@ -5578,26 +5579,26 @@ export default function App() {
   // Format Document Action Handler
   const handleFormatDocument = useCallback(() => {
     if (!editorContent.trim()) {
-      showToast('정리할 마크다운 내용이 없습니다.', 'warn');
+      showToast(translateMessage('m066'), 'warn');
       return;
     }
     const formatted = formatMarkdownDocument(editorContent);
     if (formatted.trim() === editorContent.trim()) {
-      showToast('✨ 이미 들여쓰기와 표(Table) 서식이 깔끔하게 정리된 문서입니다.');
+      showToast(translateMessage('m067'));
       return;
     }
     handleEditorChange(formatted);
-    showToast('🪄 마크다운 서식 정리 & 표(Table) 중복 내용 병합 가이드가 적용되었습니다!');
+    showToast(translateMessage('m068'));
   }, [editorContent, handleEditorChange]);
 
   // AI Clean Document Action Handler
   const handleAiCleanDocument = useCallback(() => {
     if (!editorContent.trim()) {
-      showToast('정리할 마크다운 내용이 없습니다.', 'warn');
+      showToast(translateMessage('m066'), 'warn');
       return;
     }
     setIsAiCleaning(true);
-    showToast('✨ AI가 마크다운 서식과 군더더기를 정리하고 있습니다...', 'info');
+    showToast(translateMessage('m069'), 'info');
 
     setTimeout(() => {
       let cleaned = editorContent;
@@ -5620,9 +5621,9 @@ export default function App() {
 
       if (cleaned !== editorContent) {
         handleEditorChange(cleaned);
-        showToast('🪄 AI 문서 정리가 완료되었습니다! (불필요한 인사말 제거 및 마크다운 정돈)');
+        showToast(translateMessage('m070'));
       } else {
-        showToast('✅ 문서가 이미 깔끔하게 정리되어 있어 변경할 내용이 없습니다.');
+        showToast(translateMessage('m071'));
       }
       setIsAiCleaning(false);
     }, 600);
@@ -5776,7 +5777,7 @@ export default function App() {
       }
     }
 
-    showToast(`'${item.text}' 위치로 이동했습니다.`, 'info');
+    showToast(translateMessage('m072', item.text), 'info');
   };
 
   // Provider change handler
@@ -5832,7 +5833,7 @@ export default function App() {
       setFileName('project_notes.md');
       setEditorContent(initialDoc);
 
-      showToast('🚨 모든 로컬 스토리지 데이터 및 캐시가 성공적으로 파기되었습니다.', 'success');
+      showToast(translateMessage('m073'), 'success');
       setIsPreferencesModalOpen(false);
     } catch (e) {
       console.error('Wipe error:', e);
@@ -5855,14 +5856,14 @@ export default function App() {
         if (activeVendor === 'gemini') {
           if (!activeKey) {
             setIsVerified(false);
-            showToast('⚠️ Gemini API 키를 입력해주세요.', 'warn');
+            showToast(translateMessage('m074'), 'warn');
             return;
           }
 
           const diag = await verifyGeminiApiKeyDetailed(activeKey);
           if (diag.valid) {
             setIsVerified(true);
-            showToast('✓ GOOGLE GEMINI (gemini-2.5-flash) API 연결 및 키 검증 성공!', 'success');
+            showToast(translateMessage('m075'), 'success');
 
             // Dynamically fetch and register provider active models
             try {
@@ -5880,9 +5881,9 @@ export default function App() {
             return;
           } else {
             setIsVerified(false);
-            const errDetail = diag.errorMessage || (diag.statusCode ? `HTTP ${diag.statusCode}` : '인증 오류');
+            const errDetail = diag.errorMessage || (diag.statusCode ? `HTTP ${diag.statusCode}` : translateMessage('mAuthError'));
             console.error(`Gemini verification error: ${errDetail}`);
-            showToast(`⚠️ API 검증 실패: ${errDetail}`, 'error');
+            showToast(translateMessage('m076', errDetail), 'error');
             return;
           }
         }
@@ -5899,7 +5900,7 @@ export default function App() {
         if (res.ok && data.valid) {
           setIsVerified(true);
           const vendorLabel = activeVendor.toUpperCase();
-          showToast(`✓ ${vendorLabel} (${data.model || activeVendor}) API 연결 및 키 검증 성공!`, 'success');
+          showToast(translateMessage('m077', vendorLabel, data.model || activeVendor), 'success');
 
           // Dynamically fetch and register provider active models
           try {
@@ -5916,7 +5917,7 @@ export default function App() {
           }
         } else {
           setIsVerified(false);
-          showToast(`⚠️ API 검증 실패: ${data.error || `HTTP ${res.status} 인증 오류`}`, 'error');
+          showToast(translateMessage('m076', data.error || translateMessage('mHttpAuthError', res.status)), 'error');
         }
       } else {
         const cleanEndpoint = ((typeof keyOrEp === 'string' && keyOrEp.trim()) ? keyOrEp : (localEndpointAddress || 'http://localhost:11434')).trim().replace(/\/+$/, '');
@@ -5931,10 +5932,10 @@ export default function App() {
             localStorage.setItem('aipodium_discovered_models', JSON.stringify(formatted));
           } catch {}
           setIsVerified(true);
-          showToast(`✓ 로컬 Ollama 연결 성공! (${tags.length}개 모델 감지 및 대화창 연동 완료)`, 'success');
+          showToast(translateMessage('m078', tags.length), 'success');
         } else {
           setIsVerified(false);
-          showToast('⚠️ 로컬 Ollama에서 감지된 모델이 없거나 연결할 수 없습니다.', 'error');
+          showToast(translateMessage('m079'), 'error');
         }
       }
     } catch (err: any) {
@@ -5942,11 +5943,11 @@ export default function App() {
       const isAbort = err?.name === 'AbortError';
       const isCors = err?.message?.includes('Failed to fetch') || err?.name === 'TypeError';
       const msg = isAbort
-        ? '연결 타임아웃 (3.5초 초과). 로컬 Ollama 실행 상태를 확인하세요.'
+        ? translateMessage('mOllamaTimeout')
         : isCors
-        ? '브라우저 CORS 차단 감지. OLLAMA_ORIGINS="*" 환경변수로 Ollama를 실행해 주세요.'
-        : (err?.message || '네트워크 연결 실패');
-      showToast(`⚠️ 연결 검증 실패: ${msg}`, 'error');
+        ? translateMessage('mOllamaCors')
+        : (err?.message || translateMessage('mNetworkFailed'));
+      showToast(translateMessage('m080', msg), 'error');
     } finally {
       setIsVerifying(false);
     }
@@ -6022,7 +6023,7 @@ export default function App() {
       });
     }
 
-    showToast(`📁 [${targetSession.title}] 프로젝트 대화 및 연동 에디터가 로드되었습니다.`);
+    showToast(translateMessage('m081', targetSession.title));
 
     // If sliding panel is unpinned, automatically tuck away when selecting a project
     if (!isChatHistoryPinned) {
@@ -6093,7 +6094,7 @@ export default function App() {
       ...prev,
       [projectTitle]: true
     }));
-    showToast(`✨ 새 프로젝트 '[${projectTitle}]' 생성 완료. 첫 저장 시 파일명을 지정할 수 있습니다.`);
+    showToast(translateMessage('m082', projectTitle));
   });
   };
 
@@ -6190,7 +6191,7 @@ export default function App() {
       )
     );
 
-    showToast(`📁 프로젝트/폴더명이 '[${trimmedTitle}]'(으)로 변경되었습니다.`);
+    showToast(translateMessage('m083', trimmedTitle));
   };
 
   // Request Delete Session (Shows Warning Modal)
@@ -6200,7 +6201,7 @@ export default function App() {
     if (!targetSession) return;
 
     if (sessions.length <= 1) {
-      showToast('최소 한 개 이상의 프로젝트가 유지되어야 합니다.', 'warn');
+      showToast(translateMessage('m084'), 'warn');
       return;
     }
 
@@ -6238,7 +6239,7 @@ export default function App() {
     }
 
     setDeleteConfirmSession(null);
-    showToast(`🗑️ '[${targetTitle}]' 프로젝트가 휴지통으로 이동되었습니다.`);
+    showToast(translateMessage('m085', targetTitle));
   };
 
   // Restore Session from Trash
@@ -6272,7 +6273,7 @@ export default function App() {
     setCurrentActiveFile(memoFileName);
     setEditorContent(memoContent);
 
-    showToast(`✨ '[${target.title}]' 프로젝트가 성공적으로 복구되었습니다.`);
+    showToast(translateMessage('m086', target.title));
   };
 
   // Permanently Delete Session from Trash
@@ -6280,15 +6281,15 @@ export default function App() {
     const target = trashSessions.find((s) => s.id === trashId);
     if (!target) return;
     setTrashSessions((prev) => prev.filter((s) => s.id !== trashId));
-    showToast(`❌ '[${target.title}]' 프로젝트가 영구 삭제되었습니다.`);
+    showToast(translateMessage('m087', target.title));
   };
 
   // Empty Entire Trash
   const handleEmptyTrash = () => {
     if (trashSessions.length === 0) return;
-    if (confirm('휴지통의 모든 프로젝트를 영구적으로 비우시겠습니까?')) {
+    if (confirm(translateMessage('mConfirmEmptyTrash'))) {
       setTrashSessions([]);
-      showToast('🧹 휴지통이 모두 비워졌습니다.');
+      showToast(translateMessage('m088'));
     }
   };
 
@@ -6297,7 +6298,7 @@ export default function App() {
     setSessions((prev) =>
       prev.map((s) => (s.id === activeSessionId ? { ...s, messages: [] } : s))
     );
-    showToast('현재 프로젝트의 대화 내용이 지워졌습니다.');
+    showToast(translateMessage('m089'));
   };
 
   // Export Chat Session (JSON or Text/Markdown)
@@ -6374,7 +6375,7 @@ export default function App() {
       ?.join('\n\n') || '';
 
     if (!sourceTextsCombined.trim() && !chatContext.trim()) {
-      showToast('⚠️ 분석할 에디터 내용이나 대화 내역이 없습니다.', 'warn');
+      showToast(translateMessage('m090'), 'warn');
       return;
     }
 
@@ -6385,7 +6386,7 @@ export default function App() {
     }
 
     if (config.autoGenerateWithAi && sourceTextsCombined.trim()) {
-      showToast(`✨ AI가 '${targetFname}' 기준 문서를 작성 중입니다...`, 'info');
+      showToast(translateMessage('m091', targetFname), 'info');
 
       const getFallbackDoc = () =>
         `# ${targetFname.replace(/\.md$/i, '')}\n\n> **작성일:** ${timeStr} | **대상 소스 폴더:** ${targetFolder}\n\n## 1. 프로젝트 개요\n\n## 2. 주요 내용 종합\n\n---\n\n## 3. 참조 소스 파일 요약\n${sourceTextsCombined}`;
@@ -6484,7 +6485,7 @@ ${sourceTextsCombined}
           })
         );
 
-        showToast(`✨ 기준 문서('${targetFname}')가 '${targetFolder}' 폴더에 생성되어 에디터에 열렸습니다!`, 'success');
+        showToast(translateMessage('m092', targetFname, targetFolder), 'success');
       } catch (err) {
         console.error('SSOT generation error:', err);
         const fallbackContent = getFallbackDoc();
@@ -6494,7 +6495,7 @@ ${sourceTextsCombined}
         setCurrentActiveFile(targetFname);
         setFileName(targetFname);
         setEditorContent(fallbackContent);
-        showToast(`💡 기본 기준 문서 스캐폴딩이 생성되어 에디터에 열렸습니다.`, 'info');
+        showToast(translateMessage('m093'), 'info');
       }
     } else {
       const scaffold = `# ${targetFname.replace(/\.md$/i, '')}\n\n> **작성일:** ${timeStr} | **대상 폴더:** ${targetFolder}\n\n## 1. 프로젝트 개요\n\n## 2. 주요 내용 종합\n` +
@@ -6516,7 +6517,7 @@ ${sourceTextsCombined}
         })
       );
 
-      showToast(`📝 기준 문서 스캐폴딩이 '${targetFolder}' 폴더에 생성되어 에디터에 열렸습니다.`, 'success');
+      showToast(translateMessage('m094', targetFolder), 'success');
     }
   };
 
@@ -7031,7 +7032,7 @@ ${sourceTextsCombined}
     setEditorContent(htmlSheet);
     setEditorTab('preview');
 
-    showToast(`📊 '[${sheetFileName}]' AI Spreadsheet가 생성되었습니다.`);
+    showToast(translateMessage('m095', sheetFileName));
 
     setRecentAiChanges({
       file: sheetFileName,
@@ -7271,7 +7272,7 @@ ${sourceTextsCombined}
     setEditorContent(htmlSlides);
     setEditorTab('preview');
 
-    showToast(`📽️ '[${slideFileName}]' AI Slide Builder 프레젠테이션이 생성되었습니다.`);
+    showToast(translateMessage('m096', slideFileName));
 
     setRecentAiChanges({
       file: slideFileName,
@@ -7310,7 +7311,7 @@ ${projectEvents
     setEditorTab('preview');
     setIsEventManagerOpen(false);
 
-    showToast(`📋 '${eventFileName}' 일정표가 생성되어 에디터에 로드되었습니다!`);
+    showToast(translateMessage('m097', eventFileName));
   };
 
   // Helper to open file in editor / add to tab bar
@@ -7335,7 +7336,7 @@ ${projectEvents
         setEditorContent(targetContent);
         setEditorTab(fname.endsWith('.html') ? 'preview' : 'wysiwyg');
       }
-      showToast(`📂 '${fname}' 탭이 열렸습니다.`);
+      showToast(translateMessage('m098', fname));
     }
   };
 
@@ -7393,7 +7394,7 @@ ${projectEvents
   // PDF Viewer: Upload / Replace PDF file handler
   const handlePdfUploadFromViewer = useCallback((file: File) => {
     if (file.size === 0) {
-      showToast(`⚠️ '${file.name}' 파일이 비어 있습니다 (0 바이트).`, 'warn');
+      showToast(translateMessage('m042', file.name), 'warn');
       return;
     }
     try {
@@ -7409,11 +7410,11 @@ ${projectEvents
         if (!openTabs.includes(fname)) {
           setOpenTabs((prev) => [...prev, fname]);
         }
-        showToast(`📄 PDF '${fname}'을 불러왔습니다.`, 'success');
+        showToast(translateMessage('m099', fname), 'success');
       };
       reader.readAsDataURL(file);
     } catch (err: any) {
-      showToast(`PDF 로드 실패: ${err.message}`, 'error');
+      showToast(translateMessage('m044', err.message), 'error');
     }
   }, [currentActiveFile, fileFolders, activeSession, openTabs]);
 
@@ -7447,14 +7448,14 @@ ${projectEvents
             e.stopPropagation();
             if (isFile && files[refName]) {
               handleOpenFile(refName);
-              showToast(`📂 참조 파일 '${refName}'이(가) 에디터에 열렸습니다.`);
+              showToast(translateMessage('m100', refName));
             } else if (isFolder) {
               const targetSession = sessions.find((s) => s.title === refName);
               if (targetSession) {
                 handleSelectSession(targetSession.id);
               }
               setOpenFolders((prev) => ({ ...prev, [refName]: true }));
-              showToast(`📁 참조 폴더 '[${refName}]'이(가) 활성화되었습니다.`);
+              showToast(translateMessage('m101', refName));
             }
           }}
           className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[0.6875rem] font-mono cursor-pointer transition mx-0.5 shadow-xs border ${
@@ -7656,7 +7657,7 @@ ${projectEvents
   // Start explicit WebLLM download and initialization
   const handleStartWebLlmDownload = async () => {
     if (!isWebGPUSupported()) {
-      showToast('⚠️ 현재 브라우저가 WebGPU를 지원하지 않습니다. Chrome/Edge 최신 버전을 권장합니다.');
+      showToast(translateMessage('m102'));
       return;
     }
 
@@ -7665,7 +7666,7 @@ ${projectEvents
     const hasAdapter = await getWebGPUDevice();
     if (!hasAdapter) {
       setWebllmProgress((prev) => ({ ...prev, isLoading: false, isReady: false, progressText: '' }));
-      showToast('⚠️ WebGPU 그래픽 가속기를 초기화할 수 없습니다. 상단 [새 탭에서 열기]를 통해 실행하거나 브라우저 하드웨어 가속을 켜주세요.');
+      showToast(translateMessage('m103'));
       return;
     }
 
@@ -7688,7 +7689,7 @@ ${projectEvents
       });
       setSelectedModel(WEB_LLM_MODEL_ID);
       setProvider('local-pc');
-      showToast('✓ Qwen2.5-0.5B 브라우저 로컬 AI가 준비되었습니다.');
+      showToast(translateMessage('m104'));
     } catch (err: any) {
       setWebllmProgress((prev) => ({
         ...prev,
@@ -7701,7 +7702,7 @@ ${projectEvents
       if (!userFriendlyMsg || userFriendlyMsg.includes('알 수 없는') || userFriendlyMsg.includes('Error')) {
         userFriendlyMsg = '네트워크 연결 상태 및 브라우저 그래픽 가속 설정을 확인해 주세요. (새 탭 권장)';
       }
-      showToast(`⚠️ WebLLM 로드 실패: ${userFriendlyMsg}`);
+      showToast(translateMessage('m105', userFriendlyMsg));
     }
   };
 
@@ -7762,7 +7763,7 @@ ${projectEvents
         return finalResult;
       } catch (error) {
         console.error('Translation error:', error);
-        showToast('⚠️ AI 메시지 번역 중 오류가 발생했습니다.', 'error');
+        showToast(translateMessage('m106'), 'error');
         return '';
       }
     },
@@ -7779,7 +7780,7 @@ ${projectEvents
     }
   ) => {
     if (chatAttachments.some((a) => a.isParsing)) {
-      showToast('⏳ 첨부 파일 분석 중입니다. 잠시만 기다려 주세요.');
+      showToast(translateMessage('m107'));
       return;
     }
 
@@ -8249,7 +8250,7 @@ ${projectEvents
   const handleEditorZoomIn = useCallback(() => {
     setEditorFontSize((prev) => {
       const next = Math.min(22, prev + 1);
-      showToast(`에디터 폰트 크기: ${next}px`);
+      showToast(translateMessage('m108', next));
       return next;
     });
   }, [showToast]);
@@ -8257,14 +8258,14 @@ ${projectEvents
   const handleEditorZoomOut = useCallback(() => {
     setEditorFontSize((prev) => {
       const next = Math.max(12, prev - 1);
-      showToast(`에디터 폰트 크기: ${next}px`);
+      showToast(translateMessage('m108', next));
       return next;
     });
   }, [showToast]);
 
   const handleEditorZoomReset = useCallback(() => {
     setEditorFontSize(12);
-    showToast('에디터 폰트 기본 크기 복원: 12px');
+    showToast(translateMessage('m109'));
   }, [showToast]);
 
   // Ctrl + Mouse Wheel font size adjustment on editor container
@@ -8389,7 +8390,7 @@ ${projectEvents
     setPreferences(updated);
     saveSafePreferences(updated);
     applyThemeToDocument(preferences.compactness || 'spacious', size);
-    showToast(`글꼴 크기가 "${sizeLabels[size]}"(으)로 즉시 변경되었습니다.`, 'success');
+    showToast(translateMessage('m110', sizeLabels[size]), 'success');
   }, [preferences, showToast]);
 
   const handleQuickCompactness = useCallback((compactness: 'dense' | 'spacious') => {
@@ -8397,7 +8398,7 @@ ${projectEvents
     setPreferences(updated);
     saveSafePreferences(updated);
     applyThemeToDocument(compactness, preferences.fontSize || 'md');
-    showToast(`레이아웃 밀도가 "${compactness === 'dense' ? '조밀하게' : '여유롭게'}"로 즉시 변경되었습니다.`, 'success');
+    showToast(translateMessage('m111', translateMessage(compactness === 'dense' ? 'wDense' : 'wRelaxed')), 'success');
   }, [preferences, showToast]);
 
   const handleQuickDefaultModel = useCallback((modelId: string, modelName: string) => {
@@ -8410,7 +8411,7 @@ ${projectEvents
     try {
       localStorage.setItem('aipodium_ai_role_models', JSON.stringify(updatedRoles));
     } catch {}
-    showToast(`대화 AI 모델이 "${modelName}"(으)로 즉시 변경되었습니다.`, 'success');
+    showToast(translateMessage('m112', modelName), 'success');
   }, [preferences, roleModels, showToast]);
 
   const handleQuickGhostWriter = useCallback((level: GhostWriterLevel) => {
@@ -8418,7 +8419,7 @@ ${projectEvents
     setPreferences(updated);
     setGhostWriterLevel(level);
     saveSafePreferences(updated);
-    showToast(`고스트 라이터가 "${level === 'off' ? 'OFF' : level + '%'}"로 설정되었습니다.`, 'success');
+    showToast(translateMessage('m113', level === 'off' ? 'OFF' : level + '%'), 'success');
   }, [preferences, showToast]);
 
   const currentModelName = useMemo(() => {
@@ -8758,7 +8759,7 @@ ${projectEvents
               }}
               onLockWorkspace={() => {
                 lockNow();
-                showToast('🔒 워크스페이스가 잠겼습니다 (Ctrl+L).', 'info');
+                showToast(translateMessage('m114'), 'info');
               }}
               onOpenSettings={() => {
                 setPreferencesInitialTab('integrations');
@@ -8786,7 +8787,7 @@ ${projectEvents
           onSelectModel={() => {
             setSelectedModel(WEB_LLM_MODEL_ID);
             setRoleModels((prev) => ({ ...prev, chat: WEB_LLM_MODEL_ID }));
-            showToast('✓ 브라우저 로컬 AI가 기본 대화 모델로 적용되었습니다.');
+            showToast(translateMessage('m115'));
           }}
           onDismiss={() => {
             setIsWebLlmBannerDismissed(true);
@@ -8849,7 +8850,7 @@ ${projectEvents
             <div style={{ width: `${panelWidths.chat}px` }} className="max-w-full h-full flex flex-col min-h-0 overflow-hidden">
             {/* Header: Anchored strictly at top-left at all times */}
             <div className="bg-[#0f0f12] border-b border-white/5 px-2 h-8 flex items-center justify-between shrink-0 select-none">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0">
+              <div className={`flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0 ${isProjectListOpen ? 'w-48 sm:w-56 -ml-0.5 pr-1' : ''}`}>
                 <button
                   type="button"
                   id="left-drawer-collapse-btn"
@@ -8860,10 +8861,21 @@ ${projectEvents
                 >
                   <PanelLeftClose className="w-4 h-4 text-zinc-400 hover:text-zinc-100" />
                 </button>
-                <span className="truncate max-w-[200px] sm:max-w-[260px] font-medium text-slate-200 text-xs" title={activeSession?.title}>
-                  {isOnboardingMode ? 'AI 지식 비서 · 가이드 v0.1.0' : (activeSession?.title || 'AI 프로젝트')}
-
-                </span>
+                {isProjectListOpen && (
+                  <>
+                    <Folder className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
+                    <span className="font-semibold tracking-wider text-[0.6875rem] uppercase text-indigo-300 truncate">프로젝트 목록</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCreateNewSession()}
+                      className="ml-auto p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-white transition cursor-pointer shrink-0"
+                      title="새 프로젝트 생성"
+                      aria-label="새 프로젝트 생성"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                )}
               </div>
 
               <div className="flex items-center gap-1 shrink-0">
@@ -8902,25 +8914,6 @@ ${projectEvents
                 >
                   {/* Sidebar Header */}
                   <div className="p-2 border-b border-[#222226] space-y-1.5 bg-[#0c0c0e] shrink-0">
-                    <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <Folder className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
-                        <span className="font-semibold tracking-wider text-[0.6875rem] uppercase text-indigo-300">프로젝트 목록</span>
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0">
-                        {/* [+] New Project Session Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleCreateNewSession()}
-                          className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-white transition cursor-pointer"
-                          title="새 프로젝트 생성"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-
                     {/* Search Input Box in Project Sidebar */}
                     <div className="relative">
                       <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -9580,11 +9573,11 @@ ${projectEvents
                             if (isFocus) {
                               setIsSection1Collapsed(false);
                               setIsSection3Collapsed(false);
-                              showToast('기본 패널 레이아웃이 복원되었습니다.');
+                              showToast(translateMessage('m116'));
                             } else {
                               setIsSection1Collapsed(true);
                               setIsSection3Collapsed(true);
-                              showToast('🎯 문서 집중 모드: 사이드바를 모두 접었습니다.');
+                              showToast(translateMessage('m117'));
                             }
                           }}
                           onToast={showToast}
@@ -10665,7 +10658,7 @@ ${projectEvents
           setWorkspaceRootType('local');
           localStorage.setItem('aipodium_workspace_root_type', 'local');
           setIsGithubModalOpen(false);
-          showToast('GitHub 저장소 연결이 해제되었습니다.', 'info');
+          showToast(translateMessage('m118'), 'info');
         }}
         onSave={async (config, pulledData) => {
           setGithubConfig(config);
@@ -10707,9 +10700,9 @@ ${projectEvents
               setFileName(firstFile);
               setEditorContent(pulledData.files[firstFile]);
             }
-            showToast(`🐙 GitHub 저장소(${config.repo})에서 ${pulledData.count}개 문서를 불러와 워크스페이스를 활성화했습니다!`, 'success');
+            showToast(translateMessage('m119', config.repo, pulledData.count), 'success');
           } else {
-            showToast(`✅ GitHub 저장소(${config.repo}) 워크스페이스 활성화 완료!`);
+            showToast(translateMessage('m120', config.repo));
           }
           setIsGithubModalOpen(false);
         }}
@@ -10938,7 +10931,7 @@ ${projectEvents
         model={roleModels.critic}
         onApplyRevisions={(revised) => {
           handleEditorChange(revised);
-          showToast('✓ 비평가 위원회 권고 개정안이 문서에 성공적으로 반영되었습니다.');
+          showToast(translateMessage('m121'));
         }}
         onJumpToLine={handleJumpToLine}
       />
@@ -10969,7 +10962,7 @@ ${projectEvents
           sourceLabel={diffModalData.sourceLabel}
           onApplyRevisions={(newContent) => {
             handleEditorChange(newContent);
-            showToast('✓ 제안된 개정안이 문서에 성공적으로 반영되었습니다.');
+            showToast(translateMessage('m122'));
             setDiffModalData(null);
           }}
           onAppendRevisions={(contentToAppend) => {
@@ -10995,12 +10988,12 @@ ${projectEvents
             }
             setSelectedModel('gemini-2.5-flash');
             setRoleModels((prev) => ({ ...prev, chat: 'gemini-2.5-flash' }));
-            showToast('✓ 클라우드 API 엔진이 설정되었습니다.');
+            showToast(translateMessage('m123'));
           } else if (engine === 'ollama') {
             setProvider('local-pc');
             setIsVerified(true);
             triggerFetchOllamaTags();
-            showToast('✓ 로컬 AI (Ollama) 엔진이 설정되었습니다.');
+            showToast(translateMessage('m124'));
           } else if (engine === 'webllm') {
             setProvider('local-pc');
             setSelectedModel(WEB_LLM_MODEL_ID);
@@ -11008,7 +11001,7 @@ ${projectEvents
             if (!webllmProgress.isReady && !webllmProgress.isLoading) {
               handleStartWebLlmDownload();
             }
-            showToast('✓ 브라우저 내장 (WebLLM) 엔진이 설정되었습니다.');
+            showToast(translateMessage('m125'));
           }
         }}
       />

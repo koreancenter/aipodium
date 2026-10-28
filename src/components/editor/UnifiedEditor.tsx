@@ -25,6 +25,8 @@ import {
   Minimize2
 } from 'lucide-react';
 import { OptimizedEditor } from './OptimizedEditor';
+import { useLanguage } from '../../context/LanguageContext';
+import { getEditorTranslations } from '../../locales/editorLocale';
 import { FreeformDrawingOverlay } from './FreeformDrawingOverlay';
 import { TableGridPicker } from './TableGridPicker';
 import { TiptapWysiwygEditorRef } from './TiptapWysiwygEditor';
@@ -70,6 +72,8 @@ export interface UnifiedEditorProps {
 }
 
 export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
+  const { language } = useLanguage();
+  const et = getEditorTranslations(language);
   const {
     value,
     onChange,
@@ -80,7 +84,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
     theme,
     onSave,
     onCursorActivity,
-    placeholder = '# 마크다운 노트\n\n내용을 작성하세요...',
+    placeholder = et.defaultPlaceholder,
     renderMarkdownToHtml = defaultRenderMarkdownToHtml,
     onFocus,
     editorRef,
@@ -273,7 +277,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
           newStart = start;
           newEnd = start + unwrapped.length;
         } else {
-          const inner = selectedText || '굵은 텍스트';
+          const inner = selectedText || et.bold;
           const wrapped = `**${inner}**`;
           newText = currentVal.slice(0, start) + wrapped + currentVal.slice(end);
           newStart = start + 2;
@@ -286,7 +290,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
           newStart = start;
           newEnd = start + unwrapped.length;
         } else {
-          const inner = selectedText || '기울임 텍스트';
+          const inner = selectedText || et.italic;
           const wrapped = `*${inner}*`;
           newText = currentVal.slice(0, start) + wrapped + currentVal.slice(end);
           newStart = start + 1;
@@ -302,7 +306,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
         const currentLine = currentVal.slice(lineStart, lineEnd);
         const headingPrefixRegex = /^#{1,6}\s+/;
         const cleaned = currentLine.replace(headingPrefixRegex, '');
-        const newLine = `${prefix}${cleaned || '제목'}`;
+        const newLine = `${prefix}${cleaned || et.heading}`;
 
         newText = currentVal.slice(0, lineStart) + newLine + currentVal.slice(lineEnd);
         newStart = lineStart + prefix.length;
@@ -315,14 +319,14 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
         const currentLine = currentVal.slice(lineStart, lineEnd);
         const quotePrefixRegex = /^>\s+/;
         const cleaned = currentLine.replace(quotePrefixRegex, '');
-        const newLine = `> ${cleaned || '인용문'}`;
+        const newLine = `> ${cleaned || et.quote}`;
 
         newText = currentVal.slice(0, lineStart) + newLine + currentVal.slice(lineEnd);
         newStart = lineStart + 2;
         newEnd = lineStart + newLine.length;
       } else if (action === 'code') {
         if (selectedText.includes('\n')) {
-          const inner = selectedText || '// 코드를 작성하세요';
+          const inner = selectedText || et.codeHint;
           const wrapped = `\`\`\`\n${inner}\n\`\`\`\n`;
           newText = currentVal.slice(0, start) + wrapped + currentVal.slice(end);
           newStart = start + 4;
@@ -334,7 +338,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             newStart = start;
             newEnd = start + unwrapped.length;
           } else {
-            const inner = selectedText || '코드';
+            const inner = selectedText || et.code;
             const wrapped = `\`${inner}\``;
             newText = currentVal.slice(0, start) + wrapped + currentVal.slice(end);
             newStart = start + 1;
@@ -342,7 +346,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
           }
         }
       } else if (action === 'codeblock' || action === 'codeBlock') {
-        const inner = selectedText || '// 코드를 작성하세요';
+        const inner = selectedText || et.codeHint;
         const wrapped = `\`\`\`\n${inner}\n\`\`\`\n`;
         newText = currentVal.slice(0, start) + wrapped + currentVal.slice(end);
         newStart = start + 4;
@@ -356,7 +360,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
         const newLines = lines.map((line) => {
           const cleaned = line.replace(/^(\s*)[-*+]\s+/, '$1');
           if (line.trim().startsWith('- ')) return cleaned;
-          return `- ${line || '목록 항목'}`;
+          return `- ${line || et.listItem}`;
         });
         const replaced = newLines.join('\n');
         newText = currentVal.slice(0, lineStart) + replaced + currentVal.slice(lineEnd);
@@ -372,7 +376,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
         const newLines = lines.map((line) => {
           const cleaned = line.replace(/^(\s*)\d+[.)]\s+/, '$1');
           if (/^\s*\d+[.)]\s+/.test(line)) return cleaned;
-          const res = `${counter}. ${line || '목록 항목'}`;
+          const res = `${counter}. ${line || et.listItem}`;
           counter++;
           return res;
         });
@@ -389,7 +393,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
         const newLines = lines.map((line) => {
           const cleaned = line.replace(/^(\s*)[-*+]\s+\[[ xX]\]\s+/, '$1');
           if (/^\s*[-*+]\s+\[[ xX]\]\s+/.test(line)) return cleaned;
-          return `- [ ] ${line || '할 일 항목'}`;
+          return `- [ ] ${line || et.taskItem}`;
         });
         const replaced = newLines.join('\n');
         newText = currentVal.slice(0, lineStart) + replaced + currentVal.slice(lineEnd);
@@ -407,20 +411,20 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
           newStart = start;
           newEnd = start + unwrapped.length;
         } else {
-          const inner = selectedText || '취소선 텍스트';
+          const inner = selectedText || et.strike;
           const wrapped = `~~${inner}~~`;
           newText = currentVal.slice(0, start) + wrapped + currentVal.slice(end);
           newStart = start + 2;
           newEnd = start + 2 + inner.length;
         }
       } else if (action === 'link') {
-        const inner = selectedText || '링크 텍스트';
+        const inner = selectedText || et.linkText;
         const wrapped = `[${inner}](https://)`;
         newText = currentVal.slice(0, start) + wrapped + currentVal.slice(end);
         newStart = start + 1;
         newEnd = start + 1 + inner.length;
       } else if (action === 'image') {
-        const inner = selectedText || '이미지 설명';
+        const inner = selectedText || et.imageAlt;
         const wrapped = `![${inner}](https://)`;
         newText = currentVal.slice(0, start) + wrapped + currentVal.slice(end);
         newStart = start + 2;
@@ -428,11 +432,11 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
       } else if (action === 'table') {
         const r = options?.rows || 3;
         const c = options?.cols || 3;
-        const headers = Array.from({ length: c }, (_, i) => `제목 ${i + 1}`).join(' | ');
+        const headers = Array.from({ length: c }, (_, i) => et.tableHeader(i + 1)).join(' | ');
         const separator = Array.from({ length: c }, () => '---').join(' | ');
         let body = '';
         for (let ri = 0; ri < r; ri++) {
-          body += '| ' + Array.from({ length: c }, (_, ci) => `내용 ${ri + 1}-${ci + 1}`).join(' | ') + ' |\n';
+          body += '| ' + Array.from({ length: c }, (_, ci) => et.tableCell(ri + 1, ci + 1)).join(' | ') + ' |\n';
         }
         const tableBlock = `\n| ${headers} |\n| ${separator} |\n${body}\n`;
         newText = currentVal.slice(0, start) + tableBlock + currentVal.slice(end);
@@ -456,7 +460,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
         }
       }, 10);
     },
-    [internalMode, internalTiptapRef, activeEditorRef, value, onChange]
+    [internalMode, internalTiptapRef, activeEditorRef, value, onChange, et]
   );
 
   const handleApplyFormat = applyFormat;
@@ -511,16 +515,16 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
   // Handle drawing insertion directly into editor markdown
   const handleInsertDrawing = useCallback(
     (dataUrl: string) => {
-      const imageMd = `\n\n![필기 노트](${dataUrl})\n\n`;
+      const imageMd = `\n\n![${et.sketchNote}](${dataUrl})\n\n`;
       onChange(value ? `${value}${imageMd}` : imageMd);
       if (onToast) {
-        onToast('✓ 캔버스 필기 그림이 에디터 본문에 삽입되었습니다.', 'success');
+        onToast(et.sketchInserted, 'success');
       }
       if (onCloseDrawing) {
         onCloseDrawing();
       }
     },
-    [value, onChange, onToast, onCloseDrawing]
+    [value, onChange, onToast, onCloseDrawing, et]
   );
 
   // Global Ctrl+S handler when inside editor
@@ -562,8 +566,8 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
                 ? 'bg-[#18181b] text-indigo-400 border border-[#6366f1]/50 font-medium'
                 : 'text-slate-400 hover:text-white hover:bg-[#18181b] border border-transparent'
             }`}
-            title="서식 모드"
-            aria-label="서식 모드"
+            title={et.wysiwyg}
+            aria-label={et.wysiwyg}
           >
             <Pen className="w-3.5 h-3.5" />
           </button>
@@ -577,8 +581,8 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
                 ? 'bg-[#18181b] text-white border border-[#6366f1]/50 font-medium'
                 : 'text-slate-400 hover:text-white hover:bg-[#18181b] border border-transparent'
             }`}
-            title="마크다운 모드"
-            aria-label="마크다운 모드"
+            title={et.markdown}
+            aria-label={et.markdown}
           >
             <BookOpen className="w-3.5 h-3.5" />
           </button>
@@ -592,8 +596,8 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
                 ? 'bg-[#18181b] text-white border border-[#6366f1]/50 font-medium'
                 : 'text-slate-400 hover:text-white hover:bg-[#18181b] border border-transparent'
             }`}
-            title="분할 모드"
-            aria-label="분할 모드"
+            title={et.split}
+            aria-label={et.split}
           >
             <Split className="w-3.5 h-3.5" />
           </button>
@@ -607,7 +611,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('h1')}
             className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-            title="제목 1"
+            title={et.h1}
             aria-label="Heading 1"
           >
             <Heading1 className="w-3.5 h-3.5" />
@@ -617,7 +621,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('h2')}
             className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-            title="제목 2"
+            title={et.h2}
             aria-label="Heading 2"
           >
             <Heading2 className="w-3.5 h-3.5" />
@@ -627,7 +631,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('h3')}
             className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-            title="제목 3"
+            title={et.h3}
             aria-label="Heading 3"
           >
             <Heading3 className="w-3.5 h-3.5" />
@@ -641,7 +645,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('bold')}
             className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-            title="굵게"
+            title={et.boldTitle}
             aria-label="Bold"
           >
             <Bold className="w-3.5 h-3.5" />
@@ -651,7 +655,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('italic')}
             className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white italic transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-            title="기울임"
+            title={et.italicTitle}
             aria-label="Italic"
           >
             <Italic className="w-3.5 h-3.5" />
@@ -661,7 +665,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('code')}
             className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white font-mono text-xs transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-            title="코드"
+            title={et.codeTitle}
             aria-label="Code"
           >
             <Code className="w-3.5 h-3.5" />
@@ -675,7 +679,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('bullet')}
             className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-            title="글머리 기호 목록"
+            title={et.bullet}
             aria-label="Bullet list"
           >
             <List className="w-3.5 h-3.5" />
@@ -685,7 +689,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('number')}
             className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-            title="번호 목록"
+            title={et.numbered}
             aria-label="Numbered list"
           >
             <ListOrdered className="w-3.5 h-3.5" />
@@ -695,7 +699,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('task')}
             className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-            title="할 일 목록"
+            title={et.task}
             aria-label="Task list"
           >
             <CheckSquare className="w-3.5 h-3.5" />
@@ -705,7 +709,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('quote')}
             className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-            title="인용구"
+            title={et.quoteTitle}
             aria-label="Blockquote"
           >
             <Quote className="w-3.5 h-3.5" />
@@ -715,7 +719,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('table')}
             className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
-            title="표 삽입"
+            title={et.table}
             aria-label="Table"
           >
             <TableIcon className="w-3.5 h-3.5" />
@@ -723,7 +727,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
 
           <div className="h-3.5 w-px bg-[#222226] mx-0.5 shrink-0" />
 
-          {/* Drawing Canvas Toggle (PenTool icon - 자유 형식 메모) */}
+          {/* Drawing Canvas Toggle (PenTool icon) */}
           <button
             id="editor-freeform-memo-toggle"
             type="button"
@@ -734,7 +738,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
                 ? 'bg-indigo-600 text-white font-medium'
                 : 'text-slate-300 hover:bg-[#18181b] hover:text-white'
             }`}
-            title={activeDrawing ? '자유 형식 메모 닫기' : '자유 형식 메모'}
+            title={activeDrawing ? et.drawingClose : et.drawingOpen}
             aria-label="Drawing canvas"
           >
             <PenTool className="w-3.5 h-3.5 text-indigo-400" />
@@ -750,7 +754,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
                 ? 'bg-indigo-600 text-white font-medium'
                 : 'text-slate-300 hover:bg-[#18181b] hover:text-white'
             }`}
-            title={activeFullscreen ? '전체 화면 해제' : '전체 화면'}
+            title={activeFullscreen ? et.fullscreenExit : et.fullscreen}
             aria-label="Fullscreen toggle"
           >
             {activeFullscreen ? (

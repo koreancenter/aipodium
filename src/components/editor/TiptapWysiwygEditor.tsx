@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { renderMarkdownToHtml } from '../../utils/markdownParser';
 import { sanitizeHtml } from '../../utils/securitySanitizer';
+import { useLanguage } from '../../context/LanguageContext';
+import { getEditorTranslations } from '../../locales/editorLocale';
 
 export interface TiptapWysiwygEditorRef {
   executeCommand: (formatType: string) => void;
@@ -61,6 +63,10 @@ const getInitialContent = (md: string): string => {
 export const TiptapWysiwygEditor = memo(
   forwardRef<TiptapWysiwygEditorRef, TiptapWysiwygEditorProps>(
     ({ value, onChange, onFocus, placeholder, className, fontSize }, ref) => {
+      const { language } = useLanguage();
+      const tt = getEditorTranslations(language).tiptap;
+      const ttRef = useRef(tt);
+      ttRef.current = tt;
       const isInternalUpdateRef = useRef(false);
 
       const editor = useEditor({
@@ -99,7 +105,7 @@ export const TiptapWysiwygEditor = memo(
             }
           }),
           Placeholder.configure({
-            placeholder: placeholder || '워드프로세서처럼 자유롭게 내용을 작성하세요...',
+            placeholder: () => placeholder || ttRef.current.placeholder,
             emptyEditorClass: 'is-editor-empty'
           }),
           Markdown.configure({
@@ -196,11 +202,11 @@ export const TiptapWysiwygEditor = memo(
               case 'link': {
                 const { from, to } = editor.state.selection;
                 const text = editor.state.doc.textBetween(from, to, ' ');
-                editor.chain().focus().insertContent(`[${text || '링크'}](https://)`).run();
+                editor.chain().focus().insertContent(`[${text || ttRef.current.linkText}](https://)`).run();
                 break;
               }
               case 'image':
-                editor.chain().focus().insertContent('![이미지](https://)').run();
+                editor.chain().focus().insertContent(`![${ttRef.current.imageAlt}](https://)`).run();
                 break;
               default:
                 break;
@@ -305,7 +311,7 @@ export const TiptapWysiwygEditor = memo(
       if (!editor) {
         return (
           <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">
-            에디터를 불러오는 중입니다...
+            {tt.loading}
           </div>
         );
       }
@@ -327,45 +333,45 @@ export const TiptapWysiwygEditor = memo(
               className="sticky top-2 z-20 mx-auto px-3 py-1 rounded-md border shadow-xl flex items-center gap-1.5 select-none shrink-0 text-xs animate-in fade-in"
             >
               <span className="text-[0.6875rem] text-indigo-400 font-medium mr-1 flex items-center gap-1">
-                <TableIcon className="w-3.5 h-3.5" /> 표 편집
+                <TableIcon className="w-3.5 h-3.5" /> {tt.tableEdit}
               </span>
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor.chain().focus().addRowAfter().run()}
                 className="text-slate-300 hover:text-white px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer flex items-center gap-1"
-                title="아래에 행 추가"
+                title={tt.addRowTitle}
               >
                 <Rows className="w-3.5 h-3.5 text-emerald-400" />
-                <span>행 추가</span>
+                <span>{tt.addRow}</span>
               </button>
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor.chain().focus().addColumnAfter().run()}
                 className="text-slate-300 hover:text-white px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer flex items-center gap-1"
-                title="우측에 열 추가"
+                title={tt.addColTitle}
               >
                 <Columns className="w-3.5 h-3.5 text-sky-400" />
-                <span>열 추가</span>
+                <span>{tt.addCol}</span>
               </button>
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor.chain().focus().deleteRow().run()}
                 className="text-slate-400 hover:text-rose-400 px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer"
-                title="현재 행 삭제"
+                title={tt.delRowTitle}
               >
-                행 삭제
+                {tt.delRow}
               </button>
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor.chain().focus().deleteColumn().run()}
                 className="text-slate-400 hover:text-rose-400 px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer"
-                title="현재 열 삭제"
+                title={tt.delColTitle}
               >
-                열 삭제
+                {tt.delCol}
               </button>
               <div className="h-3 w-px bg-white/[0.08] mx-0.5 shrink-0" />
               <button
@@ -373,10 +379,10 @@ export const TiptapWysiwygEditor = memo(
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor.chain().focus().deleteTable().run()}
                 className="text-rose-400 hover:text-rose-300 px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer flex items-center gap-1"
-                title="표 전체 삭제"
+                title={tt.delTableTitle}
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>표 삭제</span>
+                <span>{tt.delTable}</span>
               </button>
             </div>
           )}

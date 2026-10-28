@@ -40,6 +40,8 @@ import {
 import { convertPdfToMarkdown, PdfParserEngine } from '../services/documentConverterService';
 import { extractCurrentPageToMarkdown, OcrProgressInfo } from '../services/pdfOcrService';
 import { SAMPLE_PDF_DATA_URL } from '../data/samplePdfData';
+import { useLanguage } from '../context/LanguageContext';
+import { getPdfViewerTranslations } from '../locales/pdfViewerLocale';
 import {
   reducePdfSizeAndStripImageMetadata,
   PdfReductionResult,
@@ -128,6 +130,10 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
   onViewerStateChange,
   hideTopToolbar = true,
 }, ref) => {
+  const { language } = useLanguage();
+  const t = getPdfViewerTranslations(language);
+  const tRef = useRef(t);
+  tRef.current = t;
   const [pdfDoc, setPdfDoc] = useState<any>(null);
   const [numPages, setNumPages] = useState<number>(1);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -270,7 +276,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
         activePdfBytesRef.current = bytes;
 
         if (!bytes || bytes.byteLength === 0) {
-          setLoadError('PDF 파일의 크기가 0 바이트이거나 비어 있습니다.');
+          setLoadError(tRef.current.errEmptyFile);
           setIsLoadingPdf(false);
           return;
         }
@@ -288,7 +294,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                 activePdfBytesRef.current = bytesToUse;
                 if (reduction.savedPercentage >= 5) {
                   onToast?.(
-                    `[PDF 크기 최적화] 고해상도 이미지 메타데이터를 정리하여 메모리를 ${reduction.savedPercentage}% 절감했습니다 (${formatBytes(reduction.originalSizeBytes)} → ${formatBytes(reduction.reducedSizeBytes)}).`,
+                    tRef.current.optimizedOnLoad(reduction.savedPercentage, formatBytes(reduction.originalSizeBytes), formatBytes(reduction.reducedSizeBytes)),
                     'info'
                   );
                 }
@@ -318,7 +324,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
       } catch (err: any) {
         if (isCancelled) return;
         console.error('Error loading PDF document:', err);
-        setLoadError(err?.message || 'PDF 문서를 로드하지 못했습니다.');
+        setLoadError(err?.message || tRef.current.errLoadFailed);
         setIsLoadingPdf(false);
       }
     };
@@ -635,7 +641,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
     }
 
     if (!bytesToUse || bytesToUse.byteLength === 0) {
-      onToast?.('변환할 PDF 데이터가 없거나 비어 있습니다.', 'error');
+      onToast?.(t.noPdfData, 'error');
       return;
     }
 
@@ -644,15 +650,15 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
     if (extractScope === 'current') {
       const engineNameLabel =
         engine === 'gemini'
-          ? '클라우드 AI 엔진'
+          ? t.engineCloud
           : engine === 'ocr'
-          ? '문자 인식 엔진'
+          ? t.engineOcr
           : engine === 'ollama'
-          ? `로컬 AI (${ollamaModel})`
-          : '고속 텍스트 엔진';
+          ? t.engineLocal(ollamaModel)
+          : t.engineFast;
 
-      onToast?.(`[페이지 ${currentPage}] 레이아웃 및 텍스트 정밀 분석을 시작합니다 (${engineNameLabel})...`, 'info');
-      setOcrProgress({ status: `페이지 ${currentPage} 분석 준비 중...`, progress: 10 });
+      onToast?.(t.pageAnalysisStart(currentPage, engineNameLabel), 'info');
+      setOcrProgress({ status: t.pagePreparing(currentPage), progress: 10 });
 
       try {
         let pageTextItems: any[] = [];
@@ -706,22 +712,22 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
 
         const engineLabel =
           result.engineUsed === 'gemini-cloud'
-            ? '클라우드 AI 엔진'
+            ? t.engineCloud
             : result.engineUsed === 'tesseract-ocr'
-            ? `문자 인식 (${result.confidence}% 신뢰도)`
+            ? t.engineOcrConfidence(result.confidence)
             : result.engineUsed === 'ollama-vision'
-            ? `로컬 AI (${ollamaModel})`
-            : '고속 텍스트 엔진';
+            ? t.engineLocal(ollamaModel)
+            : t.engineFast;
 
         onToast?.(
-          `[페이지 ${currentPage}] 텍스트와 레이아웃이 마크다운 에디터에 반영되었습니다 (${engineLabel})!`,
+          t.pageApplied(currentPage, engineLabel),
           'success'
         );
       } catch (err: any) {
         setIsExtracting(false);
         setOcrProgress(null);
         console.error('Page extraction failed:', err);
-        onToast?.(`페이지 추출 실패: ${err?.message || '알 수 없는 오류'}`, 'error');
+        onToast?.(t.pageExtractFail(err?.message || t.unknownError), 'error');
       }
       return;
     }
@@ -729,13 +735,13 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
     // Full Document Extraction
     onToast?.(
       engine === 'gemini'
-        ? '클라우드 AI로 전체 문서 구조 및 서식 정밀 분석을 시작합니다...'
+        ? t.fullCloudStart
         : engine === 'ollama'
-        ? `로컬 AI (${ollamaModel})로 전체 마크다운 변환을 시작합니다...`
-        : '고속 텍스트 추출 엔진으로 전체 문서를 변환합니다...',
+        ? t.fullLocalStart(ollamaModel)
+        : t.fullFastStart,
       'info'
     );
-    setOcrProgress({ status: '전체 문서 파싱 준비 중...', progress: 10 });
+    setOcrProgress({ status: t.fullPreparing, progress: 10 });
 
     try {
       const blob = new Blob([bytesToUse], { type: 'application/pdf' });
@@ -744,10 +750,10 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
         ollamaEndpoint: ollamaEndpoint,
         ollamaModel: ollamaModel,
         onProgress: (pct, msg) => {
-          setOcrProgress({ status: msg || '변환 진행 중...', progress: pct });
+          setOcrProgress({ status: msg || t.converting, progress: pct });
         },
         onFallback: (reason) => {
-          onToast?.(`로컬 AI 추출 실패 (${reason}). 고속 텍스트 엔진으로 자동 대체되었습니다.`, 'info');
+          onToast?.(t.localFallback(reason), 'info');
         },
       });
 
@@ -758,21 +764,21 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
       setOcrProgress(null);
 
       if (result.pageCount === 0) {
-        onToast?.(`'${fileName}' 파일이 비어 있어 추출된 마크다운 내용이 없습니다.`, 'info');
+        onToast?.(t.emptyNoMarkdown(fileName), 'info');
       } else {
         const engineName =
           result.parserEngine === 'gemini'
-            ? '클라우드 AI 엔진'
+            ? t.engineCloud
             : result.parserEngine === 'ollama'
-            ? `로컬 AI (${result.ollamaModel || ollamaModel})`
-            : '고속 텍스트 엔진';
-        onToast?.(`'${fileName}' 전체 마크다운이 성공적으로 추출되었습니다 (${engineName})!`, 'success');
+            ? t.engineLocal(result.ollamaModel || ollamaModel)
+            : t.engineFast;
+        onToast?.(t.fullExtracted(fileName, engineName), 'success');
       }
     } catch (err: any) {
       setIsExtracting(false);
       setOcrProgress(null);
       console.error('PDF extraction failed:', err);
-      onToast?.(`마크다운 추출 실패: ${err?.message || '알 수 없는 오류'}`, 'error');
+      onToast?.(t.extractFail(err?.message || t.unknownError), 'error');
     }
   };
 
@@ -782,9 +788,9 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
       await navigator.clipboard.writeText(markdownContent);
       setHasCopied(true);
       setTimeout(() => setHasCopied(false), 2000);
-      onToast?.('마크다운 텍스트가 클립보드에 복사되었습니다.', 'success');
+      onToast?.(t.copied, 'success');
     } catch {
-      onToast?.('복사 실패', 'error');
+      onToast?.(t.copyFail, 'error');
     }
   };
 
@@ -800,14 +806,14 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    onToast?.(`'${fileName}' 파일 다운로드를 시작했습니다.`, 'info');
+    onToast?.(t.downloadStarted(fileName), 'info');
   };
 
   // Manual clear markdown cache for current document, forcing re-reduction of metadata and re-parse
   const handleClearCacheAndReparse = async () => {
     if (isExtracting || isLoadingPdf || isOptimizingSize) return;
 
-    onToast?.(`'${fileName}' 마크다운 캐시를 삭제하고 메타데이터 재최적화 및 파싱을 시작합니다...`, 'info');
+    onToast?.(t.cacheClearStart(fileName), 'info');
 
     // 1. Clear Markdown Cache: in parent state and local storage
     try {
@@ -830,7 +836,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
     // 2. Force Re-reduction of PDF Metadata
     const rawBytes = rawOriginalBytesRef.current || activePdfBytesRef.current || resolvePdfBytes(pdfData);
     if (!rawBytes || rawBytes.byteLength === 0) {
-      onToast?.('최적화할 PDF 원본 데이터가 없습니다.', 'error');
+      onToast?.(t.noOriginalData, 'error');
       return;
     }
 
@@ -866,14 +872,14 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
       await handleExtractToMarkdown(extractEngine, reducedBytes, newDoc);
 
       onToast?.(
-        `'${fileName}' 마크다운 캐시 삭제, 메타데이터 재최적화 및 파싱이 완료되었습니다!`,
+        t.reparseDone(fileName),
         'success'
       );
     } catch (parseErr: any) {
       setIsLoadingPdf(false);
       setIsExtracting(false);
       console.error('Re-parse error:', parseErr);
-      onToast?.(`재파싱 실패: ${parseErr?.message || '오류가 발생했습니다.'}`, 'error');
+      onToast?.(t.reparseFail(parseErr?.message || t.errorOccurred), 'error');
     }
   };
 
@@ -881,7 +887,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
   const handleApplySizeReduction = async () => {
     const bytes = rawOriginalBytesRef.current || activePdfBytesRef.current;
     if (!bytes || bytes.byteLength === 0) {
-      onToast?.('최적화할 PDF 데이터가 없습니다.', 'info');
+      onToast?.(t.noOptimizeData, 'info');
       return;
     }
 
@@ -905,15 +911,15 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
         setIsLoadingPdf(false);
 
         onToast?.(
-          `[PDF 크기 최적화] 고해상도 이미지 메타데이터 제거 완료: ${result.savedPercentage}% 절감 (${formatBytes(result.originalSizeBytes)} → ${formatBytes(result.reducedSizeBytes)})`,
+          t.sizeOptimizeDone(result.savedPercentage, formatBytes(result.originalSizeBytes), formatBytes(result.reducedSizeBytes)),
           'success'
         );
       } else {
-        onToast?.('이미 고해상도 이미지 메타데이터가 정리되어 최적화된 상태입니다.', 'info');
+        onToast?.(t.alreadyOptimized, 'info');
       }
     } catch (err: any) {
       console.error('PDF size reduction error:', err);
-      onToast?.(`크기 최적화 실패: ${err?.message || '알 수 없는 오류'}`, 'error');
+      onToast?.(t.sizeOptimizeFail(err?.message || t.unknownError), 'error');
     } finally {
       setIsOptimizingSize(false);
     }
@@ -933,7 +939,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    onToast?.(`최적화된 PDF 파일 (${formatBytes(bytesToDownload.byteLength)}) 다운로드를 시작했습니다.`, 'info');
+    onToast?.(t.optimizedDownloadStarted(formatBytes(bytesToDownload.byteLength)), 'info');
   };
 
   // PDF Size Reducer: Toggle auto-reduce on import
@@ -944,8 +950,8 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
     } catch {}
     onToast?.(
       checked
-        ? '문서 불러오기 시 고해상도 이미지 메타데이터 자동 제거가 활성화되었습니다.'
-        : '자동 최적화가 비활성화되었습니다.',
+        ? t.autoReduceOn
+        : t.autoReduceOff,
       'info'
     );
   };
@@ -957,7 +963,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
     if (e.target) e.target.value = '';
 
     if (file.size === 0) {
-      onToast?.(`'${file.name}' 파일이 비어 있습니다 (0 바이트).`, 'info');
+      onToast?.(t.fileEmpty(file.name), 'info');
       return;
     }
 
@@ -977,7 +983,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
 
         if (reduction.savedBytes > 0 && reduction.savedPercentage >= 5) {
           onToast?.(
-            `[PDF 크기 최적화] 가져오기 단계에서 고해상도 이미지 메타데이터를 제거하여 메모리를 ${reduction.savedPercentage}% 절감했습니다 (${formatBytes(reduction.originalSizeBytes)} → ${formatBytes(reduction.reducedSizeBytes)}).`,
+            t.optimizedOnImport(reduction.savedPercentage, formatBytes(reduction.originalSizeBytes), formatBytes(reduction.reducedSizeBytes)),
             'info'
           );
         }
@@ -1105,7 +1111,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
               onClick={handlePrevPage}
               disabled={currentPage <= 1 || isLoadingPdf}
               className="w-5.5 h-5.5 flex items-center justify-center rounded-xs text-slate-300 hover:text-white hover:bg-[#18181b] disabled:opacity-25 disabled:pointer-events-none transition cursor-pointer"
-              title="이전 페이지"
+              title={t.prevPage}
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
@@ -1120,7 +1126,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                 onKeyDown={(e) => e.key === 'Enter' && handlePageInputCommit()}
                 onBlur={handlePageInputCommit}
                 className="w-6 text-center bg-transparent text-indigo-300 font-semibold outline-none py-0 leading-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                title="페이지 번호 입력 후 Enter"
+                title={t.pageInputHint}
               />
               <span className="text-slate-500">/</span>
               <span className="text-slate-300 font-semibold px-0.5">{numPages}</span>
@@ -1131,7 +1137,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
               onClick={handleNextPage}
               disabled={currentPage >= numPages || isLoadingPdf}
               className="w-5.5 h-5.5 flex items-center justify-center rounded-xs text-slate-300 hover:text-white hover:bg-[#18181b] disabled:opacity-25 disabled:pointer-events-none transition cursor-pointer"
-              title="다음 페이지"
+              title={t.nextPage}
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
@@ -1146,7 +1152,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
               onClick={handleZoomOut}
               disabled={isLoadingPdf}
               className="w-5.5 h-5.5 flex items-center justify-center rounded-xs text-slate-300 hover:text-white hover:bg-[#18181b] transition cursor-pointer"
-              title="축소"
+              title={t.zoomOut}
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
@@ -1165,9 +1171,9 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                 }
               }}
               className="bg-[#242738] text-slate-200 text-[0.6875rem] font-mono rounded-xs px-1.5 py-0.5 border border-[#222226] outline-none cursor-pointer hover:border-[#6366f1] transition h-5.5"
-              title="배율 선택"
+              title={t.zoomSelect}
             >
-              <option value="width">너비 맞춤</option>
+              <option value="width">{t.fitWidth}</option>
               <option value="50">50%</option>
               <option value="75">75%</option>
               <option value="90">90%</option>
@@ -1182,7 +1188,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
               onClick={handleZoomIn}
               disabled={isLoadingPdf}
               className="w-5.5 h-5.5 flex items-center justify-center rounded-xs text-slate-300 hover:text-white hover:bg-[#18181b] transition cursor-pointer"
-              title="확대"
+              title={t.zoomIn}
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
@@ -1195,7 +1201,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                   ? 'bg-[#6366f1]/30 text-indigo-300 border border-[#6366f1]/50'
                   : 'text-slate-400 hover:text-white hover:bg-[#18181b]'
               }`}
-              title="너비 맞춤"
+              title={t.fitWidth}
             >
               <Maximize2 className="w-3.5 h-3.5" />
             </button>
@@ -1204,7 +1210,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
               type="button"
               onClick={handleRotate}
               className="w-5.5 h-5.5 flex items-center justify-center rounded-xs text-slate-400 hover:text-white hover:bg-[#18181b] transition cursor-pointer"
-              title="90도 회전"
+              title={t.rotate90}
             >
               <RotateCw className="w-3.5 h-3.5" />
             </button>
@@ -1216,10 +1222,10 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
               type="button"
               onClick={() => setShowReducerModal(true)}
               className="h-6 px-1.5 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[0.625rem] font-mono flex items-center gap-1 transition cursor-pointer shrink-0"
-              title="PDF 메타데이터 최적화 상태 확인"
+              title={t.optimizationStatus}
             >
               <Minimize2 className="w-3 h-3 text-emerald-400" />
-              <span>{reductionStats.savedPercentage}% 최적화됨</span>
+              <span>{t.optimizedPct(reductionStats.savedPercentage)}</span>
             </button>
           )}
         </div>
@@ -1234,15 +1240,16 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                 onClick={() => handleExtractToMarkdown(extractEngine)}
                 disabled={isExtracting || isLoadingPdf}
                 className="h-6.5 px-2.5 rounded-l-md bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 text-xs shadow-xs"
-                title={`${extractScope === 'current' ? `현재 ${currentPage}쪽` : '전체 문서'} 마크다운 추출 실행 (${
-                  extractEngine === 'fast' ? '고속 텍스트' : extractEngine === 'gemini' ? '클라우드 AI' : extractEngine === 'ollama' ? '로컬 AI' : '문자 인식'
-                })`}
+                title={t.extractRunTitle(
+                  extractScope === 'current' ? t.currentPageLabel(currentPage) : t.wholeDocument,
+                  extractEngine === 'fast' ? t.engineShortFast : extractEngine === 'gemini' ? t.engineShortCloud : extractEngine === 'ollama' ? t.engineShortLocal : t.engineShortOcr
+                )}
               >
                 {isExtracting ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-300 shrink-0" />
                     <span className="text-[0.6875rem] max-w-[90px] truncate whitespace-nowrap">
-                      {ocrProgress?.status || '추출 중...'}
+                      {ocrProgress?.status || t.extracting}
                     </span>
                   </>
                 ) : (
@@ -1253,7 +1260,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                       <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                     )}
                     <span className="text-[0.6875rem] font-medium whitespace-nowrap">
-                      마크다운 추출
+                      {t.extractMarkdown}
                     </span>
                   </>
                 )}
@@ -1264,7 +1271,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                 onClick={() => setIsExtractionMenuOpen((prev) => !prev)}
                 disabled={isExtracting || isLoadingPdf}
                 className="h-6.5 px-1.5 rounded-r-md bg-indigo-600 hover:bg-indigo-500 text-white/90 hover:text-white border-l border-indigo-400/30 flex items-center justify-center transition cursor-pointer disabled:opacity-50"
-                title="추출 설정 (엔진 및 범위)"
+                title={t.extractSettingsTitle}
               >
                 <ChevronDown className="w-3 h-3" />
               </button>
@@ -1276,7 +1283,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                 <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.08] mb-2">
                   <span className="font-medium text-zinc-200 text-xs flex items-center gap-1.5">
                     <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
-                    마크다운 추출 설정
+                    {t.extractSettings}
                   </span>
                   <button
                     type="button"
@@ -1289,7 +1296,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
 
                 {/* Scope Selector */}
                 <div className="mb-2.5">
-                  <div className="text-[0.625rem] text-zinc-400 font-medium mb-1">추출 범위</div>
+                  <div className="text-[0.625rem] text-zinc-400 font-medium mb-1">{t.extractScope}</div>
                   <div className="grid grid-cols-2 gap-1 bg-[#09090b] p-0.5 rounded-md border border-white/[0.08]">
                     <button
                       type="button"
@@ -1300,7 +1307,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                           : 'text-zinc-400 hover:text-zinc-200'
                       }`}
                     >
-                      현재 쪽 ({currentPage}쪽)
+                      {t.scopeCurrent(currentPage)}
                     </button>
                     <button
                       type="button"
@@ -1311,19 +1318,19 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                           : 'text-zinc-400 hover:text-zinc-200'
                       }`}
                     >
-                      전체 문서 ({numPages}쪽)
+                      {t.scopeAll(numPages)}
                     </button>
                   </div>
                 </div>
 
                 {/* Engine Options */}
                 <div className="mb-2.5 space-y-1">
-                  <div className="text-[0.625rem] text-zinc-400 font-medium mb-1">변환 엔진</div>
+                  <div className="text-[0.625rem] text-zinc-400 font-medium mb-1">{t.convertEngine}</div>
                   {[
-                    { id: 'fast', name: '고속 텍스트 엔진', desc: '내장 텍스트 스트림 즉각 추출 (초고속)' },
-                    { id: 'gemini', name: '클라우드 AI', desc: 'Gemini 정밀 서식 및 구조화 파싱' },
-                    { id: 'ollama', name: '로컬 AI', desc: 'Ollama 비전 모델 기반 로컬 변환' },
-                    { id: 'ocr', name: '문자 인식', desc: '스캔 문서용 이미지 광학 문자 인식' },
+                    { id: 'fast', name: t.engineFastName, desc: t.engineFastDesc },
+                    { id: 'gemini', name: t.engineCloudName, desc: t.engineCloudDesc },
+                    { id: 'ollama', name: t.engineLocalName, desc: t.engineLocalDesc },
+                    { id: 'ocr', name: t.engineOcrName, desc: t.engineOcrDesc },
                   ].map((eng) => (
                     <button
                       key={eng.id}
@@ -1353,7 +1360,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                 {/* OCR Language if OCR */}
                 {extractEngine === 'ocr' && (
                   <div className="mb-2.5 p-1.5 bg-[#09090b] rounded-md border border-emerald-500/30">
-                    <div className="text-[0.625rem] text-emerald-400 font-medium mb-1">문자 인식 언어</div>
+                    <div className="text-[0.625rem] text-emerald-400 font-medium mb-1">{t.ocrLanguage}</div>
                     <div className="grid grid-cols-2 gap-1">
                       <button
                         type="button"
@@ -1364,7 +1371,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                             : 'text-zinc-400 hover:text-zinc-200'
                         }`}
                       >
-                        한글/영문
+                        {t.ocrKoEn}
                       </button>
                       <button
                         type="button"
@@ -1375,7 +1382,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                             : 'text-zinc-400 hover:text-zinc-200'
                         }`}
                       >
-                        영문 전용
+                        {t.ocrEnOnly}
                       </button>
                     </div>
                   </div>
@@ -1392,7 +1399,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                   className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-xs font-medium transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>설정 적용 후 추출 실행</span>
+                  <span>{t.applyAndExtract}</span>
                 </button>
               </div>
             )}
@@ -1409,17 +1416,17 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                 ? 'bg-white/[0.08] text-indigo-300 border-indigo-500/50 font-medium'
                 : 'bg-[#09090b] text-zinc-300 border-white/[0.08] hover:bg-white/[0.06] hover:text-white'
             }`}
-            title="단일 뷰 및 분할 편집 전환"
+            title={t.viewToggleTitle}
           >
             {isSplitView ? (
               <>
                 <Square className="w-3.5 h-3.5" />
-                <span className="text-[0.6875rem] whitespace-nowrap">단일 뷰</span>
+                <span className="text-[0.6875rem] whitespace-nowrap">{t.singleView}</span>
               </>
             ) : (
               <>
                 <Columns2 className="w-3.5 h-3.5" />
-                <span className="text-[0.6875rem] whitespace-nowrap">분할 뷰</span>
+                <span className="text-[0.6875rem] whitespace-nowrap">{t.splitView}</span>
               </>
             )}
           </button>
@@ -1436,7 +1443,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                   ? 'bg-white/[0.08] border-indigo-500/50 text-white'
                   : 'bg-[#09090b] border-white/[0.08] hover:bg-white/[0.06]'
               }`}
-              title="추가 도구 및 관리"
+              title={t.moreTools}
             >
               <MoreHorizontal className="w-3.5 h-3.5" />
             </button>
@@ -1454,8 +1461,8 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                 >
                   <RotateCcw className="w-3.5 h-3.5 text-amber-400 group-hover:text-amber-300 shrink-0" />
                   <div className="flex flex-col">
-                    <span>캐시 초기화 및 재파싱</span>
-                    <span className="text-[0.5625rem] text-zinc-500 group-hover:text-zinc-400">마크다운 캐시 삭제 및 새로 파싱</span>
+                    <span>{t.clearCache}</span>
+                    <span className="text-[0.5625rem] text-zinc-500 group-hover:text-zinc-400">{t.clearCacheDesc}</span>
                   </div>
                 </button>
 
@@ -1469,9 +1476,9 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                 >
                   <Minimize2 className="w-3.5 h-3.5 text-emerald-400 group-hover:text-emerald-300 shrink-0" />
                   <div className="flex flex-col">
-                    <span>PDF 크기 최적화...</span>
+                    <span>{t.sizeOptimizeMenu}</span>
                     <span className="text-[0.5625rem] text-zinc-500 group-hover:text-zinc-400">
-                      {reductionStats?.savedPercentage ? `${reductionStats.savedPercentage}% 절감됨 (메타데이터 제거)` : '메타데이터 제거 및 메모리 최적화'}
+                      {reductionStats?.savedPercentage ? t.savedPctDesc(reductionStats.savedPercentage) : t.sizeOptimizeMenuDesc}
                     </span>
                   </div>
                 </button>
@@ -1487,7 +1494,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                   className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center gap-2 transition cursor-pointer text-zinc-300"
                 >
                   <Upload className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                  <span>다른 PDF 파일 열기...</span>
+                  <span>{t.openOtherPdf}</span>
                 </button>
 
                 <button
@@ -1499,7 +1506,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                   className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center gap-2 transition cursor-pointer text-zinc-300"
                 >
                   <Download className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                  <span>현재 PDF 다운로드</span>
+                  <span>{t.downloadCurrentPdf}</span>
                 </button>
 
                 <button
@@ -1511,7 +1518,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                   className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] hover:text-zinc-100 flex items-center gap-2 transition cursor-pointer text-zinc-300"
                 >
                   <RotateCw className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                  <span>시계 방향 90도 회전</span>
+                  <span>{t.rotateClockwise}</span>
                 </button>
               </div>
             )}
@@ -1559,7 +1566,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
           {isLoadingPdf && (
             <div className="absolute inset-0 bg-[#09090b]/90 z-20 flex flex-col items-center justify-center gap-2">
               <Loader2 className="w-6 h-6 animate-spin text-[#6366f1]" />
-              <p className="text-xs text-slate-300 font-mono">PDF 문서를 렌더링 엔진에 준비 중입니다...</p>
+              <p className="text-xs text-slate-300 font-mono">{t.preparingEngine}</p>
             </div>
           )}
 
@@ -1626,8 +1633,8 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
               onClick={handlePrevPage}
               disabled={currentPage <= 1 || isLoadingPdf}
               className="p-1 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-              title="이전 페이지"
-              aria-label="이전 페이지"
+              title={t.prevPage}
+              aria-label={t.prevPage}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -1645,8 +1652,8 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
               onClick={handleNextPage}
               disabled={currentPage >= numPages || isLoadingPdf}
               className="p-1 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-              title="다음 페이지"
-              aria-label="다음 페이지"
+              title={t.nextPage}
+              aria-label={t.nextPage}
             >
               <ChevronRight className="w-4 h-4" />
             </button>

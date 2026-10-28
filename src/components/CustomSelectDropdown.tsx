@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { getConnectionTranslations } from '../locales/connectionLocale';
 
 export interface DropdownOption {
   id: string;
@@ -29,12 +31,15 @@ export const CustomSelectDropdown: React.FC<CustomSelectDropdownProps> = ({
   onChange,
   options,
   groups,
-  placeholder = '선택...',
+  placeholder,
   className = '',
   buttonClassName = '',
   menuClassName = '',
   openUpward = false,
 }) => {
+  const { language } = useLanguage();
+  const t = getConnectionTranslations(language).customSelect;
+  const resolvedPlaceholder = placeholder ?? t.placeholder;
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -64,7 +69,7 @@ export const CustomSelectDropdown: React.FC<CustomSelectDropdownProps> = ({
   }, [isOpen]);
 
   // Find currently selected label
-  let selectedLabel = placeholder;
+  let selectedLabel = resolvedPlaceholder;
   if (options) {
     const found = options.find((o) => o.id === value);
     if (found) selectedLabel = found.name;

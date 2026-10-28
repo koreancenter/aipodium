@@ -27,6 +27,8 @@ import {
 import { googleDriveService } from '../services/googleDriveService';
 import { convertDocumentToMarkdown } from '../services/documentConverterService';
 import type { GithubConfig } from './GithubIntegrationModal';
+import { useLanguage } from '../context/LanguageContext';
+import { getConnectionTranslations } from '../locales/connectionLocale';
 
 export interface RecentWorkspaceItem {
   id: string;
@@ -77,17 +79,20 @@ const isMockItem = (item: any): boolean => {
 };
 
 // Relative time formatter
-const formatRelativeTime = (timestamp: number): string => {
-  if (!timestamp) return '최근';
+const formatRelativeTime = (
+  timestamp: number,
+  t: ReturnType<typeof getConnectionTranslations>['workspace']
+): string => {
+  if (!timestamp) return t.recent;
   const diffMs = Date.now() - timestamp;
   const diffSec = Math.floor(diffMs / 1000);
-  if (diffSec < 60) return '방금 전';
+  if (diffSec < 60) return t.justNow;
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}분 전`;
+  if (diffMin < 60) return t.minutesAgo(diffMin);
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour}시간 전`;
+  if (diffHour < 24) return t.hoursAgo(diffHour);
   const diffDay = Math.floor(diffHour / 24);
-  return `${diffDay}일 전`;
+  return t.daysAgo(diffDay);
 };
 
 export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> = ({
@@ -102,6 +107,8 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
   onImportDocumentFiles,
   onOpenSettings,
 }) => {
+  const { language } = useLanguage();
+  const t = getConnectionTranslations(language).workspace;
   const [showRemoteOptions, setShowRemoteOptions] = useState<boolean>(false);
   const [isRescanning, setIsRescanning] = useState<boolean>(false);
   const [savedVaults, setSavedVaults] = useState<StoredVaultItem[]>([]);
@@ -148,7 +155,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
       } catch {}
       return updated;
     });
-    onToast('최근 기록에서 삭제되었습니다.', 'info');
+    onToast(t.toastRecentRemoved, 'info');
   };
 
   const handleClearAllRecents = () => {
@@ -156,7 +163,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
     try {
       localStorage.removeItem(STORAGE_KEY_RECENTS);
     } catch {}
-    onToast('최근 프로젝트 기록이 모두 삭제되었습니다.', 'info');
+    onToast(t.toastRecentsCleared, 'info');
   };
 
   useEffect(() => {
@@ -214,7 +221,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
         });
 
         onSelectWorkspace(newWs, files, fileFolders);
-        onToast(`📁 로컬 프로젝트 '${wsName}' (${Object.keys(files).length}개 파일)을 연결했습니다.`, 'success');
+        onToast(t.toastLocalConnected(wsName, Object.keys(files).length), 'success');
         onClose();
         return;
       } catch (err: any) {
@@ -271,12 +278,12 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
     });
 
     if (validFiles.length === 0) {
-      onToast('가져올 수 있는 문서 파일(.md, .docx, .xlsx, .pptx, .pdf 등)이 폴더에 없습니다.', 'warn');
+      onToast(t.toastNoDocuments, 'warn');
       return;
     }
 
     const total = validFiles.length;
-    onToast(`📁 ${total}개 문서 파일을 읽고 마크다운으로 변환 중입니다...`, 'info');
+    onToast(t.toastConverting(total), 'info');
 
     (async () => {
       try {
@@ -328,10 +335,10 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
         });
 
         onSelectWorkspace(newWs, loadedFiles, loadedFolders);
-        onToast(`📁 로컬 폴더 '${folderName}' (${Object.keys(loadedFiles).length}개 문서) 변환 완료 및 로드되었습니다.`, 'success');
+        onToast(t.toastFolderConverted(folderName, Object.keys(loadedFiles).length), 'success');
         onClose();
       } catch (err: any) {
-        onToast(`문서 처리 중 오류: ${err.message}`, 'error');
+        onToast(t.toastDocumentError(err.message), 'error');
       }
     })();
   };
@@ -339,7 +346,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
   // Rescan Current Directory
   const handleRescanCurrentDirectory = async () => {
     if (!memoryHandle) {
-      onToast('폴더 연결을 갱신하려면 [내 PC 폴더 열기]를 눌러주세요.', 'warn');
+      onToast(t.toastReopenFolder, 'warn');
       return;
     }
     setIsRescanning(true);
@@ -355,10 +362,10 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
         files,
         fileFolders
       );
-      onToast(`🔄 폴더 내 ${count}개 파일을 새로고침했습니다.`, 'success');
+      onToast(t.toastRefreshed(count), 'success');
     } catch (e: any) {
       console.error(e);
-      onToast('폴더 새로고침 중 오류가 발생했습니다.', 'error');
+      onToast(t.toastRefreshFailed, 'error');
     } finally {
       setIsRescanning(false);
     }
@@ -370,11 +377,11 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
       let status = googleDriveService.getTokenStatus();
       if (status !== 'connected') {
         try {
-          onToast('Google Drive 단독 연동을 진행합니다...', 'info');
+          onToast(t.toastDriveConnecting, 'info');
           await googleDriveService.signIn();
           status = googleDriveService.getTokenStatus();
         } catch (e: any) {
-          onToast(`Google Drive 연동 취소 또는 실패: ${e.message || '인증 오류'}`, 'warn');
+          onToast(t.toastDriveFailed(e.message || t.authError), 'warn');
           return;
         }
       }
@@ -395,7 +402,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
         timestamp: Date.now(),
       });
       onSelectWorkspace(newWs);
-      onToast(`☁️ Google Drive로 연결되었습니다.`, 'success');
+      onToast(t.toastDriveConnected, 'success');
       onClose();
     } else if (option === 'vault') {
       if (savedVaults.length > 0) {
@@ -422,7 +429,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
               timestamp: Date.now(),
             });
             onSelectWorkspace(newWs, vaultData.files, vaultData.fileFolders);
-            onToast(`💾 Vault '${topVault.name}'를 불러왔습니다.`, 'success');
+            onToast(t.toastVaultLoaded(topVault.name), 'success');
             onClose();
             return;
           }
@@ -448,7 +455,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
         timestamp: Date.now(),
       });
       onSelectWorkspace(newWs);
-      onToast(`💾 브라우저 로컬 Vault로 전환되었습니다.`, 'success');
+      onToast(t.toastBrowserVault, 'success');
       onClose();
     }
   };
@@ -471,7 +478,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
           };
           onSelectWorkspace(newWs, vaultData.files, vaultData.fileFolders);
           saveRecentItem({ ...item, timestamp: Date.now() });
-          onToast(`💾 '${item.name}' 프로젝트를 열었습니다.`, 'success');
+          onToast(t.toastProjectOpenedVault(item.name), 'success');
           onClose();
           return;
         }
@@ -495,7 +502,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
         onOpenFileContent(item.name, item.files[item.name]);
       }
       saveRecentItem({ ...item, timestamp: Date.now() });
-      onToast(`📂 '${item.name}' 프로젝트를 열었습니다.`, 'success');
+      onToast(t.toastProjectOpened(item.name), 'success');
       onClose();
       return;
     }
@@ -511,7 +518,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
     };
     onSelectWorkspace(newWs);
     saveRecentItem({ ...item, timestamp: Date.now() });
-    onToast(`📂 '${item.name}' 프로젝트로 전환되었습니다.`, 'success');
+    onToast(t.toastProjectSwitched(item.name), 'success');
     onClose();
   };
 
@@ -557,13 +564,13 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
         <div className="flex items-center justify-between pb-3 border-b border-[#222226]/70">
           <div className="flex items-center gap-2">
             <FolderOpen className="w-4 h-4 text-indigo-400" />
-            <h2 className="text-sm font-semibold text-slate-100">프로젝트 폴더 관리</h2>
+            <h2 className="text-sm font-semibold text-slate-100">{t.title}</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="text-slate-400 hover:text-slate-200 p-1 rounded-md hover:bg-[#18181b] transition cursor-pointer"
-            title="닫기"
+            title={t.close}
           >
             <X className="w-4 h-4" />
           </button>
@@ -577,7 +584,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
             className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 px-4 rounded-md font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
           >
             <FolderOpen className="w-4 h-4 shrink-0" />
-            <span>내 PC 폴더 열기...</span>
+            <span>{t.openLocalFolder}</span>
           </button>
 
           {/* Document Converter Action Button */}
@@ -587,18 +594,18 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
             className="w-full bg-[#202230] hover:bg-[#282a3c] text-indigo-300 hover:text-indigo-200 border border-[#222226] py-2 px-4 rounded-md font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
           >
             <FileText className="w-4 h-4 shrink-0 text-indigo-400" />
-            <span>오피스 및 PDF 문서 변환 가져오기...</span>
+            <span>{t.importDocuments}</span>
           </button>
 
           {/* Current Project Info & Rescan (Single subtle row) */}
           <div className="flex items-center justify-between text-[0.75rem] text-slate-400 px-1">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-slate-400 shrink-0">현재:</span>
+              <span className="text-slate-400 shrink-0">{t.current}</span>
               <span className="text-slate-200 font-medium truncate" title={activeWorkspace.path}>
                 {activeWorkspace.name}
               </span>
               <span className="text-slate-400 font-mono text-[0.6875rem] shrink-0">
-                ({Object.keys(currentFiles).length}개 파일)
+                ({t.fileCount(Object.keys(currentFiles).length)})
               </span>
             </div>
 
@@ -608,10 +615,10 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
                 onClick={handleRescanCurrentDirectory}
                 disabled={isRescanning}
                 className="flex items-center gap-1 text-[0.6875rem] text-indigo-400 hover:text-indigo-300 transition cursor-pointer shrink-0 disabled:opacity-50 ml-2"
-                title="폴더 새로고침"
+                title={t.refreshFolder}
               >
                 <RefreshCw className={`w-3 h-3 ${isRescanning ? 'animate-spin' : ''}`} />
-                <span>새로고침</span>
+                <span>{t.refresh}</span>
               </button>
             )}
           </div>
@@ -622,7 +629,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
           <div className="flex items-center justify-between text-xs text-slate-400 px-1">
             <span className="flex items-center gap-1.5 font-medium text-slate-300">
               <Clock className="w-3.5 h-3.5 text-slate-400" />
-              최근 프로젝트
+              {t.recentProjects}
             </span>
             {recentList.length > 0 && (
               <button
@@ -630,7 +637,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
                 onClick={handleClearAllRecents}
                 className="text-[0.625rem] text-slate-400 hover:text-rose-400 transition cursor-pointer"
               >
-                전체 삭제
+                {t.clearAll}
               </button>
             )}
           </div>
@@ -638,9 +645,9 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
           <div className="max-h-52 overflow-y-auto rounded bg-[#09090b] border border-[#222226]/70 divide-y divide-[#222226]/40 custom-scrollbar">
             {recentList.length === 0 ? (
               <div className="py-7 text-center text-xs text-slate-400 space-y-1">
-                <p>최근 열었던 프로젝트 폴더가 없습니다.</p>
+                <p>{t.noRecents}</p>
                 <p className="text-[0.6875rem] text-slate-400">
-                  위의 [내 PC 폴더 열기] 버튼을 눌러 프로젝트를 시작하세요.
+                  {t.noRecentsHint}
                 </p>
               </div>
             ) : (
@@ -659,7 +666,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
                         </span>
                         {item.fileCount !== undefined && (
                           <span className="text-[0.625rem] text-slate-400 font-mono">
-                            · {item.fileCount}개
+                            · {t.fileCountShort(item.fileCount)}
                           </span>
                         )}
                       </div>
@@ -671,13 +678,13 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
 
                   <div className="flex items-center gap-2 shrink-0 ml-2">
                     <span className="text-[0.625rem] text-slate-400 font-mono">
-                      {formatRelativeTime(item.timestamp)}
+                      {formatRelativeTime(item.timestamp, t)}
                     </span>
                     <button
                       type="button"
                       onClick={(e) => handleDeleteRecent(e, item.id)}
                       className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-400 p-0.5 rounded transition cursor-pointer"
-                      title="이 기록 삭제"
+                      title={t.removeRecent}
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -695,7 +702,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
             onClick={() => setShowRemoteOptions(!showRemoteOptions)}
             className="flex items-center justify-between w-full text-[0.6875rem] text-slate-400 hover:text-slate-200 transition cursor-pointer px-1 py-0.5"
           >
-            <span>☁️ Google Drive / 원격 저장소 연결...</span>
+            <span>{t.connectRemote}</span>
             {showRemoteOptions ? (
               <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
             ) : (
@@ -720,7 +727,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
                 className="py-1.5 px-2 rounded bg-[#09090b] hover:bg-[#121214] border border-[#222226]/60 flex items-center justify-center gap-1.5 text-slate-300 hover:text-white text-xs transition cursor-pointer"
               >
                 <Database className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="text-[0.6875rem]">브라우저 Vault</span>
+                <span className="text-[0.6875rem]">{t.browserVault}</span>
               </button>
             </div>
           )}

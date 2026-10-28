@@ -51,6 +51,7 @@ import {
 } from '../services/aiPodiumIntegration';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { getSettingsTranslations } from '../locales/settingsLocale';
 import {
   VENDOR_MODELS_MAP,
   CLOUD_MODEL_OPTIONS,
@@ -337,6 +338,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 }) => {
   const auth = useAuth();
   const { language, preference: languagePreference, setPreference: setLanguagePreference } = useLanguage();
+  const st = getSettingsTranslations(language);
   const [localPrefs, setLocalPrefs] = useState<UserPreferences>(preferences);
   const [activeTab, setActiveTab] = useState<PreferencesTab>('ai');
 
@@ -426,7 +428,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   const runCorsDiagnostic = useCallback(async (ep?: string) => {
     const targetUrl = (ep || localEndpointInput || 'http://localhost:11434').trim().replace(/\/+$/, '');
     setCorsStatus('testing');
-    setCorsDetails('로컬 Ollama 엔드포인트에 접속 및 CORS 헤더를 확인하고 있습니다...');
+    setCorsDetails(st.cors.checking);
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 3500);
@@ -439,25 +441,25 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
         const data = await res.json().catch(() => ({}));
         const count = Array.isArray(data?.models) ? data.models.length : 0;
         setCorsStatus('success');
-        setCorsDetails(`연결 성공! ${count}개 로컬 모델이 감지되었으며 브라우저 CORS가 정상 허용되어 있습니다.`);
-        onToast(`✓ 로컬 Ollama 정상 연결 확인! (${count}개 모델 감지)`, 'success');
+        setCorsDetails(st.cors.success(count));
+        onToast(st.cors.successToast(count), 'success');
       } else {
         setCorsStatus('blocked');
-        setCorsDetails(`서버는 응답했으나 HTTP ${res.status} 오류가 발생했습니다. CORS 정책 및 설정을 확인하세요.`);
-        onToast(`⚠️ HTTP ${res.status}: CORS 접근이 제한되었습니다.`, 'warn');
+        setCorsDetails(st.cors.httpError(res.status));
+        onToast(st.cors.httpToast(res.status), 'warn');
       }
     } catch (err: any) {
       if (err?.name === 'AbortError') {
         setCorsStatus('offline');
-        setCorsDetails('응답 시간 초과 (3.5초). Ollama 프로세스가 실행 중이지 않거나 주소가 다릅니다.');
-        onToast('⚠️ Ollama 프로세스가 응답하지 않습니다.', 'warn');
+        setCorsDetails(st.cors.timeout);
+        onToast(st.cors.timeoutToast, 'warn');
       } else {
         setCorsStatus('blocked');
-        setCorsDetails('브라우저 CORS 보안 정책에 의해 직접 연결이 차단되었습니다. OLLAMA_ORIGINS="*" 허용이 필요합니다.');
-        onToast('⚠️ 브라우저 CORS 차단 감지: OLLAMA_ORIGINS="*" 허용이 필요합니다.', 'error');
+        setCorsDetails(st.cors.blocked);
+        onToast(st.cors.blockedToast, 'error');
       }
     }
-  }, [localEndpointInput, onToast]);
+  }, [localEndpointInput, onToast, st]);
 
   // Function to fetch available local Ollama models
   const fetchLocalModels = useCallback(async (endpointUrl: string) => {
@@ -634,7 +636,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
         topP: 0.85,
         maxTokens: 4096
       }));
-      onToast('🎯 정밀/코딩 모드 적용 (온도 0.20, 토큰 4,096)', 'info');
+      onToast(st.toasts.precise, 'info');
     } else if (preset === 'creative') {
       setLocalAiParams((prev) => ({
         ...prev,
@@ -642,7 +644,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
         topP: 0.95,
         maxTokens: 8192
       }));
-      onToast('✨ 창의적 모드 적용 (온도 1.20, 토큰 8,192)', 'info');
+      onToast(st.toasts.creative, 'info');
     } else {
       setLocalAiParams((prev) => ({
         ...prev,
@@ -650,7 +652,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
         topP: 0.95,
         maxTokens: 4096
       }));
-      onToast('⚖️ 균형 기본 모드 적용 (온도 0.70, 토큰 4,096)', 'info');
+      onToast(st.toasts.balanced, 'info');
     }
   };
 
@@ -738,7 +740,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
       onSaveParameters(localAiParams);
     }
 
-    onToast('✓ 환경 설정 및 AI 엔진 설정이 저장되었습니다.', 'success');
+    onToast(st.toasts.saved, 'success');
     onClose();
   };
 
@@ -831,15 +833,15 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             <div className="flex items-center gap-2">
               <Settings className="w-4 h-4 text-zinc-400" />
               <h2 className="font-medium text-xs text-zinc-200 tracking-wide">
-                환경 설정
+                {st.title}
               </h2>
             </div>
             <button
               type="button"
               onClick={onClose}
               className="p-1 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] rounded transition cursor-pointer"
-              title="닫기"
-              aria-label="닫기"
+              title={st.close}
+              aria-label={st.close}
             >
               <X className="w-4 h-4" />
             </button>
@@ -859,9 +861,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                 }`}
               >
-                <span className="truncate">AI 엔진 설정</span>
+                <span className="truncate">{st.tabs.ai}</span>
                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 shrink-0 ml-1 font-normal">
-                  {localProviderType === 'cloud' ? '클라우드' : '로컬'}
+                  {localProviderType === 'cloud' ? st.badges.cloud : st.badges.local}
                 </span>
               </button>
 
@@ -874,7 +876,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                 }`}
               >
-                <span className="truncate">페르소나</span>
+                <span className="truncate">{st.tabs.persona}</span>
               </button>
 
               <button
@@ -886,7 +888,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                 }`}
               >
-                <span className="truncate">고스트 라이터</span>
+                <span className="truncate">{st.tabs.ghostWriter}</span>
                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 shrink-0 ml-1 font-normal">
                   {localPrefs.ghostWriterLevel && localPrefs.ghostWriterLevel !== 'off'
                     ? `${localPrefs.ghostWriterLevel}%`
@@ -908,14 +910,14 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                     }`}
                   >
-                    <span className="truncate">계정 연동</span>
+                    <span className="truncate">{st.tabs.integrations}</span>
                     {connectedCount > 0 ? (
                       <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-300 font-normal shrink-0 ml-1">
-                        {connectedCount}개 연결
+                        {st.badges.connected(connectedCount)}
                       </span>
                     ) : (
                       <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-zinc-500 font-normal shrink-0 ml-1">
-                        미연결
+                        {st.badges.disconnected}
                       </span>
                     )}
                   </button>
@@ -931,9 +933,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                 }`}
               >
-                <span className="truncate">저장소 및 DB</span>
+                <span className="truncate">{st.tabs.storage}</span>
                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 font-normal shrink-0 ml-1">
-                  로컬 DB
+                  {st.badges.localDb}
                 </span>
               </button>
 
@@ -946,7 +948,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                 }`}
               >
-                <span className="truncate">보안 및 볼트</span>
+                <span className="truncate">{st.tabs.security}</span>
               </button>
 
               <button
@@ -960,21 +962,21 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               >
                 <span className="flex items-center gap-2 truncate">
                   <Globe className="w-3.5 h-3.5" />
-                  <span>{language === 'ko' ? '언어' : 'Language'}</span>
+                  <span>{st.tabs.language}</span>
                 </span>
               </button>
 
               {/* System Status & Environment Info Widget */}
               <div className="mt-auto pt-3 border-t border-white/[0.08] px-2 py-1.5 text-[11px] text-zinc-400 space-y-1.5 select-none">
                 <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-zinc-500 font-normal">빌드 환경</span>
+                  <span className="text-zinc-500 font-normal">{st.status.build}</span>
                   <span className="font-mono text-zinc-300 font-normal">v2.4.0</span>
                 </div>
                 <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-zinc-500 font-normal">데이터 보존</span>
+                  <span className="text-zinc-500 font-normal">{st.status.retention}</span>
                   <span className="font-mono text-zinc-300 flex items-center gap-1.5 font-normal">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                    로컬 암호화
+                    {st.status.encrypted}
                   </span>
                 </div>
               </div>
@@ -987,32 +989,28 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                 <section className="max-w-xl space-y-4 animate-in fade-in duration-150">
                   <div className="border-b border-white/[0.06] pb-3">
                     <h3 className="text-sm font-semibold text-zinc-100">
-                      {language === 'ko' ? '표시 언어' : 'Display language'}
+                      {st.languagePanel.title}
                     </h3>
                     <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-                      {language === 'ko'
-                        ? '기본값은 브라우저의 우선 언어를 따릅니다. 직접 선택하면 브라우저 설정과 관계없이 선택한 언어를 유지합니다.'
-                        : 'By default, the app follows your browser’s preferred languages. Choose a language to keep it regardless of browser settings.'}
+                      {st.languagePanel.description}
                     </p>
                   </div>
                   <div className="space-y-2">
                     {([
                       {
                         value: 'system',
-                        title: language === 'ko' ? '브라우저 설정 따르기' : 'Follow browser settings',
-                        description: language === 'ko'
-                          ? '브라우저에서 지원하는 첫 번째 언어를 사용합니다.'
-                          : 'Use the first language supported by your browser.'
+                        title: st.languagePanel.systemTitle,
+                        description: st.languagePanel.systemDescription
                       },
                       {
                         value: 'ko',
                         title: '한국어',
-                        description: language === 'ko' ? '앱을 한국어로 표시합니다.' : 'Display the app in Korean.'
+                        description: st.languagePanel.koDescription
                       },
                       {
                         value: 'en',
                         title: 'English',
-                        description: language === 'ko' ? '앱을 영어로 표시합니다.' : 'Display the app in English.'
+                        description: st.languagePanel.enDescription
                       }
                     ] as const).map((option) => (
                       <label
@@ -1042,10 +1040,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   {/* 1. Mode Switcher: Cloud API vs Local Ollama */}
                   <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.06]">
                     <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
-                      <span>엔진 모드</span>
+                      <span>{st.body.engineMode}</span>
                       <HelpTooltip
                         side="bottom"
-                        content="클라우드 상용 LLM 또는 로컬 Ollama 모델을 선택하여 추론을 실행합니다."
+                        content={st.body.engineModeHelp}
                       />
                     </div>
                     <div className="inline-flex p-0.5 bg-[#09090b] border border-white/10 rounded-md">
@@ -1058,7 +1056,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             : 'text-zinc-400 hover:text-zinc-200'
                         }`}
                       >
-                        <span>클라우드 API</span>
+                        <span>{st.body.cloudApi}</span>
                       </button>
 
                       <button
@@ -1070,7 +1068,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             : 'text-zinc-400 hover:text-zinc-200'
                         }`}
                       >
-                        <span>로컬 Ollama</span>
+                        <span>{st.body.localOllama}</span>
                       </button>
                     </div>
                   </div>
@@ -1084,7 +1082,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           const isSelected = selectedVendor === v.id;
                           const hasKey = !!(localPrefs.apiKeys?.[v.id] || (v.id === selectedVendor && localApiKeyInput.trim()));
                           const vendorShort = v.id === 'gemini' ? 'Google' : v.id === 'openai' ? 'OpenAI' : v.id === 'anthropic' ? 'Anthropic' : v.id === 'deepseek' ? 'DeepSeek' : 'Groq';
-                          const vendorSub = v.id === 'gemini' ? '선택' : v.id === 'openai' ? 'GPT-4o' : v.id === 'anthropic' ? 'Claude' : v.id === 'deepseek' ? 'R1·V3' : '초고속 LPU';
+                          const vendorSub = v.id === 'gemini' ? st.body.vendorSubGemini : v.id === 'openai' ? 'GPT-4o' : v.id === 'anthropic' ? 'Claude' : v.id === 'deepseek' ? 'R1·V3' : st.body.vendorSubGroq;
                           return (
                             <button
                               key={v.id}
@@ -1099,7 +1097,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               <div className="flex items-center gap-1.5 text-xs font-normal">
                                 <span>{vendorShort}</span>
                                 {hasKey && (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" title="키 등록됨" />
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" title={st.body.keyRegistered} />
                                 )}
                               </div>
                               <span className={`text-[10px] leading-tight ${isSelected ? 'text-indigo-300 font-normal' : 'text-zinc-500 font-normal'}`}>
@@ -1118,10 +1116,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             {/* API Key Row */}
                             <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
                               <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
-                                <span>{currentVendorMeta.name} API 키</span>
+                                <span>{st.body.apiKeyLabel(currentVendorMeta.name)}</span>
                                 <HelpTooltip
                                   side="bottom"
-                                  content="클라우드 추론 요청 시 사용할 공급자 인증 키입니다. 로컬 브라우저에만 안전하게 보관됩니다."
+                                  content={st.body.apiKeyHelp}
                                 />
                               </div>
                               <div className="flex items-center gap-2 max-w-md w-full justify-end">
@@ -1140,14 +1138,14 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                         }
                                       }));
                                     }}
-                                    placeholder={`${currentVendorMeta.name} API 키 입력`}
+                                    placeholder={st.body.apiKeyPlaceholder(currentVendorMeta.name)}
                                     className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 pr-8 py-1.5 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none transition"
                                   />
                                   <button
                                     type="button"
                                     onClick={() => setShowApiKey(!showApiKey)}
                                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 cursor-pointer"
-                                    title={showApiKey ? '숨기기' : '표시'}
+                                    title={showApiKey ? st.body.hide : st.body.show}
                                   >
                                     {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                   </button>
@@ -1159,7 +1157,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                   disabled={isVerifying}
                                   className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
                                 >
-                                  <span>{isVerifying ? '검증 중' : '검증'}</span>
+                                  <span>{isVerifying ? st.body.verifying : st.body.verify}</span>
                                 </button>
 
                                 <a
@@ -1167,9 +1165,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
-                                  title={currentVendorMeta.guide}
+                                  title={st.vendors[currentVendorMeta.id as keyof typeof st.vendors]?.guide ?? currentVendorMeta.guide}
                                 >
-                                  <span>{currentVendorMeta.signupLabel}</span>
+                                  <span>{st.body.getApiKey}</span>
                                 </a>
                               </div>
                             </div>
@@ -1181,15 +1179,15 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                 ? `${spec.contextTokens / 1_000_000}M`
                                 : `${Math.round(spec.contextTokens / 1_000)}K`;
                               const badgeClean = spec.badge ? spec.badge.replace(' 제공', '') : '';
-                              const specText = `${contextStr} 컨텍스트 · 입 $${spec.inputCostPer1M.toFixed(spec.inputCostPer1M < 0.01 ? 3 : 2)} / 출 $${spec.outputCostPer1M.toFixed(2)}${badgeClean ? ` (${badgeClean})` : ''}`;
+                              const specText = st.body.modelSpec(contextStr, spec.inputCostPer1M.toFixed(spec.inputCostPer1M < 0.01 ? 3 : 2), spec.outputCostPer1M.toFixed(2), badgeClean);
 
                               return (
                                 <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
                                   <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
-                                    <span>기본 모델 선택</span>
+                                    <span>{st.body.defaultModel}</span>
                                     <HelpTooltip
                                       side="bottom"
-                                      content={specText || '기본 텍스트 생성 및 AI 기능에 사용할 모델을 선택합니다.'}
+                                      content={specText || st.body.defaultModelHelp}
                                     />
                                   </div>
 
@@ -1212,9 +1210,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                           onOpenRoleAssignment();
                                         }}
                                         className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
-                                        title="역할별 AI 모델 지정"
+                                        title={st.body.roleModelsTitle}
                                       >
-                                        <span>역할별 모델 지정</span>
+                                        <span>{st.body.roleModels}</span>
                                       </button>
                                     )}
                                   </div>
@@ -1226,17 +1224,17 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             {selectedVendor === 'gemini' && (
                               <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
                                 <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
-                                  <span>실시간 구글 검색 연동</span>
+                                  <span>{st.body.googleSearch}</span>
                                   <HelpTooltip
                                     side="bottom"
                                     align="right"
-                                    content="구글 검색 도구를 연동하여 최신 웹 기술 정보를 실시간으로 검색하고 답변에 출처 링크를 포함합니다. (Gemini 모델 전용)"
+                                    content={st.body.googleSearchHelp}
                                   />
                                 </div>
                                 <button
                                   type="button"
                                   onClick={() => setLocalGoogleGrounding(!localGoogleGrounding)}
-                                  title={localGoogleGrounding ? "검색 연동 끄기" : "검색 연동 켜기"}
+                                  title={localGoogleGrounding ? st.body.googleSearchOff : st.body.googleSearchOn}
                                   className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                                     localGoogleGrounding ? 'bg-indigo-600' : 'bg-white/10'
                                   }`}
@@ -1258,10 +1256,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       {/* Local Endpoint Row */}
                       <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
                         <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
-                          <span>Ollama 서비스 엔드포인트</span>
+                          <span>{st.body.ollamaEndpoint}</span>
                           <HelpTooltip
                             side="bottom"
-                            content="로컬 머신에 실행 중인 Ollama API 주소입니다. (기본: http://localhost:11434)"
+                            content={st.body.ollamaEndpointHelp}
                           />
                         </div>
                         <div className="flex items-center gap-2 max-w-md w-full justify-end">
@@ -1278,7 +1276,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             disabled={isVerifying}
                             className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
                           >
-                            <span>{isVerifying ? '연결 중' : '검증'}</span>
+                            <span>{isVerifying ? st.body.connecting : st.body.verify}</span>
                           </button>
                         </div>
                       </div>
@@ -1286,10 +1284,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       {/* Local Model Selector Row */}
                       <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
                         <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
-                          <span>로컬 모델 선택</span>
+                          <span>{st.body.localModel}</span>
                           <HelpTooltip
                             side="bottom"
-                            content="로컬 머신에 설치된 LLM 가중치 모델입니다."
+                            content={st.body.localModelHelp}
                           />
                         </div>
                         <div className="min-w-[220px]">
@@ -1304,17 +1302,17 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       {localSelectedModel === 'custom' && (
                         <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
                           <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
-                            <span>커스텀 모델 태그</span>
+                            <span>{st.body.customTag}</span>
                             <HelpTooltip
                               side="bottom"
-                              content="직접 사용할 Ollama 모델 태그명을 입력합니다."
+                              content={st.body.customTagHelp}
                             />
                           </div>
                           <input
                             type="text"
                             value={customModelInput}
                             onChange={(e) => setCustomModelInput(e.target.value)}
-                            placeholder="예: llama3:latest 또는 mistral"
+                            placeholder={st.body.customTagPlaceholder}
                             className="max-w-xs w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 py-1.5 text-xs text-zinc-200 outline-none transition"
                           />
                         </div>
@@ -1328,7 +1326,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             onClick={() => setIsCorsGuideOpen((prev) => !prev)}
                             className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 hover:text-white transition cursor-pointer"
                           >
-                            <span>CORS 설정 가이드 보기</span>
+                            <span>{st.body.corsGuide}</span>
                             <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-150 ${isCorsGuideOpen ? 'rotate-180' : ''}`} />
                           </button>
 
@@ -1338,7 +1336,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             disabled={corsStatus === 'testing'}
                             className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
                           >
-                            <span>{corsStatus === 'testing' ? '진단 중...' : 'CORS 자가진단'}</span>
+                            <span>{corsStatus === 'testing' ? st.body.diagnosing : st.body.corsDiagnose}</span>
                           </button>
                         </div>
 
@@ -1370,9 +1368,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             <div className="flex items-center justify-between border-b border-white/[0.06] pb-1.5">
                               <div className="flex gap-1">
                                 {[
-                                  { id: 'powershell', label: 'Windows 파워셸' },
-                                  { id: 'windows-persist', label: 'Windows 영구 변수' },
-                                  { id: 'unix', label: 'macOS 및 Linux' },
+                                  { id: 'powershell', label: st.body.osPowershell },
+                                  { id: 'windows-persist', label: st.body.osWindowsPersist },
+                                  { id: 'unix', label: st.body.osUnix },
                                   { id: 'lmstudio', label: 'LM Studio' }
                                 ].map((tab) => (
                                   <button
@@ -1401,7 +1399,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               } else if (corsOsTab === 'unix') {
                                 cmdText = `OLLAMA_ORIGINS="*" ollama serve`;
                               } else {
-                                cmdText = `Developer 탭 -> Local Server -> Enable CORS 체크 활성화`;
+                                cmdText = st.body.lmStudioCors;
                               }
 
                               const isCopied = corsCopiedCmd === cmdText;
@@ -1414,12 +1412,12 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                     onClick={() => {
                                       navigator.clipboard.writeText(cmdText);
                                       setCorsCopiedCmd(cmdText);
-                                      onToast('명령어가 클립보드에 복사되었습니다.', 'success');
+                                      onToast(st.body.copied, 'success');
                                       setTimeout(() => setCorsCopiedCmd(null), 2500);
                                     }}
                                     className="px-2 py-1 rounded text-[11px] text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center justify-center cursor-pointer"
                                   >
-                                    <span>{isCopied ? '복사됨' : '복사'}</span>
+                                    <span>{isCopied ? st.body.copiedShort : st.body.copy}</span>
                                   </button>
                                 </div>
                               );
@@ -1433,19 +1431,19 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   {/* 3. Inference Mode Presets */}
                   <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
                     <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
-                      <span>추론 모드 및 파라미터</span>
+                      <span>{st.body.inferenceMode}</span>
                       <HelpTooltip
                         side="top"
-                        content="작업 목적에 맞춘 온도 및 토큰 파라미터 프리셋입니다. 코딩이나 정밀 분석에는 '정밀·코드', 일반 용도에는 '균형', 창의적 아이디어 발상에는 '창의적'을 권장합니다."
+                        content={st.body.inferenceModeHelp}
                       />
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="inline-flex p-0.5 bg-[#09090b] border border-white/10 rounded-md">
                         {[
-                          { id: 'precision', label: '정밀·코드' },
-                          { id: 'balanced', label: '균형' },
-                          { id: 'creative', label: '창의적' }
+                          { id: 'precision', label: st.body.presetPrecise },
+                          { id: 'balanced', label: st.body.presetBalanced },
+                          { id: 'creative', label: st.body.presetCreative }
                         ].map((p) => {
                           const isSelected = currentPreset === p.id;
                           return (
@@ -1470,7 +1468,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         onClick={() => setIsAdvancedParamsOpen(!isAdvancedParamsOpen)}
                         className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center gap-1 cursor-pointer"
                       >
-                        <span>세부 파라미터</span>
+                        <span>{st.body.detailParams}</span>
                         {isAdvancedParamsOpen ? (
                           <ChevronUp className="w-3 h-3 text-zinc-400" />
                         ) : (
@@ -1486,10 +1484,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       {/* Temperature Row */}
                       <div className="flex items-center justify-between gap-4">
                         <div className="w-48 shrink-0 flex items-center gap-1.5">
-                          <span className="text-xs text-zinc-300">온도 (Temperature)</span>
+                          <span className="text-xs text-zinc-300">{st.body.temperature}</span>
                           <HelpTooltip
                             side="top"
-                            content="값이 낮을수록 결정적이고 일관된 답변을 생성하며, 높을수록 창의적이고 다양한 표현을 시도합니다."
+                            content={st.body.temperatureHelp}
                           />
                         </div>
                         <div className="flex-1 max-w-sm flex items-center gap-3">
@@ -1513,10 +1511,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       {/* Max Tokens Row */}
                       <div className="flex items-center justify-between gap-4">
                         <div className="w-48 shrink-0 flex items-center gap-1.5">
-                          <span className="text-xs text-zinc-300">최대 출력 토큰</span>
+                          <span className="text-xs text-zinc-300">{st.body.maxTokens}</span>
                           <HelpTooltip
                             side="top"
-                            content="한 번의 질의에 AI가 생성할 수 있는 최대 토큰 수입니다."
+                            content={st.body.maxTokensHelp}
                           />
                         </div>
                         <div className="flex-1 max-w-sm flex items-center gap-3">
@@ -1540,10 +1538,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       {/* Top-P Row */}
                       <div className="flex items-center justify-between gap-4">
                         <div className="w-48 shrink-0 flex items-center gap-1.5">
-                          <span className="text-xs text-zinc-300">표본 추출 확률 (Top-P)</span>
+                          <span className="text-xs text-zinc-300">{st.body.topP}</span>
                           <HelpTooltip
                             side="top"
-                            content="누적 확률 분포 상위 P 범위 내의 토큰 중에서만 다음 단어를 선택합니다."
+                            content={st.body.topPHelp}
                           />
                         </div>
                         <div className="flex-1 max-w-sm flex items-center gap-3">
@@ -1567,16 +1565,16 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       {/* Streaming Checkbox Row */}
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-zinc-300">스트리밍 실시간 응답</span>
+                          <span className="text-xs text-zinc-300">{st.body.streaming}</span>
                           <HelpTooltip
                             side="top"
-                            content="답변이 생성되는 즉시 화면에 한 글자씩 실시간으로 표시합니다."
+                            content={st.body.streamingHelp}
                           />
                         </div>
                         <button
                           type="button"
                           onClick={() => setLocalAiParams((prev) => ({ ...prev, streamEnabled: !prev.streamEnabled }))}
-                          title={localAiParams.streamEnabled ? "스트리밍 끄기" : "스트리밍 켜기"}
+                          title={localAiParams.streamEnabled ? st.body.streamingOff : st.body.streamingOn}
                           className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                             localAiParams.streamEnabled ? 'bg-indigo-600' : 'bg-white/10'
                           }`}
@@ -1591,15 +1589,15 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     </div>
                   )}
 
-                  {/* 5. PDF 문서 파싱 엔진 */}
+                  {/* 5. PDF parsing engine */}
                   <div className="py-3.5 border-b border-white/[0.06] space-y-3">
                     <div className="flex items-center justify-between gap-4">
                       <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
-                        <span>PDF 문서 파싱 엔진</span>
+                        <span>{st.body.pdfEngine}</span>
                         <HelpTooltip
                           side="top"
-                          title="PDF 파싱 엔진 안내"
-                          content="PDF 파일을 에디터로 불러올 때 사용할 방식을 지정합니다. 기본 브라우저 파서는 즉시 텍스트를 추출하며, 로컬 AI 파서는 제목, 표, 목록 구조를 정밀한 마크다운으로 재구성합니다."
+                          title={st.body.pdfEngineTitle}
+                          content={st.body.pdfEngineHelp}
                         />
                       </div>
 
@@ -1614,7 +1612,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               : 'text-zinc-400 hover:text-zinc-200'
                           }`}
                         >
-                          <span>기본 브라우저 고속 파서</span>
+                          <span>{st.body.pdfBrowser}</span>
                         </button>
 
                         <button
@@ -1626,7 +1624,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               : 'text-zinc-400 hover:text-zinc-200'
                           }`}
                         >
-                          <span>클라우드 AI 정밀 파서</span>
+                          <span>{st.body.pdfCloud}</span>
                         </button>
 
                         <button
@@ -1638,7 +1636,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               : 'text-zinc-400 hover:text-zinc-200'
                           }`}
                         >
-                          <span>로컬 AI 구조화 파서</span>
+                          <span>{st.body.pdfLocal}</span>
                         </button>
                       </div>
                     </div>
@@ -1660,9 +1658,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               onClick={handleRefreshOllamaPdfModels}
                               disabled={isCheckingPdfOllama}
                               className="px-2.5 py-1 rounded text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center justify-center cursor-pointer"
-                              title="설치된 로컬 Ollama 모델 목록 새로고침"
+                              title={st.body.refreshModels}
                             >
-                              <span>{isCheckingPdfOllama ? '확인 중...' : '확인'}</span>
+                              <span>{isCheckingPdfOllama ? st.body.checking : st.body.check}</span>
                             </button>
                           </div>
 
@@ -1672,23 +1670,23 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               onChange={(val) => setPdfOllamaModel(val)}
                               groups={[
                                 {
-                                  label: '추천 파싱 모델',
+                                  label: st.body.recommendedParsers,
                                   options: [
-                                    { id: 'llama3.2-vision', name: 'ollama/llama3.2-vision · 서식 및 비전 추천' },
-                                    { id: 'deepseek-ocr', name: 'ollama/deepseek-ocr · 표 및 문서 특화' },
-                                    { id: 'qwen3.5', name: 'ollama/qwen3.5 · 다국어 양식 특화' },
-                                    { id: 'qwen2.5-coder', name: 'ollama/qwen2.5-coder · 코드 및 기술 분석 특화' },
+                                    { id: 'llama3.2-vision', name: st.body.parserVision },
+                                    { id: 'deepseek-ocr', name: st.body.parserOcr },
+                                    { id: 'qwen3.5', name: st.body.parserQwen },
+                                    { id: 'qwen2.5-coder', name: st.body.parserCoder },
                                     { id: 'deepseek-r1:8b', name: 'ollama/deepseek-r1:8b · DeepSeek R1' },
                                     { id: 'llama3.2:latest', name: 'ollama/llama3.2:latest · Llama 3.2' },
                                   ]
                                 },
                                 ...(discoveredPdfModels.length > 0 ? [{
-                                  label: '내 PC에 설치된 Ollama 모델',
-                                  options: discoveredPdfModels.map((m) => ({ id: m, name: `${m} · 로컬 설치됨` }))
+                                  label: st.body.installedOllama,
+                                  options: discoveredPdfModels.map((m) => ({ id: m, name: st.body.installedSuffix(m) }))
                                 }] : []),
                                 {
                                   options: [
-                                    { id: 'custom', name: '직접 입력 · 사용자 보유 모델' }
+                                    { id: 'custom', name: st.body.customOwned }
                                   ]
                                 }
                               ]}
@@ -1698,12 +1696,12 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
                         {pdfOllamaModel === 'custom' && (
                           <div className="flex items-center gap-2">
-                            <label className="text-[11px] font-normal text-zinc-400 shrink-0">커스텀 모델 태그:</label>
+                            <label className="text-[11px] font-normal text-zinc-400 shrink-0">{st.body.customTagColon}</label>
                             <input
                               type="text"
                               value={pdfCustomModel}
                               onChange={(e) => setPdfCustomModel(e.target.value)}
-                              placeholder="예: llava:latest 또는 mistral:instruct"
+                              placeholder={st.body.pdfTagPlaceholder}
                               className="flex-1 bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded px-2.5 py-1 text-xs font-mono text-zinc-200 outline-none"
                             />
                           </div>
@@ -1722,9 +1720,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     {/* Field 1: Assistant Name */}
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-1.5">
-                        <label className="text-xs text-zinc-300 font-medium">어시스턴트 이름</label>
+                        <label className="text-xs text-zinc-300 font-medium">{st.body.assistantName}</label>
                         <HelpTooltip
-                          content="대화창 및 시스템 출력 시 표시될 AI의 호칭입니다."
+                          content={st.body.assistantNameHelp}
                         />
                       </div>
                       <input
@@ -1744,9 +1742,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     {/* Field 2: Role / Tone */}
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-1.5">
-                        <label className="text-xs text-zinc-300 font-medium">역할 및 어조</label>
+                        <label className="text-xs text-zinc-300 font-medium">{st.body.roleTone}</label>
                         <HelpTooltip
-                          content="AI 답변의 전문성 및 전반적인 커뮤니케이션 톤앤매너를 결정합니다."
+                          content={st.body.roleToneHelp}
                         />
                       </div>
                       <input
@@ -1758,7 +1756,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             aiPersona: { ...localPrefs.aiPersona, role: e.target.value }
                           })
                         }
-                        placeholder="소프트웨어 엔지니어 및 기술 작가"
+                        placeholder={st.body.rolePlaceholder}
                         className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 py-2 text-xs text-zinc-200 outline-none transition placeholder:text-zinc-600"
                       />
                     </div>
@@ -1768,9 +1766,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   <div className="flex-1 flex flex-col min-h-0 space-y-1.5 pt-0.5">
                     <div className="flex items-center justify-between shrink-0">
                       <div className="flex items-center gap-1.5">
-                        <label className="text-xs text-zinc-300 font-medium">시스템 프롬프트 지침</label>
+                        <label className="text-xs text-zinc-300 font-medium">{st.body.systemPrompt}</label>
                         <HelpTooltip
-                          content="AI가 코드 작성, 번역 및 질의응답 시 최우선으로 준수해야 할 기본 지침입니다."
+                          content={st.body.systemPromptHelp}
                         />
                       </div>
                       <button
@@ -1786,7 +1784,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         }
                         className="px-2.5 py-1 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center justify-center cursor-pointer"
                       >
-                        <span>기본값 복원</span>
+                        <span>{st.body.restoreDefault}</span>
                       </button>
                     </div>
                     <textarea
@@ -1798,7 +1796,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         })
                       }
                       className="w-full flex-1 min-h-[360px] bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md p-3 text-xs font-mono text-zinc-200 outline-none transition resize-none leading-relaxed placeholder:text-zinc-600"
-                      placeholder="AI에게 전달할 프롬프트 지침 입력..."
+                      placeholder={st.body.systemPromptPlaceholder}
                     />
                   </div>
                 </div>
@@ -1815,10 +1813,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     return (
                       <div className="py-3.5 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-xs font-medium text-zinc-200">구글 드라이브</span>
+                          <span className="text-xs font-medium text-zinc-200">{st.body.googleDrive}</span>
                           <HelpTooltip
                             side="bottom"
-                            content="문서 불러오기 및 백업을 위한 구글 드라이브 클라우드 연동입니다."
+                            content={st.body.googleDriveHelp}
                           />
                           {isConnected && googleUser && (
                             <span className="font-mono text-[11px] text-zinc-400 truncate max-w-[200px]">
@@ -1828,12 +1826,12 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           {isConnected && (
                             <span className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-normal shrink-0">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                              <span>연동됨</span>
+                              <span>{st.body.linked}</span>
                             </span>
                           )}
                           {isExpired && (
                             <span className="text-[11px] text-amber-400 font-normal shrink-0">
-                              토큰 만료
+                              {st.body.tokenExpired}
                             </span>
                           )}
                         </div>
@@ -1845,17 +1843,17 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                 type="button"
                                 onClick={onOpenGoogleDrive}
                                 className="px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
-                                title="Google Drive 파일 탐색 모달 열기"
+                                title={st.body.openDrivePicker}
                               >
-                                <span>드라이브 탐색</span>
+                                <span>{st.body.browseDrive}</span>
                               </button>
                               <button
                                 type="button"
                                 onClick={onOpenGoogleAccount}
                                 className="px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
-                                title="Google 계정 및 연결 관리"
+                                title={st.body.manageGoogle}
                               >
-                                <span>계정 관리</span>
+                                <span>{st.body.manageAccount}</span>
                               </button>
                             </>
                           ) : isExpired ? (
@@ -1864,16 +1862,16 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               onClick={onOpenGoogleDrive || onOpenGoogleAccount}
                               className="px-3 py-1.5 rounded-md text-xs text-amber-300 hover:text-amber-200 bg-amber-500/10 border border-amber-500/30 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
                             >
-                              <span>토큰 재인증 및 열기</span>
+                              <span>{st.body.reauth}</span>
                             </button>
                           ) : (
                             <button
                               type="button"
                               onClick={onOpenGoogleDrive || onOpenGoogleAccount}
                               className="px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
-                              title="Google OAuth 연동을 시작합니다."
+                              title={st.body.startOauth}
                             >
-                              <span>구글 드라이브 연결</span>
+                              <span>{st.body.connectDrive}</span>
                             </button>
                           )}
                         </div>
@@ -1892,7 +1890,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           <span className="text-xs font-medium text-zinc-200">GitHub</span>
                           <HelpTooltip
                             side="bottom"
-                            content="원격 저장소 커밋, 푸시, 브랜치 관리 및 동기화를 위한 GitHub 연동입니다."
+                            content={st.body.githubHelp}
                           />
                           {isConnected && (
                             <span className="font-mono text-[11px] text-zinc-400 truncate max-w-[200px]">
@@ -1904,12 +1902,12 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           {isConnected && (
                             <span className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-normal shrink-0">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                              <span>연결됨</span>
+                              <span>{st.body.connected}</span>
                             </span>
                           )}
                           {!isConnected && hasPat && (
                             <span className="text-[11px] text-amber-400 font-normal shrink-0">
-                              토큰 등록됨
+                              {st.body.tokenRegistered}
                             </span>
                           )}
                         </div>
@@ -1920,7 +1918,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             onClick={onOpenGithub}
                             className="px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
                           >
-                            <span>{isConnected ? '저장소 관리' : '연결 설정'}</span>
+                            <span>{isConnected ? st.body.manageRepo : st.body.connectSettings}</span>
                           </button>
                         </div>
                       </div>
@@ -1957,15 +1955,15 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   {/* Mode & Level Selection */}
                   <div className="py-3.5 flex items-center justify-between gap-4">
                     <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
-                      <span>작동 수준</span>
+                      <span>{st.body.ghostLevel}</span>
                       <HelpTooltip
-                        title="고스트 라이터 수준"
-                        content="에디터에서 문서를 작성하는 동안 백그라운드에서 실시간 번역 및 문맥 완성을 제안하는 강도입니다."
+                        title={st.body.ghostLevelTitle}
+                        content={st.body.ghostLevelHelp}
                       />
                     </div>
                     <div className="inline-flex p-0.5 bg-[#09090b] border border-white/10 rounded-md shrink-0">
                       {[
-                        { id: 'off', label: '사용 안 함' },
+                        { id: 'off', label: st.body.off },
                         { id: '30', label: '30%' },
                         { id: '50', label: '50%' },
                         { id: '70', label: '70%' },
@@ -1993,10 +1991,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   {/* Translation Model Selection */}
                   <div className="py-3.5 flex items-center justify-between gap-4">
                     <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
-                      <span>번역 모델</span>
+                      <span>{st.body.translationModel}</span>
                       <HelpTooltip
-                        title="고스트 라이터 전용 모델"
-                        content="실시간 문장 생성 및 다국어 번역을 전담할 경량 고속 모델을 선택합니다."
+                        title={st.body.ghostModelTitle}
+                        content={st.body.ghostModelHelp}
                       />
                     </div>
                     <div className="min-w-[220px]">
@@ -2012,11 +2010,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             onChange={(val) => setLocalPrefs({ ...localPrefs, ghostWriterModel: val })}
                             groups={cloudOpts.length > 0 && localOpts.length > 0 ? [
                               {
-                                label: '클라우드 모델',
+                                label: st.body.cloudModels,
                                 options: cloudOpts.map((m) => ({ id: m.id, name: m.name }))
                               },
                               {
-                                label: '로컬 모델',
+                                label: st.body.localModels,
                                 options: localOpts.map((m) => ({ id: m.id, name: m.name }))
                               }
                             ] : [
@@ -2038,7 +2036,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           <div className="px-5 py-3 border-t border-white/[0.08] bg-[#121214] flex justify-between items-center shrink-0">
             <span className="text-xs text-zinc-400 flex items-center gap-1.5">
               <Check className="w-3.5 h-3.5 text-emerald-400" />
-              <span>설정은 브라우저 로컬 저장소에 안전하게 보존됩니다</span>
+              <span>{st.body.footerNote}</span>
             </span>
             <div className="flex items-center gap-2">
               <button
@@ -2046,7 +2044,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                 onClick={onClose}
                 className="px-3.5 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
               >
-                취소
+                {st.body.cancel}
               </button>
               <button
                 type="button"
@@ -2054,7 +2052,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                 className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <Save className="w-3.5 h-3.5" />
-                <span>저장 및 적용</span>
+                <span>{st.body.saveApply}</span>
               </button>
             </div>
           </div>

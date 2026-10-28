@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import {
   Heading1,
   Heading2,
@@ -40,6 +40,8 @@ import { getTextareaSelectionCoordinates } from '../../utils/caretCoordinates';
 import { sanitizeHtml } from '../../utils/securitySanitizer';
 import { VirtualizedMarkdownPreview } from '../VirtualizedMarkdownPreview';
 import { getEphemeralDecryptedApiKey } from '../../services/aiPodiumIntegration';
+import { useLanguage } from '../../context/LanguageContext';
+import { getEditorTranslations } from '../../locales/editorLocale';
 
 export interface OptimizedEditorProps {
   value: string;
@@ -53,168 +55,120 @@ export interface OptimizedEditorProps {
   fontSize?: number;
 }
 
-interface SlashCommandItem {
+interface SlashCommandBase {
   id: string;
-  label: string;
-  sublabel: string;
   icon: React.ReactNode;
   category: 'headings' | 'lists' | 'blocks' | 'inline';
-  insertText: string;
   cursorOffset?: number; // Relative cursor position from start of inserted text
 }
 
-const SLASH_COMMANDS: SlashCommandItem[] = [
+interface SlashCommandItem extends SlashCommandBase {
+  label: string;
+  sublabel: string;
+  insertText: string;
+}
+
+const SLASH_COMMANDS: SlashCommandBase[] = [
   {
     id: 'h1',
-    label: '# 제목 1',
-    sublabel: '가장 큰 대제목',
     icon: <Heading1 className="w-3.5 h-3.5 text-sky-400" />,
     category: 'headings',
-    insertText: '# 제목\n',
     cursorOffset: 2
   },
   {
     id: 'h2',
-    label: '## 제목 2',
-    sublabel: '중간 크기 섹션 제목',
     icon: <Heading2 className="w-3.5 h-3.5 text-sky-400" />,
     category: 'headings',
-    insertText: '## 제목\n',
     cursorOffset: 3
   },
   {
     id: 'h3',
-    label: '### 제목 3',
-    sublabel: '소제목 및 하위 항목',
     icon: <Heading3 className="w-3.5 h-3.5 text-sky-400" />,
     category: 'headings',
-    insertText: '### 제목\n',
     cursorOffset: 4
   },
   {
     id: 'bullet',
-    label: '- 글머리 기호 목록',
-    sublabel: '순서 없는 불릿 목록',
     icon: <List className="w-3.5 h-3.5 text-indigo-400" />,
     category: 'lists',
-    insertText: '- 항목 1\n- 항목 2\n- 항목 3\n',
     cursorOffset: 2
   },
   {
     id: 'numbered',
-    label: '1. 번호 매기기 목록',
-    sublabel: '순서가 있는 순차 목록',
     icon: <ListOrdered className="w-3.5 h-3.5 text-indigo-400" />,
     category: 'lists',
-    insertText: '1. 첫 번째 항목\n2. 두 번째 항목\n3. 세 번째 항목\n',
     cursorOffset: 3
   },
   {
     id: 'task',
-    label: '- [ ] 할 일 체크박스',
-    sublabel: '인터랙티브 태스크 목록',
     icon: <CheckSquare className="w-3.5 h-3.5 text-indigo-400" />,
     category: 'lists',
-    insertText: '- [ ] 할 일 1\n- [ ] 할 일 2\n- [x] 완료된 일\n',
     cursorOffset: 6
   },
   {
     id: 'codeblock',
-    label: '``` 코드 블록',
-    sublabel: '문법 하이라이팅 코드 블록',
     icon: <Code className="w-3.5 h-3.5 text-amber-400/80" />,
     category: 'blocks',
-    insertText: '```typescript\n// 코드를 작성하세요\nconsole.log("Hello, World!");\n```\n',
     cursorOffset: 15
   },
   {
     id: 'table',
-    label: '| 표 삽입',
-    sublabel: '3x3 마크다운 데이터 표',
     icon: <TableIcon className="w-3.5 h-3.5 text-indigo-400" />,
     category: 'blocks',
-    insertText: '| 헤더 1 | 헤더 2 | 헤더 3 |\n| :--- | :---: | ---: |\n| 내용 A | 내용 B | 내용 C |\n| 항목 1 | 항목 2 | 항목 3 |\n',
     cursorOffset: 2
   },
   {
     id: 'quote',
-    label: '> 인용구',
-    sublabel: '강조 인용 문구',
     icon: <Quote className="w-3.5 h-3.5 text-purple-400" />,
     category: 'blocks',
-    insertText: '> 인용문을 여기에 작성하세요.\n',
     cursorOffset: 2
   },
   {
     id: 'note',
-    label: '> [!NOTE] 알림창',
-    sublabel: '안내 알림 상자',
     icon: <Sparkles className="w-3.5 h-3.5 text-indigo-400" />,
     category: 'blocks',
-    insertText: '> [!NOTE]\n> 중요한 정보나 참고 사항을 작성하세요.\n',
     cursorOffset: 12
   },
   {
     id: 'tip',
-    label: '> [!TIP] 유용한 팁',
-    sublabel: '권장 팁 알림 상자',
     icon: <Sparkles className="w-3.5 h-3.5 text-indigo-300" />,
     category: 'blocks',
-    insertText: '> [!TIP]\n> 권장하는 유용한 팁을 작성하세요.\n',
     cursorOffset: 11
   },
   {
     id: 'math',
-    label: '$$ 수식 블록',
-    sublabel: '수학 공식 수식 렌더링',
     icon: <Sigma className="w-3.5 h-3.5 text-rose-400" />,
     category: 'blocks',
-    insertText: '$$\nE = mc^2\n$$\n',
     cursorOffset: 3
   },
   {
     id: 'details',
-    label: '<details> 접기/펼치기',
-    sublabel: '아코디언 형태 상세 내용',
     icon: <ChevronDown className="w-3.5 h-3.5 text-slate-300" />,
     category: 'blocks',
-    insertText: '<details>\n<summary>상세 내용 보기</summary>\n\n여기에 숨겨진 상세 내용을 입력하세요.\n</details>\n',
     cursorOffset: 19
   },
   {
     id: 'hr',
-    label: '--- 구분선',
-    sublabel: '단락 구분 가로줄',
     icon: <Minus className="w-3.5 h-3.5 text-slate-400" />,
     category: 'blocks',
-    insertText: '\n---\n\n',
     cursorOffset: 5
   },
   {
     id: 'link',
-    label: '[텍스트](URL) 링크',
-    sublabel: '하이퍼링크 삽입',
     icon: <Link className="w-3.5 h-3.5 text-sky-400" />,
     category: 'inline',
-    insertText: '[링크 텍스트](https://example.com)',
     cursorOffset: 1
   },
   {
     id: 'image',
-    label: '![설명](URL) 이미지',
-    sublabel: '이미지 태그 삽입',
     icon: <ImageIcon className="w-3.5 h-3.5 text-sky-400" />,
     category: 'inline',
-    insertText: '![이미지 설명](https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=600)',
     cursorOffset: 2
   },
   {
     id: 'highlight',
-    label: '==형광펜 강조==',
-    sublabel: '노란색 하이라이트 텍스트',
     icon: <Highlighter className="w-3.5 h-3.5 text-amber-300" />,
     category: 'inline',
-    insertText: '==강조할 텍스트==',
     cursorOffset: 2
   }
 ];
@@ -265,6 +219,8 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
   // Table Context State (Active Table Detection & Management)
   const [currentTableInfo, setCurrentTableInfo] = useState<MarkdownTableInfo | null>(null);
   const [tableBubblePos, setTableBubblePos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const { language } = useLanguage();
+  const et = getEditorTranslations(language);
   const [isAiTableLoading, setIsAiTableLoading] = useState(false);
   const [isVisualModalOpen, setIsVisualModalOpen] = useState(false);
 
@@ -643,7 +599,7 @@ ${tableMarkdown}
       const data = await res.json();
       let reply = data.reply || data.text || '';
       if (!reply.trim()) {
-        throw new Error('AI로부터 유효한 표 응답을 수신하지 못했습니다.');
+        throw new Error(et.errNoTable);
       }
 
       // Strip code fences if present
@@ -655,7 +611,7 @@ ${tableMarkdown}
 
       const trimmedReply = reply.trim();
       if (!trimmedReply.includes('|')) {
-        throw new Error('올바른 마크다운 표 형식으로 변환되지 않았습니다.');
+        throw new Error(et.errBadTable);
       }
 
       const nextVal =
@@ -714,7 +670,7 @@ ${tableMarkdown}
     } finally {
       setIsAiTableLoading(false);
     }
-  }, [currentTableInfo, localValue, debouncedOnChange, updateTableContext]);
+  }, [currentTableInfo, localValue, debouncedOnChange, updateTableContext, et]);
 
   // General Text Bubble Menu Actions
   const handleApplyTextFormat = useCallback((formatType: TextFormatAction) => {
@@ -743,7 +699,7 @@ ${tableMarkdown}
           newEnd = start + 2 + selected.length;
         }
       } else {
-        replacement = '**굵은 텍스트**';
+        replacement = `**${et.bold}**`;
         newStart = start + 2;
         newEnd = start + 2 + 5;
       }
@@ -775,7 +731,7 @@ ${tableMarkdown}
           newEnd = start + 1 + selected.length;
         }
       } else {
-        replacement = '*기울임 텍스트*';
+        replacement = `*${et.italic}*`;
         newStart = start + 1;
         newEnd = start + 1 + 6;
       }
@@ -807,7 +763,7 @@ ${tableMarkdown}
           newEnd = start + 2 + selected.length;
         }
       } else {
-        replacement = '~~취소선 텍스트~~';
+        replacement = `~~${et.strike}~~`;
         newStart = start + 2;
         newEnd = start + 2 + 7;
       }
@@ -839,7 +795,7 @@ ${tableMarkdown}
           newEnd = start + 1 + selected.length;
         }
       } else {
-        replacement = '`코드`';
+        replacement = `\`${et.code}\``;
         newStart = start + 1;
         newEnd = start + 1 + 2;
       }
@@ -857,7 +813,7 @@ ${tableMarkdown}
     }
 
     if (formatType === 'link') {
-      const inner = selected || '링크 텍스트';
+      const inner = selected || et.linkText;
       const replacement = `[${inner}](https://)`;
       const newStart = start + 1;
       const newEnd = start + 1 + inner.length;
@@ -875,7 +831,7 @@ ${tableMarkdown}
     }
 
     if (formatType === 'codeblock') {
-      const inner = selected || '// 코드를 작성하세요';
+      const inner = selected || et.codeHint;
       const replacement = `\`\`\`typescript\n${inner}\n\`\`\`\n`;
       const nextVal = val.slice(0, start) + replacement + val.slice(end);
       setLocalValue(nextVal);
@@ -912,7 +868,7 @@ ${tableMarkdown}
         if (line.trim().startsWith(prefix)) {
           return `${indent}${clean}`;
         }
-        return `${indent}${prefix}${clean || '제목'}`;
+        return `${indent}${prefix}${clean || et.heading}`;
       });
     } else if (formatType === 'bullet') {
       const allAreBullets = lines.filter((l) => l.trim().length > 0).every((l) => /^(\s*)[-*+]\s+/.test(l));
@@ -922,7 +878,7 @@ ${tableMarkdown}
         const indent = indentMatch ? indentMatch[1] : '';
         const clean = line.replace(listPrefixRegex, '').replace(headingPrefixRegex, '').trimStart();
         if (allAreBullets) return `${indent}${clean}`;
-        return `${indent}- ${clean || '목록 항목'}`;
+        return `${indent}- ${clean || et.listItem}`;
       });
     } else if (formatType === 'number') {
       const allAreNumbers = lines.filter((l) => l.trim().length > 0).every((l) => /^(\s*)\d+[.)]\s+/.test(l));
@@ -933,7 +889,7 @@ ${tableMarkdown}
         const indent = indentMatch ? indentMatch[1] : '';
         const clean = line.replace(listPrefixRegex, '').replace(headingPrefixRegex, '').trimStart();
         if (allAreNumbers) return `${indent}${clean}`;
-        const res = `${indent}${counter}. ${clean || '목록 항목'}`;
+        const res = `${indent}${counter}. ${clean || et.listItem}`;
         counter++;
         return res;
       });
@@ -945,7 +901,7 @@ ${tableMarkdown}
         const indent = indentMatch ? indentMatch[1] : '';
         const clean = line.replace(listPrefixRegex, '').replace(headingPrefixRegex, '').trimStart();
         if (allAreTasks) return `${indent}${clean}`;
-        return `${indent}- [ ] ${clean || '할 일 항목'}`;
+        return `${indent}- [ ] ${clean || et.taskItem}`;
       });
     } else if (formatType === 'quote') {
       const allAreQuotes = lines.filter((l) => l.trim().length > 0).every((l) => /^(\s*)>\s+/.test(l));
@@ -955,7 +911,7 @@ ${tableMarkdown}
         const indent = indentMatch ? indentMatch[1] : '';
         const clean = line.replace(listPrefixRegex, '').replace(headingPrefixRegex, '').trimStart();
         if (allAreQuotes) return `${indent}${clean}`;
-        return `${indent}> ${clean || '인용문'}`;
+        return `${indent}> ${clean || et.quote}`;
       });
     }
 
@@ -971,7 +927,7 @@ ${tableMarkdown}
         updateEditorBubbleContext(nextVal, lineStart, newSelEnd);
       }
     }, 20);
-  }, [localValue, debouncedOnChange, refToUse, updateEditorBubbleContext]);
+  }, [localValue, debouncedOnChange, refToUse, updateEditorBubbleContext, et]);
 
   const handleAiTextEdit = useCallback(async (prompt: string) => {
     const textarea = refToUse.current;
@@ -1005,7 +961,7 @@ ${tableMarkdown}
     }
 
     if (!targetText) {
-      throw new Error('가공할 대상 텍스트가 없습니다. 텍스트를 선택하거나 작성해 주세요.');
+      throw new Error(et.errNoText);
     }
 
     setIsAiTextLoading(true);
@@ -1045,7 +1001,7 @@ ${targetText}
       const data = await res.json();
       let reply = data.reply || data.text || '';
       if (!reply.trim()) {
-        throw new Error('AI로부터 응답을 수신하지 못했습니다.');
+        throw new Error(et.errNoReply);
       }
 
       if (reply.startsWith('```markdown') && reply.endsWith('```')) {
@@ -1071,7 +1027,7 @@ ${targetText}
     } finally {
       setIsAiTextLoading(false);
     }
-  }, [localValue, debouncedOnChange, refToUse, updateEditorBubbleContext]);
+  }, [localValue, debouncedOnChange, refToUse, updateEditorBubbleContext, et]);
 
   const handleCleanText = useCallback(() => {
     const textarea = refToUse.current;
@@ -1285,7 +1241,12 @@ ${targetText}
     }, 20);
   }, [localValue, debouncedOnChange, refToUse]);
 
-  const filteredCommands = SLASH_COMMANDS.filter((cmd) => {
+  const slashCommands = useMemo<SlashCommandItem[]>(
+    () => SLASH_COMMANDS.map((cmd) => ({ ...cmd, ...et.slash[cmd.id as keyof typeof et.slash] })),
+    [et]
+  );
+
+  const filteredCommands = slashCommands.filter((cmd) => {
     if (!slashFilter.trim()) return true;
     const q = slashFilter.toLowerCase();
     return (
@@ -1846,14 +1807,14 @@ ${targetText}
       <div className="shrink-0 px-2 py-1 mb-1 border-b border-[#222226] flex items-center justify-between text-[0.625rem] text-[#94a3b8] font-semibold uppercase tracking-wider">
         <span className="flex items-center gap-1 text-[#6366f1]">
           <Sparkles className="w-3 h-3 text-[#6366f1]" />
-          마크다운 자동 완성
+          {et.menuTitle}
         </span>
-        <span className="font-mono text-[0.5625rem] text-[#94a3b8]/60">↑↓ 이동 · ↵ 선택</span>
+        <span className="font-mono text-[0.5625rem] text-[#94a3b8]/60">{et.menuHint}</span>
       </div>
 
       {filteredCommands.length === 0 ? (
         <div className="p-3 text-center text-[#94a3b8]/60 italic text-[0.6875rem]">
-          일치하는 마크다운 명령어가 없습니다.
+          {et.noMatch}
         </div>
       ) : (
         <div ref={listContainerRef} className="flex-1 overflow-y-auto space-y-0.5 max-h-56 pr-0.5 custom-scrollbar">
@@ -1969,7 +1930,7 @@ ${targetText}
             onSelect={(e) => {
               updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
             }}
-            placeholder={placeholder || "마크다운을 입력하세요. '/'를 입력하여 자동 완성 메뉴를 열거나 단축키를 사용할 수 있습니다."}
+            placeholder={placeholder || et.placeholder}
             spellCheck={false}
             style={{
               background: 'var(--bg-editor)',
@@ -2032,11 +1993,11 @@ ${targetText}
           >
             <span className="flex items-center gap-1.5" style={{ color: 'var(--accent)' }}>
               <Eye className="w-3 h-3" />
-              <span>실시간 미리보기</span>
+              <span>{et.livePreview}</span>
             </span>
             <span className="text-[0.5625rem] opacity-75 font-mono flex items-center gap-1" style={{ color: 'var(--accent)' }}>
               <span className="w-1.5 h-1.5 rounded-full bg-[#6366f1] animate-pulse" />
-              <span>동기화 스크롤 On</span>
+              <span>{et.syncScroll}</span>
             </span>
           </div>
 
@@ -2102,7 +2063,7 @@ ${targetText}
           onSelect={(e) => {
             updateEditorBubbleContext(localValue, e.currentTarget.selectionStart, e.currentTarget.selectionEnd);
           }}
-          placeholder={placeholder || "마크다운을 입력하세요. '/'를 입력하여 자동 완성 메뉴를 열거나 단축키를 사용할 수 있습니다."}
+          placeholder={placeholder || et.placeholder}
           spellCheck={false}
           style={{
             background: 'var(--bg-editor)',

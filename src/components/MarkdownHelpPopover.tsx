@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useLanguage } from '../context/LanguageContext';
+import { getDocModalsTranslations, type DocModalsTranslations } from '../locales/docModalsLocale';
 import {
   HelpCircle,
   X,
@@ -20,6 +22,8 @@ import {
   Plus
 } from 'lucide-react';
 
+type MarkdownHelpText = DocModalsTranslations['markdownHelp'];
+
 interface MarkdownHelpPopoverProps {
   isOpen: boolean;
   onClose: () => void;
@@ -34,85 +38,91 @@ interface HelpItem {
   exampleSnippet: string;
 }
 
-const HELP_CATEGORIES: { category: string; icon: React.ReactNode; items: HelpItem[] }[] = [
+const buildHelpCategories = (t: MarkdownHelpText): { id: string; category: string; icon: React.ReactNode; items: HelpItem[] }[] => [
   {
-    category: '제목 (Headings)',
+    id: 'headings',
+    category: t.categories.headings,
     icon: <Heading className="w-3.5 h-3.5 text-sky-400" />,
     items: [
-      { label: '대제목 (H1)', syntax: '# 제목 1', description: '문서의 메인 제목', exampleSnippet: '# 제목 1\n' },
-      { label: '중제목 (H2)', syntax: '## 제목 2', description: '주요 섹션 구분', exampleSnippet: '## 제목 2\n' },
-      { label: '소제목 (H3)', syntax: '### 제목 3', description: '세부 항목 구분', exampleSnippet: '### 제목 3\n' },
-      { label: '소제목 (H4~H6)', syntax: '#### 제목 4', description: '하위 단락 소제목', exampleSnippet: '#### 제목 4\n' }
+      { label: t.items.h1.label, syntax: '# 제목 1', description: t.items.h1.description, exampleSnippet: '# 제목 1\n' },
+      { label: t.items.h2.label, syntax: '## 제목 2', description: t.items.h2.description, exampleSnippet: '## 제목 2\n' },
+      { label: t.items.h3.label, syntax: '### 제목 3', description: t.items.h3.description, exampleSnippet: '### 제목 3\n' },
+      { label: t.items.h4.label, syntax: '#### 제목 4', description: t.items.h4.description, exampleSnippet: '#### 제목 4\n' }
     ]
   },
   {
-    category: '텍스트 서식 (Text Formatting)',
+    id: 'formatting',
+    category: t.categories.formatting,
     icon: <Bold className="w-3.5 h-3.5 text-indigo-400" />,
     items: [
-      { label: '굵게 (Bold)', syntax: '**굵은 텍스트**', description: 'Ctrl+B / 중요한 단어 강조', exampleSnippet: '**굵은 텍스트**' },
-      { label: '기울임 (Italic)', syntax: '*기울임 텍스트*', description: 'Ctrl+I / 부각 및 강조', exampleSnippet: '*기울임 텍스트*' },
-      { label: '취소선 (Strikethrough)', syntax: '~~취소선 텍스트~~', description: '삭제되거나 변경된 내용', exampleSnippet: '~~취소선 텍스트~~' },
-      { label: '형광펜 강조 (Highlight)', syntax: '==형광펜 텍스트==', description: '배경 노란색 하이라이트', exampleSnippet: '==형광펜 강조==' },
-      { label: '인라인 코드', syntax: '`코드`', description: '단일 코드나 명령어', exampleSnippet: '`console.log()`' }
+      { label: t.items.bold.label, syntax: '**굵은 텍스트**', description: t.items.bold.description, exampleSnippet: '**굵은 텍스트**' },
+      { label: t.items.italic.label, syntax: '*기울임 텍스트*', description: t.items.italic.description, exampleSnippet: '*기울임 텍스트*' },
+      { label: t.items.strike.label, syntax: '~~취소선 텍스트~~', description: t.items.strike.description, exampleSnippet: '~~취소선 텍스트~~' },
+      { label: t.items.highlight.label, syntax: '==형광펜 텍스트==', description: t.items.highlight.description, exampleSnippet: '==형광펜 강조==' },
+      { label: t.items.inlineCode.label, syntax: '`코드`', description: t.items.inlineCode.description, exampleSnippet: '`console.log()`' }
     ]
   },
   {
-    category: '목록 & 체크박스 (Lists & Tasks)',
+    id: 'lists',
+    category: t.categories.lists,
     icon: <List className="w-3.5 h-3.5 text-amber-400" />,
     items: [
-      { label: '글머리 기호 목록', syntax: '- 항목 1\n- 항목 2', description: '순서 없는 불릿 목록', exampleSnippet: '- 항목 1\n- 항목 2\n' },
-      { label: '번호 매기기 목록', syntax: '1. 첫 번째\n2. 두 번째', description: '순차가 있는 번호 목록', exampleSnippet: '1. 첫 번째\n2. 두 번째\n' },
-      { label: '할 일 체크박스', syntax: '- [ ] 미완료\n- [x] 완료', description: '인터랙티브 태스크 체크박스', exampleSnippet: '- [ ] 미완료 할 일\n- [x] 완료된 할 일\n' }
+      { label: t.items.bullet.label, syntax: '- 항목 1\n- 항목 2', description: t.items.bullet.description, exampleSnippet: '- 항목 1\n- 항목 2\n' },
+      { label: t.items.numbered.label, syntax: '1. 첫 번째\n2. 두 번째', description: t.items.numbered.description, exampleSnippet: '1. 첫 번째\n2. 두 번째\n' },
+      { label: t.items.task.label, syntax: '- [ ] 미완료\n- [x] 완료', description: t.items.task.description, exampleSnippet: '- [ ] 미완료 할 일\n- [x] 완료된 할 일\n' }
     ]
   },
   {
-    category: '인용구 & 알림창 (Quotes & Callouts)',
+    id: 'quotes',
+    category: t.categories.quotes,
     icon: <Quote className="w-3.5 h-3.5 text-purple-400" />,
     items: [
-      { label: '기본 인용문', syntax: '> 인용 내용', description: '인용구 및 코멘트 블록', exampleSnippet: '> 중요한 인용문입니다.\n' },
-      { label: 'GitHub Note 알림', syntax: '> [!NOTE]\n> 안내 내용', description: '파란색 정보 안내 박스', exampleSnippet: '> [!NOTE]\n> 중요한 안내 사항을 작성하세요.\n' },
-      { label: 'GitHub Tip 알림', syntax: '> [!TIP]\n> 유용한 팁', description: '초록색 팁 안내 박스', exampleSnippet: '> [!TIP]\n> 작업 효율을 높이는 팁입니다.\n' },
-      { label: 'GitHub Warning 알림', syntax: '> [!WARNING]\n> 주의 사항', description: '주황색 경고 안내 박스', exampleSnippet: '> [!WARNING]\n> 주의가 필요한 내용입니다.\n' }
+      { label: t.items.quote.label, syntax: '> 인용 내용', description: t.items.quote.description, exampleSnippet: '> 중요한 인용문입니다.\n' },
+      { label: t.items.note.label, syntax: '> [!NOTE]\n> 안내 내용', description: t.items.note.description, exampleSnippet: '> [!NOTE]\n> 중요한 안내 사항을 작성하세요.\n' },
+      { label: t.items.tip.label, syntax: '> [!TIP]\n> 유용한 팁', description: t.items.tip.description, exampleSnippet: '> [!TIP]\n> 작업 효율을 높이는 팁입니다.\n' },
+      { label: t.items.warning.label, syntax: '> [!WARNING]\n> 주의 사항', description: t.items.warning.description, exampleSnippet: '> [!WARNING]\n> 주의가 필요한 내용입니다.\n' }
     ]
   },
   {
-    category: '표, 코드 블록 & 수식 (Tables & Math)',
+    id: 'tables',
+    category: t.categories.tables,
     icon: <TableIcon className="w-3.5 h-3.5 text-emerald-400" />,
     items: [
       {
-        label: '데이터 표 (Table)',
+        label: t.items.table.label,
         syntax: '| 헤더1 | 헤더2 |\n| :--- | :---: |\n| 내용1 | 내용2 |',
-        description: '정렬 기능이 포함된 마크다운 표',
+        description: t.items.table.description,
         exampleSnippet: '| 항목 | 상세 내용 | 상태 |\n| :--- | :---: | ---: |\n| 프로젝트 | SSOT 동기화 | 진행중 |\n'
       },
       {
-        label: '코드 블록 (Code Block)',
+        label: t.items.codeBlock.label,
         syntax: '```typescript\nconst x = 1;\n```',
-        description: '구문 강조 지원 멀티라인 코드',
+        description: t.items.codeBlock.description,
         exampleSnippet: '```typescript\nfunction helloWorld(): string {\n  return "Hello, AI Podium!";\n}\n```\n'
       },
       {
-        label: '인라인 수식 (LaTeX Math)',
+        label: t.items.math.label,
         syntax: '$E = mc^2$',
-        description: 'KaTeX 렌더링 인라인 수식',
+        description: t.items.math.description,
         exampleSnippet: '$E = mc^2$'
       },
       {
-        label: '구분선 (Horizontal Rule)',
+        label: t.items.rule.label,
         syntax: '---',
-        description: '섹션을 시각적으로 나누는 가로줄',
+        description: t.items.rule.description,
         exampleSnippet: '\n---\n'
       }
     ]
   },
   {
-    category: '링크, 이미지 & 단축키 (Links & Shortcuts)',
+    id: 'links',
+    category: t.categories.links,
     icon: <Link className="w-3.5 h-3.5 text-teal-400" />,
     items: [
-      { label: '하이퍼링크', syntax: '[링크 이름](https://url)', description: '웹페이지 연결 링크', exampleSnippet: '[AI Studio](https://aistudio.google.com)' },
-      { label: '이미지 삽입', syntax: '![설명](https://image.url)', description: '이미지 태그', exampleSnippet: '![대체 텍스트](https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=600)' },
-      { label: '접기/펼치기 (Details)', syntax: '<details><summary>제목</summary>내용</details>', description: 'HTML 토글 아코디언', exampleSnippet: '<details>\n<summary>상세 내용 펼치기</summary>\n\n숨겨진 상세 내용입니다.\n</details>\n' },
-      { label: '키보드 키 뱃지', syntax: '<kbd>Ctrl</kbd> + <kbd>S</kbd>', description: '단축키 스타일 뱃지', exampleSnippet: '<kbd>Ctrl</kbd> + <kbd>S</kbd>' }
+      { label: t.items.link.label, syntax: '[링크 이름](https://url)', description: t.items.link.description, exampleSnippet: '[AI Studio](https://aistudio.google.com)' },
+      { label: t.items.image.label, syntax: '![설명](https://image.url)', description: t.items.image.description, exampleSnippet: '![대체 텍스트](https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=600)' },
+      { label: t.items.details.label, syntax: '<details><summary>제목</summary>내용</details>', description: t.items.details.description, exampleSnippet: '<details>\n<summary>상세 내용 펼치기</summary>\n\n숨겨진 상세 내용입니다.\n</details>\n' },
+      { label: t.items.kbd.label, syntax: '<kbd>Ctrl</kbd> + <kbd>S</kbd>', description: t.items.kbd.description, exampleSnippet: '<kbd>Ctrl</kbd> + <kbd>S</kbd>' }
     ]
   }
 ];
@@ -123,6 +133,9 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
   anchorRef,
   onInsertSnippet
 }) => {
+  const { language } = useLanguage();
+  const t = getDocModalsTranslations(language).markdownHelp;
+  const helpCategories = buildHelpCategories(t);
   const [copiedIndex, setCopiedIndex] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<number>(0);
   const [filterQuery, setFilterQuery] = useState('');
@@ -233,7 +246,7 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
   };
 
   const filteredCategories = filterQuery.trim()
-    ? HELP_CATEGORIES.map((cat) => ({
+    ? helpCategories.map((cat) => ({
         ...cat,
         items: cat.items.filter(
           (item) =>
@@ -242,7 +255,7 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
             item.description.toLowerCase().includes(filterQuery.toLowerCase())
         )
       })).filter((cat) => cat.items.length > 0)
-    : [HELP_CATEGORIES[activeTab]];
+    : [helpCategories[activeTab]];
 
   const content = (
     <div
@@ -283,13 +296,13 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-1.5 text-xs">
-                <span>마크다운 & 서식 문법 가이드</span>
+                <span>{t.title}</span>
                 <span className="text-[0.625rem] bg-[#6366f1]/20 text-[#a5b4fc] px-1.5 py-0.2 rounded font-mono border border-[#6366f1]/30">
                   Cheat Sheet
                 </span>
               </div>
               <p className="text-[0.625rem] text-slate-400 font-normal">
-                클릭하여 에디터에 바로 삽입하거나 문법을 확인하세요
+                {t.subtitle}
               </p>
             </div>
           </div>
@@ -297,7 +310,7 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
             type="button"
             onClick={onClose}
             className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-[#18181b] transition cursor-pointer"
-            title="닫기"
+            title={t.close}
           >
             <X className="w-4 h-4" />
           </button>
@@ -309,7 +322,7 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
             type="text"
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
-            placeholder="문법 검색 (예: 표, 체크박스, bold, quote, kbd)..."
+            placeholder={t.searchPlaceholder}
             className="w-full bg-[#121214] border border-[#222226] rounded-md px-2.5 py-1 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-[#6366f1] transition"
           />
         </div>
@@ -317,7 +330,7 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
         {/* Category Tabs (when not searching) */}
         {!filterQuery.trim() && (
           <div className="flex items-center gap-1 px-2.5 py-1.5 border-b border-[#222226] bg-[#09090b]/50 overflow-x-auto scrollbar-none shrink-0">
-            {HELP_CATEGORIES.map((cat, idx) => {
+            {helpCategories.map((cat, idx) => {
               const isActive = idx === activeTab;
               return (
                 <button
@@ -331,7 +344,7 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
                   }`}
                 >
                   <span className="shrink-0">{cat.icon}</span>
-                  <span>{cat.category.split(' ')[0]}</span>
+                  <span>{t.tabs[cat.id as keyof typeof t.tabs]}</span>
                 </button>
               );
             })}
@@ -342,7 +355,7 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
         <div className="flex-1 p-2.5 overflow-y-auto overscroll-contain space-y-2.5 custom-scrollbar max-h-[320px]">
           {filteredCategories.length === 0 ? (
             <div className="p-6 text-center text-slate-400 text-xs">
-              검색어와 일치하는 마크다운 문법이 없습니다.
+              {t.noResults}
             </div>
           ) : (
             filteredCategories.map((cat) => (
@@ -377,27 +390,27 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
                               type="button"
                               onClick={() => handleInsert(item.exampleSnippet)}
                               className="p-1 px-1.5 rounded bg-[#6366f1]/20 hover:bg-[#6366f1] text-[#a5b4fc] hover:text-white text-[0.625rem] font-medium transition flex items-center gap-1 cursor-pointer border border-[#6366f1]/30"
-                              title="에디터에 바로 삽입"
+                              title={t.insertTitle}
                             >
                               <Plus className="w-3 h-3" />
-                              <span>삽입</span>
+                              <span>{t.insert}</span>
                             </button>
                           )}
                           <button
                             type="button"
                             onClick={() => handleCopy(item.exampleSnippet, itemId)}
                             className="p-1 px-1.5 rounded bg-[#18181b] hover:bg-[#34384b] text-slate-300 hover:text-white text-[0.625rem] transition flex items-center gap-1 cursor-pointer border border-[#222226]"
-                            title="클립보드에 복사"
+                            title={t.copyTitle}
                           >
                             {isCopied ? (
                               <>
                                 <Check className="w-3 h-3 text-emerald-400" />
-                                <span className="text-emerald-400">복사됨</span>
+                                <span className="text-emerald-400">{t.copied}</span>
                               </>
                             ) : (
                               <>
                                 <Copy className="w-3 h-3 text-slate-400" />
-                                <span>복사</span>
+                                <span>{t.copy}</span>
                               </>
                             )}
                           </button>
@@ -414,11 +427,11 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
         {/* Footer Quick Shortcuts */}
         <div className="p-2 px-3 border-t border-[#222226] bg-[#09090b]/80 text-[0.625rem] text-slate-400 flex items-center justify-between shrink-0 font-mono">
           <div className="flex items-center gap-2">
-            <span><kbd className="px-1 py-0.5 rounded bg-[#18181b] text-slate-300 border border-[#222226]">Ctrl+B</kbd> 굵게</span>
-            <span><kbd className="px-1 py-0.5 rounded bg-[#18181b] text-slate-300 border border-[#222226]">Ctrl+I</kbd> 기울임</span>
-            <span><kbd className="px-1 py-0.5 rounded bg-[#18181b] text-slate-300 border border-[#222226]">/</kbd> 자동완성</span>
+            <span><kbd className="px-1 py-0.5 rounded bg-[#18181b] text-slate-300 border border-[#222226]">Ctrl+B</kbd> {t.bold}</span>
+            <span><kbd className="px-1 py-0.5 rounded bg-[#18181b] text-slate-300 border border-[#222226]">Ctrl+I</kbd> {t.italic}</span>
+            <span><kbd className="px-1 py-0.5 rounded bg-[#18181b] text-slate-300 border border-[#222226]">/</kbd> {t.autocomplete}</span>
           </div>
-          <span className="text-slate-500">Esc 키로 닫기</span>
+          <span className="text-slate-500">{t.escHint}</span>
         </div>
       </div>
     </div>

@@ -38,8 +38,8 @@ test('TopMenuBar component extraction & v0.1.0 branding verification', async (t)
 
     // Guest header badge updated
     assert.ok(
-      content.includes('가이드 v0.1.0'),
-      'Left chat panel header must have updated guide version badge'
+      !content.includes('가이드 v0.1.0'),
+      'Left chat panel header must not repeat the guide version title'
     );
 
     // Bot icon removed from left of guide title

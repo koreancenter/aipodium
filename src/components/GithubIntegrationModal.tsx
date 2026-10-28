@@ -22,6 +22,8 @@ import {
 } from '../services/workspaceStorageService';
 import { saveEncryptedGithubPat } from '../utils/securityCrypto';
 import type { GithubConfig } from '../types';
+import { useLanguage } from '../context/LanguageContext';
+import { getConnectionTranslations } from '../locales/connectionLocale';
 export type { GithubConfig };
 
 export interface GithubIntegrationModalProps {
@@ -50,6 +52,8 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
   currentActiveFile,
   editorContent,
 }) => {
+  const { language } = useLanguage();
+  const t = getConnectionTranslations(language).github;
   const [token, setToken] = useState('');
   const [repo, setRepo] = useState('');
   const [repoError, setRepoError] = useState<string | null>(null);
@@ -101,7 +105,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
       return false;
     }
     if (!GITHUB_REPO_REGEX.test(val)) {
-      setRepoError("저장소 주소는 '소유자명/저장소명' 형식이어야 합니다.");
+      setRepoError(t.repoFormatError);
       return false;
     }
     setRepoError(null);
@@ -130,12 +134,12 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
     const cleanToken = token.trim();
 
     if (!cleanToken || !cleanRepo) {
-      setTestResult({ success: false, message: '개인 액세스 토큰과 저장소 주소를 모두 입력해주세요.' });
+      setTestResult({ success: false, message: t.tokenAndRepoRequired });
       return;
     }
 
     if (!GITHUB_REPO_REGEX.test(cleanRepo)) {
-      setTestResult({ success: false, message: "저장소 주소는 '소유자명/저장소명' 형식이어야 합니다. (예: octocat/Hello-World)" });
+      setTestResult({ success: false, message: t.repoFormatErrorExample });
       return;
     }
 
@@ -154,16 +158,16 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
         },
       });
 
-      if (!res.ok) throw new Error('저장소를 찾을 수 없거나 토큰이 유효하지 않습니다.');
+      if (!res.ok) throw new Error(t.repoNotFound);
       const scopes = res.headers.get('x-oauth-scopes') || '';
       if (!scopes.includes('repo') && !scopes.includes('contents')) {
-        throw new Error('토큰에 저장소 쓰기 권한이 필요합니다.');
+        throw new Error(t.tokenNeedsWrite);
       }
 
       const data = await res.json();
       setTestResult({
         success: true,
-        message: `연결 확인 성공: ${data.full_name}, 기본 브랜치: ${data.default_branch || branch}`,
+        message: t.connectionOk(data.full_name, data.default_branch || branch),
       });
       if (!branch.trim() && data.default_branch) {
         setBranch(data.default_branch);
@@ -171,7 +175,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
     } catch (err: any) {
       setTestResult({
         success: false,
-        message: err.message || '네트워크 연결 상태를 확인해주세요.',
+        message: err.message || t.networkCheck,
       });
     } finally {
       setIsTesting(false);
@@ -180,7 +184,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
 
   const handlePushActiveDocument = async () => {
     if (!currentActiveFile || editorContent === undefined) {
-      setTestResult({ success: false, message: '현재 에디터에 열린 활성 문서가 없습니다.' });
+      setTestResult({ success: false, message: t.noActiveDocument });
       return;
     }
 
@@ -189,7 +193,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
     const cleanBranch = branch.trim() || 'main';
 
     if (!cleanToken || !cleanRepo) {
-      setTestResult({ success: false, message: '토큰과 저장소 주소를 먼저 확인해주세요.' });
+      setTestResult({ success: false, message: t.checkTokenAndRepo });
       return;
     }
 
@@ -218,23 +222,23 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
       if (res.success) {
         setTestResult({
           success: true,
-          message: `'${currentActiveFile}' 문서가 GitHub에 성공적으로 커밋 및 푸시되었습니다. (SHA: ${res.sha?.slice(0, 7) || '완료'})`,
+          message: t.pushSuccess(currentActiveFile, res.sha?.slice(0, 7)),
         });
       } else if (res.conflict) {
         setTestResult({
           success: false,
-          message: '원격 저장소에 더 최신 문서가 존재하여 충돌이 감지되었습니다. (에디터 자동 동기화 시 안전한 충돌 사본이 생성됩니다)',
+          message: t.pushConflict,
         });
       } else {
         setTestResult({
           success: false,
-          message: res.error || '문서 푸시에 실패했습니다.',
+          message: res.error || t.pushFailed,
         });
       }
     } catch (err: any) {
       setTestResult({
         success: false,
-        message: err.message || '문서 푸시 중 예외가 발생했습니다.',
+        message: err.message || t.pushException,
       });
     } finally {
       setIsPushing(false);
@@ -248,13 +252,13 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
     const cleanBranch = branch.trim() || 'main';
 
     if (!cleanToken || !cleanRepo) {
-      setTestResult({ success: false, message: '개인 액세스 토큰과 저장소 주소를 모두 입력해주세요.' });
+      setTestResult({ success: false, message: t.tokenAndRepoRequired });
       return;
     }
 
     if (!GITHUB_REPO_REGEX.test(cleanRepo)) {
-      setRepoError("저장소 주소는 '소유자명/저장소명' 형식이어야 합니다.");
-      setTestResult({ success: false, message: "저장소 주소는 '소유자명/저장소명' 형식이어야 합니다. (예: octocat/Hello-World)" });
+      setRepoError(t.repoFormatError);
+      setTestResult({ success: false, message: t.repoFormatErrorExample });
       return;
     }
 
@@ -317,19 +321,19 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-medium text-zinc-100">GitHub 저장소 연동</h2>
+                <h2 className="text-sm font-medium text-zinc-100">{t.title}</h2>
                 {isGithubConnected ? (
                   <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-                    연결됨
+                    {t.connected}
                   </span>
                 ) : (
                   <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-white/5 text-zinc-400 border border-white/10">
-                    미연동
+                    {t.notConnected}
                   </span>
                 )}
                 <HelpTooltip
-                  title="GitHub 로컬 연동 안내"
-                  content="마크다운 문서와 작업 내역을 개인 GitHub 저장소와 실시간으로 동기화합니다. 사용자의 개인 액세스 토큰을 통해 브라우저에서 GitHub API와 직접 통신하며, 토큰은 외부 서버에 전송되지 않고 로컬 브라우저 세션에만 안전하게 보관됩니다."
+                  title={t.helpTitle}
+                  content={t.helpContent}
                 />
               </div>
             </div>
@@ -339,8 +343,8 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             type="button"
             onClick={onClose}
             className="text-zinc-400 hover:text-zinc-200 p-1.5 rounded hover:bg-white/5 transition cursor-pointer shrink-0"
-            title="닫기"
-            aria-label="닫기"
+            title={t.close}
+            aria-label={t.close}
           >
             <X className="w-4 h-4" />
           </button>
@@ -352,10 +356,10 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <label className="font-medium text-zinc-300">저장소 주소</label>
+                <label className="font-medium text-zinc-300">{t.repoLabel}</label>
                 <HelpTooltip
-                  title="저장소 주소 입력 안내"
-                  content="GitHub 저장소 경로('소유자명/저장소명')를 입력합니다. URL을 붙여넣으면 도메인과 프로토콜이 자동으로 정리됩니다."
+                  title={t.repoHelpTitle}
+                  content={t.repoHelpContent}
                 />
               </div>
               {repoError && (
@@ -389,7 +393,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             {/* Branch */}
             <div className="space-y-1.5 sm:col-span-1">
               <div className="flex items-center gap-1.5">
-                <label className="font-medium text-zinc-300">기본 브랜치</label>
+                <label className="font-medium text-zinc-300">{t.branchLabel}</label>
               </div>
               <input
                 type="text"
@@ -405,10 +409,10 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             <div className="space-y-1.5 sm:col-span-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <label className="font-medium text-zinc-300">개인 액세스 토큰</label>
+                  <label className="font-medium text-zinc-300">{t.tokenLabel}</label>
                   <HelpTooltip
-                    title="개인 액세스 토큰 발급 안내"
-                    content="GitHub 설정 > 개발자 설정 > 개인 액세스 토큰에서 저장소 접근 권한을 부여한 토큰을 발급받아 입력합니다."
+                    title={t.tokenHelpTitle}
+                    content={t.tokenHelpContent}
                   />
                 </div>
                 <a
@@ -417,7 +421,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                   rel="noopener noreferrer"
                   className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 hover:underline shrink-0"
                 >
-                  <span>토큰 발급 바로가기</span>
+                  <span>{t.getToken}</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
@@ -435,7 +439,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                   type="button"
                   onClick={() => setShowToken(!showToken)}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 p-1 cursor-pointer"
-                  title={showToken ? '토큰 숨기기' : '토큰 표시'}
+                  title={showToken ? t.hideToken : t.showToken}
                 >
                   {showToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
@@ -448,10 +452,10 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-medium text-zinc-200">자동 커밋 메시지 생성</span>
+                  <span className="text-xs font-medium text-zinc-200">{t.autoCommit}</span>
                   <HelpTooltip
-                    title="자동 커밋 메시지 생성"
-                    content="문서 저장 시 표준 커밋 메시지(docs: update...)를 자동으로 생성합니다."
+                    title={t.autoCommit}
+                    content={t.autoCommitHelp}
                   />
                 </div>
               </div>
@@ -487,10 +491,10 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             <div className="flex items-center justify-between py-2 border-b border-white/[0.06]">
               <div className="min-w-0 pr-2">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-medium text-zinc-200">현재 활성 문서 커밋 및 푸시</span>
+                  <span className="text-xs font-medium text-zinc-200">{t.pushActive}</span>
                   <HelpTooltip
-                    title="현재 활성 문서 커밋 및 푸시"
-                    content="현재 에디터에서 작성 중인 문서를 원격 저장소에 즉시 동기화합니다."
+                    title={t.pushActive}
+                    content={t.pushActiveHelp}
                   />
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-zinc-400 font-mono truncate max-w-[140px]">
                     {currentActiveFile}
@@ -503,7 +507,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 disabled={isPushing || isTesting || isPulling}
                 className="px-2.5 py-1.5 rounded text-xs font-medium bg-white/5 hover:bg-white/10 text-zinc-200 border border-white/10 transition-colors inline-flex items-center justify-center shrink-0 cursor-pointer"
               >
-                <span>{isPushing ? '푸시 중...' : '즉시 푸시'}</span>
+                <span>{isPushing ? t.pushing : t.pushNow}</span>
               </button>
             </div>
           )}
@@ -512,10 +516,10 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
           <div className="flex items-center justify-between py-2 border-b border-white/[0.06]">
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-medium text-zinc-200">저장소 문서 워크스페이스 동기화</span>
+                <span className="text-xs font-medium text-zinc-200">{t.pullOnConnect}</span>
                 <HelpTooltip
-                  title="저장소 문서 워크스페이스 동기화"
-                  content="연결 시 대상 브랜치의 마크다운 문서를 현재 작업 공간으로 불러옵니다."
+                  title={t.pullOnConnect}
+                  content={t.pullOnConnectHelp}
                 />
               </div>
             </div>
@@ -557,7 +561,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 disabled={isTesting || isPulling || isPushing}
                 className="px-3 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer inline-flex items-center justify-center"
               >
-                <span>{isTesting ? '테스트 중...' : '연결 테스트'}</span>
+                <span>{isTesting ? t.testing : t.testConnection}</span>
               </button>
 
               {isConnected && onDisconnect && (
@@ -566,9 +570,9 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                   onClick={onDisconnect}
                   disabled={isPulling || isPushing}
                   className="px-3 py-1.5 rounded-md text-xs font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 transition-colors cursor-pointer inline-flex items-center justify-center"
-                  title="현재 연결된 저장소 설정을 해제합니다."
+                  title={t.disconnectHint}
                 >
-                  <span>연동 해제</span>
+                  <span>{t.disconnect}</span>
                 </button>
               )}
             </div>
@@ -580,7 +584,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 disabled={isPulling || isPushing}
                 className="px-3.5 py-1.5 rounded-md text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
               >
-                취소
+                {t.cancel}
               </button>
               <button
                 type="submit"
@@ -588,9 +592,9 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center justify-center cursor-pointer"
               >
                 {isPulling ? (
-                  <span>문서 동기화 중...</span>
+                  <span>{t.syncing}</span>
                 ) : (
-                  <span>{isConnected ? '설정 저장' : '저장소 연결'}</span>
+                  <span>{isConnected ? t.saveSettings : t.connectRepo}</span>
                 )}
               </button>
             </div>
