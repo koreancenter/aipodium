@@ -104,6 +104,9 @@ export interface AuthStrings {
   badge3Desc: string;
   languageSelectorAria: string;
   systemLanguageTitle: string;
+  koreanLanguageTitle: string;
+  englishLanguageTitle: string;
+  resetKeyword: string;
 }
 
 export const AUTH_TRANSLATIONS: Record<AuthLang, AuthStrings> = {
@@ -211,6 +214,9 @@ export const AUTH_TRANSLATIONS: Record<AuthLang, AuthStrings> = {
     badge3Desc: 'PIN & 복구 키',
     languageSelectorAria: '언어 선택',
     systemLanguageTitle: '브라우저 설정 따르기',
+    koreanLanguageTitle: '한국어',
+    englishLanguageTitle: '영어',
+    resetKeyword: 'RESET',
   },
   ENG: {
     brandName: 'AI Podium',
@@ -316,5 +322,8 @@ export const AUTH_TRANSLATIONS: Record<AuthLang, AuthStrings> = {
     badge3Desc: 'PIN & Master Key',
     languageSelectorAria: 'Language selector',
     systemLanguageTitle: 'Follow browser settings',
+    koreanLanguageTitle: 'Korean',
+    englishLanguageTitle: 'English',
+    resetKeyword: 'RESET',
   }
 };

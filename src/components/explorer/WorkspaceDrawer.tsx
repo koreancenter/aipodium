@@ -34,8 +34,7 @@ import type { ChatSession } from '../../types';
 import type { GoogleUserProfile } from '../../services/googleDriveService';
 import type { GithubConfig } from '../GithubIntegrationModal';
 import type { GitHubSyncStatus } from '../GithubSyncStatusIndicator';
-import { useLanguage } from '../../context/LanguageContext';
-import { getCoreTranslations } from '../../locales/coreLocale';
+import { useTranslation } from '../../context/LanguageContext';
 
 export interface WorkspaceActivityRailProps {
   onOpen: () => void;
@@ -46,8 +45,8 @@ export const WorkspaceActivityRail: React.FC<WorkspaceActivityRailProps> = ({
   onOpen,
   className = ''
 }) => {
-  const { language } = useLanguage();
-  const t = getCoreTranslations(language).explorer;
+  const { t: dict } = useTranslation();
+  const t = dict.core.explorer;
 
   return (
     <div
@@ -170,8 +169,8 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
   onImportDocumentFiles,
   onContextMenu: externalContextMenu,
 }) => {
-  const { language } = useLanguage();
-  const t = getCoreTranslations(language).explorer;
+  const { t: dict } = useTranslation();
+  const t = dict.core.explorer;
 
   // Sync collapsed state to localStorage
   useEffect(() => {

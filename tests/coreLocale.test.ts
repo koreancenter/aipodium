@@ -45,3 +45,25 @@ test('app messages keep ko/en keys and placeholders identical', () => {
   assert.equal(formatMessage('{1}-{0}', ['a', 'b']), 'b-a');
   setActiveLanguage('ko');
 });
+
+import { dictionary, getDictionary } from '../src/locales/dictionary';
+
+test('dictionary provides unified access for ko and en with expected structure', () => {
+  const dictKo = getDictionary('ko');
+  const dictEn = getDictionary('en');
+
+  assert.equal(dictKo, dictionary.ko);
+  assert.equal(dictEn, dictionary.en);
+
+  const sections = ['auth', 'core', 'connection', 'editor', 'settings', 'docModals', 'driveSecurity', 'pdfViewer', 'messages'];
+  for (const section of sections) {
+    assert.ok(dictKo[section as keyof typeof dictKo], `ko.${section} must exist`);
+    assert.ok(dictEn[section as keyof typeof dictEn], `en.${section} must exist`);
+  }
+
+  assert.equal(dictKo.auth.koreanLanguageTitle, '한국어');
+  assert.equal(dictEn.auth.koreanLanguageTitle, 'Korean');
+  assert.equal(dictKo.auth.resetKeyword, 'RESET');
+  assert.equal(dictEn.auth.resetKeyword, 'RESET');
+});
+
