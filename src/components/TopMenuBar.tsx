@@ -6,7 +6,7 @@ import {
   ZoomOut,
   Settings
 } from 'lucide-react';
-import { useLanguage } from '../context/LanguageContext';
+import { useTranslation } from '../context/LanguageContext';
 import { getCoreTranslations } from '../locales/coreLocale';
 
 export interface TopMenuBarProps {
@@ -138,8 +138,8 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
   mode = 'single',
   onModeChange,
 }) => {
-  const { language } = useLanguage();
-  const t = getCoreTranslations(language).menu;
+  const { t: dict, language } = useTranslation();
+  const t = dict?.core?.menu ?? getCoreTranslations(language).menu;
   const [activeMenu, setActiveMenu] = useState<MenuKey>(null);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);

@@ -51,22 +51,22 @@ import {
   LOCAL_RECOVERY_KEY_HASH,
   LOCAL_VAULT_KEY_PIN_ENC
 } from '../utils/securityCrypto';
-import { AUTH_TRANSLATIONS, AuthLang } from '../locales/authLocale';
-import { useLanguage } from '../context/LanguageContext';
+import { AuthLang } from '../locales/authLocale';
+import { useTranslation } from '../context/LanguageContext';
 
 export interface AuthPageProps {
   onAuthenticated: (user: AuthUser, vaultKey?: string) => void;
 }
 
 export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
-  const { language, preference, setPreference } = useLanguage();
+  const { t: dict, language, preference, setPreference } = useTranslation();
   const lang: AuthLang = language === 'ko' ? 'KR' : 'ENG';
 
   const handleSetLang = (newLang: AuthLang) => {
     setPreference(newLang === 'KR' ? 'ko' : 'en');
   };
 
-  const t = AUTH_TRANSLATIONS[lang];
+  const t = dict.auth;
 
   // Check if user has an existing Master PIN configured
   const [storedPinHash, setStoredPinHash] = useState<string | null>(() => {
@@ -431,7 +431,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
   // 8. Emergency Purge (Destroys local lock to restore workspace access)
   const handleExecuteEmergencyPurge = () => {
-    if (purgeInputText.trim().toUpperCase() !== 'RESET') {
+    if (purgeInputText.trim().toUpperCase() !== t.resetKeyword) {
       setErrorMsg(t.resetConfirmError);
       return;
     }
@@ -504,7 +504,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                   : 'text-zinc-400 hover:text-zinc-200 font-normal'
               }`}
               aria-pressed={preference === 'ko'}
-              title="한국어"
+              title={t.koreanLanguageTitle}
             >
               KR
             </button>
@@ -517,7 +517,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                   : 'text-zinc-400 hover:text-zinc-200 font-normal'
               }`}
               aria-pressed={preference === 'en'}
-              title="English"
+              title={t.englishLanguageTitle}
             >
               ENG
             </button>
@@ -1170,13 +1170,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
             <div className="space-y-1.5">
               <label className="text-xs text-zinc-400">
                 {t.purgeConfirmPrompt}{' '}
-                <span className="font-semibold text-rose-400 font-mono">RESET</span>
+                <span className="font-semibold text-rose-400 font-mono">{t.resetKeyword}</span>
               </label>
               <input
                 type="text"
                 value={purgeInputText}
                 onChange={(e) => setPurgeInputText(e.target.value)}
-                placeholder="RESET"
+                placeholder={t.resetKeyword}
                 className="w-full rounded-md border border-white/[0.08] bg-[#18181b] px-3 py-2 text-xs text-center font-medium text-rose-200 focus:outline-none focus:border-rose-500 font-mono"
               />
             </div>
@@ -1195,7 +1195,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
               <button
                 type="button"
                 onClick={handleExecuteEmergencyPurge}
-                disabled={purgeInputText.trim().toUpperCase() !== 'RESET'}
+                disabled={purgeInputText.trim().toUpperCase() !== t.resetKeyword}
                 className="px-3 py-1.5 rounded-md bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-1.5"
               >
                 <RotateCcw className="w-3.5 h-3.5" />

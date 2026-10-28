@@ -28,8 +28,7 @@ import {
 import type { ChatAttachment, GhostWriterLevel, MentionItem } from '../../types';
 import { InlineModelSelector } from '../InlineModelSelector';
 import { LinkAttachmentInput } from '../LinkAttachmentInput';
-import { useLanguage } from '../../context/LanguageContext';
-import { getCoreTranslations } from '../../locales/coreLocale';
+import { useTranslation } from '../../context/LanguageContext';
 
 export interface UniversalPromptInputProps {
   chatInput: string;
@@ -128,8 +127,8 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
   chatInputRef: externalChatInputRef,
   className = '',
 }) => {
-  const { language } = useLanguage();
-  const t = getCoreTranslations(language).chat;
+  const { t: dict } = useTranslation();
+  const t = dict.core.chat;
   const internalChatInputRef = useRef<HTMLTextAreaElement>(null);
   const chatInputRef = externalChatInputRef || internalChatInputRef;
   const ghostInputRef = useRef<HTMLTextAreaElement>(null);

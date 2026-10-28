@@ -25,8 +25,7 @@ import { AiMessageBubble } from '../AiMessageBubble';
 import { WebLlmBanner } from '../WebLlmBanner';
 import { UniversalPromptInput } from './UniversalPromptInput';
 import { WEB_LLM_MODEL_ID, WEB_LLM_MODEL_DISPLAY_NAME } from '../../utils/webllmService';
-import { useLanguage } from '../../context/LanguageContext';
-import { getCoreTranslations } from '../../locales/coreLocale';
+import { useTranslation } from '../../context/LanguageContext';
 
 export interface ChatActivityRailProps {
   onOpen: () => void;
@@ -39,8 +38,8 @@ export const ChatActivityRail: React.FC<ChatActivityRailProps> = ({
   isEngineActive = true,
   className = ''
 }) => {
-  const { language } = useLanguage();
-  const t = getCoreTranslations(language).chat;
+  const { t: dict } = useTranslation();
+  const t = dict.core.chat;
 
   return (
     <div
@@ -235,8 +234,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   isCollapsed = false,
   onToggleCollapse,
 }) => {
-  const { language } = useLanguage();
-  const t = getCoreTranslations(language).chat;
+  const { t: dict } = useTranslation();
+  const t = dict.core.chat;
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const isUserScrolledUpRef = useRef<boolean>(false);
   const [isScrolledUp, setIsScrolledUp] = useState<boolean>(false);

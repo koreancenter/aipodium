@@ -10,11 +10,14 @@ import {
   setActiveLanguage
 } from '../locales/language';
 import { getCoreTranslations } from '../locales/coreLocale';
+import { dictionary, getDictionary, type AppDictionary } from '../locales/dictionary';
 
 export interface LanguageContextValue {
   language: AppLanguage;
   preference: LanguagePreference;
   setPreference: (preference: LanguagePreference) => void;
+  t: AppDictionary;
+  dictionary: typeof dictionary;
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
@@ -75,14 +78,16 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const language = resolveAppLanguage(preference, browserLanguages);
   setActiveLanguage(language);
 
+  const t = useMemo(() => getDictionary(language), [language]);
+
   useEffect(() => {
     document.documentElement.lang = language;
     document.title = getCoreTranslations(language).appTitle;
   }, [language]);
 
   const value = useMemo(
-    () => ({ language, preference, setPreference }),
-    [language, preference, setPreference]
+    () => ({ language, preference, setPreference, t, dictionary }),
+    [language, preference, setPreference, t]
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
@@ -94,4 +99,21 @@ export function useLanguage(): LanguageContextValue {
     throw new Error('useLanguage must be used within a LanguageProvider');
   }
   return context;
+}
+
+export function useTranslation(): {
+  t: AppDictionary;
+  language: AppLanguage;
+  preference: LanguagePreference;
+  setPreference: (preference: LanguagePreference) => void;
+  dictionary: typeof dictionary;
+} {
+  const context = useLanguage();
+  return {
+    t: context.t,
+    language: context.language,
+    preference: context.preference,
+    setPreference: context.setPreference,
+    dictionary: context.dictionary,
+  };
 }
