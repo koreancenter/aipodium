@@ -6,11 +6,6 @@ import { AuthProvider } from './context/AuthContext.tsx';
 import { LanguageProvider } from './context/LanguageContext.tsx';
 import './index.css';
 
-const preloadedStylesheet = document.querySelector<HTMLLinkElement>('link[rel="preload"][as="style"]');
-if (preloadedStylesheet) {
-  preloadedStylesheet.rel = 'stylesheet';
-}
-
 // Global error handlers for resilience
 if (typeof window !== 'undefined') {
   window.addEventListener('error', (event) => {

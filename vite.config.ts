@@ -11,36 +11,6 @@ export default defineConfig(() => {
     plugins: [
       react(),
       tailwindcss(),
-      {
-        name: 'preload-stylesheet',
-        apply: 'build',
-        enforce: 'post',
-        generateBundle(_options, bundle) {
-          const html = bundle['index.html'];
-          if (!html || html.type !== 'asset' || typeof html.source !== 'string') return;
-
-          let hasStylesheet = false;
-          let transformedHtml = html.source.replace(
-            /<link\b([^>]*\brel="stylesheet"[^>]*)>/g,
-            (tag, attributes: string) => {
-              const href = attributes.match(/\bhref="([^"]+\.css)"/)?.[1];
-              if (!href) return tag;
-
-              hasStylesheet = true;
-              const crossorigin = /\bcrossorigin(?:="[^"]*")?/i.test(attributes) ? ' crossorigin' : '';
-              return `<link rel="preload" as="style" href="${href}"${crossorigin}>`;
-            },
-          );
-
-          if (hasStylesheet) {
-            transformedHtml = transformedHtml.replace(
-              '</head>',
-              '<style>html,body,#root{min-height:100%;margin:0}body{background:#09090b;color:#e2e8f0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.4}</style></head>',
-            );
-            html.source = transformedHtml;
-          }
-        },
-      },
     ],
     resolve: {
       alias: [

@@ -192,7 +192,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
       const user = authService.loginAsGuest('Workspace User');
       onAuthenticated(user);
     } catch (err: any) {
-      setErrorMsg(err?.message || (lang === 'KR' ? '워크스페이스를 여는데 실패했습니다.' : 'Failed to open workspace.'));
+      setErrorMsg(err?.message || t.openWorkspaceError);
       setIsLoading(false);
     }
   };
@@ -233,7 +233,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
       setConfirmedSavedRecoveryKey(false);
       setIsLoading(false);
     } catch (err: any) {
-      setErrorMsg(err?.message || (lang === 'KR' ? '보안 복구 키 생성에 실패했습니다.' : 'Failed to generate cryptographic access key.'));
+      setErrorMsg(err?.message || t.generateKeyError);
       setIsLoading(false);
     }
   };
@@ -269,7 +269,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
         onAuthenticated(user, vaultKey);
       }, 400);
     } catch (err: any) {
-      setErrorMsg(err?.message || (lang === 'KR' ? '보안 설정 저장에 실패했습니다.' : 'Failed to save security settings.'));
+      setErrorMsg(err?.message || t.saveSettingsError);
       setIsLoading(false);
     }
   };
@@ -296,9 +296,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
     const currentLockout = getLockoutStatus();
     if (currentLockout.isLockedOut) {
       setLockoutState(currentLockout);
-      setErrorMsg(lang === 'KR'
-        ? `오류 횟수가 초과되어 ${currentLockout.remainingSeconds}초 동안 대기해야 합니다.`
-        : `Too many failed attempts. Locked out for ${currentLockout.remainingSeconds} seconds.`);
+      setErrorMsg(t.lockoutWaitNotice(currentLockout.remainingSeconds));
       return;
     }
 
@@ -338,17 +336,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
         setIsLoading(false);
 
         if (updatedLockout.isLockedOut) {
-          setErrorMsg(lang === 'KR'
-            ? `5회 연속 오류로 ${updatedLockout.remainingSeconds}초 동안 입력이 제한됩니다.`
-            : `Too many failed attempts (5/5). Locked out for ${updatedLockout.remainingSeconds}s.`);
+          setErrorMsg(t.lockoutMaxAttemptsNotice(updatedLockout.remainingSeconds));
         } else {
-          setErrorMsg(lang === 'KR'
-            ? `잘못된 PIN입니다 (${updatedLockout.attempts}/5회 시도).`
-            : `Incorrect PIN (${updatedLockout.attempts}/5 attempts).`);
+          setErrorMsg(t.incorrectPinNotice(updatedLockout.attempts));
         }
       }
     } catch (err: any) {
-      setErrorMsg(err?.message || (lang === 'KR' ? '인증 도중 오류가 발생했습니다.' : 'An error occurred during verification.'));
+      setErrorMsg(err?.message || t.authError);
       setIsLoading(false);
     }
   };
@@ -365,7 +359,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
     }
 
     if (!storedRecoveryHash) {
-      setErrorMsg(lang === 'KR' ? '등록된 복구 키를 찾을 수 없습니다.' : 'No registered access key found.');
+      setErrorMsg(t.noRegisteredAccessKeyError);
       return;
     }
 
@@ -375,14 +369,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
       if (isValid) {
         setIsRecoveryKeyVerified(true);
         resetFailedAttempts();
-        setSuccessMsg(lang === 'KR' ? '복구 키가 확인되었습니다. 새 PIN을 설정하세요.' : 'Access Key verified. Please set a new workspace PIN.');
+        setSuccessMsg(t.recoveryVerifiedSuccessNotice);
         setIsLoading(false);
       } else {
         setErrorMsg(t.invalidRecoveryKeyError);
         setIsLoading(false);
       }
     } catch (err: any) {
-      setErrorMsg(err?.message || (lang === 'KR' ? '확인에 실패했습니다.' : 'Verification failed.'));
+      setErrorMsg(err?.message || t.verificationFailedError);
       setIsLoading(false);
     }
   };
@@ -430,7 +424,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
       setConfirmNewPin('');
       setIsLoading(false);
     } catch (err: any) {
-      setErrorMsg(err?.message || (lang === 'KR' ? 'PIN 업데이트에 실패했습니다.' : 'Failed to update PIN.'));
+      setErrorMsg(err?.message || t.pinUpdateError);
       setIsLoading(false);
     }
   };
@@ -438,7 +432,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
   // 8. Emergency Purge (Destroys local lock to restore workspace access)
   const handleExecuteEmergencyPurge = () => {
     if (purgeInputText.trim().toUpperCase() !== 'RESET') {
-      setErrorMsg(lang === 'KR' ? '초기화를 확인하려면 RESET을 입력하세요.' : 'Type "RESET" to confirm security reset.');
+      setErrorMsg(t.resetConfirmError);
       return;
     }
 
@@ -486,7 +480,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
           <div
             className="inline-flex items-center rounded-md bg-[#121214] border border-white/[0.08] p-0.5"
             role="group"
-            aria-label={lang === 'KR' ? '언어 선택' : 'Language selector'}
+            aria-label={t.languageSelectorAria}
           >
             <button
               type="button"
@@ -497,7 +491,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                   : 'text-zinc-400 hover:text-zinc-200 font-normal'
               }`}
               aria-pressed={preference === 'system'}
-              title={lang === 'KR' ? '브라우저 설정 따르기' : 'Follow browser settings'}
+              title={t.systemLanguageTitle}
             >
               AUTO
             </button>
@@ -530,19 +524,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
           </div>
         </header>
 
-        {/* Middle: Responsive Workspace Grid (Action Card prioritized on mobile/tablet) */}
-        <main className="my-auto py-2 sm:py-6 lg:py-12 w-full flex flex-col lg:grid lg:grid-cols-12 gap-3 sm:gap-6 lg:gap-10 xl:gap-16 items-center">
-          {/* Mobile/Tablet Compact Hero Header (< lg): immediate brand context */}
-          <div className="lg:hidden w-full text-center space-y-1 sm:space-y-1.5 order-1">
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight leading-snug text-zinc-100 break-keep">
-              {t.heroTitle}
-            </h1>
-            <p className="hidden sm:block text-xs sm:text-sm text-zinc-400 mt-1 leading-relaxed max-w-lg mx-auto break-keep">
-              {t.heroDesc}
-            </p>
-          </div>
-
-          {/* Action Card (Onboarding & Security Gateway Card): Prioritized order-2 on mobile/tablet */}
+        {/* Middle: Responsive Workspace Grid */}
+        <main className="my-auto py-2 sm:py-6 lg:py-12 w-full flex flex-col lg:grid lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-10 xl:gap-16 items-center">
+          {/* Action Card (Onboarding & Security Gateway Card): Order-2 on mobile/tablet */}
           <div className="w-full flex flex-col items-center lg:items-end order-2 lg:order-none lg:col-span-5 lg:col-start-8 lg:row-start-1">
             <div className="w-full max-w-md bg-[#121214] border border-white/[0.08] rounded-xl p-4 sm:p-6 md:p-8 shadow-xl shadow-black/40">
               <div>
@@ -656,10 +640,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                       </div>
                       <div className="flex flex-col min-w-0">
                         <span className="font-medium text-zinc-200 text-xs truncate">
-                          {lang === 'KR' ? '로컬 기기 암호화 워크스페이스' : 'Local Encrypted Workspace'}
+                          {t.localEncryptedWorkspace}
                         </span>
                         <span className="text-[10px] text-zinc-400 truncate font-mono">
-                          {lang === 'KR' ? '온디바이스 저장소 (AES-256)' : 'On-Device Storage (AES-256)'}
+                          {t.onDeviceStorage}
                         </span>
                       </div>
                     </div>
@@ -1046,56 +1030,55 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
               <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-2.5 flex flex-col items-center justify-center transition-colors hover:border-white/10">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 mb-1" />
                 <span className="text-[0.6875rem] font-medium text-zinc-200">
-                  {lang === 'KR' ? '100% 로컬 격리' : '100% Local'}
+                  {t.badge1Title}
                 </span>
                 <span className="text-[0.625rem] text-zinc-400 mt-0.5">
-                  {lang === 'KR' ? '브라우저 단독 보관' : 'In-Browser Only'}
+                  {t.badge1Desc}
                 </span>
               </div>
               <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-2.5 flex flex-col items-center justify-center transition-colors hover:border-white/10">
                 <Cpu className="w-4 h-4 text-indigo-400 mb-1" />
                 <span className="text-[0.6875rem] font-medium text-zinc-200">
-                  {lang === 'KR' ? '멀티 AI 하모니' : 'Multi-AI Harmony'}
+                  {t.badge2Title}
                 </span>
                 <span className="text-[0.625rem] text-zinc-400 mt-0.5">
-                  {lang === 'KR' ? '클라우드 & 로컬' : 'Cloud & Local'}
+                  {t.badge2Desc}
                 </span>
               </div>
               <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-2.5 flex flex-col items-center justify-center transition-colors hover:border-white/10">
                 <Lock className="w-4 h-4 text-amber-400 mb-1" />
                 <span className="text-[0.6875rem] font-medium text-zinc-200">
-                  {lang === 'KR' ? '보안 금고 암호화' : 'Encrypted Vault'}
+                  {t.badge3Title}
                 </span>
                 <span className="text-[0.625rem] text-zinc-400 mt-0.5">
-                  {lang === 'KR' ? 'PIN & 복구 키' : 'PIN & Master Key'}
+                  {t.badge3Desc}
                 </span>
               </div>
             </div>
 
           </div>
 
-          {/* Intro Section & Architectural Pillars (Desktop Left Column / Mobile Below-Card Section) */}
-          <div className="w-full lg:col-span-7 lg:col-start-1 lg:row-start-1 order-3 lg:order-none space-y-3 sm:space-y-4 lg:space-y-8 hidden sm:block">
-            {/* Desktop Full Hero Header (hidden on mobile/tablet since displayed above action card) */}
-            <div className="hidden lg:block space-y-3">
-              <h1 className="text-2xl sm:text-3xl xl:text-4xl font-semibold tracking-tight leading-snug text-zinc-100 break-keep mb-0 ml-[53px]">
+          {/* Intro Section & Architectural Pillars (Desktop Left Column / Mobile Above/Below-Card Section) */}
+          <div className="w-full lg:col-span-7 lg:col-start-1 lg:row-start-1 order-1 lg:order-none space-y-4 lg:space-y-8">
+            {/* Desktop & Mobile Single Hero Header */}
+            <div className="space-y-2 sm:space-y-3 text-center lg:text-left">
+              <h1 className="text-2xl sm:text-3xl xl:text-4xl font-semibold tracking-tight leading-snug text-zinc-100 break-keep">
                 {t.heroTitle}
               </h1>
-              <p className="text-sm sm:text-base text-zinc-400 leading-relaxed max-w-xl break-keep pt-0 ml-[53px]">
+              <p className="text-xs sm:text-sm lg:text-base text-zinc-400 leading-relaxed max-w-xl break-keep mx-auto lg:mx-0">
                 {t.heroDesc}
               </p>
             </div>
 
-            {/* Academic Value Cards - Responsive Presentation (Hidden on mobile < sm & short viewports < 750px) */}
-            <div className="w-full max-w-xl grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 gap-2 md:gap-3 lg:gap-3 mx-auto lg:mx-0 short-screen-hide">
+            {/* Academic Value Cards - Responsive Presentation */}
+            <div className="w-full max-w-xl grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 gap-2 md:gap-3 lg:gap-3 mx-auto lg:mx-0">
               <div className="flex items-center lg:items-start gap-2.5 sm:gap-3 lg:gap-3.5 p-2 sm:p-2.5 lg:p-3.5 rounded-lg lg:rounded-md border border-white/[0.05] lg:border-transparent lg:hover:border-white/[0.06] bg-white/[0.02] lg:bg-transparent lg:hover:bg-white/[0.02] transition-colors">
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
                   <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs sm:text-xs lg:text-sm font-medium text-zinc-200">
-                    <span className="lg:hidden">{t.card1CompactTitle}</span>
-                    <span className="hidden lg:inline">{t.card1Title}</span>
+                    {t.card1Title}
                   </div>
                   <div className="hidden lg:block text-xs sm:text-sm text-zinc-400 leading-relaxed mt-1">
                     {t.card1Desc}
@@ -1109,8 +1092,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs sm:text-xs lg:text-sm font-medium text-zinc-200">
-                    <span className="lg:hidden">{t.card2CompactTitle}</span>
-                    <span className="hidden lg:inline">{t.card2Title}</span>
+                    {t.card2Title}
                   </div>
                   <div className="hidden lg:block text-xs sm:text-sm text-zinc-400 leading-relaxed mt-1">
                     {t.card2Desc}
@@ -1124,8 +1106,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs sm:text-xs lg:text-sm font-medium text-zinc-200">
-                    <span className="lg:hidden">{t.card3CompactTitle}</span>
-                    <span className="hidden lg:inline">{t.card3Title}</span>
+                    {t.card3Title}
                   </div>
                   <div className="hidden lg:block text-xs sm:text-sm text-zinc-400 leading-relaxed mt-1">
                     {t.card3Desc}

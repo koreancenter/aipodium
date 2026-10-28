@@ -82,6 +82,28 @@ export interface AuthStrings {
   termsAiOutputAgree: string;
   termsViewDetails: string;
   termsHideDetails: string;
+  openWorkspaceError: string;
+  generateKeyError: string;
+  saveSettingsError: string;
+  authError: string;
+  noRegisteredAccessKeyError: string;
+  recoveryVerifiedSuccessNotice: string;
+  verificationFailedError: string;
+  pinUpdateError: string;
+  resetConfirmError: string;
+  lockoutWaitNotice: (seconds: number) => string;
+  lockoutMaxAttemptsNotice: (seconds: number) => string;
+  incorrectPinNotice: (attempts: number) => string;
+  localEncryptedWorkspace: string;
+  onDeviceStorage: string;
+  badge1Title: string;
+  badge1Desc: string;
+  badge2Title: string;
+  badge2Desc: string;
+  badge3Title: string;
+  badge3Desc: string;
+  languageSelectorAria: string;
+  systemLanguageTitle: string;
 }
 
 export const AUTH_TRANSLATIONS: Record<AuthLang, AuthStrings> = {
@@ -167,6 +189,28 @@ export const AUTH_TRANSLATIONS: Record<AuthLang, AuthStrings> = {
     termsAiOutputAgree: '[필수] AI 모델이 생성한 결과물의 정확성 검증 책임은 사용자에게 있습니다.',
     termsViewDetails: '상세 항목',
     termsHideDetails: '접기',
+    openWorkspaceError: '워크스페이스를 여는데 실패했습니다.',
+    generateKeyError: '보안 복구 키 생성에 실패했습니다.',
+    saveSettingsError: '보안 설정 저장에 실패했습니다.',
+    authError: '인증 도중 오류가 발생했습니다.',
+    noRegisteredAccessKeyError: '등록된 복구 키를 찾을 수 없습니다.',
+    recoveryVerifiedSuccessNotice: '복구 키가 확인되었습니다. 새 PIN을 설정하세요.',
+    verificationFailedError: '확인에 실패했습니다.',
+    pinUpdateError: 'PIN 업데이트에 실패했습니다.',
+    resetConfirmError: '초기화를 확인하려면 RESET을 입력하세요.',
+    lockoutWaitNotice: (sec: number) => `오류 횟수가 초과되어 ${sec}초 동안 대기해야 합니다.`,
+    lockoutMaxAttemptsNotice: (sec: number) => `5회 연속 오류로 ${sec}초 동안 입력이 제한됩니다.`,
+    incorrectPinNotice: (att: number) => `잘못된 PIN입니다 (${att}/5회 시도).`,
+    localEncryptedWorkspace: '로컬 기기 암호화 워크스페이스',
+    onDeviceStorage: '온디바이스 저장소 (AES-256)',
+    badge1Title: '100% 로컬 격리',
+    badge1Desc: '브라우저 단독 보관',
+    badge2Title: '멀티 AI 하모니',
+    badge2Desc: '클라우드 & 로컬',
+    badge3Title: '보안 금고 암호화',
+    badge3Desc: 'PIN & 복구 키',
+    languageSelectorAria: '언어 선택',
+    systemLanguageTitle: '브라우저 설정 따르기',
   },
   ENG: {
     brandName: 'AI Podium',
@@ -174,13 +218,13 @@ export const AUTH_TRANSLATIONS: Record<AuthLang, AuthStrings> = {
     subtitle: 'Unified Knowledge Workspace',
     heroTitle: 'Your AI Orchestra, Conducted by You',
     heroDesc: 'Consolidate scattered information into a single clear source of truth in a secure environment with zero external leakage.',
-    card1Title: 'Complete Data Sovereignty & Security',
+    card1Title: 'Complete Local Data Sovereignty',
     card1CompactTitle: 'Complete Local Data Isolation',
     card1Desc: "All documents and work remain isolated inside your browser's local sandbox with zero external sync.",
     card2Title: 'Flexible AI Model Integration',
     card2CompactTitle: 'Flexible Cloud & Local AI',
     card2Desc: 'Seamlessly run powerful cloud APIs or completely offline local AI (Ollama, WebLLM) tailored to your needs.',
-    card3Title: 'One-Click Derivative Expansion',
+    card3Title: 'One-Click Secondary Output Expansion',
     card3CompactTitle: 'Core Document Orchestration',
     card3Desc: 'Instantly generate presentation slides (Vibe Slide), reports, and various business outputs from your core document.',
     copyright: '© 2026 aipodium.net · AI Podium',
@@ -250,5 +294,27 @@ export const AUTH_TRANSLATIONS: Record<AuthLang, AuthStrings> = {
     termsAiOutputAgree: '[Required] The user is responsible for verifying the accuracy of AI-generated content.',
     termsViewDetails: 'Details',
     termsHideDetails: 'Collapse',
+    openWorkspaceError: 'Failed to open workspace.',
+    generateKeyError: 'Failed to generate cryptographic access key.',
+    saveSettingsError: 'Failed to save security settings.',
+    authError: 'An error occurred during verification.',
+    noRegisteredAccessKeyError: 'No registered access key found.',
+    recoveryVerifiedSuccessNotice: 'Access Key verified. Please set a new workspace PIN.',
+    verificationFailedError: 'Verification failed.',
+    pinUpdateError: 'Failed to update PIN.',
+    resetConfirmError: 'Type "RESET" to confirm security reset.',
+    lockoutWaitNotice: (sec: number) => `Too many failed attempts. Locked out for ${sec} seconds.`,
+    lockoutMaxAttemptsNotice: (sec: number) => `Too many failed attempts (5/5). Locked out for ${sec}s.`,
+    incorrectPinNotice: (att: number) => `Incorrect PIN (${att}/5 attempts).`,
+    localEncryptedWorkspace: 'Local Encrypted Workspace',
+    onDeviceStorage: 'On-Device Storage (AES-256)',
+    badge1Title: '100% Local',
+    badge1Desc: 'In-Browser Only',
+    badge2Title: 'Multi-AI Harmony',
+    badge2Desc: 'Cloud & Local',
+    badge3Title: 'Encrypted Vault',
+    badge3Desc: 'PIN & Master Key',
+    languageSelectorAria: 'Language selector',
+    systemLanguageTitle: 'Follow browser settings',
   }
 };
