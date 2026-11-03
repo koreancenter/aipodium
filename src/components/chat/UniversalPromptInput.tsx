@@ -357,7 +357,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
   };
 
   return (
-    <div className={`bg-[#09090b] border-t border-[#222226] flex flex-col relative shrink-0 ${className}`}>
+    <div className={`bg-[#09090b] border-t border-[#222226] flex flex-col relative shrink-0 overflow-visible ${className}`}>
       {/* Hidden File Input */}
       <input
         ref={fileInputRef}
@@ -600,8 +600,8 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
       )}
 
       {/* Bottom Action Bar - Bottom-Flush Clean IDE Style */}
-      <div className="flex items-center justify-between px-2.5 pb-2 pt-0.5 bg-transparent">
-        <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between px-2.5 pb-2 pt-0.5 bg-transparent overflow-visible">
+        <div className="flex items-center gap-1 overflow-visible">
           {/* File Attach Button */}
           <button
             type="button"

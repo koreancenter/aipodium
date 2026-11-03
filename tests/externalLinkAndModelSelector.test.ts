@@ -193,32 +193,32 @@ test('External Link Ingestion Pipeline & Model Selector', async (t) => {
       'utf-8'
     );
 
-    // Verify fixed dimensions on outer popover
+    // Verify fixed dimensions on outer popover with ultra-luxury obsidian surface (w-[340px] min-w-[340px] max-w-[340px] shadow-2xl)
     assert.match(
       selectorFile,
-      /w-\[370px\]\s+h-\[380px\]\s+flex\s+flex-col\s+bg-\[#121214\]\s+border\s+border-\[#222226\]\s+backdrop-blur-md\s+rounded-xl\s+shadow-2xl\s+overflow-hidden/,
-      'Outer popover container must enforce fixed 370px by 380px boundary'
+      /w-\[340px\]\s+min-w-\[340px\]\s+max-w-\[340px\]\s+h-\[400px\]\s+flex\s+flex-col\s+bg-\[#0f1015\]\/95\s+border\s+border-white\/\[0\.07\]\s+backdrop-blur-2xl\s+rounded-2xl\s+shadow-2xl\s+overflow-hidden/,
+      'Outer popover container must enforce ultra-luxury glassmorphism surface'
     );
 
-    // Verify header slot
+    // Verify compact header slot
     assert.match(
       selectorFile,
-      /shrink-0\s+p-2\.5\s+border-b\s+border-white\/5/,
-      'Header slot must have shrink-0 p-2.5 border-b border-white/5'
+      /shrink-0\s+border-b\s+border-white\/\[0\.07\]\s+bg-\[#09090b\]\/60/,
+      'Header slot must have compact border-b border-white/[0.07] bg-[#09090b]/60'
     );
 
     // Verify scrollable body viewport
     assert.match(
       selectorFile,
-      /flex-1\s+min-h-0\s+overflow-y-auto\s+p-2\s+space-y-2/,
-      'Body flex child must have flex-1 min-h-0 overflow-y-auto p-2 space-y-2'
+      /flex-1\s+min-h-0\s+overflow-y-auto\s+p-2\s+space-y-1/,
+      'Body flex child must have flex-1 min-h-0 overflow-y-auto p-2 space-y-1'
     );
 
-    // Verify footer slot
+    // Verify footer slot (clean 1-line status footer)
     assert.match(
       selectorFile,
-      /shrink-0\s+px-3\s+py-2\s+border-t\s+border-white\/5\s+text-xs\s+text-zinc-400/,
-      'Footer slot must have shrink-0 px-3 py-2 border-t border-white/5 text-xs text-zinc-400'
+      /shrink-0\s+text-\[11px\]\s+text-zinc-400\s+py-2\s+px-3\s+border-t\s+border-white\/\[0\.06\]\s+flex/,
+      'Footer slot must have clean 1-line status footer'
     );
   });
 });

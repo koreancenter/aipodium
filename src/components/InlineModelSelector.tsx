@@ -1,5 +1,13 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ChevronDown, Search, SlidersHorizontal, RefreshCw, Star, Check, KeyRound } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import {
+  Search,
+  SlidersHorizontal,
+  Star,
+  Check,
+  Sparkles,
+  ChevronDown,
+  RefreshCw,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { fetchOllamaTags, DEFAULT_FALLBACK_MODELS, getModelDisplayName } from '../config/models.config';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +17,7 @@ import {
   isModelSelected,
   normalizeModelId,
   normalizeModelIds,
+  type ModelSelectionMode,
 } from '../utils/modelSelectorUtils';
 
 export interface ModelOptionItem {
@@ -28,19 +37,21 @@ export interface InlineModelSelectorProps {
   onSelectModel: (modelId: string) => void;
   selectedMultiModels: string[];
   onSelectMultiModels: (models: string[]) => void;
-  mode: 'single' | 'routing' | 'multi';
-  onModeChange: (mode: 'single' | 'routing' | 'multi') => void;
+  mode: ModelSelectionMode;
+  onModeChange: (mode: ModelSelectionMode) => void;
   availableChatModels?: ModelOptionItem[];
   onOpenRoleModal?: () => void;
   onOpenSettings?: (tab?: string) => void;
   onShowToast?: (msg: string, type?: 'info' | 'success' | 'warn' | 'error') => void;
   provider?: 'cloud' | 'local-pc' | 'local-server' | 'webllm';
   onSelectProvider?: (provider: 'cloud' | 'local-pc' | 'local-server') => void;
-  onRefreshOllama?: () => Promise<any> | void;
+  onRefreshOllama?: () => Promise<unknown> | void;
   localEndpoint?: string;
   onSelectDefaultLocalTag?: (tag: string) => void;
   apiKeys?: Record<string, string>;
 }
+
+export type LuxuryModelPickerPopoverProps = InlineModelSelectorProps;
 
 const DEFAULT_PINNED_MODELS = ['gemini-2.5-flash'];
 
@@ -66,6 +77,48 @@ export const getVendorDisplayName = (vendor: string): string => {
   }
 };
 
+export const getModelTierBadge = (m: ModelOptionItem): string | null => {
+  const id = m.id.toLowerCase();
+  if (id.includes('flash-lite')) return 'Lite';
+  if (id.includes('flash')) return 'Fast';
+  if (id.includes('pro')) return 'Pro';
+  if (id.includes('o3-mini') || id.includes('reasoner') || id.includes('r1')) return 'Reasoning';
+  if (id.includes('gpt-4o-mini') || id.includes('haiku') || id.includes('8b')) return 'Fast';
+  if (id.includes('gpt-4o') || id.includes('sonnet')) return 'Omni';
+  if (id.includes('deepseek-chat')) return 'General';
+  if (id.includes('70b')) return 'LPU';
+  if (m.group === 'local') {
+    if (m.vendor === 'webllm' || id.includes('webllm') || id.includes('qwen2.5-0.5b')) return 'WebGPU';
+    return 'Local';
+  }
+  if (m.tier) {
+    if (m.tier.includes('Fast')) return 'Fast';
+    if (m.tier.includes('Depth') || m.tier.includes('Pro')) return 'Pro';
+    if (m.tier.includes('Reasoning')) return 'Reasoning';
+  }
+  return null;
+};
+
+export const getModelDescription = (m: ModelOptionItem): string => {
+  const id = m.id.toLowerCase();
+  if (id === 'gemini-2.5-flash') return '일상 대화 및 빠른 요약 전용';
+  if (id === 'gemini-2.5-pro') return '복잡한 코드 분석 및 심층 논리 추론';
+  if (id === 'gemini-2.5-flash-lite') return '초경량 초고속 실시간 응답';
+  if (id === 'gpt-4o') return '플래그십 멀티모달 고성능 추론';
+  if (id === 'gpt-4o-mini') return '경제적인 고속 경량화 추론';
+  if (id === 'o3-mini') return '수학 및 과학 심층 논리 추론';
+  if (id === 'claude-3.5-sonnet') return '고난도 코딩 및 시스템 아키텍처 분석';
+  if (id === 'claude-3.5-haiku') return '초고속 실시간 응답 및 텍스트 처리';
+  if (id === 'deepseek-chat') return '오픈 아키텍처 범용 코딩 및 대화';
+  if (id === 'deepseek-reasoner') return '단계별 강화학습 심층 추론';
+  if (id === 'llama-3.3-70b-versatile') return 'Groq LPU 초고속 하드웨어 가속 추론';
+  if (id === 'llama-3.1-8b-instant') return 'Groq 초경량 즉각 응답 추론';
+  if (id === 'qwen2.5-0.5b-instruct') return 'WebGPU 브라우저 내장 인메모리 실행';
+  if (m.desc) return m.desc;
+  if (m.group === 'local') return '로컬 설치 및 브라우저 오프라인 추론';
+  return '클라우드 인텔리전스 모델';
+};
+
 export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
   selectedModel,
   onSelectModel,
@@ -88,10 +141,11 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<'all' | 'cloud' | 'local'>('all');
   const [isRefetching, setIsRefetching] = useState(false);
+  const [showUnconfigured, setShowUnconfigured] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Effective multi-provider API keys
+  // Multi-provider API keys
   const effectiveApiKeys = useMemo<Record<string, string>>(() => {
     return {
       ...(auth?.apiKeys || {}),
@@ -99,7 +153,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     };
   }, [auth?.apiKeys, propsApiKeys]);
 
-  // Normalize legacy model IDs and keep single mode to exactly one selected model.
+  // Normalize model IDs
   useEffect(() => {
     const normalizedSelectedModel = normalizeModelId(selectedModel);
     if (normalizedSelectedModel !== selectedModel) {
@@ -172,14 +226,14 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     };
   }, [isOpen]);
 
-  // Base unified model list ensuring all cloud vendors are represented
+  // Base unified model list
   const allResolvedModels = useMemo<ModelOptionItem[]>(() => {
     const list: ModelOptionItem[] = [...availableChatModels];
     DEFAULT_FALLBACK_MODELS.forEach((dm) => {
       if (!list.some((m) => m.id === dm.id)) {
-        const v = dm.vendor || (getVendorForModel(dm.id) as any);
+        const v = (dm.vendor || getVendorForModel(dm.id)) as ModelOptionItem['vendor'];
         const hasKey = dm.group === 'cloud'
-          ? Boolean(effectiveApiKeys[v]?.trim())
+          ? Boolean(effectiveApiKeys[v || '']?.trim())
           : true;
         list.push({
           id: dm.id,
@@ -188,12 +242,20 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
           group: dm.group,
           vendor: v,
           tier: dm.tier,
-          hasApiKey: hasKey
+          hasApiKey: hasKey,
         });
       }
     });
     return list;
   }, [availableChatModels, effectiveApiKeys]);
+
+  // Helper to determine if a model has an active key or is local
+  const isModelAvailable = useCallback((m: ModelOptionItem): boolean => {
+    if (m.group === 'local') return true;
+    const vendor = m.vendor || getVendorForModel(m.id);
+    const key = effectiveApiKeys[vendor]?.trim();
+    return Boolean(key) || Boolean(m.hasApiKey);
+  }, [effectiveApiKeys]);
 
   // Model name resolver
   const getModelName = (id: string): string => {
@@ -203,7 +265,6 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     return getModelDisplayName(cleanId);
   };
 
-  // Active models state calculation
   const activeModelIds = mode === 'single'
     ? [selectedModel]
     : selectedMultiModels.length > 0
@@ -218,12 +279,10 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
 
   const chipLabel = getModelSelectorLabel(mode, activeCount, primaryModelName);
 
-  // Check if a model is currently checked
   const isChecked = (modelId: string): boolean => {
     return isModelSelected(modelId, selectedModel, selectedMultiModels, mode);
   };
 
-  // Toggle selection for a model
   const handleModelToggle = (modelId: string) => {
     const cleanId = normalizeModelId(modelId);
     const currentlyChecked = isChecked(cleanId);
@@ -254,7 +313,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     }
   };
 
-  const handleModeSelect = (nextMode: 'single' | 'multi' | 'routing') => {
+  const handleModeSelect = (nextMode: ModelSelectionMode) => {
     if (nextMode === 'single') {
       const nextModel = mode === 'single' ? selectedModel : activeModelIds[0];
       onSelectModel(nextModel);
@@ -275,7 +334,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     return (
       m.name.toLowerCase().includes(query) ||
       m.id.toLowerCase().includes(query) ||
-      (m.desc && m.desc.toLowerCase().includes(query))
+      Boolean(m.desc && m.desc.toLowerCase().includes(query))
     );
   };
 
@@ -284,30 +343,39 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     [allResolvedModels, query]
   );
 
-  // Pinned models at the top
-  const pinnedList = useMemo(() => {
-    return filteredModels.filter((m) => pinnedIds.includes(m.id));
-  }, [filteredModels, pinnedIds]);
+  // Split into available and unconfigured models
+  const availableModels = useMemo(() => {
+    return filteredModels.filter((m) => isModelAvailable(m));
+  }, [filteredModels, isModelAvailable]);
 
-  // Remaining Cloud Models sorted by key availability
+  const unconfiguredModels = useMemo(() => {
+    return filteredModels.filter((m) => !isModelAvailable(m));
+  }, [filteredModels, isModelAvailable]);
+
+  // Tab-specific filtered available lists
+  const pinnedList = useMemo(() => {
+    return availableModels.filter((m) => pinnedIds.includes(m.id));
+  }, [availableModels, pinnedIds]);
+
   const remainingCloudList = useMemo(() => {
-    const list = filteredModels.filter((m) => m.group === 'cloud' && !pinnedIds.includes(m.id));
-    return [...list].sort((a, b) => {
-      const vendorA = a.vendor || getVendorForModel(a.id);
-      const vendorB = b.vendor || getVendorForModel(b.id);
-      const hasKeyA = Boolean(effectiveApiKeys[vendorA]?.trim());
-      const hasKeyB = Boolean(effectiveApiKeys[vendorB]?.trim());
-      if (hasKeyA && !hasKeyB) return -1;
-      if (!hasKeyA && hasKeyB) return 1;
-      return 0;
-    });
-  }, [filteredModels, pinnedIds, effectiveApiKeys]);
+    return availableModels.filter((m) => m.group === 'cloud' && !pinnedIds.includes(m.id));
+  }, [availableModels, pinnedIds]);
 
   const remainingLocalList = useMemo(() => {
-    return filteredModels.filter((m) => m.group === 'local' && !pinnedIds.includes(m.id));
-  }, [filteredModels, pinnedIds]);
+    return availableModels.filter((m) => m.group === 'local' && !pinnedIds.includes(m.id));
+  }, [availableModels, pinnedIds]);
 
-  // Re-fetch tags from local Ollama endpoint (/api/tags or http://localhost:11434/api/tags)
+  // Tab-specific unconfigured lists
+  const tabUnconfiguredList = useMemo(() => {
+    if (selectedTab === 'cloud') {
+      return unconfiguredModels.filter((m) => m.group === 'cloud');
+    }
+    if (selectedTab === 'local') {
+      return unconfiguredModels.filter((m) => m.group === 'local');
+    }
+    return unconfiguredModels;
+  }, [unconfiguredModels, selectedTab]);
+
   const handleRefetchTags = async () => {
     setIsRefetching(true);
     try {
@@ -317,9 +385,9 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
         const ep = (localEndpoint || 'http://localhost:11434').trim().replace(/\/+$/, '');
         const tags = await fetchOllamaTags(ep);
         if (tags && tags.length > 0) {
-          onShowToast?.(`✓ 로컬 Ollama 모델 ${tags.length}개가 감지되었습니다.`, 'success');
+          onShowToast?.(`로컬 Ollama 모델 ${tags.length}개가 감지되었습니다.`, 'success');
         } else {
-          onShowToast?.('⚠️ 감지된 로컬 모델이 없습니다. 기본 태그를 확인하세요.', 'info');
+          onShowToast?.('감지된 로컬 모델이 없습니다. 기본 태그를 확인하세요.', 'info');
         }
       }
     } catch {
@@ -329,7 +397,6 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     }
   };
 
-  // Switch to Local AI (Ollama) tab & trigger immediate tag re-fetch
   const handleSelectLocalAiTab = async () => {
     setSelectedTab('local');
     if (onSelectProvider) {
@@ -338,7 +405,6 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     await handleRefetchTags();
   };
 
-  // Handle selecting one of the default fallback tags
   const handleSelectDefaultTag = (tag: string) => {
     if (onSelectDefaultLocalTag) {
       onSelectDefaultLocalTag(tag);
@@ -363,66 +429,73 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     onShowToast?.(`'${tag}' 로컬 모델이 선택되었습니다.`, 'success');
   };
 
-  // Detected local Ollama models (excluding browser WebLLM)
   const detectedOllamaModels = useMemo(() => {
     return availableChatModels.filter(
       (m) => m.group === 'local' && m.id !== 'Qwen2.5-0.5B-Instruct'
     );
   }, [availableChatModels]);
 
-  // Render fallback prompt with refresh button & default tags
+  // Clean 2-line plain text notice without nested dark boxes
   const renderFallbackLocalAiPrompt = () => (
-    <div className="px-2 py-1.5 text-xs space-y-2">
-      <span className="text-zinc-400 text-[11px] leading-snug">
+    <div className="px-3 py-2 space-y-1.5 text-xs select-none">
+      <p className="text-[11px] text-zinc-400 leading-relaxed">
         감지된 로컬 모델이 없습니다.
-      </span>
+        <br />
+        <span className="text-zinc-500">Ollama 실행 상태 또는 기본 태그를 확인하세요.</span>
+      </p>
 
-      <div className="pt-2 border-t border-white/[0.06]">
-        <div className="text-[10px] text-zinc-400 mb-1.5 font-medium">
-          사용 가능한 기본 태그:
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {DEFAULT_LOCAL_TAGS.map((tag) => {
-            const checked = isChecked(tag);
-            return (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => handleSelectDefaultTag(tag)}
-                className={`px-2 py-0.5 rounded text-[11px] font-mono transition-all cursor-pointer flex items-center gap-1.5 ${
-                  checked
-                    ? 'bg-indigo-500/20 text-indigo-200 font-medium'
-                    : 'bg-white/[0.04] hover:bg-white/[0.08] text-zinc-400 hover:text-zinc-200'
-                }`}
-                title={`'${tag}' 모델 선택`}
-              >
-                <span>{tag}</span>
-                {checked && <span className="text-[10px] text-indigo-400">✓</span>}
-              </button>
-            );
-          })}
-        </div>
+      <div className="flex flex-wrap gap-1.5 pt-1">
+        {DEFAULT_LOCAL_TAGS.map((tag) => {
+          const checked = isChecked(tag);
+          return (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => handleSelectDefaultTag(tag)}
+              className={`px-2 py-0.5 rounded text-[11px] font-mono transition-all cursor-pointer flex items-center gap-1 ${
+                checked
+                  ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-200 font-medium'
+                  : 'hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200'
+              }`}
+              title={`'${tag}' 모델 선택`}
+            >
+              <span>{tag}</span>
+              {checked && <Check className="w-2.5 h-2.5 text-indigo-400" />}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 
-  // Render flat QuickPick row
-  function renderModelRow(m: ModelOptionItem) {
+  const renderEmptyState = (message: string = '사용 가능한 AI 모델이 없습니다.') => (
+    <div className="py-7 px-3 text-center flex flex-col items-center justify-center space-y-2.5">
+      <p className="text-xs text-zinc-400 leading-relaxed">{message}</p>
+      <button
+        type="button"
+        onClick={() => {
+          setIsOpen(false);
+          if (onOpenSettings) onOpenSettings('ai-engine');
+          else if (onOpenRoleModal) onOpenRoleModal();
+        }}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/25 hover:text-indigo-200 text-xs transition-colors cursor-pointer"
+      >
+        <span>API 키 설정하기</span>
+      </button>
+    </div>
+  );
+
+  function renderModelRow(m: ModelOptionItem, isConfigured: boolean = true) {
     const checked = isChecked(m.id);
     const isPinned = pinnedIds.includes(m.id);
     const vendor = m.vendor || getVendorForModel(m.id);
-    const isCloud = m.group === 'cloud';
-
-    // Provider API key status: check if valid key is registered
-    const hasKey = isCloud
-      ? Boolean(effectiveApiKeys[vendor]?.trim())
-      : true;
+    const tierBadge = getModelTierBadge(m);
 
     return (
       <div
         key={`model-row-${m.id}`}
         onClick={() => {
-          if (!hasKey) {
+          if (!isConfigured) {
             onShowToast?.(`${getVendorDisplayName(vendor)} API 키가 등록되지 않았습니다. 환경설정에서 키를 입력해주세요.`, 'warn');
             if (onOpenSettings) {
               setIsOpen(false);
@@ -444,94 +517,114 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
             handleModelToggle(m.id);
           }
         }}
-        className={`model-row-item group w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer text-xs select-none transition-all ${
+        className={`group py-2 px-3 hover:bg-white/[0.05] rounded-lg flex items-center justify-between cursor-pointer transition-colors duration-150 select-none ${
           checked
-            ? 'bg-indigo-500/[0.09] text-indigo-200 font-medium'
-            : !hasKey
-              ? 'text-zinc-400 opacity-50 hover:opacity-80 hover:bg-white/[0.04]'
-              : 'text-zinc-300 hover:text-zinc-100 hover:bg-white/[0.05]'
+            ? 'bg-white/[0.08] text-zinc-100'
+            : !isConfigured
+              ? 'text-zinc-500 hover:text-zinc-300'
+              : 'text-zinc-300 hover:text-zinc-100'
         }`}
       >
-        {/* Minimalist 14px toggle circle for Multi/Routing mode (no bulky radio in single mode) */}
-        {mode !== 'single' && (
-          <span
-            aria-hidden="true"
-            className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 mr-2 transition-colors ${
-              checked
-                ? 'border-indigo-500 bg-indigo-500'
-                : 'border-zinc-600 group-hover:border-zinc-400'
-            }`}
-          >
-            {checked && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
-          </span>
-        )}
+        {/* Left: Checkmark / Checkbox + Model name + micro tag */}
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="w-3.5 h-3.5 shrink-0 flex items-center justify-center">
+            {mode !== 'single' ? (
+              <div
+                className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${
+                  checked
+                    ? 'border-indigo-500 bg-indigo-500 text-white'
+                    : 'border-zinc-700 group-hover:border-zinc-500 bg-transparent'
+                }`}
+              >
+                {checked && <Check className="w-2.5 h-2.5 stroke-[2.5]" />}
+              </div>
+            ) : checked ? (
+              <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            ) : null}
+          </div>
 
-        {/* Center: Model Name and Role Description */}
-        <div className="flex items-center min-w-0 flex-1 gap-2">
           <span
-            className={`truncate text-xs ${
+            className={`text-xs font-medium truncate ${
               checked
-                ? 'text-indigo-200 font-medium'
-                : !hasKey
-                  ? 'text-zinc-400'
-                  : 'text-zinc-300 group-hover:text-zinc-100 font-normal'
+                ? 'text-white'
+                : !isConfigured
+                  ? 'text-zinc-500'
+                  : 'text-zinc-200 group-hover:text-white'
             }`}
+            title={m.name}
           >
             {m.name}
           </span>
-          {m.desc && (
-            <span className="text-[10px] text-zinc-500 tracking-tight font-mono shrink-0">
-              {m.desc}
+
+          {tierBadge && (
+            <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/[0.04] text-zinc-400 font-mono tracking-tight shrink-0">
+              {tierBadge}
             </span>
-          )}
-          {!hasKey && (
-            <div
-              className="ml-auto flex items-center pr-1 shrink-0"
-              title="설정에서 API 키 등록 필요"
-            >
-              <KeyRound className="w-3 h-3 text-zinc-500 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
           )}
         </div>
 
-        {/* Right: Check icon for selected Single model */}
-        {mode === 'single' && checked && (
-          <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1.5" />
-        )}
-
-        {/* Right: Favorite star toggle */}
-        <button
-          type="button"
-          onClick={(e) => handleTogglePin(m.id, e)}
-          className={`p-1 hover:text-amber-400 transition-colors cursor-pointer shrink-0 ml-1 flex items-center justify-center ${
-            isPinned
-              ? 'text-amber-400'
-              : 'text-zinc-500 hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity'
-          }`}
-          title={isPinned ? '즐겨찾기 고정 해제' : '즐겨찾기에 고정'}
-        >
-          <Star className="w-3.5 h-3.5 stroke-[1.5]" fill={isPinned ? 'currentColor' : 'none'} />
-        </button>
+        {/* Right: Star Icon for favorites */}
+        <div className="flex items-center gap-1 shrink-0 ml-2">
+          <button
+            type="button"
+            onClick={(e) => handleTogglePin(m.id, e)}
+            className={`p-1 transition-opacity cursor-pointer flex items-center justify-center shrink-0 ${
+              isPinned
+                ? 'text-zinc-300 opacity-100'
+                : 'text-zinc-600 hover:text-zinc-300 opacity-0 group-hover:opacity-100'
+            }`}
+            title={isPinned ? '즐겨찾기 고정 해제' : '즐겨찾기 고정'}
+          >
+            <Star className="w-3.5 h-3.5 stroke-[1.5]" fill={isPinned ? 'currentColor' : 'none'} />
+          </button>
+        </div>
       </div>
     );
   }
 
+  // Render flat collapsible unconfigured models accordion
+  const renderUnconfiguredAccordion = () => {
+    if (tabUnconfiguredList.length === 0) return null;
+    return (
+      <div className="mt-2 pt-2 border-t border-white/[0.04]">
+        <button
+          type="button"
+          onClick={() => setShowUnconfigured((prev) => !prev)}
+          className="w-full flex items-center justify-between px-2.5 py-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer select-none rounded hover:bg-white/[0.02]"
+        >
+          <span>키 설정 필요 모델 ({tabUnconfiguredList.length}개)</span>
+          <ChevronDown
+            className={`w-3 h-3 transition-transform duration-150 ${
+              showUnconfigured ? 'rotate-180 text-zinc-400' : ''
+            }`}
+          />
+        </button>
+        {showUnconfigured && (
+          <div className="mt-1 space-y-0.5 opacity-70">
+            {tabUnconfiguredList.map((m) => renderModelRow(m, false))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="relative inline-flex items-center gap-1 select-none">
-      {/* 1. Compact Model Select Trigger Button (Flat IDE style) */}
+    <div className="relative inline-flex items-center gap-1 select-none overflow-visible">
+      {/* Trigger Button */}
       <button
         ref={buttonRef}
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`h-6 max-w-[220px] px-1.5 rounded text-[0.6875rem] font-normal flex items-center gap-1.5 transition-colors cursor-pointer ${
+        className={`h-6 max-w-[220px] px-2 rounded-md text-[0.6875rem] font-normal flex items-center gap-1.5 transition-colors cursor-pointer ${
           isOpen
             ? 'bg-white/[0.08] text-indigo-300'
             : hasMultipleModels
             ? 'text-indigo-300 hover:text-indigo-200 hover:bg-white/[0.06]'
             : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06]'
         }`}
-        title={`AI 모델 선택: ⚡ ${chipLabel} (클릭하여 열기)`}
+        title={`AI 모델 선택: ${chipLabel} (클릭하여 열기)`}
       >
+        <Sparkles className="w-3 h-3 text-indigo-400 shrink-0" />
         <span className="truncate text-left font-normal">{chipLabel}</span>
         <ChevronDown
           className={`w-3 h-3 text-zinc-400 shrink-0 transition-transform duration-150 ${
@@ -540,7 +633,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
         />
       </button>
 
-      {/* Popover UI */}
+      {/* Strict Sizing & Positioning: w-[340px] min-w-[340px] max-w-[340px] absolute bottom-full left-0 mb-2 z-50 shadow-2xl */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -549,26 +642,26 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.98 }}
             transition={{ duration: 0.12, ease: 'easeOut' }}
-            className="absolute bottom-full left-0 mb-2 z-50 w-[370px] h-[380px] flex flex-col bg-[#121214] border border-[#222226] backdrop-blur-md rounded-xl shadow-2xl overflow-hidden text-xs font-normal"
+            className="absolute bottom-full left-0 mb-2 z-50 w-[340px] min-w-[340px] max-w-[340px] h-[400px] flex flex-col bg-[#0f1015]/95 border border-white/[0.07] backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden text-xs font-normal"
           >
-            {/* Header slot (Search input + Mode switcher + Tab bar) */}
-            <div className="shrink-0 p-2.5 border-b border-white/5 space-y-2 bg-[#09090b]/40">
-              {/* Search / Filter Input */}
-              <div className="flex items-center gap-2">
-                <Search className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+            {/* Header: Slim search bar + Simple text filter tabs & Mode switcher */}
+            <div className="shrink-0 border-b border-white/[0.07] bg-[#09090b]/60 p-2 space-y-1.5">
+              {/* Search input: py-1.5 px-3 bg-white/[0.03] rounded-lg text-xs */}
+              <div className="flex items-center gap-2 py-1.5 px-3 bg-white/[0.03] rounded-lg text-xs border border-white/[0.04]">
+                <Search className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
                 <input
                   type="text"
                   autoFocus
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="모델 검색..."
-                  className="w-full bg-transparent text-xs font-normal text-zinc-200 placeholder:text-zinc-500 outline-none"
+                  className="w-full bg-transparent text-xs font-normal text-zinc-100 placeholder:text-zinc-600 outline-none"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="text-zinc-400 hover:text-zinc-200 text-[0.6875rem] font-normal px-1 cursor-pointer"
+                    className="text-zinc-500 hover:text-zinc-300 text-[10px] font-normal px-1 cursor-pointer transition-colors"
                   >
                     지우기
                   </button>
@@ -584,134 +677,120 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                         onOpenRoleModal();
                       }
                     }}
-                    className="p-1 text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06] rounded-md transition-colors shrink-0 cursor-pointer"
-                    title="AI 엔진 및 공급자 설정 열기"
+                    className="p-0.5 text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] rounded transition-colors shrink-0 cursor-pointer"
+                    title="AI 엔진 및 설정 열기"
                   >
                     <SlidersHorizontal className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
 
-              {/* Segmented Mode Control (싱글 | 멀티 | 라우팅) */}
-              <div className="bg-[#0c0c0e] p-0.5 rounded-lg border border-white/[0.06] flex items-center">
-                {([
-                  ['single', '싱글'],
-                  ['multi', '멀티'],
-                  ['routing', '라우팅'],
-                ] as const).map(([value, label]) => (
+              {/* Simple text filter tabs (전체, 클라우드, 로컬 AI) + Mode switcher */}
+              <div className="flex items-center justify-between px-1 select-none gap-2">
+                {/* Simple text tabs */}
+                <div className="flex items-center gap-2 shrink-0">
                   <button
-                    key={value}
                     type="button"
-                    onClick={() => handleModeSelect(value)}
-                    aria-pressed={mode === value}
-                    className={`flex-1 h-6 rounded-md text-[11px] transition-all cursor-pointer ${
-                      mode === value
-                        ? 'bg-white/[0.08] text-zinc-100 font-medium shadow-xs'
-                        : 'text-zinc-500 hover:text-zinc-300 transition-colors'
+                    onClick={() => setSelectedTab('all')}
+                    className={`text-[11px] whitespace-nowrap transition-colors cursor-pointer ${
+                      selectedTab === 'all'
+                        ? 'text-zinc-100 font-medium'
+                        : 'text-zinc-500 hover:text-zinc-300'
                     }`}
                   >
-                    {label}
+                    전체
                   </button>
-                ))}
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTab('cloud')}
+                    className={`text-[11px] whitespace-nowrap transition-colors cursor-pointer ${
+                      selectedTab === 'cloud'
+                        ? 'text-zinc-100 font-medium'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    클라우드
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSelectLocalAiTab}
+                    className={`text-[11px] whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1 ${
+                      selectedTab === 'local'
+                        ? 'text-zinc-100 font-medium'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                    title="로컬 AI 선택 및 새로고침"
+                  >
+                    <span>로컬 AI</span>
+                    {isRefetching && <RefreshCw className="w-2.5 h-2.5 text-indigo-400 animate-spin" />}
+                  </button>
+                </div>
 
-              {/* Category tabs */}
-              <div className="flex items-center select-none pt-1 border-t border-white/[0.06] gap-1">
-                <button
-                  type="button"
-                  onClick={() => setSelectedTab('all')}
-                  className={`px-3 py-1 text-xs transition-colors cursor-pointer border-b ${
-                    selectedTab === 'all'
-                      ? 'border-indigo-500/80 text-zinc-100 font-medium'
-                      : 'border-transparent text-zinc-500 hover:text-zinc-300'
-                  }`}
-                >
-                  전체
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedTab('cloud')}
-                  className={`px-3 py-1 text-xs transition-colors cursor-pointer border-b ${
-                    selectedTab === 'cloud'
-                      ? 'border-indigo-500/80 text-zinc-100 font-medium'
-                      : 'border-transparent text-zinc-500 hover:text-zinc-300'
-                  }`}
-                >
-                  클라우드
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSelectLocalAiTab}
-                  className={`px-3 py-1 text-xs transition-colors cursor-pointer border-b flex items-center gap-1.5 ${
-                    selectedTab === 'local'
-                      ? 'border-indigo-500/80 text-zinc-100 font-medium'
-                      : 'border-transparent text-zinc-500 hover:text-zinc-300'
-                  }`}
-                  title="로컬 AI 선택 및 태그 새로고침"
-                >
-                  <span>로컬 AI</span>
-                  <RefreshCw className={`w-2.5 h-2.5 text-indigo-400 ${isRefetching ? 'animate-spin' : ''}`} />
-                </button>
+                {/* Mode switcher */}
+                <div className="flex items-center gap-1 text-[10px] text-zinc-500 shrink-0">
+                  {([
+                    ['single', '단일'],
+                    ['multi', '비교'],
+                    ['routing', '라우팅'],
+                  ] as const).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => handleModeSelect(value)}
+                      aria-pressed={mode === value}
+                      className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                        mode === value
+                          ? 'bg-white/[0.08] text-zinc-100 font-medium'
+                          : 'hover:text-zinc-300'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Scrollable Model Lists flex viewport */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-2 custom-scrollbar bg-transparent">
+            {/* Scrollable Model Lists flex viewport (Flat layout without nested cards) */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1 custom-scrollbar bg-transparent">
               {/* TAB: LOCAL ONLY */}
               {selectedTab === 'local' && (
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {pinnedList.filter((m) => m.group === 'local').map((m) => renderModelRow(m))}
                   {remainingLocalList.map((m) => renderModelRow(m))}
                   {detectedOllamaModels.length === 0 && renderFallbackLocalAiPrompt()}
                   {detectedOllamaModels.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-white/[0.06] flex items-center justify-between px-2">
+                    <div className="mt-2 pt-2 border-t border-white/[0.04] flex items-center justify-between px-3">
                       <span className="text-[10px] text-zinc-500 font-mono">
                         {detectedOllamaModels.length}개 로컬 모델 감지됨
                       </span>
                     </div>
                   )}
+                  {renderUnconfiguredAccordion()}
                 </div>
               )}
 
               {/* TAB: CLOUD ONLY */}
               {selectedTab === 'cloud' && (
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {pinnedList.filter((m) => m.group === 'cloud').map((m) => renderModelRow(m))}
                   {remainingCloudList.map((m) => renderModelRow(m))}
-                  {filteredModels.filter((m) => m.group === 'cloud').length === 0 && (
-                    <div className="py-8 text-center text-zinc-500 text-xs font-normal">
-                      검색된 클라우드 모델이 없습니다.
-                    </div>
+                  {availableModels.filter((m) => m.group === 'cloud').length === 0 && (
+                    renderEmptyState('사용 가능한 클라우드 모델이 없습니다.')
                   )}
-                  {/* Quick settings link for missing API keys */}
-                  <div className="mt-2 pt-2 border-t border-white/[0.06] flex items-center justify-between px-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsOpen(false);
-                        if (onOpenSettings) onOpenSettings('ai-engine');
-                        else if (onOpenRoleModal) onOpenRoleModal();
-                      }}
-                      className="text-[11px] text-zinc-400 hover:text-indigo-300 transition-colors cursor-pointer font-normal flex items-center gap-1"
-                    >
-                      <span>+ 공급자 키 관리 및 등록</span>
-                    </button>
-                  </div>
+                  {renderUnconfiguredAccordion()}
                 </div>
               )}
 
               {/* TAB: ALL */}
               {selectedTab === 'all' && (
-                <div className="space-y-1">
-                  {/* Pinned favorites first */}
+                <div className="space-y-0.5">
                   {pinnedList.map((m) => renderModelRow(m))}
-
-                  {/* Remaining Cloud Models */}
                   {remainingCloudList.map((m) => renderModelRow(m))}
 
                   {remainingLocalList.some((m) => m.id === 'Qwen2.5-0.5B-Instruct') && (
                     <div className="mt-1">
-                      <div className="px-2.5 py-1 text-[10px] text-zinc-500 font-medium select-none">
+                      <div className="px-3 pt-2 pb-1 text-[10px] text-zinc-500 font-medium select-none">
                         브라우저 내장 AI · WebGPU
                       </div>
                       {remainingLocalList
@@ -723,7 +802,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                   {(remainingLocalList.some((m) => m.id !== 'Qwen2.5-0.5B-Instruct') ||
                     detectedOllamaModels.length === 0) && (
                     <div className="mt-1">
-                      <div className="px-2.5 py-1 text-[10px] text-zinc-500 font-medium select-none">
+                      <div className="px-3 pt-2 pb-1 text-[10px] text-zinc-500 font-medium select-none">
                         로컬 AI · Ollama
                       </div>
                       {remainingLocalList
@@ -733,24 +812,27 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                     </div>
                   )}
 
-                  {filteredModels.length === 0 && (
-                    <div className="py-8 text-center text-zinc-500 text-xs font-normal">
-                      검색 결과가 없습니다.
-                    </div>
+                  {availableModels.length === 0 && (
+                    renderEmptyState('사용 가능한 AI 모델이 없습니다.')
                   )}
+
+                  {renderUnconfiguredAccordion()}
                 </div>
               )}
             </div>
 
-            {/* Footer slot (Selection counter) */}
-            <div className="shrink-0 px-3 py-2 border-t border-white/5 text-xs text-zinc-400 flex items-center justify-between bg-[#09090b]/50">
-              <span className="font-normal text-[11px] text-zinc-400">
-                {mode === 'single'
-                  ? `싱글 모드 · ${primaryModelName}`
-                  : mode === 'multi'
-                    ? `멀티 비교 · ${activeCount}개 모델 선택됨`
-                    : `자동 라우팅 · ${activeCount}개 후보 모델`}
-              </span>
+            {/* Bottom Bar: Clean 1-line status footer: text-[11px] text-zinc-400 py-2 px-3 border-t border-white/[0.06] flex justify-between */}
+            <div className="shrink-0 text-[11px] text-zinc-400 py-2 px-3 border-t border-white/[0.06] flex items-center justify-between select-none">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 shrink-0" />
+                <span className="font-normal text-[11px] text-zinc-300 truncate">
+                  {mode === 'single'
+                    ? `단일 추론 · ${primaryModelName}`
+                    : mode === 'multi'
+                      ? `교차 비교 · ${activeCount}개 선택됨`
+                      : `스마트 라우팅 · ${activeCount}개 후보 모델`}
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -758,10 +840,10 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                   if (onOpenSettings) onOpenSettings('ai-engine');
                   else if (onOpenRoleModal) onOpenRoleModal();
                 }}
-                className="text-[11px] text-zinc-500 hover:text-indigo-400 transition-colors cursor-pointer font-normal flex items-center gap-1"
-                title="공급자 키 관리 및 설정"
+                className="text-[11px] text-zinc-400 hover:text-indigo-300 transition-colors cursor-pointer font-normal flex items-center gap-1.5 shrink-0 ml-2"
+                title="API 키 및 AI 엔진 설정"
               >
-                <span>+ 공급자 키 관리 및 등록</span>
+                <span>API 키 설정</span>
               </button>
             </div>
           </motion.div>
@@ -770,3 +852,6 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     </div>
   );
 };
+
+export const LuxuryModelPickerPopover = InlineModelSelector;
+export default InlineModelSelector;
