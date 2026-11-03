@@ -138,7 +138,7 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
   mode = 'single',
   onModeChange,
 }) => {
-  const { t: dict, language } = useTranslation();
+  const { t: dict, language, preference, setPreference } = useTranslation();
   const t = dict?.core?.menu ?? getCoreTranslations(language).menu;
   const [activeMenu, setActiveMenu] = useState<MenuKey>(null);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
@@ -910,17 +910,56 @@ const MENU_DIVIDER_CLASS =
               <span className="text-[10px] text-zinc-500 font-mono shrink-0">Ctrl+,</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                closeMenu();
-                setPreferencesInitialTab('language');
-                setIsPreferencesModalOpen(true);
-              }}
-              className={MENU_ITEM_CLASS}
-            >
-              <span>{t.languagePreference}</span>
-            </button>
+            <div className="px-3 py-1.5 flex items-center justify-between text-xs text-zinc-300">
+              <span className="text-zinc-400">{t.languagePreference}</span>
+              <div className="flex items-center gap-1 bg-white/[0.04] p-0.5 rounded border border-white/[0.06]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPreference('auto');
+                    closeMenu();
+                  }}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer ${
+                    preference === 'auto' || preference === 'system'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                  title="브라우저/OS 언어 자동 감지"
+                >
+                  AUTO
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPreference('ko');
+                    closeMenu();
+                  }}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer ${
+                    preference === 'ko'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                  title="한국어로 고정"
+                >
+                  한국어
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPreference('en');
+                    closeMenu();
+                  }}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer ${
+                    preference === 'en'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                  title="English로 고정"
+                >
+                  English
+                </button>
+              </div>
+            </div>
 
             <button
               type="button"

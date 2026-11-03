@@ -998,7 +998,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   <div className="space-y-2">
                     {([
                       {
-                        value: 'system',
+                        value: 'auto',
                         title: st.languagePanel.systemTitle,
                         description: st.languagePanel.systemDescription
                       },
@@ -1021,7 +1021,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           type="radio"
                           name="app-language"
                           value={option.value}
-                          checked={languagePreference === option.value}
+                          checked={
+                            option.value === 'auto'
+                              ? languagePreference === 'auto' || languagePreference === 'system'
+                              : languagePreference === option.value
+                          }
                           onChange={() => setLanguagePreference(option.value)}
                           className="mt-0.5 accent-indigo-500"
                         />

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  FileText,
   ShieldCheck,
+  Cpu,
+  Layers,
   Lock,
   Unlock,
   KeyRound,
@@ -459,9 +460,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
     <div className="w-full min-h-screen min-h-[100dvh] bg-[#09090b] text-zinc-200 font-sans antialiased selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] flex flex-col justify-between relative overflow-x-hidden overflow-y-auto">
       {/* Subtle ambient lighting adhering strictly to Clean Dark rules */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(99,102,241,0.06),transparent_70%)] pointer-events-none" />
+      <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-indigo-600/10 blur-[140px] pointer-events-none rounded-full" />
 
-      {/* Main Container */}
-      <div className="relative z-10 w-full max-w-4xl mx-auto min-h-screen min-h-[100dvh] flex flex-col justify-between px-4 sm:px-6 py-3 sm:py-6">
+      {/* Main Container: Expanded to max-w-6xl for wide desktop displays while responsive on mobile */}
+      <div className="relative z-10 w-full max-w-6xl mx-auto min-h-screen min-h-[100dvh] flex flex-col justify-between px-4 sm:px-6 lg:px-8 py-3 sm:py-6">
         {/* Top Header: Brand Identity & Language Toggle */}
         <header className="w-full flex items-center justify-between pb-3 sm:pb-5 border-b border-white/[0.08]">
           <div className="flex items-center gap-2.5">
@@ -481,13 +483,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
           >
             <button
               type="button"
-              onClick={() => setPreference('system')}
+              onClick={() => setPreference('auto')}
               className={`px-2.5 py-1 text-xs rounded-sm transition-colors cursor-pointer ${
-                preference === 'system'
+                preference === 'auto' || preference === 'system'
                   ? 'bg-indigo-600 text-white font-medium'
                   : 'text-zinc-400 hover:text-zinc-200 font-normal'
               }`}
-              aria-pressed={preference === 'system'}
+              aria-pressed={preference === 'auto' || preference === 'system'}
               title={t.systemLanguageTitle}
             >
               AUTO
@@ -521,422 +523,210 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
           </div>
         </header>
 
-        {/* Middle: Clean Single Flat Card (No Box-in-Box, Fully Visible Above-the-Fold on Mobile) */}
-        <main className="my-auto py-4 sm:py-8 w-full flex flex-col items-center justify-center">
-          <div className="w-full max-w-md bg-[#121214] border border-white/[0.08] rounded-2xl p-5 sm:p-7 shadow-2xl shadow-black/50 flex flex-col gap-4">
-            {/* Status Feedback Banners */}
-            {errorMsg && (
-              <div className="rounded-lg border border-rose-500/40 bg-rose-950/40 p-3 text-xs text-rose-300 flex items-start gap-2.5">
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                <span className="leading-relaxed">{errorMsg}</span>
-              </div>
-            )}
-
-            {successMsg && (
-              <div className="rounded-lg border border-emerald-500/40 bg-emerald-950/40 p-3 text-xs text-emerald-300 flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span className="leading-relaxed">{successMsg}</span>
-              </div>
-            )}
-
-            {/* Rate Limit Lockout Banner */}
-            {lockoutState.isLockedOut && (
-              <div className="rounded-lg border border-amber-500/40 bg-amber-950/40 p-3 text-xs text-amber-300 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>{t.cooldownActive}</span>
-                </div>
-                <span className="font-semibold text-amber-200 font-mono">
-                  {lockoutState.remainingSeconds}s
+        {/* Middle: Responsive 2-Column Desktop Grid / Compact Mobile View */}
+        <main className="my-auto py-4 sm:py-8 lg:py-10 w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          {/* Left Column (7 cols): Grand Hero Title & Desktop Highlight Cards */}
+          <div className="w-full lg:col-span-7 flex flex-col gap-4 sm:gap-6">
+            {/* Grand Hero Title & Subtitle */}
+            <div className="space-y-2 text-center lg:text-left">
+              <div>
+                <span className="px-3 py-1 text-xs text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 rounded-full inline-flex items-center gap-1.5 mb-4">
+                  <span>✨</span>
+                  <span>{lang === 'KR' ? '프라이버시 우선 AI 워크스페이스' : 'Privacy-First AI Workspace'}</span>
                 </span>
               </div>
-            )}
+              <h1 className="text-2xl sm:text-3xl xl:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent break-keep">
+                {t.heroTitle}
+              </h1>
+              <p className="text-xs sm:text-sm lg:text-base text-zinc-400 leading-relaxed max-w-xl mx-auto lg:mx-0 break-keep">
+                {t.heroDesc}
+              </p>
+            </div>
 
-            {/* Emergency Master Access Key Modal (First-time PIN setup dialogue) */}
-            {generatedRecoveryKey && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
-                    <LifeBuoy className="w-4.5 h-4.5" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-zinc-100">{t.recoveryKeyTitle}</h3>
-                    <p className="text-xs text-zinc-400">{t.recoveryKeySubtitle}</p>
-                  </div>
+            {/* Mobile Only: Subtle Minimalist Chips (< lg viewport) */}
+            <div className="flex lg:hidden flex-wrap items-center justify-center gap-1.5 sm:gap-2 select-none py-0.5">
+              <span className="bg-white/[0.04] px-2.5 py-1 rounded-md border border-white/5 text-xs text-zinc-400 flex items-center gap-1.5">
+                <span>🛡️</span>
+                <span>{lang === 'KR' ? '데이터 주권' : 'Data Sovereignty'}</span>
+              </span>
+              <span className="bg-white/[0.04] px-2.5 py-1 rounded-md border border-white/5 text-xs text-zinc-400 flex items-center gap-1.5">
+                <span>⚡</span>
+                <span>{lang === 'KR' ? '자유로운 AI' : 'Flexible AI'}</span>
+              </span>
+              <span className="bg-white/[0.04] px-2.5 py-1 rounded-md border border-white/5 text-xs text-zinc-400 flex items-center gap-1.5">
+                <span>📊</span>
+                <span>{lang === 'KR' ? '원클릭 가공' : '1-Click Workflow'}</span>
+              </span>
+            </div>
+
+            {/* Desktop Only: 3 Rich Minimalist Feature Cards (>= lg viewport) */}
+            <div className="hidden lg:flex flex-col gap-3 pt-1">
+              <div className="bg-white/[0.02] border border-white/[0.08] backdrop-blur-md rounded-2xl p-5 hover:border-indigo-500/30 hover:bg-white/[0.04] transition-all duration-300 shadow-lg flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
-
-                <div className="p-3 rounded-lg bg-[#18181b] border border-white/[0.08] text-xs text-zinc-300 leading-relaxed">
-                  <strong className="block font-medium text-indigo-300 mb-1">{t.recoveryKeyNoticeHeader}</strong>
-                  {t.recoveryKeyNoticeBody}
-                </div>
-
-                <div className="flex items-center justify-between rounded-lg bg-[#18181b] border border-white/[0.08] p-3 font-mono text-sm tracking-widest text-indigo-300 select-all font-medium">
-                  <span>{generatedRecoveryKey}</span>
-                  <button
-                    type="button"
-                    onClick={handleCopyRecoveryKey}
-                    title={t.copyRecoveryKeyTitle}
-                    aria-label={t.copyRecoveryKeyTitle}
-                    className="p-1.5 rounded-md bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer border border-white/10"
-                  >
-                    {hasCopiedRecoveryKey ? (
-                      <Check className="w-4 h-4 text-emerald-400" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-
-                <label className="flex items-start gap-2.5 text-xs text-zinc-300 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={confirmedSavedRecoveryKey}
-                    onChange={(e) => setConfirmedSavedRecoveryKey(e.target.checked)}
-                    className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0"
-                  />
-                  <span className="leading-relaxed">
-                    {t.recoveryKeySavedCheckbox}
-                  </span>
-                </label>
-
-                <button
-                  type="button"
-                  onClick={handleConfirmRecoveryKeyAndEnter}
-                  disabled={!confirmedSavedRecoveryKey || isLoading}
-                  title={t.openWorkspaceAfterRecovery}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg shadow-sm flex items-center justify-center gap-2 text-sm transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  <Rocket className="h-4 w-4 shrink-0" />
-                  <span>{t.openWorkspaceAfterRecovery}</span>
-                </button>
-              </div>
-            )}
-
-            {/* Returning User Locked State (Scenario B) */}
-            {!generatedRecoveryKey && hasPinConfigured && !showRecoveryForm && (
-              <div className="space-y-4">
-                <div className="text-center space-y-1">
-                  <div className="w-10 h-10 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mx-auto mb-2">
-                    <Lock className="w-5 h-5" />
-                  </div>
-                  <h2 className="text-lg sm:text-xl font-semibold text-zinc-100 tracking-tight">
-                    {t.unlockTitle}
-                  </h2>
-                  <p className="text-xs text-zinc-400 leading-relaxed">
-                    {t.unlockDesc}
+                <div className="min-w-0">
+                  <h3 className="text-sm font-medium text-zinc-200">
+                    {t.card1Title}
+                  </h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed mt-0.5">
+                    {t.card1Desc}
                   </p>
                 </div>
+              </div>
 
-                <form onSubmit={handleUnlockWorkspace} className="space-y-3.5">
-                  <div className="space-y-1.5">
-                    <label htmlFor="unlock-pin" className="block text-xs font-medium text-zinc-300">
-                      {t.pinLabel}
-                    </label>
-                    <div className="relative flex items-center rounded-lg border border-white/[0.08] bg-[#18181b] px-3 py-2 transition-colors focus-within:border-indigo-500">
-                      <KeyRound className="h-4 w-4 text-zinc-400 shrink-0 mr-2.5" />
-                      <input
-                        id="unlock-pin"
-                        name="aipodium-secure-lock-input"
-                        type={showUnlockPassword ? 'text' : 'password'}
-                        value={enteredPin}
-                        onChange={(e) => setEnteredPin(e.target.value)}
-                        placeholder={t.pinPlaceholder}
-                        autoFocus
-                        disabled={isLoading || lockoutState.isLockedOut}
-                        autoComplete="off"
-                        autoCapitalize="off"
-                        autoCorrect="off"
-                        spellCheck={false}
-                        className="w-full bg-transparent text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowUnlockPassword(!showUnlockPassword)}
-                        tabIndex={-1}
-                        title={showUnlockPassword ? t.hidePassword : t.showPassword}
-                        aria-label={showUnlockPassword ? t.hidePassword : t.showPassword}
-                        className="text-zinc-400 hover:text-zinc-200 transition-colors ml-2 cursor-pointer"
-                      >
-                        {showUnlockPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isLoading || lockoutState.isLockedOut}
-                    title={t.unlockWorkspace}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg shadow-sm flex items-center justify-center gap-2 text-sm transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    <Unlock className="h-4 w-4 shrink-0" />
-                    <span>{t.unlockWorkspace}</span>
-                  </button>
-                </form>
-
-                <div className="pt-2 flex items-center justify-between text-xs">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowRecoveryForm(true);
-                      setErrorMsg(null);
-                    }}
-                    className="text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
-                  >
-                    {t.forgotPinPrompt}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowPurgeModal(true)}
-                    className="text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
-                  >
-                    {t.resetLockPrompt}
-                  </button>
+              <div className="bg-white/[0.02] border border-white/[0.08] backdrop-blur-md rounded-2xl p-5 hover:border-indigo-500/30 hover:bg-white/[0.04] transition-all duration-300 shadow-lg flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                  <Cpu className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-medium text-zinc-200">
+                    {t.card2Title}
+                  </h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed mt-0.5">
+                    {t.card2Desc}
+                  </p>
                 </div>
               </div>
-            )}
 
-            {/* Recovery Key Verification Form */}
-            {!generatedRecoveryKey && hasPinConfigured && showRecoveryForm && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
-                  <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2">
-                    <LifeBuoy className="w-4 h-4 text-indigo-400" />
-                    <span>{t.recoveryVerificationTitle}</span>
+              <div className="bg-white/[0.02] border border-white/[0.08] backdrop-blur-md rounded-2xl p-5 hover:border-indigo-500/30 hover:bg-white/[0.04] transition-all duration-300 shadow-lg flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-medium text-zinc-200">
+                    {t.card3Title}
+                  </h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed mt-0.5">
+                    {t.card3Desc}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column (5 cols): Action Card */}
+          <div className="w-full lg:col-span-5 flex justify-center lg:justify-end">
+            <div className="w-full max-w-md bg-white/[0.03] border border-white/10 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-2xl shadow-indigo-950/40 relative overflow-hidden flex flex-col gap-4">
+              {/* Status Feedback Banners */}
+              {errorMsg && (
+                <div className="rounded-lg border border-rose-500/40 bg-rose-950/40 p-3 text-xs text-rose-300 flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{errorMsg}</span>
+                </div>
+              )}
+
+              {successMsg && (
+                <div className="rounded-lg border border-emerald-500/40 bg-emerald-950/40 p-3 text-xs text-emerald-300 flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{successMsg}</span>
+                </div>
+              )}
+
+              {/* Rate Limit Lockout Banner */}
+              {lockoutState.isLockedOut && (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-950/40 p-3 text-xs text-amber-300 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>{t.cooldownActive}</span>
+                  </div>
+                  <span className="font-semibold text-amber-200 font-mono">
+                    {lockoutState.remainingSeconds}s
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowRecoveryForm(false);
-                      setIsRecoveryKeyVerified(false);
-                      setErrorMsg(null);
-                    }}
-                    title={t.cancel}
-                    aria-label={t.cancel}
-                    className="text-zinc-400 hover:text-zinc-200 cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
                 </div>
+              )}
 
-                {!isRecoveryKeyVerified ? (
-                  <form onSubmit={handleVerifyRecoveryKey} className="space-y-4">
-                    <p className="text-xs text-zinc-400 leading-relaxed">
-                      {t.recoveryVerificationDesc}
-                    </p>
-                    <input
-                      type="text"
-                      value={enteredRecoveryKey}
-                      onChange={(e) => setEnteredRecoveryKey(e.target.value)}
-                      placeholder={t.recoveryKeyPlaceholder}
-                      autoComplete="off"
-                      autoCapitalize="characters"
-                      autoCorrect="off"
-                      spellCheck={false}
-                      disabled={isLoading}
-                      className="w-full font-mono text-center tracking-widest text-xs rounded-lg border border-white/[0.08] bg-[#18181b] px-3.5 py-2.5 text-indigo-200 focus:outline-none focus:border-indigo-500"
-                    />
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      title={t.verifyRecoveryKeyButton}
-                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg shadow-sm flex items-center justify-center gap-2 text-sm transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      <Check className="w-4 h-4" />
-                      <span>{t.verifyRecoveryKeyButton}</span>
-                    </button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleCompletePinResetWithRecovery} className="space-y-3.5">
-                    <p className="text-xs text-emerald-400 font-medium">
-                      {t.recoveryVerifiedSuccessPrompt}
-                    </p>
-                    <input
-                      type="password"
-                      value={newPin}
-                      onChange={(e) => setNewPin(e.target.value)}
-                      placeholder={t.newPinAfterRecoveryPlaceholder}
-                      autoComplete="off"
-                      className="w-full text-xs rounded-lg border border-white/[0.08] bg-[#18181b] px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"
-                    />
-                    <input
-                      type="password"
-                      value={confirmNewPin}
-                      onChange={(e) => setConfirmNewPin(e.target.value)}
-                      placeholder={t.confirmNewPinAfterRecoveryPlaceholder}
-                      autoComplete="off"
-                      className="w-full text-xs rounded-lg border border-white/[0.08] bg-[#18181b] px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"
-                    />
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      title={t.saveNewPinButton}
-                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg shadow-sm flex items-center justify-center gap-2 text-sm transition-colors cursor-pointer"
-                    >
-                      <Check className="w-4 h-4" />
-                      <span>{t.saveNewPinButton}</span>
-                    </button>
-                  </form>
-                )}
-              </div>
-            )}
-
-            {/* First-time User / No PIN Set (Clean Single Flat Layout without Box-in-Box) */}
-            {!generatedRecoveryKey && !hasPinConfigured && (
-              <>
-                {!showSetPinForm ? (
-                  <div className="flex flex-col gap-4">
-                    {/* Consolidated Single Heading (No duplicate second heading) */}
-                    <div className="space-y-1.5 text-center">
-                      <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-100 break-keep">
-                        {t.heroTitle}
-                      </h1>
-                      <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-sm mx-auto break-keep">
-                        {t.heroDesc}
-                      </p>
+              {/* Emergency Master Access Key Modal (First-time PIN setup dialogue) */}
+              {generatedRecoveryKey && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+                      <LifeBuoy className="w-4.5 h-4.5" />
                     </div>
-
-                    {/* Compact Minimalist Feature Chips (Single-row flex wrap) */}
-                    <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 select-none py-0.5">
-                      <span className="bg-white/[0.04] px-2.5 py-1 rounded-md border border-white/5 text-xs text-zinc-400 flex items-center gap-1.5">
-                        <span>🛡️</span>
-                        <span>{lang === 'KR' ? '데이터 주권' : 'Data Sovereignty'}</span>
-                      </span>
-                      <span className="bg-white/[0.04] px-2.5 py-1 rounded-md border border-white/5 text-xs text-zinc-400 flex items-center gap-1.5">
-                        <span>⚡</span>
-                        <span>{lang === 'KR' ? '자유로운 AI' : 'Flexible AI'}</span>
-                      </span>
-                      <span className="bg-white/[0.04] px-2.5 py-1 rounded-md border border-white/5 text-xs text-zinc-400 flex items-center gap-1.5">
-                        <span>📊</span>
-                        <span>{lang === 'KR' ? '원클릭 가공' : '1-Click Workflow'}</span>
-                      </span>
-                    </div>
-
-                    {/* Clean Checkbox Row (No enclosing background box) */}
-                    <div className="space-y-2 pt-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer select-none flex-1">
-                          <input
-                            type="checkbox"
-                            checked={isAllAgreed}
-                            onChange={handleToggleAllAgreements}
-                            className="rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
-                          />
-                          <span className="text-xs text-zinc-300 hover:text-white transition-colors leading-tight">
-                            {t.termsAllAgree}
-                          </span>
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
-                          className="text-[11px] text-zinc-500 hover:text-zinc-300 flex items-center gap-0.5 shrink-0 px-1 py-0.5 transition-colors cursor-pointer"
-                          aria-expanded={isDetailsExpanded}
-                          title={isDetailsExpanded ? t.termsHideDetails : t.termsViewDetails}
-                        >
-                          <span>{isDetailsExpanded ? t.termsHideDetails : t.termsViewDetails}</span>
-                          {isDetailsExpanded ? (
-                            <ChevronUp className="w-3 h-3" />
-                          ) : (
-                            <ChevronDown className="w-3 h-3" />
-                          )}
-                        </button>
-                      </div>
-
-                      {/* Expandable Individual Checklist (Flat, unboxed) */}
-                      {isDetailsExpanded && (
-                        <div className="pt-2 pl-6 space-y-1.5 border-t border-white/[0.06]">
-                          <label className="flex items-start gap-2 cursor-pointer select-none text-[11px] text-zinc-400 hover:text-zinc-300">
-                            <input
-                              type="checkbox"
-                              checked={agreeApiKey}
-                              onChange={(e) => setAgreeApiKey(e.target.checked)}
-                              className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
-                            />
-                            <span className="leading-tight">{t.termsApiKeyAgree}</span>
-                          </label>
-
-                          <label className="flex items-start gap-2 cursor-pointer select-none text-[11px] text-zinc-400 hover:text-zinc-300">
-                            <input
-                              type="checkbox"
-                              checked={agreeLocalStorage}
-                              onChange={(e) => setAgreeLocalStorage(e.target.checked)}
-                              className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
-                            />
-                            <span className="leading-tight">{t.termsLocalStorageAgree}</span>
-                          </label>
-
-                          <label className="flex items-start gap-2 cursor-pointer select-none text-[11px] text-zinc-400 hover:text-zinc-300">
-                            <input
-                              type="checkbox"
-                              checked={agreeAiOutput}
-                              onChange={(e) => setAgreeAiOutput(e.target.checked)}
-                              className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
-                            />
-                            <span className="leading-tight">{t.termsAiOutputAgree}</span>
-                          </label>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Modern Compact Actions: Primary CTA + Ghost Secondary */}
-                    <div className="flex flex-col gap-2 pt-1">
-                      {/* Primary CTA: Full width solid indigo button */}
-                      <button
-                        type="button"
-                        onClick={handleOpenWorkspaceDirectly}
-                        disabled={isLoading || !isAllAgreed}
-                        title={t.openWorkspace}
-                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg shadow-sm flex items-center justify-center gap-2 text-sm sm:text-base transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Rocket className="h-4 w-4 shrink-0" />
-                        <span>{t.openWorkspace}</span>
-                      </button>
-
-                      {/* Secondary Action: Flat ghost style */}
-                      <button
-                        type="button"
-                        onClick={handleOpenPinSetup}
-                        disabled={isLoading || !isAllAgreed}
-                        title={t.enablePinLock}
-                        className="w-full hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200 text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <Lock className="w-3.5 h-3.5 text-zinc-500" />
-                        <span>{t.enablePinLock}</span>
-                      </button>
+                    <div>
+                      <h3 className="text-sm font-semibold text-zinc-100">{t.recoveryKeyTitle}</h3>
+                      <p className="text-xs text-zinc-400">{t.recoveryKeySubtitle}</p>
                     </div>
                   </div>
-                ) : (
-                  <form onSubmit={handleStageMasterPin} className="space-y-4">
-                    <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
-                      <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2">
-                        <Lock className="w-4 h-4 text-indigo-400" />
-                        <span>{t.configurePinTitle}</span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowSetPinForm(false)}
-                        title={t.cancel}
-                        aria-label={t.cancel}
-                        className="text-zinc-400 hover:text-zinc-200 cursor-pointer"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
 
+                  <div className="p-3 rounded-lg bg-[#18181b] border border-white/[0.08] text-xs text-zinc-300 leading-relaxed">
+                    <strong className="block font-medium text-indigo-300 mb-1">{t.recoveryKeyNoticeHeader}</strong>
+                    {t.recoveryKeyNoticeBody}
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-lg bg-[#18181b] border border-white/[0.08] p-3 font-mono text-sm tracking-widest text-indigo-300 select-all font-medium">
+                    <span>{generatedRecoveryKey}</span>
+                    <button
+                      type="button"
+                      onClick={handleCopyRecoveryKey}
+                      title={t.copyRecoveryKeyTitle}
+                      aria-label={t.copyRecoveryKeyTitle}
+                      className="p-1.5 rounded-md bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer border border-white/10"
+                    >
+                      {hasCopiedRecoveryKey ? (
+                        <Check className="w-4 h-4 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+
+                  <label className="flex items-start gap-2.5 text-xs text-zinc-300 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={confirmedSavedRecoveryKey}
+                      onChange={(e) => setConfirmedSavedRecoveryKey(e.target.checked)}
+                      className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0"
+                    />
+                    <span className="leading-relaxed">
+                      {t.recoveryKeySavedCheckbox}
+                    </span>
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={handleConfirmRecoveryKeyAndEnter}
+                    disabled={!confirmedSavedRecoveryKey || isLoading}
+                    title={t.openWorkspaceAfterRecovery}
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <Rocket className="h-4 w-4 shrink-0" />
+                    <span>{t.openWorkspaceAfterRecovery}</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Returning User Locked State (Scenario B) */}
+              {!generatedRecoveryKey && hasPinConfigured && !showRecoveryForm && (
+                <div className="space-y-4">
+                  <div className="text-center space-y-1">
+                    <div className="w-10 h-10 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mx-auto mb-2">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <h2 className="text-lg sm:text-xl font-semibold text-zinc-100 tracking-tight">
+                      {t.unlockTitle}
+                    </h2>
+                    <p className="text-xs text-zinc-400 leading-relaxed">
+                      {t.unlockDesc}
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleUnlockWorkspace} className="space-y-3.5">
                     <div className="space-y-1.5">
-                      <label htmlFor="new-pin" className="block text-xs font-medium text-zinc-300">
-                        {t.newPinLabel}
+                      <label htmlFor="unlock-pin" className="block text-xs font-medium text-zinc-300">
+                        {t.pinLabel}
                       </label>
                       <div className="relative flex items-center rounded-lg border border-white/[0.08] bg-[#18181b] px-3 py-2 transition-colors focus-within:border-indigo-500">
+                        <KeyRound className="h-4 w-4 text-zinc-400 shrink-0 mr-2.5" />
                         <input
-                          id="new-pin"
-                          name="aipodium-new-pin-input"
-                          type={showNewPinPassword ? 'text' : 'password'}
-                          value={newPin}
-                          onChange={(e) => setNewPin(e.target.value)}
-                          placeholder={t.newPinPlaceholder}
+                          id="unlock-pin"
+                          name="aipodium-secure-lock-input"
+                          type={showUnlockPassword ? 'text' : 'password'}
+                          value={enteredPin}
+                          onChange={(e) => setEnteredPin(e.target.value)}
+                          placeholder={t.pinPlaceholder}
                           autoFocus
-                          disabled={isLoading}
+                          disabled={isLoading || lockoutState.isLockedOut}
                           autoComplete="off"
                           autoCapitalize="off"
                           autoCorrect="off"
@@ -945,64 +735,334 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                         />
                         <button
                           type="button"
-                          onClick={() => setShowNewPinPassword(!showNewPinPassword)}
+                          onClick={() => setShowUnlockPassword(!showUnlockPassword)}
                           tabIndex={-1}
-                          title={showNewPinPassword ? t.hidePassword : t.showPassword}
-                          aria-label={showNewPinPassword ? t.hidePassword : t.showPassword}
+                          title={showUnlockPassword ? t.hidePassword : t.showPassword}
+                          aria-label={showUnlockPassword ? t.hidePassword : t.showPassword}
                           className="text-zinc-400 hover:text-zinc-200 transition-colors ml-2 cursor-pointer"
                         >
-                          {showNewPinPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showUnlockPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label htmlFor="confirm-new-pin" className="block text-xs font-medium text-zinc-300">
-                        {t.confirmPinLabel}
-                      </label>
-                      <div className="relative flex items-center rounded-lg border border-white/[0.08] bg-[#18181b] px-3 py-2 transition-colors focus-within:border-indigo-500">
-                        <input
-                          id="confirm-new-pin"
-                          name="aipodium-confirm-pin-input"
-                          type={showNewPinPassword ? 'text' : 'password'}
-                          value={confirmNewPin}
-                          onChange={(e) => setConfirmNewPin(e.target.value)}
-                          placeholder={t.confirmPinPlaceholder}
-                          disabled={isLoading}
-                          autoComplete="off"
-                          autoCapitalize="off"
-                          autoCorrect="off"
-                          spellCheck={false}
-                          className="w-full bg-transparent text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none"
-                        />
                       </div>
                     </div>
 
                     <button
                       type="submit"
-                      disabled={isLoading}
-                      title={t.savePinAndGenKey}
-                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg shadow-sm flex items-center justify-center gap-2 text-sm transition-colors cursor-pointer disabled:opacity-60 mt-3"
+                      disabled={isLoading || lockoutState.isLockedOut}
+                      title={t.unlockWorkspace}
+                      className="w-full bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition-all cursor-pointer disabled:opacity-50"
                     >
-                      <ShieldCheck className="h-4 w-4" />
-                      <span>{t.savePinAndGenKey}</span>
+                      <Unlock className="h-4 w-4 shrink-0" />
+                      <span>{t.unlockWorkspace}</span>
                     </button>
                   </form>
-                )}
-              </>
-            )}
+
+                  <div className="pt-2 flex items-center justify-between text-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowRecoveryForm(true);
+                        setErrorMsg(null);
+                      }}
+                      className="text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+                    >
+                      {t.forgotPinPrompt}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPurgeModal(true)}
+                      className="text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
+                    >
+                      {t.resetLockPrompt}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Recovery Key Verification Form */}
+              {!generatedRecoveryKey && hasPinConfigured && showRecoveryForm && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+                    <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2">
+                      <LifeBuoy className="w-4 h-4 text-indigo-400" />
+                      <span>{t.recoveryVerificationTitle}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowRecoveryForm(false);
+                        setIsRecoveryKeyVerified(false);
+                        setErrorMsg(null);
+                      }}
+                      title={t.cancel}
+                      aria-label={t.cancel}
+                      className="text-zinc-400 hover:text-zinc-200 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {!isRecoveryKeyVerified ? (
+                    <form onSubmit={handleVerifyRecoveryKey} className="space-y-4">
+                      <p className="text-xs text-zinc-400 leading-relaxed">
+                        {t.recoveryVerificationDesc}
+                      </p>
+                      <input
+                        type="text"
+                        value={enteredRecoveryKey}
+                        onChange={(e) => setEnteredRecoveryKey(e.target.value)}
+                        placeholder={t.recoveryKeyPlaceholder}
+                        autoComplete="off"
+                        autoCapitalize="characters"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        disabled={isLoading}
+                        className="w-full font-mono text-center tracking-widest text-xs rounded-lg border border-white/[0.08] bg-[#18181b] px-3.5 py-2.5 text-indigo-200 focus:outline-none focus:border-indigo-500"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        title={t.verifyRecoveryKeyButton}
+                        className="w-full bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>{t.verifyRecoveryKeyButton}</span>
+                      </button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleCompletePinResetWithRecovery} className="space-y-3.5">
+                      <p className="text-xs text-emerald-400 font-medium">
+                        {t.recoveryVerifiedSuccessPrompt}
+                      </p>
+                      <input
+                        type="password"
+                        value={newPin}
+                        onChange={(e) => setNewPin(e.target.value)}
+                        placeholder={t.newPinAfterRecoveryPlaceholder}
+                        autoComplete="off"
+                        className="w-full text-xs rounded-lg border border-white/[0.08] bg-[#18181b] px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                      />
+                      <input
+                        type="password"
+                        value={confirmNewPin}
+                        onChange={(e) => setConfirmNewPin(e.target.value)}
+                        placeholder={t.confirmNewPinAfterRecoveryPlaceholder}
+                        autoComplete="off"
+                        className="w-full text-xs rounded-lg border border-white/[0.08] bg-[#18181b] px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        title={t.saveNewPinButton}
+                        className="w-full bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition-all cursor-pointer"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>{t.saveNewPinButton}</span>
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
+
+              {/* First-time User / No PIN Set (Responsive Layout) */}
+              {!generatedRecoveryKey && !hasPinConfigured && (
+                <>
+                  {!showSetPinForm ? (
+                    <div className="flex flex-col gap-4">
+                      {/* Clean Checkbox Row (No enclosing background box) */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer select-none flex-1">
+                            <input
+                              type="checkbox"
+                              checked={isAllAgreed}
+                              onChange={handleToggleAllAgreements}
+                              className="rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
+                            />
+                            <span className="text-xs text-zinc-300 hover:text-white transition-colors leading-tight">
+                              {t.termsAllAgree}
+                            </span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
+                            className="text-[11px] text-zinc-500 hover:text-zinc-300 flex items-center gap-0.5 shrink-0 px-1 py-0.5 transition-colors cursor-pointer"
+                            aria-expanded={isDetailsExpanded}
+                            title={isDetailsExpanded ? t.termsHideDetails : t.termsViewDetails}
+                          >
+                            <span>{isDetailsExpanded ? t.termsHideDetails : t.termsViewDetails}</span>
+                            {isDetailsExpanded ? (
+                              <ChevronUp className="w-3 h-3" />
+                            ) : (
+                              <ChevronDown className="w-3 h-3" />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Expandable Individual Checklist (Flat, unboxed) */}
+                        {isDetailsExpanded && (
+                          <div className="pt-2 pl-6 space-y-1.5 border-t border-white/[0.06]">
+                            <label className="flex items-start gap-2 cursor-pointer select-none text-[11px] text-zinc-400 hover:text-zinc-300">
+                              <input
+                                type="checkbox"
+                                checked={agreeApiKey}
+                                onChange={(e) => setAgreeApiKey(e.target.checked)}
+                                className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
+                              />
+                              <span className="leading-tight">{t.termsApiKeyAgree}</span>
+                            </label>
+
+                            <label className="flex items-start gap-2 cursor-pointer select-none text-[11px] text-zinc-400 hover:text-zinc-300">
+                              <input
+                                type="checkbox"
+                                checked={agreeLocalStorage}
+                                onChange={(e) => setAgreeLocalStorage(e.target.checked)}
+                                className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
+                              />
+                              <span className="leading-tight">{t.termsLocalStorageAgree}</span>
+                            </label>
+
+                            <label className="flex items-start gap-2 cursor-pointer select-none text-[11px] text-zinc-400 hover:text-zinc-300">
+                              <input
+                                type="checkbox"
+                                checked={agreeAiOutput}
+                                onChange={(e) => setAgreeAiOutput(e.target.checked)}
+                                className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
+                              />
+                              <span className="leading-tight">{t.termsAiOutputAgree}</span>
+                            </label>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Modern Compact Actions: Primary CTA + Ghost Secondary */}
+                      <div className="flex flex-col gap-2 pt-1">
+                        {/* Primary CTA: Full width solid indigo button */}
+                        <button
+                          type="button"
+                          onClick={handleOpenWorkspaceDirectly}
+                          disabled={isLoading || !isAllAgreed}
+                          title={t.openWorkspace}
+                          className="w-full bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm sm:text-base transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Rocket className="h-4 w-4 shrink-0" />
+                          <span>{t.openWorkspace}</span>
+                        </button>
+
+                        {/* Secondary Action: Flat ghost style */}
+                        <button
+                          type="button"
+                          onClick={handleOpenPinSetup}
+                          disabled={isLoading || !isAllAgreed}
+                          title={t.enablePinLock}
+                          className="w-full hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200 text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <Lock className="w-3.5 h-3.5 text-zinc-500" />
+                          <span>{t.enablePinLock}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleStageMasterPin} className="space-y-4">
+                      <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+                        <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2">
+                          <Lock className="w-4 h-4 text-indigo-400" />
+                          <span>{t.configurePinTitle}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowSetPinForm(false)}
+                          title={t.cancel}
+                          aria-label={t.cancel}
+                          className="text-zinc-400 hover:text-zinc-200 cursor-pointer"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label htmlFor="new-pin" className="block text-xs font-medium text-zinc-300">
+                          {t.newPinLabel}
+                        </label>
+                        <div className="relative flex items-center rounded-lg border border-white/[0.08] bg-[#18181b] px-3 py-2 transition-colors focus-within:border-indigo-500">
+                          <input
+                            id="new-pin"
+                            name="aipodium-new-pin-input"
+                            type={showNewPinPassword ? 'text' : 'password'}
+                            value={newPin}
+                            onChange={(e) => setNewPin(e.target.value)}
+                            placeholder={t.newPinPlaceholder}
+                            autoFocus
+                            disabled={isLoading}
+                            autoComplete="off"
+                            autoCapitalize="off"
+                            autoCorrect="off"
+                            spellCheck={false}
+                            className="w-full bg-transparent text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPinPassword(!showNewPinPassword)}
+                            tabIndex={-1}
+                            title={showNewPinPassword ? t.hidePassword : t.showPassword}
+                            aria-label={showNewPinPassword ? t.hidePassword : t.showPassword}
+                            className="text-zinc-400 hover:text-zinc-200 transition-colors ml-2 cursor-pointer"
+                          >
+                            {showNewPinPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label htmlFor="confirm-new-pin" className="block text-xs font-medium text-zinc-300">
+                          {t.confirmPinLabel}
+                        </label>
+                        <div className="relative flex items-center rounded-lg border border-white/[0.08] bg-[#18181b] px-3 py-2 transition-colors focus-within:border-indigo-500">
+                          <input
+                            id="confirm-new-pin"
+                            name="aipodium-confirm-pin-input"
+                            type={showNewPinPassword ? 'text' : 'password'}
+                            value={confirmNewPin}
+                            onChange={(e) => setConfirmNewPin(e.target.value)}
+                            placeholder={t.confirmPinPlaceholder}
+                            disabled={isLoading}
+                            autoComplete="off"
+                            autoCapitalize="off"
+                            autoCorrect="off"
+                            spellCheck={false}
+                            className="w-full bg-transparent text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        title={t.savePinAndGenKey}
+                        className="w-full bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition-all cursor-pointer disabled:opacity-60 mt-3"
+                      >
+                        <ShieldCheck className="h-4 w-4" />
+                        <span>{t.savePinAndGenKey}</span>
+                      </button>
+                    </form>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </main>
 
-        {/* Global Footer: Academic Policies & Operational Status Indicators */}
-        <footer className="w-full pt-3 sm:pt-4 border-t border-white/[0.08] flex items-center justify-center text-[11px] sm:text-xs text-zinc-500">
-          <div id="auth-footer-legal" className="flex flex-wrap items-center justify-center text-center gap-2.5 sm:gap-3">
+        {/* Global Footer: Clean Unified Responsive Styling with Standardized Text Colors */}
+        <footer className="w-full pt-3 sm:pt-5 border-t border-white/[0.08] flex flex-col items-center justify-center gap-1.5 text-xs text-zinc-500 text-center">
+          <div>
             <span>{t.copyright}</span>
-            <span className="text-zinc-700">·</span>
+          </div>
+          <div id="auth-footer-legal" className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
             <button
               type="button"
               onClick={() => openPolicy('privacy')}
-              className="hover:text-zinc-300 transition-colors cursor-pointer"
+              className="text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
             >
               {t.privacyPolicy}
             </button>
@@ -1010,7 +1070,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
             <button
               type="button"
               onClick={() => openPolicy('terms')}
-              className="hover:text-zinc-300 transition-colors cursor-pointer"
+              className="text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
             >
               {t.termsOfUse}
             </button>
@@ -1018,7 +1078,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
             <button
               type="button"
               onClick={() => openPolicy('disclaimer')}
-              className="text-amber-400/80 hover:text-amber-300 font-medium transition-colors cursor-pointer"
+              className="text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
             >
               {t.academicDisclaimer}
             </button>

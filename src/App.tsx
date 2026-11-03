@@ -114,6 +114,8 @@ import { Toast } from './components/Toast';
 import { useProjectEvents } from './hooks/useProjectEvents';
 import { useAutoLock } from './hooks/useAutoLock';
 import { useAuth } from './context/AuthContext';
+import { useLanguage, useTranslation } from './context/LanguageContext';
+import { detectBrowserLanguage, LanguagePreference, AppLanguage } from './locales/language';
 import { translateMessage } from './locales/appMessages';
 import {
   encryptWithVaultKey,
@@ -333,6 +335,33 @@ export default function App() {
   const [renderMarkdownToHtml, setMarkdownRenderer] = useState<MarkdownRenderer>(() => renderPlainMarkdownSafely);
   const hasPin = hasMasterPinConfigured();
   const isGuest = auth.isGuest || !hasPin || currentUser?.provider === 'guest' || currentUser?.isGuest === true;
+
+  // Language State Management & Real-time Browser/OS Synchronization
+  const { language, preference: languagePreference, setPreference: setLanguagePreference } = useLanguage();
+
+  // Keep <html lang="ko"> or <html lang="en"> in sync with current active language
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = language;
+    }
+  }, [language]);
+
+  // Real-time Browser OS Listener: re-evaluate and apply active UI language on 'languagechange'
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      if (languagePreference === 'auto' || languagePreference === 'system') {
+        const detected = detectBrowserLanguage();
+        if (typeof document !== 'undefined') {
+          document.documentElement.lang = detected;
+        }
+      }
+    };
+
+    window.addEventListener('languagechange', handleLanguageChange);
+    return () => {
+      window.removeEventListener('languagechange', handleLanguageChange);
+    };
+  }, [languagePreference]);
 
   const [isLocked, setIsLocked] = useState<boolean>(() => preferences.security?.lockOnStartup !== false);
 
@@ -4704,6 +4733,112 @@ export default function App() {
     [githubConfig, untitledDocs, fileFolders, activeSession, currentActiveFile, activeSessionId, activeWorkspace, showToast]
   );
 
+  // Manual Force Sync: bypass debouncer and immediately trigger pull and push operation
+  const handleForceGithubSync = useCallback(async () => {
+    if (!githubConfig?.token || !githubConfig?.repo) {
+      showToast('GitHub 설정이 필요합니다. 저장소를 연결해주세요.', 'warn');
+      handleOpenGithubModal();
+      return;
+    }
+
+    // Cancel pending auto-push debounce timer immediately
+    if (autoPushTimerRef.current) {
+      clearTimeout(autoPushTimerRef.current);
+      autoPushTimerRef.current = null;
+    }
+
+    setGithubSyncStatus('syncing');
+    showToast('GitHub 저장소와 즉시 동기화를 시작합니다...', 'info');
+
+    try {
+      const parts = githubConfig.repo.split('/');
+      const owner = githubConfig.owner || parts[0];
+      const repoName = parts.length > 1 ? parts.slice(1).join('/') : githubConfig.repo;
+      const cleanBranch = githubConfig.branch || 'main';
+
+      // 1. Pull latest documents from remote
+      let pulledCount = 0;
+      try {
+        const pullResult = await pullDocumentsFromGithub({
+          owner,
+          repo: repoName,
+          branch: cleanBranch,
+          token: githubConfig.token,
+        });
+        if (pullResult && Object.keys(pullResult.files).length > 0) {
+          pulledCount = pullResult.count;
+          setFiles((prev) => ({ ...prev, ...pullResult.files }));
+          setFileFolders((prev) => ({ ...prev, ...pullResult.fileFolders }));
+          if (pullResult.files[currentActiveFile] && lastPushedContentRef.current[currentActiveFile] === editorContent) {
+            setEditorContent(pullResult.files[currentActiveFile]);
+          }
+        }
+      } catch (pullErr) {
+        console.warn('Force pull error:', pullErr);
+      }
+
+      // 2. Push current active file if valid physical document
+      let pushed = false;
+      const isPushableFile =
+        currentActiveFile &&
+        !currentActiveFile.startsWith('Untitled-') &&
+        !/^새 프로젝트(\s*\d*)?\.md$/i.test(currentActiveFile) &&
+        currentActiveFile !== '새 문서.md' &&
+        !currentActiveFile.toLowerCase().endsWith('.pdf');
+
+      if (isPushableFile) {
+        const commitMsg =
+          githubConfig.useCustomCommitMessage && githubConfig.customCommitMessage
+            ? githubConfig.customCommitMessage.replace(/\${filename}/g, currentActiveFile).replace(/\{filename\}/g, currentActiveFile)
+            : undefined;
+
+        const res = await syncDocToGithub({
+          owner,
+          repo: repoName,
+          branch: cleanBranch,
+          token: githubConfig.token,
+          filePath: currentActiveFile,
+          content: editorContent,
+          commitMessage: commitMsg,
+        });
+
+        if (res.success) {
+          pushed = true;
+          lastPushedContentRef.current[currentActiveFile] = editorContent;
+        } else if (res.conflict) {
+          setGithubSyncStatus('conflict');
+          showToast(translateMessage('m058'), 'warn');
+          return;
+        }
+      }
+
+      setGithubSyncStatus('synced');
+      setActiveWorkspace((prev) => ({
+        ...prev,
+        lastSynced: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+      }));
+
+      if (pulledCount > 0 && pushed) {
+        showToast(`GitHub 즉시 동기화 완료 (풀 ${pulledCount}개, 푸시 완료)`, 'success');
+      } else if (pushed) {
+        showToast(`'${currentActiveFile}' GitHub 즉시 푸시 완료`, 'success');
+      } else if (pulledCount > 0) {
+        showToast(`GitHub 최신 문서 ${pulledCount}개 풀 완료`, 'success');
+      } else {
+        showToast('GitHub 저장소 동기화 완료 (최신 상태)', 'success');
+      }
+
+      if (syncedTimerRef.current) clearTimeout(syncedTimerRef.current);
+      syncedTimerRef.current = setTimeout(() => {
+        setGithubSyncStatus((prev) => (prev === 'synced' ? 'idle' : prev));
+      }, 3500);
+    } catch (err: any) {
+      console.error('Force sync error:', err);
+      setGithubSyncStatus('error');
+      showToast('GitHub 즉시 동기화 중 오류가 발생했습니다.', 'error');
+    }
+  }, [githubConfig, currentActiveFile, editorContent, showToast, handleOpenGithubModal, translateMessage]);
+
   // Debounced GitHub Auto-Push: 3000ms after user typing stops
   useEffect(() => {
     if (!githubConfig?.token || !githubConfig?.repo || !currentActiveFile) return;
@@ -8717,6 +8852,7 @@ ${projectEvents
               repo={githubConfig?.repo}
               branch={githubConfig?.branch}
               onClick={handleOpenGithubModal}
+              onForceSync={handleForceGithubSync}
             />
           )}
 

@@ -29,7 +29,7 @@ function getBrowserLanguages(): string[] {
 }
 
 function getInitialPreference(): LanguagePreference {
-  if (typeof localStorage === 'undefined') return 'system';
+  if (typeof localStorage === 'undefined') return 'auto';
 
   try {
     const preference = localStorage.getItem(LANGUAGE_PREFERENCE_KEY);
@@ -42,7 +42,7 @@ function getInitialPreference(): LanguagePreference {
 
     return initialPreference;
   } catch {
-    return 'system';
+    return 'auto';
   }
 }
 
@@ -51,9 +51,10 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [browserLanguages, setBrowserLanguages] = useState<string[]>(getBrowserLanguages);
 
   const setPreference = useCallback((nextPreference: LanguagePreference) => {
-    setPreferenceState(nextPreference);
+    const normalized = normalizeLanguagePreference(nextPreference);
+    setPreferenceState(normalized);
     try {
-      localStorage.setItem(LANGUAGE_PREFERENCE_KEY, nextPreference);
+      localStorage.setItem(LANGUAGE_PREFERENCE_KEY, normalized);
     } catch (error) {
       console.warn('[LanguageContext] Unable to persist language preference:', error);
     }

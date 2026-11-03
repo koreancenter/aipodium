@@ -8,6 +8,7 @@ export interface GithubSyncStatusIndicatorProps {
   repo?: string;
   branch?: string;
   onClick?: () => void;
+  onForceSync?: () => void | Promise<void>;
   className?: string;
 }
 
@@ -66,10 +67,12 @@ export const GithubSyncStatusIndicator: React.FC<GithubSyncStatusIndicatorProps>
   repo,
   branch,
   onClick,
+  onForceSync,
   className = '',
 }) => {
   const currentConfig = STATUS_MAP[status] || STATUS_MAP.idle;
   const displayRepo = repo ? (repo.includes('/') ? repo.split('/')[1] : repo) : '';
+  const isSyncing = status === 'syncing';
 
   return (
     <div
@@ -83,7 +86,7 @@ export const GithubSyncStatusIndicator: React.FC<GithubSyncStatusIndicatorProps>
         }
       }}
       data-testid="github-sync-indicator"
-      className={`h-7 flex items-center gap-2 px-2.5 rounded-md border border-[#222226] bg-[#121214] hover:bg-[#18181b] transition-all cursor-pointer select-none group ${className}`}
+      className={`h-7 flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 rounded-md border border-[#222226] bg-[#121214] hover:bg-[#18181b] transition-all cursor-pointer select-none group ${className}`}
       title={`${repo ? `[${repo}${branch ? ` : ${branch}` : ''}] ` : ''}${currentConfig.tooltip} - 클릭하여 설정 열기`}
       aria-label={`GitHub 동기화 상태: ${currentConfig.label}`}
     >
@@ -110,6 +113,34 @@ export const GithubSyncStatusIndicator: React.FC<GithubSyncStatusIndicatorProps>
         )}
         <span className="tracking-tight">{currentConfig.label}</span>
       </span>
+
+      {/* Divider */}
+      <div className="w-[1px] h-3.5 bg-[#222226] mx-0.5 shrink-0" />
+
+      {/* Force Sync Manual Trigger Button */}
+      <button
+        type="button"
+        data-testid="github-force-sync-btn"
+        data-action="force-sync"
+        aria-label="즉시 동기화"
+        title="즉시 동기화: 원격 저장소와 즉시 풀 및 푸시 실행"
+        disabled={isSyncing}
+        onClick={(e) => {
+          e.stopPropagation();
+          onForceSync ? onForceSync() : onClick?.();
+        }}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onForceSync ? onForceSync() : onClick?.();
+          }
+        }}
+        className="h-5 px-1.5 flex items-center gap-1 rounded text-[10px] font-medium text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08] active:bg-white/[0.12] transition-colors border border-transparent hover:border-white/[0.08] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
+      >
+        <RefreshCw className={`w-2.5 h-2.5 shrink-0 ${isSyncing ? 'animate-spin text-indigo-400' : ''}`} />
+        <span className="hidden md:inline">즉시 동기화</span>
+      </button>
     </div>
   );
 };

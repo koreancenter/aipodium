@@ -738,7 +738,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                       type="button"
                       onClick={() => handleModeSelect(value)}
                       aria-pressed={mode === value}
-                      className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                      className={`px-1.5 py-0.5 rounded transition-all cursor-pointer whitespace-nowrap ${
                         mode === value
                           ? 'bg-white/[0.08] text-zinc-100 font-medium'
                           : 'hover:text-zinc-300'
@@ -840,7 +840,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                   if (onOpenSettings) onOpenSettings('ai-engine');
                   else if (onOpenRoleModal) onOpenRoleModal();
                 }}
-                className="text-[11px] text-zinc-400 hover:text-indigo-300 transition-colors cursor-pointer font-normal flex items-center gap-1.5 shrink-0 ml-2"
+                className="text-[11px] text-zinc-400 hover:text-indigo-300 transition-colors cursor-pointer font-normal flex items-center gap-1.5 shrink-0 ml-2 whitespace-nowrap"
                 title="API 키 및 AI 엔진 설정"
               >
                 <span>API 키 설정</span>
