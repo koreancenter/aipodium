@@ -6,7 +6,6 @@ import {
   Lock,
   Unlock,
   KeyRound,
-  Rocket,
   Eye,
   EyeOff,
   CheckCircle2,
@@ -460,17 +459,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
     <div className="w-full min-h-screen min-h-[100dvh] bg-[#09090b] text-zinc-200 font-sans antialiased selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] flex flex-col justify-between relative overflow-x-hidden overflow-y-auto">
       {/* Subtle ambient lighting adhering strictly to Clean Dark rules */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(99,102,241,0.06),transparent_70%)] pointer-events-none" />
-      <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-indigo-600/10 blur-[140px] pointer-events-none rounded-full" />
+      <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[300px] h-[200px] bg-indigo-600/15 blur-[90px] pointer-events-none rounded-full" />
+      <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-indigo-600/10 blur-[140px] pointer-events-none rounded-full hidden sm:block" />
 
       {/* Main Container: Expanded to max-w-6xl for wide desktop displays while responsive on mobile */}
       <div className="relative z-10 w-full max-w-6xl mx-auto min-h-screen min-h-[100dvh] flex flex-col justify-between px-4 sm:px-6 lg:px-8 py-3 sm:py-6">
         {/* Top Header: Brand Identity & Language Toggle */}
         <header className="w-full flex items-center justify-between pb-3 sm:pb-5 border-b border-white/[0.08]">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <span className="text-base font-semibold tracking-tight text-zinc-100">
               {t.brandName}
             </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-white/5">
+            <span className="text-[11px] font-mono text-zinc-500 tracking-wider">
               {t.betaTag}
             </span>
           </div>
@@ -528,14 +528,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
           {/* Left Column (7 cols): Grand Hero Title & Desktop Highlight Cards */}
           <div className="w-full lg:col-span-7 flex flex-col gap-4 sm:gap-6">
             {/* Grand Hero Title & Subtitle */}
-            <div className="space-y-2 text-center lg:text-left">
-              <div>
-                <span className="px-3 py-1 text-xs text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 rounded-full inline-flex items-center gap-1.5 mb-4">
-                  <span>✨</span>
-                  <span>{lang === 'KR' ? '프라이버시 우선 AI 워크스페이스' : 'Privacy-First AI Workspace'}</span>
-                </span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl xl:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent break-keep">
+            <div className="space-y-2 text-center lg:text-left flex flex-col items-center lg:items-start">
+              <span className="text-[11px] font-medium tracking-widest text-indigo-400 uppercase select-none mb-1">
+                {lang === 'KR' ? '프라이버시 우선 AI 워크스페이스' : 'Privacy-First AI Workspace'}
+              </span>
+              <h1 className="h-[38px] text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent break-keep">
                 {t.heroTitle}
               </h1>
               <p className="text-xs sm:text-sm lg:text-base text-zinc-400 leading-relaxed max-w-xl mx-auto lg:mx-0 break-keep">
@@ -543,20 +540,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
               </p>
             </div>
 
-            {/* Mobile Only: Subtle Minimalist Chips (< lg viewport) */}
-            <div className="flex lg:hidden flex-wrap items-center justify-center gap-1.5 sm:gap-2 select-none py-0.5">
-              <span className="bg-white/[0.04] px-2.5 py-1 rounded-md border border-white/5 text-xs text-zinc-400 flex items-center gap-1.5">
-                <span>🛡️</span>
-                <span>{lang === 'KR' ? '데이터 주권' : 'Data Sovereignty'}</span>
-              </span>
-              <span className="bg-white/[0.04] px-2.5 py-1 rounded-md border border-white/5 text-xs text-zinc-400 flex items-center gap-1.5">
-                <span>⚡</span>
-                <span>{lang === 'KR' ? '자유로운 AI' : 'Flexible AI'}</span>
-              </span>
-              <span className="bg-white/[0.04] px-2.5 py-1 rounded-md border border-white/5 text-xs text-zinc-400 flex items-center gap-1.5">
-                <span>📊</span>
-                <span>{lang === 'KR' ? '원클릭 가공' : '1-Click Workflow'}</span>
-              </span>
+            {/* Mobile Only: Sleek Unboxed Typographic Feature Strip (< lg viewport) */}
+            <div className="flex lg:hidden items-center justify-center gap-2.5 text-xs text-zinc-400 my-2 select-none font-normal">
+              <span>{lang === 'KR' ? '데이터 주권' : 'Data Sovereignty'}</span>
+              <span className="text-zinc-600 select-none">·</span>
+              <span>{lang === 'KR' ? '자유로운 AI' : 'Flexible AI'}</span>
+              <span className="text-zinc-600 select-none">·</span>
+              <span>{lang === 'KR' ? '원클릭 가공' : '1-Click Workflow'}</span>
             </div>
 
             {/* Desktop Only: 3 Rich Minimalist Feature Cards (>= lg viewport) */}
@@ -607,7 +597,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
           {/* Right Column (5 cols): Action Card */}
           <div className="w-full lg:col-span-5 flex justify-center lg:justify-end">
-            <div className="w-full max-w-md bg-white/[0.03] border border-white/10 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-2xl shadow-indigo-950/40 relative overflow-hidden flex flex-col gap-4">
+            <div className="w-full max-w-md bg-transparent lg:bg-white/[0.02] border-0 lg:border lg:border-white/10 backdrop-blur-none lg:backdrop-blur-xl rounded-none lg:rounded-3xl p-1 sm:p-3 lg:p-6 shadow-none lg:shadow-2xl lg:shadow-indigo-950/30 relative overflow-hidden flex flex-col gap-4">
               {/* Status Feedback Banners */}
               {errorMsg && (
                 <div className="rounded-lg border border-rose-500/40 bg-rose-950/40 p-3 text-xs text-rose-300 flex items-start gap-2.5">
@@ -688,9 +678,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                     onClick={handleConfirmRecoveryKeyAndEnter}
                     disabled={!confirmedSavedRecoveryKey || isLoading}
                     title={t.openWorkspaceAfterRecovery}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition-all cursor-pointer disabled:opacity-50"
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] shadow-lg shadow-indigo-600/20 text-white font-medium py-3.5 rounded-xl flex items-center justify-center gap-2 text-sm transition-all cursor-pointer disabled:opacity-40 border border-indigo-400/20"
                   >
-                    <Rocket className="h-4 w-4 shrink-0" />
                     <span>{t.openWorkspaceAfterRecovery}</span>
                   </button>
                 </div>
@@ -869,48 +858,48 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
               {!generatedRecoveryKey && !hasPinConfigured && (
                 <>
                   {!showSetPinForm ? (
-                    <div className="flex flex-col gap-4">
-                      {/* Clean Checkbox Row (No enclosing background box) */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer select-none flex-1">
+                    <div className="flex flex-col">
+                      {/* Modern Flat Agreement Layout: Compact & Non-Intrusive */}
+                      <div className="rounded-xl border border-white/[0.06] bg-[#121214]/60 p-3 sm:p-3.5 mb-2 transition-colors">
+                        <div className="flex items-start justify-between gap-2.5">
+                          <label className="flex items-start gap-2.5 text-xs text-zinc-300 cursor-pointer select-none flex-1">
                             <input
                               type="checkbox"
                               checked={isAllAgreed}
                               onChange={handleToggleAllAgreements}
-                              className="rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
+                              className="mt-0.5 h-4 w-4 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
                             />
-                            <span className="text-xs text-zinc-300 hover:text-white transition-colors leading-tight">
+                            <span className="text-xs text-zinc-300 hover:text-white transition-colors leading-relaxed font-normal">
                               {t.termsAllAgree}
                             </span>
                           </label>
                           <button
                             type="button"
                             onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
-                            className="text-[11px] text-zinc-500 hover:text-zinc-300 flex items-center gap-0.5 shrink-0 px-1 py-0.5 transition-colors cursor-pointer"
+                            className="text-[11px] text-zinc-400 hover:text-zinc-200 flex items-center gap-1 shrink-0 py-0.5 px-1.5 transition-colors cursor-pointer"
                             aria-expanded={isDetailsExpanded}
                             title={isDetailsExpanded ? t.termsHideDetails : t.termsViewDetails}
                           >
                             <span>{isDetailsExpanded ? t.termsHideDetails : t.termsViewDetails}</span>
                             {isDetailsExpanded ? (
-                              <ChevronUp className="w-3 h-3" />
+                              <ChevronUp className="w-3.5 h-3.5" />
                             ) : (
-                              <ChevronDown className="w-3 h-3" />
+                              <ChevronDown className="w-3.5 h-3.5" />
                             )}
                           </button>
                         </div>
 
-                        {/* Expandable Individual Checklist (Flat, unboxed) */}
+                        {/* Expandable Individual Checklist */}
                         {isDetailsExpanded && (
-                          <div className="pt-2 pl-6 space-y-1.5 border-t border-white/[0.06]">
+                          <div className="mt-3 pt-2.5 pl-6 space-y-2 border-t border-white/[0.06]">
                             <label className="flex items-start gap-2 cursor-pointer select-none text-[11px] text-zinc-400 hover:text-zinc-300">
                               <input
                                 type="checkbox"
                                 checked={agreeApiKey}
                                 onChange={(e) => setAgreeApiKey(e.target.checked)}
-                                className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
+                                className="mt-0.5 h-3.5 w-3.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
                               />
-                              <span className="leading-tight">{t.termsApiKeyAgree}</span>
+                              <span className="leading-relaxed">{t.termsApiKeyAgree}</span>
                             </label>
 
                             <label className="flex items-start gap-2 cursor-pointer select-none text-[11px] text-zinc-400 hover:text-zinc-300">
@@ -918,9 +907,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                                 type="checkbox"
                                 checked={agreeLocalStorage}
                                 onChange={(e) => setAgreeLocalStorage(e.target.checked)}
-                                className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
+                                className="mt-0.5 h-3.5 w-3.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
                               />
-                              <span className="leading-tight">{t.termsLocalStorageAgree}</span>
+                              <span className="leading-relaxed">{t.termsLocalStorageAgree}</span>
                             </label>
 
                             <label className="flex items-start gap-2 cursor-pointer select-none text-[11px] text-zinc-400 hover:text-zinc-300">
@@ -928,9 +917,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                                 type="checkbox"
                                 checked={agreeAiOutput}
                                 onChange={(e) => setAgreeAiOutput(e.target.checked)}
-                                className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
+                                className="mt-0.5 h-3.5 w-3.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
                               />
-                              <span className="leading-tight">{t.termsAiOutputAgree}</span>
+                              <span className="leading-relaxed">{t.termsAiOutputAgree}</span>
                             </label>
                           </div>
                         )}
@@ -938,25 +927,24 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
                       {/* Modern Compact Actions: Primary CTA + Ghost Secondary */}
                       <div className="flex flex-col gap-2 pt-1">
-                        {/* Primary CTA: Full width solid indigo button */}
+                        {/* Primary CTA: High-end obsidian indigo button with crisp border & subtle glow */}
                         <button
                           type="button"
                           onClick={handleOpenWorkspaceDirectly}
                           disabled={isLoading || !isAllAgreed}
                           title={t.openWorkspace}
-                          className="w-full bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm sm:text-base transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] shadow-lg shadow-indigo-600/20 text-white font-medium py-3.5 rounded-xl transition-all text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed border border-indigo-400/20"
                         >
-                          <Rocket className="h-4 w-4 shrink-0" />
                           <span>{t.openWorkspace}</span>
                         </button>
 
-                        {/* Secondary Action: Flat ghost style */}
+                        {/* Secondary Action: Minimal flat ghost style */}
                         <button
                           type="button"
                           onClick={handleOpenPinSetup}
                           disabled={isLoading || !isAllAgreed}
                           title={t.enablePinLock}
-                          className="w-full hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200 text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="w-full hover:bg-white/[0.04] text-zinc-400 hover:text-zinc-200 text-xs py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                           <Lock className="w-3.5 h-3.5 text-zinc-500" />
                           <span>{t.enablePinLock}</span>
@@ -1053,12 +1041,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
           </div>
         </main>
 
-        {/* Global Footer: Clean Unified Responsive Styling with Standardized Text Colors */}
-        <footer className="w-full pt-3 sm:pt-5 border-t border-white/[0.08] flex flex-col items-center justify-center gap-1.5 text-xs text-zinc-500 text-center">
-          <div>
+        {/* Global Footer: Integrated Luxury Minimalist Footer */}
+        <footer className="w-full mt-4 sm:mt-8 pt-3 sm:pt-4 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-zinc-500 select-none">
+          <div className="text-[11px] text-zinc-500 order-2 sm:order-1">
             <span>{t.copyright}</span>
           </div>
-          <div id="auth-footer-legal" className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
+          <div id="auth-footer-legal" className="text-[11px] text-zinc-500 flex flex-wrap justify-center items-center gap-x-2.5 gap-y-1 text-center order-1 sm:order-2">
             <button
               type="button"
               onClick={() => openPolicy('privacy')}
