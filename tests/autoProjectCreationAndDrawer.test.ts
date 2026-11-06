@@ -158,12 +158,12 @@ test('Auto-Project Creation on First Message & Auto-Collapsing Drawer Tests', as
     );
   });
 
-  await t.test('7. Panel clamping (CHAT_PANEL_MIN_WIDTH = 360) and Model Selector Popover isolation', async () => {
+  await t.test('7. Panel clamping (CHAT_PANEL_MIN_WIDTH = 380) and Model Selector Popover isolation', async () => {
     const { CHAT_PANEL_MIN_WIDTH, clampChatWidth } = await import('../src/utils/panelLayoutEngine.ts');
-    assert.equal(CHAT_PANEL_MIN_WIDTH, 360, 'CHAT_PANEL_MIN_WIDTH must be strictly 360');
-    assert.equal(clampChatWidth(200), 360, 'Shrinking below 360px must be clamped to 360');
-    assert.equal(clampChatWidth(340), 360, '340px must be clamped to 360 to prevent model selector overlap');
-    assert.equal(clampChatWidth(360), 360, '360px is valid minimum');
+    assert.equal(CHAT_PANEL_MIN_WIDTH, 380, 'CHAT_PANEL_MIN_WIDTH must be strictly 380');
+    assert.equal(clampChatWidth(200), 380, 'Shrinking below 380px must be clamped to 380');
+    assert.equal(clampChatWidth(340), 380, '340px must be clamped to 380 to prevent model selector overlap');
+    assert.equal(clampChatWidth(380), 380, '380px is valid minimum');
 
     const fs = await import('node:fs');
     const path = await import('node:path');

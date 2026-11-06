@@ -8,7 +8,7 @@ export interface PanelWidths {
   explorer: number;
 }
 
-export const CHAT_PANEL_MIN_WIDTH = 360;
+export const CHAT_PANEL_MIN_WIDTH = 380;
 export const EDITOR_PANEL_MIN_WIDTH = 360;
 
 export const PANEL_WIDTH_LIMITS = {

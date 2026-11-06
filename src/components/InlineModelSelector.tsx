@@ -247,7 +247,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
         (document.getElementById('chat-resizer-handle')?.previousElementSibling as HTMLElement | null);
 
       const containerRect = containerEl?.getBoundingClientRect();
-      const margin = 12; // 12px clean breathing room from panel border and resizer handle
+      const margin = 16; // 16px clean breathing room from panel border and resizer handle
 
       if (containerRect && containerRect.width > 0) {
         // Distance from container left to button left
@@ -276,8 +276,22 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
 
     alignPopover();
     window.addEventListener('resize', alignPopover);
+
+    const containerEl =
+      document.getElementById('chat-panel-container') ||
+      buttonRef.current?.closest<HTMLElement>('section');
+
+    let ro: ResizeObserver | null = null;
+    if (containerEl && typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => {
+        alignPopover();
+      });
+      ro.observe(containerEl);
+    }
+
     return () => {
       window.removeEventListener('resize', alignPopover);
+      ro?.disconnect();
     };
   }, [isOpen]);
 

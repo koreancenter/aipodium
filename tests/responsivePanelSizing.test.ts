@@ -43,8 +43,8 @@ test('Responsive Golden Ratio Panel Sizing & Limits', async (t) => {
   });
 
   await t.test('3. Min/Max Clamps and Two-Panel Drag Enforcement', () => {
-    // Chat: 360 ~ 520
-    assert.equal(clampChatWidth(100), 360, 'Below min chat width must clamp to 360');
+    // Chat: 380 ~ 520
+    assert.equal(clampChatWidth(100), 380, 'Below min chat width must clamp to 380');
     assert.equal(clampChatWidth(600), 520, 'Above max chat width must clamp to 520');
     assert.equal(clampChatWidth(400), 400, 'In-range chat width must preserve value');
 
@@ -52,7 +52,7 @@ test('Responsive Golden Ratio Panel Sizing & Limits', async (t) => {
     // Container: 1000px, Right Explorer: 200px -> Available for Chat & Editor: 800px
     // Editor min: 360px -> Chat max is 800 - 360 = 440px
     assert.equal(clampChatWidth(500, 1000, 200), 440, 'Chat panel must clamp to protect Editor panel at 360px');
-    assert.equal(clampChatWidth(200, 1000, 200), 360, 'Chat panel must clamp to minimum 360px');
+    assert.equal(clampChatWidth(200, 1000, 200), 380, 'Chat panel must clamp to minimum 380px');
 
     // Explorer: 200 ~ 420
     assert.equal(clampExplorerWidth(150), 200, 'Below min explorer width must clamp to 200');
@@ -67,8 +67,8 @@ test('Responsive Golden Ratio Panel Sizing & Limits', async (t) => {
 
   await t.test('4. Storage key constant verification', () => {
     assert.equal(PANEL_STORAGE_KEY, 'aipodium_panel_widths');
-    assert.equal(CHAT_PANEL_MIN_WIDTH, 360);
-    assert.equal(PANEL_WIDTH_LIMITS.CHAT.MIN, 360);
+    assert.equal(CHAT_PANEL_MIN_WIDTH, 380);
+    assert.equal(PANEL_WIDTH_LIMITS.CHAT.MIN, 380);
     assert.equal(PANEL_WIDTH_LIMITS.CHAT.MAX, 520);
     assert.equal(PANEL_WIDTH_LIMITS.EXPLORER.MIN, 200);
     assert.equal(PANEL_WIDTH_LIMITS.EXPLORER.MAX, 420);

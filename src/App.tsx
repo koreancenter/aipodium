@@ -80,6 +80,7 @@ import {
   clampExplorerWidth,
   loadSavedPanelWidths,
   savePanelWidths,
+  CHAT_PANEL_MIN_WIDTH,
   type PanelWidths,
 } from './utils/panelLayoutEngine';
 import {
@@ -8959,14 +8960,14 @@ ${projectEvents
 
         {/* ==================== LEFT PANE: AI Chat Area ==================== */}
         <section
-          style={{ width: isMobile ? '100%' : isLeftPanelVisible ? `${panelWidths.chat}px` : '40px' }}
+          style={{ width: isMobile ? '100%' : isLeftPanelVisible ? `${panelWidths.chat}px` : '40px', minWidth: (!isMobile && isLeftPanelVisible) ? `${CHAT_PANEL_MIN_WIDTH}px` : undefined }}
           className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 max-w-[calc(100vw-32px)] sm:max-w-none ${
             isMobile ? `!relative !w-full !max-w-none !flex-1 !shrink !inset-auto !shadow-none !border-r-0 ${mobileTab === 'chat' ? '' : '!hidden'} ` : ''
           }${
             activeResizer === 'chat'
               ? 'transition-none'
               : 'transition-[width] duration-200 ease-out'
-          } z-40 lg:z-10 ${
+          } z-40 lg:z-30 ${
             (isLeftPanelVisible || isMobile)
               ? 'opacity-100 pointer-events-auto border-r border-[#222226] fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/80 lg:shadow-none'
               : 'w-10 shrink-0 bg-[#121214] border-r border-[#222226] flex flex-col z-20 select-none transition-all duration-200'
@@ -8996,7 +8997,7 @@ ${projectEvents
           ) : (
             <div
               id="chat-panel-container"
-              style={{ width: `${panelWidths.chat}px` }}
+              style={{ width: `${panelWidths.chat}px`, minWidth: isMobile ? undefined : `${CHAT_PANEL_MIN_WIDTH}px` }}
               className="max-w-full h-full flex flex-col min-h-0 overflow-hidden border-r border-[#222226]"
             >
             {/* Header: Anchored strictly at top-left at all times */}
@@ -9371,10 +9372,10 @@ ${projectEvents
           <div
             id="chat-resizer-handle"
             onMouseDown={handleLeftResizeStart}
-            className={`hidden lg:flex relative w-2.5 -ml-1.5 z-30 cursor-col-resize items-center justify-center select-none group transition-colors ${
+            className={`hidden lg:flex relative w-2.5 -ml-1.5 z-20 cursor-col-resize items-center justify-center select-none group transition-colors ${
               activeResizer === 'chat' ? 'bg-[#6366f1]/20' : 'hover:bg-white/[0.04]'
             }`}
-            title="드래그하여 대화 패널 너비 조절 (360px ~ 520px)"
+            title={`드래그하여 대화 패널 너비 조절 (${CHAT_PANEL_MIN_WIDTH}px ~ 520px)`}
           >
             {/* Continuous vertical dividing line */}
             <div
