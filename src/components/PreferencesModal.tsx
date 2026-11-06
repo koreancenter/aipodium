@@ -813,11 +813,62 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
     }
   };
 
+  const isGoogleConnected = googleTokenStatus === 'connected' && !!googleUser;
+  const isGithubConnected = !!(githubConfig?.owner && githubConfig?.repo) || !!githubConfig?.token;
+  const connectedCount = [isGoogleConnected, isGithubConnected].filter(Boolean).length;
+
+  const tabItems = [
+    {
+      id: 'ai' as PreferencesTab,
+      label: st.tabs.ai,
+      icon: Cpu,
+      badge: localProviderType === 'cloud' ? st.badges.cloud : st.badges.local
+    },
+    {
+      id: 'persona' as PreferencesTab,
+      label: st.tabs.persona,
+      icon: User,
+      badge: undefined
+    },
+    {
+      id: 'ghost-writer' as PreferencesTab,
+      label: st.tabs.ghostWriter,
+      icon: Ghost,
+      badge: localPrefs.ghostWriterLevel && localPrefs.ghostWriterLevel !== 'off'
+        ? `${localPrefs.ghostWriterLevel}%`
+        : 'OFF'
+    },
+    {
+      id: 'integrations' as PreferencesTab,
+      label: st.tabs.integrations,
+      icon: PlugZap,
+      badge: connectedCount > 0 ? st.badges.connected(connectedCount) : st.badges.disconnected
+    },
+    {
+      id: 'storage' as PreferencesTab,
+      label: st.tabs.storage,
+      icon: Database,
+      badge: st.badges.localDb
+    },
+    {
+      id: 'security' as PreferencesTab,
+      label: st.tabs.security,
+      icon: ShieldCheck,
+      badge: undefined
+    },
+    {
+      id: 'language' as PreferencesTab,
+      label: st.tabs.language,
+      icon: Globe,
+      badge: undefined
+    }
+  ];
+
   return (
     <AnimatePresence>
       <div
         id="preferences-modal-overlay"
-        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs text-xs"
+        className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs text-xs"
         onClick={onClose}
       >
         <motion.div
@@ -826,7 +877,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.98, y: 6 }}
           transition={{ duration: 0.15 }}
-          className="bg-[#121214] border border-white/[0.08] rounded-xl shadow-2xl w-full max-w-4xl h-[630px] max-h-[92vh] flex flex-col overflow-hidden text-zinc-200"
+          className="bg-[#121214] border-0 sm:border border-white/[0.08] rounded-none sm:rounded-xl shadow-2xl w-full sm:max-w-4xl h-full sm:h-[630px] sm:max-h-[92vh] flex flex-col overflow-hidden text-zinc-200"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -848,142 +899,64 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             </button>
           </div>
 
+          {/* Mobile Horizontal Tabs (visible on mobile only) */}
+          <div className="sm:hidden flex items-center gap-1 overflow-x-auto no-scrollbar px-2 bg-[#0c0c0e] border-b border-white/[0.08] shrink-0 select-none">
+            {tabItems.map((tab) => {
+              const isActive = activeTab === tab.id || (tab.id === 'ai' && activeTab === 'ai-engine');
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-1.5 px-3 py-2.5 text-xs whitespace-nowrap shrink-0 border-b-2 transition-colors cursor-pointer ${
+                    isActive
+                      ? 'border-indigo-500 text-white font-medium bg-white/[0.04]'
+                      : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.02]'
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-indigo-400' : 'text-zinc-400'}`} />
+                  <span>{tab.label}</span>
+                  {tab.badge && (
+                    <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-white/[0.06] text-zinc-400 font-normal">
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Main Body */}
           <div className="flex flex-1 overflow-hidden min-h-0">
-            {/* Sidebar Tabs */}
-            <div className="w-52 bg-[#0c0c0e] border-r border-white/[0.08] p-2 flex flex-col gap-1 shrink-0 select-none overflow-y-auto min-h-0">
-              {/* TAB: AI Engine & Provider */}
-              <button
-                type="button"
-                onClick={() => setActiveTab('ai')}
-                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
-                  (activeTab === 'ai' || activeTab === 'ai-engine')
-                    ? 'bg-white/[0.08] text-white font-medium'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-                }`}
-              >
-                <span className="flex items-center gap-2 truncate">
-                  <Cpu className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{st.tabs.ai}</span>
-                </span>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 shrink-0 ml-1 font-normal">
-                  {localProviderType === 'cloud' ? st.badges.cloud : st.badges.local}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('persona')}
-                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
-                  activeTab === 'persona'
-                    ? 'bg-white/[0.08] text-white font-medium'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-                }`}
-              >
-                <span className="flex items-center gap-2 truncate">
-                  <User className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{st.tabs.persona}</span>
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('ghost-writer')}
-                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
-                  activeTab === 'ghost-writer'
-                    ? 'bg-white/[0.08] text-white font-medium'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-                }`}
-              >
-                <span className="flex items-center gap-2 truncate">
-                  <Ghost className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{st.tabs.ghostWriter}</span>
-                </span>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 shrink-0 ml-1 font-normal">
-                  {localPrefs.ghostWriterLevel && localPrefs.ghostWriterLevel !== 'off'
-                    ? `${localPrefs.ghostWriterLevel}%`
-                    : 'OFF'}
-                </span>
-              </button>
-
-              {(() => {
-                const isGoogleConnected = googleTokenStatus === 'connected' && !!googleUser;
-                const isGithubConnected = !!(githubConfig?.owner && githubConfig?.repo) || !!githubConfig?.token;
-                const connectedCount = [isGoogleConnected, isGithubConnected].filter(Boolean).length;
+            {/* Desktop Sidebar Tabs (visible on sm and up) */}
+            <div className="hidden sm:flex sm:w-52 bg-[#0c0c0e] border-r border-white/[0.08] p-2 flex-col gap-1 shrink-0 select-none overflow-y-auto min-h-0">
+              {tabItems.map((tab) => {
+                const isActive = activeTab === tab.id || (tab.id === 'ai' && activeTab === 'ai-engine');
+                const Icon = tab.icon;
                 return (
                   <button
+                    key={tab.id}
                     type="button"
-                    onClick={() => setActiveTab('integrations')}
+                    onClick={() => setActiveTab(tab.id)}
                     className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
-                      activeTab === 'integrations'
+                      isActive
                         ? 'bg-white/[0.08] text-white font-medium'
                         : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                     }`}
                   >
                     <span className="flex items-center gap-2 truncate">
-                      <PlugZap className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{st.tabs.integrations}</span>
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{tab.label}</span>
                     </span>
-                    {connectedCount > 0 ? (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-300 font-normal shrink-0 ml-1">
-                        {st.badges.connected(connectedCount)}
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-zinc-500 font-normal shrink-0 ml-1">
-                        {st.badges.disconnected}
+                    {tab.badge && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 shrink-0 ml-1 font-normal">
+                        {tab.badge}
                       </span>
                     )}
                   </button>
                 );
-              })()}
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('storage')}
-                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
-                  activeTab === 'storage'
-                    ? 'bg-white/[0.08] text-white font-medium'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-                }`}
-              >
-                <span className="flex items-center gap-2 truncate">
-                  <Database className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{st.tabs.storage}</span>
-                </span>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 font-normal shrink-0 ml-1">
-                  {st.badges.localDb}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('security')}
-                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
-                  activeTab === 'security'
-                    ? 'bg-white/[0.08] text-white font-medium'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-                }`}
-              >
-                <span className="flex items-center gap-2 truncate">
-                  <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{st.tabs.security}</span>
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('language')}
-                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
-                  activeTab === 'language'
-                    ? 'bg-white/[0.08] text-white font-medium'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-                }`}
-              >
-                <span className="flex items-center gap-2 truncate">
-                  <Globe className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{st.tabs.language}</span>
-                </span>
-              </button>
+              })}
 
               {/* System Status & Environment Info Widget */}
               <div className="mt-auto pt-3 border-t border-white/[0.08] px-2 py-1.5 text-[11px] text-zinc-400 space-y-1.5 select-none">
@@ -1002,7 +975,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             </div>
 
             {/* Tab Content Area */}
-            <div className="flex-1 min-w-0 overflow-y-auto p-6 bg-[#16161a]">
+            <div className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 bg-[#16161a]">
               {/* TAB 0: AI Engine & Provider (Default fallback if not any other tab) */}
               {activeTab === 'language' && (
                 <section className="max-w-xl space-y-4 animate-in fade-in duration-150">
@@ -2057,23 +2030,27 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="px-5 py-3 border-t border-white/[0.08] bg-[#121214] flex justify-between items-center shrink-0">
-            <span className="text-xs text-zinc-400 flex items-center gap-1.5">
+          <div className="px-4 sm:px-5 py-3 border-t border-white/[0.08] bg-[#121214] flex justify-between items-center shrink-0 gap-2">
+            <span className="hidden sm:flex text-xs text-zinc-400 items-center gap-1.5">
               <Check className="w-3.5 h-3.5 text-emerald-400" />
               <span>{st.body.footerNote}</span>
             </span>
-            <div className="flex items-center gap-2">
+            <span className="sm:hidden text-[11px] text-zinc-400 flex items-center gap-1 truncate mr-auto">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block shrink-0" />
+              <span className="truncate">로컬 암호화 보존</span>
+            </span>
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer whitespace-nowrap"
               >
                 {st.body.cancel}
               </button>
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
               >
                 <Save className="w-3.5 h-3.5" />
                 <span>{st.body.saveApply}</span>
