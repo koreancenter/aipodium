@@ -852,17 +852,29 @@ export default function App() {
   const [activeSessionId, setActiveSessionId] = useState<string>('session-default');
   const activeProjectId = activeSessionId;
   const setActiveProjectId = setActiveSessionId;
+  // Left Project Drawer State: Initialized open on mount for smooth entry auto-collapse animation
   const [isProjectListOpen, setIsProjectListOpen] = useState<boolean>(() => {
     try {
-      const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 1280 : true;
       const saved = localStorage.getItem('aipodium_project_drawer_open');
-      // On desktop screens (>= 1280px), initialize with open project list cleanly visible
-      return saved !== null ? saved === 'true' : isDesktop;
+      // If user had previously saved a preference, respect it; otherwise default to open for entry animation
+      return saved !== null ? saved === 'true' : true;
     } catch {
       return true;
-
     }
   });
+
+  // Auto-Collapsing Left Project Drawer (Smooth Entry Animation)
+  // When workspace loads or mounts, smoothly slide out to collapsed state using natural easing (~350ms, ease: [0.16, 1, 0.3, 1])
+  // to maximize the chat canvas width for the user
+  useEffect(() => {
+    const autoCollapseTimer = setTimeout(() => {
+      setIsProjectListOpen(false);
+    }, 280);
+
+    return () => {
+      clearTimeout(autoCollapseTimer);
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -2337,7 +2349,7 @@ export default function App() {
   // Responsive Golden Ratio Panel Widths:
   // - Ultra-wide (>= 1920px): Chat 28%, Editor 54%, Explorer 18%
   // - Standard Laptop (1440px - 1600px): Chat 32%, Editor 48%, Explorer 20%
-  // - Clamps: Chat (280px ~ 520px), Explorer (200px ~ 420px)
+  // - Clamps: Chat (360px ~ 520px), Explorer (200px ~ 420px), Editor (>= 360px)
   // - Persisted in localStorage ('aipodium_panel_widths')
   const [panelWidths, setPanelWidths] = useState<PanelWidths>(() => {
     const saved = loadSavedPanelWidths();
@@ -2347,6 +2359,23 @@ export default function App() {
   });
 
   const [activeResizer, setActiveResizer] = useState<'chat' | 'explorer' | null>(null);
+
+  // Persist toggle states in localStorage:
+  // aipodium_left_drawer_open: boolean
+  // aipodium_right_drawer_open: boolean
+  const [isLeftPanelVisible, setIsLeftPanelVisible] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    if (window.innerWidth >= 1280) return true;
+    const saved = localStorage.getItem('aipodium_left_drawer_open') ?? localStorage.getItem('aipodium_left_panel_visible');
+    return saved === 'true';
+  });
+
+  const [isRightPanelVisible, setIsRightPanelVisible] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    if (window.innerWidth >= 1280) return true;
+    const saved = localStorage.getItem('aipodium_right_drawer_open') ?? localStorage.getItem('aipodium_right_panel_visible');
+    return saved === 'true';
+  });
 
   // Smooth mouse drag resizer for Left Pane (ChatPanel <-> UnifiedEditor)
   const handleLeftResizeStart = useCallback((e: React.MouseEvent) => {
@@ -2359,7 +2388,8 @@ export default function App() {
       if (!mainContainerRef.current) return;
       const mainRect = mainContainerRef.current.getBoundingClientRect();
       const rawWidth = moveEvent.clientX - mainRect.left;
-      const clampedWidth = clampChatWidth(rawWidth);
+      const rightPanelWidth = isRightPanelVisible ? panelWidths.explorer : 40;
+      const clampedWidth = clampChatWidth(rawWidth, mainRect.width, rightPanelWidth);
       setPanelWidths((prev) => {
         if (prev.chat === clampedWidth) return prev;
         return { ...prev, chat: clampedWidth };
@@ -2382,7 +2412,7 @@ export default function App() {
     document.body.style.userSelect = 'none';
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, []);
+  }, [isRightPanelVisible, panelWidths.explorer]);
 
   // Smooth mouse drag resizer for Right Pane (UnifiedEditor <-> WorkspaceDrawer)
   const handleRightResizeStart = useCallback((e: React.MouseEvent) => {
@@ -2395,7 +2425,8 @@ export default function App() {
       if (!mainContainerRef.current) return;
       const mainRect = mainContainerRef.current.getBoundingClientRect();
       const rawWidth = mainRect.right - moveEvent.clientX;
-      const clampedWidth = clampExplorerWidth(rawWidth);
+      const chatPanelWidth = isLeftPanelVisible ? panelWidths.chat : 40;
+      const clampedWidth = clampExplorerWidth(rawWidth, mainRect.width, chatPanelWidth);
       setPanelWidths((prev) => {
         if (prev.explorer === clampedWidth) return prev;
         return { ...prev, explorer: clampedWidth };
@@ -2418,27 +2449,7 @@ export default function App() {
     document.body.style.userSelect = 'none';
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, []);
-
-  // Persist toggle states in localStorage:
-  // aipodium_left_drawer_open: boolean
-  // aipodium_right_drawer_open: boolean
-  const [isLeftPanelVisible, setIsLeftPanelVisible] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    // 데스크탑은 저장값과 무관하게 항상 열린 상태로 시작
-    if (window.innerWidth >= 1280) return true;
-    const saved = localStorage.getItem('aipodium_left_drawer_open') ?? localStorage.getItem('aipodium_left_panel_visible');
-    return saved === 'true';
-
-  });
-
-  const [isRightPanelVisible, setIsRightPanelVisible] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    if (window.innerWidth >= 1280) return true;
-    const saved = localStorage.getItem('aipodium_right_drawer_open') ?? localStorage.getItem('aipodium_right_panel_visible');
-    return saved === 'true';
-
-  });
+  }, [isLeftPanelVisible, panelWidths.chat]);
 
   const [windowWidth, setWindowWidth] = useState<number>(() =>
     typeof window !== 'undefined' ? window.innerWidth : 1440
@@ -8983,10 +8994,14 @@ ${projectEvents
               </div>
             </div>
           ) : (
-            <div style={{ width: `${panelWidths.chat}px` }} className="max-w-full h-full flex flex-col min-h-0 overflow-hidden">
+            <div
+              id="chat-panel-container"
+              style={{ width: `${panelWidths.chat}px` }}
+              className="max-w-full h-full flex flex-col min-h-0 overflow-hidden border-r border-[#222226]"
+            >
             {/* Header: Anchored strictly at top-left at all times */}
             <div className="bg-[#0f0f12] border-b border-white/5 px-2 h-8 flex items-center justify-between shrink-0 select-none">
-              <div className={`flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0 ${isProjectListOpen ? 'w-48 sm:w-56 -ml-0.5 pr-1' : ''}`}>
+              <div className={`flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0 transition-all duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${isProjectListOpen ? 'w-48 sm:w-56 -ml-0.5 pr-1' : ''}`}>
                 <button
                   type="button"
                   id="left-drawer-collapse-btn"
@@ -8997,9 +9012,20 @@ ${projectEvents
                 >
                   <PanelLeftClose className="w-4 h-4 text-zinc-400 hover:text-zinc-100" />
                 </button>
+                <button
+                  type="button"
+                  id="project-drawer-header-toggle-btn"
+                  onClick={() => setIsProjectListOpen((prev) => !prev)}
+                  className={`p-1 rounded-xs hover:bg-[#18181b] transition-colors duration-150 flex items-center justify-center shrink-0 cursor-pointer ${
+                    isProjectListOpen ? 'text-indigo-400' : 'text-zinc-400 hover:text-zinc-100'
+                  }`}
+                  title={isProjectListOpen ? '프로젝트 목록 닫기' : '프로젝트 목록 열기'}
+                  aria-label={isProjectListOpen ? '프로젝트 목록 닫기' : '프로젝트 목록 열기'}
+                >
+                  <Folder className="w-3.5 h-3.5" />
+                </button>
                 {isProjectListOpen && (
                   <>
-                    <Folder className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
                     <span className="font-semibold tracking-wider text-[0.6875rem] uppercase text-indigo-300 truncate">프로젝트 목록</span>
                     <button
                       type="button"
@@ -9042,11 +9068,14 @@ ${projectEvents
                 <aside
                   id="project-list-panel"
                   aria-label="프로젝트 목록"
-                  className={`bg-[#121214] border-r border-white/5 flex flex-col shrink-0 overflow-hidden transition-[width,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] z-10 h-full [&>*]:min-w-52 sm:[&>*]:min-w-60 ${
+                  className={`bg-[#121214] border-r border-white/5 flex flex-col shrink-0 overflow-hidden transition-[width,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] z-10 h-full [&>*]:min-w-52 sm:[&>*]:min-w-60 ${
                     isProjectListOpen
                       ? 'w-52 sm:w-60 opacity-100'
                       : 'w-0 opacity-0 pointer-events-none border-r-0'
                   }`}
+                  style={{
+                    transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
                 >
                   {/* Sidebar Header */}
                   <div className="p-2 border-b border-[#222226] space-y-1.5 bg-[#0c0c0e] shrink-0">
@@ -9342,12 +9371,44 @@ ${projectEvents
           <div
             id="chat-resizer-handle"
             onMouseDown={handleLeftResizeStart}
-            className={`hidden lg:flex w-1 hover:w-1.5 -ml-0.5 z-30 cursor-col-resize items-center justify-center transition-colors select-none group ${
-              activeResizer === 'chat' ? 'bg-[#6366f1] w-1.5' : 'hover:bg-[#6366f1] bg-transparent'
+            className={`hidden lg:flex relative w-2.5 -ml-1.5 z-30 cursor-col-resize items-center justify-center select-none group transition-colors ${
+              activeResizer === 'chat' ? 'bg-[#6366f1]/20' : 'hover:bg-white/[0.04]'
             }`}
-            title="드래그하여 대화 패널 너비 조절 (280px ~ 520px)"
+            title="드래그하여 대화 패널 너비 조절 (360px ~ 520px)"
           >
-            <div className="w-full h-full opacity-0 group-hover:opacity-100 bg-[#6366f1]/40" />
+            {/* Continuous vertical dividing line */}
+            <div
+              className={`w-[1px] h-full transition-colors duration-150 ${
+                activeResizer === 'chat'
+                  ? 'bg-[#6366f1] shadow-[0_0_8px_rgba(99,102,241,0.6)]'
+                  : 'bg-[#222226] group-hover:bg-[#6366f1]/80'
+              }`}
+            />
+
+            {/* Centered visual grip affordance (시각적 구분자) */}
+            <div
+              className={`absolute top-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-1 w-2.5 h-8 rounded-full border shadow-md transition-all duration-150 pointer-events-none z-30 ${
+                activeResizer === 'chat'
+                  ? 'bg-[#6366f1] border-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.5)] scale-110'
+                  : 'bg-[#18181b] border-[#27272a] group-hover:border-[#6366f1]/80 group-hover:bg-[#1f1f28]'
+              }`}
+            >
+              <div
+                className={`w-0.5 h-1 rounded-full transition-colors ${
+                  activeResizer === 'chat' ? 'bg-white' : 'bg-zinc-500 group-hover:bg-[#6366f1]'
+                }`}
+              />
+              <div
+                className={`w-0.5 h-2.5 rounded-full transition-colors ${
+                  activeResizer === 'chat' ? 'bg-white' : 'bg-zinc-400 group-hover:bg-indigo-300'
+                }`}
+              />
+              <div
+                className={`w-0.5 h-1 rounded-full transition-colors ${
+                  activeResizer === 'chat' ? 'bg-white' : 'bg-zinc-500 group-hover:bg-[#6366f1]'
+                }`}
+              />
+            </div>
           </div>
         )}
 
@@ -9835,12 +9896,44 @@ ${projectEvents
           <div
             id="explorer-resizer-handle"
             onMouseDown={handleRightResizeStart}
-            className={`hidden lg:flex w-1 hover:w-1.5 -mr-0.5 z-30 cursor-col-resize items-center justify-center transition-colors select-none group ${
-              activeResizer === 'explorer' ? 'bg-[#6366f1] w-1.5' : 'hover:bg-[#6366f1] bg-transparent'
+            className={`hidden lg:flex relative w-2.5 -mr-1.5 z-30 cursor-col-resize items-center justify-center select-none group transition-colors ${
+              activeResizer === 'explorer' ? 'bg-[#6366f1]/20' : 'hover:bg-white/[0.04]'
             }`}
             title="드래그하여 파일 탐색기 너비 조절 (200px ~ 420px)"
           >
-            <div className="w-full h-full opacity-0 group-hover:opacity-100 bg-[#6366f1]/40" />
+            {/* Continuous vertical dividing line */}
+            <div
+              className={`w-[1px] h-full transition-colors duration-150 ${
+                activeResizer === 'explorer'
+                  ? 'bg-[#6366f1] shadow-[0_0_8px_rgba(99,102,241,0.6)]'
+                  : 'bg-[#222226] group-hover:bg-[#6366f1]/80'
+              }`}
+            />
+
+            {/* Centered visual grip affordance (시각적 구분자) */}
+            <div
+              className={`absolute top-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-1 w-2.5 h-8 rounded-full border shadow-md transition-all duration-150 pointer-events-none z-30 ${
+                activeResizer === 'explorer'
+                  ? 'bg-[#6366f1] border-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.5)] scale-110'
+                  : 'bg-[#18181b] border-[#27272a] group-hover:border-[#6366f1]/80 group-hover:bg-[#1f1f28]'
+              }`}
+            >
+              <div
+                className={`w-0.5 h-1 rounded-full transition-colors ${
+                  activeResizer === 'explorer' ? 'bg-white' : 'bg-zinc-500 group-hover:bg-[#6366f1]'
+                }`}
+              />
+              <div
+                className={`w-0.5 h-2.5 rounded-full transition-colors ${
+                  activeResizer === 'explorer' ? 'bg-white' : 'bg-zinc-400 group-hover:bg-indigo-300'
+                }`}
+              />
+              <div
+                className={`w-0.5 h-1 rounded-full transition-colors ${
+                  activeResizer === 'explorer' ? 'bg-white' : 'bg-zinc-500 group-hover:bg-[#6366f1]'
+                }`}
+              />
+            </div>
           </div>
         )}
 

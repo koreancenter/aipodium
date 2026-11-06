@@ -79,7 +79,7 @@ export interface TopMenuBarProps {
   onModeChange?: (mode: 'single' | 'routing' | 'multi') => void;
 }
 
-type MenuKey = 'file' | 'edit' | 'view' | 'tools' | 'ai' | 'settings' | 'help' | null;
+type MenuKey = 'file' | 'edit' | 'view' | 'tools' | 'settings' | 'help' | null;
 
 export const TopMenuBar: React.FC<TopMenuBarProps> = ({
   handleCreateNewSession,
@@ -138,7 +138,7 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
   mode = 'single',
   onModeChange,
 }) => {
-  const { t: dict, language, preference, setPreference } = useTranslation();
+  const { t: dict, language } = useTranslation();
   const t = dict?.core?.menu ?? getCoreTranslations(language).menu;
   const [activeMenu, setActiveMenu] = useState<MenuKey>(null);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
@@ -225,7 +225,7 @@ const MENU_DIVIDER_CLASS =
   }
 
   return (
-    <div ref={containerRef} className="flex items-center select-none text-xs gap-0.5">
+    <div ref={containerRef} className="flex items-center select-none text-xs gap-1 ml-1">
       {/* 1. File */}
       <div className="relative">
         <button
@@ -749,69 +749,6 @@ const MENU_DIVIDER_CLASS =
 
             <div className={MENU_DIVIDER_CLASS} />
 
-            <button
-              type="button"
-              onClick={() => {
-                closeMenu();
-                if (pdfViewerRef?.current?.triggerOptimize) {
-                  pdfViewerRef.current.triggerOptimize();
-                } else {
-                  showToast(t.pdfViewerRequired, 'info');
-                }
-              }}
-              className={MENU_ITEM_CLASS}
-            >
-              <span>{t.pdfOptimize}</span>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* 5. AI */}
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => handleMenuClick('ai')}
-          onMouseEnter={() => handleMenuHover('ai')}
-          className={`px-2.5 py-1 rounded-md transition-colors duration-150 ${
-            activeMenu === 'ai'
-              ? 'bg-[#222226] text-white font-medium'
-              : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06]'
-          }`}
-        >
-          AI
-        </button>
-
-        {activeMenu === 'ai' && (
-          <div
-            className={MENU_POPOVER_CLASS}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                closeMenu();
-                setIsAiRoleModalOpen(true);
-              }}
-              className={MENU_ITEM_CLASS}
-            >
-              <span>{t.aiRoles}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                closeMenu();
-                setPreferencesInitialTab('ai');
-                setIsPreferencesModalOpen(true);
-              }}
-              className={MENU_ITEM_CLASS}
-            >
-              <span>{t.aiEngine}</span>
-            </button>
-
-            <div className="border-t border-white/5 my-1" />
-
             {/* Ghostwriter submenu and toggle */}
             <div
               className="relative"
@@ -873,11 +810,28 @@ const MENU_DIVIDER_CLASS =
                 </div>
               )}
             </div>
+
+            <div className={MENU_DIVIDER_CLASS} />
+
+            <button
+              type="button"
+              onClick={() => {
+                closeMenu();
+                if (pdfViewerRef?.current?.triggerOptimize) {
+                  pdfViewerRef.current.triggerOptimize();
+                } else {
+                  showToast(t.pdfViewerRequired, 'info');
+                }
+              }}
+              className={MENU_ITEM_CLASS}
+            >
+              <span>{t.pdfOptimize}</span>
+            </button>
           </div>
         )}
       </div>
 
-      {/* 6. Settings */}
+      {/* 5. Settings */}
       <div className="relative">
         <button
           type="button"
@@ -909,57 +863,6 @@ const MENU_DIVIDER_CLASS =
               <span>{t.preferences}</span>
               <span className="text-[10px] text-zinc-500 font-mono shrink-0">Ctrl+,</span>
             </button>
-
-            <div className="px-3 py-1.5 flex items-center justify-between text-xs text-zinc-300">
-              <span className="text-zinc-400">{t.languagePreference}</span>
-              <div className="flex items-center gap-1 bg-white/[0.04] p-0.5 rounded border border-white/[0.06]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPreference('auto');
-                    closeMenu();
-                  }}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer ${
-                    preference === 'auto' || preference === 'system'
-                      ? 'bg-indigo-600 text-white'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                  title="브라우저/OS 언어 자동 감지"
-                >
-                  AUTO
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPreference('ko');
-                    closeMenu();
-                  }}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer ${
-                    preference === 'ko'
-                      ? 'bg-indigo-600 text-white'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                  title="한국어로 고정"
-                >
-                  한국어
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPreference('en');
-                    closeMenu();
-                  }}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer ${
-                    preference === 'en'
-                      ? 'bg-indigo-600 text-white'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                  title="English로 고정"
-                >
-                  English
-                </button>
-              </div>
-            </div>
 
             <button
               type="button"
@@ -1013,7 +916,7 @@ const MENU_DIVIDER_CLASS =
         )}
       </div>
 
-      {/* 7. Help */}
+      {/* 6. Help */}
       <div className="relative">
         <button
           type="button"

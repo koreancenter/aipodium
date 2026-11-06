@@ -34,7 +34,8 @@ import {
   Terminal,
   CheckCheck,
   AlertTriangle,
-  Zap
+  Zap,
+  User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SecuritySettings, SecurityConfig, DEFAULT_SECURITY_CONFIG } from './SecuritySettings';
@@ -861,7 +862,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                 }`}
               >
-                <span className="truncate">{st.tabs.ai}</span>
+                <span className="flex items-center gap-2 truncate">
+                  <Cpu className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{st.tabs.ai}</span>
+                </span>
                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 shrink-0 ml-1 font-normal">
                   {localProviderType === 'cloud' ? st.badges.cloud : st.badges.local}
                 </span>
@@ -876,7 +880,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                 }`}
               >
-                <span className="truncate">{st.tabs.persona}</span>
+                <span className="flex items-center gap-2 truncate">
+                  <User className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{st.tabs.persona}</span>
+                </span>
               </button>
 
               <button
@@ -888,7 +895,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                 }`}
               >
-                <span className="truncate">{st.tabs.ghostWriter}</span>
+                <span className="flex items-center gap-2 truncate">
+                  <Ghost className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{st.tabs.ghostWriter}</span>
+                </span>
                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 shrink-0 ml-1 font-normal">
                   {localPrefs.ghostWriterLevel && localPrefs.ghostWriterLevel !== 'off'
                     ? `${localPrefs.ghostWriterLevel}%`
@@ -910,7 +920,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                     }`}
                   >
-                    <span className="truncate">{st.tabs.integrations}</span>
+                    <span className="flex items-center gap-2 truncate">
+                      <PlugZap className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{st.tabs.integrations}</span>
+                    </span>
                     {connectedCount > 0 ? (
                       <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-300 font-normal shrink-0 ml-1">
                         {st.badges.connected(connectedCount)}
@@ -933,7 +946,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                 }`}
               >
-                <span className="truncate">{st.tabs.storage}</span>
+                <span className="flex items-center gap-2 truncate">
+                  <Database className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{st.tabs.storage}</span>
+                </span>
                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 font-normal shrink-0 ml-1">
                   {st.badges.localDb}
                 </span>
@@ -948,7 +964,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                 }`}
               >
-                <span className="truncate">{st.tabs.security}</span>
+                <span className="flex items-center gap-2 truncate">
+                  <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{st.tabs.security}</span>
+                </span>
               </button>
 
               <button
@@ -961,8 +980,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                 }`}
               >
                 <span className="flex items-center gap-2 truncate">
-                  <Globe className="w-3.5 h-3.5" />
-                  <span>{st.tabs.language}</span>
+                  <Globe className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{st.tabs.language}</span>
                 </span>
               </button>
 
@@ -987,13 +1006,14 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               {/* TAB 0: AI Engine & Provider (Default fallback if not any other tab) */}
               {activeTab === 'language' && (
                 <section className="max-w-xl space-y-4 animate-in fade-in duration-150">
-                  <div className="border-b border-white/[0.06] pb-3">
+                  <div className="border-b border-white/[0.06] pb-3 flex items-center gap-1.5">
                     <h3 className="text-sm font-semibold text-zinc-100">
                       {st.languagePanel.title}
                     </h3>
-                    <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-                      {st.languagePanel.description}
-                    </p>
+                    <HelpTooltip
+                      side="bottom"
+                      content={st.languagePanel.description}
+                    />
                   </div>
                   <div className="space-y-2">
                     {([

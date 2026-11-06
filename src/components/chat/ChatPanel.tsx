@@ -306,7 +306,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               aria-label={t.toggleProjectDrawer}
               aria-pressed={!!isProjectDrawerOpen}
             >
-              <ChevronRight className={`w-3 h-3 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isProjectDrawerOpen ? 'rotate-180' : 'rotate-0'}`} />
+              <ChevronRight className={`w-3 h-3 transition-transform duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${isProjectDrawerOpen ? 'rotate-180' : 'rotate-0'}`} />
             </button>
           )}
         </div>

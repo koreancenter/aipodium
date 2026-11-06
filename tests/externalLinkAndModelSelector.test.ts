@@ -220,5 +220,12 @@ test('External Link Ingestion Pipeline & Model Selector', async (t) => {
       /shrink-0\s+text-\[11px\]\s+text-zinc-400\s+py-2\s+px-3\s+border-t\s+border-white\/\[0\.06\]\s+flex/,
       'Footer slot must have clean 1-line status footer'
     );
+
+    // Verify AI Model trigger button shows only model name without left Sparkles icon
+    assert.doesNotMatch(
+      selectorFile,
+      /<Sparkles[^>]*\/>\s*<span[^>]*>\{chipLabel\}/,
+      'Trigger button must not render Sparkles icon to the left of the model name'
+    );
   });
 });

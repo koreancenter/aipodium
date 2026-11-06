@@ -130,4 +130,65 @@ test('Auto-Project Creation on First Message & Auto-Collapsing Drawer Tests', as
     localStorage.setItem('aipodium_project_drawer_open', 'false');
     assert.equal(initDefault(), false);
   });
+
+  await t.test('6. Left Project Drawer smooth collapse animation and styling specification', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const appFile = fs.readFileSync(path.resolve(process.cwd(), 'src/App.tsx'), 'utf-8');
+
+    // 1. Verify 350ms duration and natural easing [0.16, 1, 0.3, 1] on project-list-panel
+    assert.match(
+      appFile,
+      /duration-\[350ms\]\s+ease-\[cubic-bezier\(0\.16,1,0\.3,1\)\]/,
+      'Project list panel must enforce 350ms duration and cubic-bezier(0.16,1,0.3,1) natural easing'
+    );
+
+    // 2. Verify overflow-hidden is applied to prevent text wrapping/distortion during width collapse
+    assert.match(
+      appFile,
+      /id="project-list-panel"[^>]*overflow-hidden/,
+      'Project list panel must enforce overflow-hidden to prevent distortion during collapse'
+    );
+
+    // 3. Verify auto-collapse controlled timer is present on initial render/mount
+    assert.match(
+      appFile,
+      /autoCollapseTimer\s*=\s*setTimeout\(\(\)\s*=>\s*\{\s*setIsProjectListOpen\(false\);/,
+      'App.tsx must include controlled auto-collapse timer sequence on workspace mount'
+    );
+  });
+
+  await t.test('7. Panel clamping (CHAT_PANEL_MIN_WIDTH = 360) and Model Selector Popover isolation', async () => {
+    const { CHAT_PANEL_MIN_WIDTH, clampChatWidth } = await import('../src/utils/panelLayoutEngine.ts');
+    assert.equal(CHAT_PANEL_MIN_WIDTH, 360, 'CHAT_PANEL_MIN_WIDTH must be strictly 360');
+    assert.equal(clampChatWidth(200), 360, 'Shrinking below 360px must be clamped to 360');
+    assert.equal(clampChatWidth(340), 360, '340px must be clamped to 360 to prevent model selector overlap');
+    assert.equal(clampChatWidth(360), 360, '360px is valid minimum');
+
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const appFile = fs.readFileSync(path.resolve(process.cwd(), 'src/App.tsx'), 'utf-8');
+    const selectorFile = fs.readFileSync(path.resolve(process.cwd(), 'src/components/InlineModelSelector.tsx'), 'utf-8');
+
+    // Verify z-50, min-w-[340px] or min-w-[320px], and backdrop isolation
+    assert.match(
+      selectorFile,
+      /z-50.*min-w-\[(320|340)px\].*backdrop-blur/,
+      'Model Selector Popover layer must enforce z-50, min-w >= 320px, and floating backdrop'
+    );
+
+    // Verify boundary alignment logic to prevent adjacent resizer / panel overlap
+    assert.match(
+      selectorFile,
+      /popoverShift|alignPopover/,
+      'InlineModelSelector must calculate boundary alignment to prevent panel overflow'
+    );
+
+    // Verify visual separator indicator (시각적 구분자) on resizer
+    assert.match(
+      appFile,
+      /id="chat-resizer-handle"[^>]*>[\s\S]*?w-\[1px\][\s\S]*?rounded-full/,
+      'chat-resizer-handle must contain a visual dividing line and centered grip indicator'
+    );
+  });
 });

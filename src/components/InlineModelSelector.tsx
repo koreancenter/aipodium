@@ -1,10 +1,9 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
 import {
   Search,
   SlidersHorizontal,
   Star,
   Check,
-  Sparkles,
   ChevronDown,
   RefreshCw,
 } from 'lucide-react';
@@ -223,6 +222,62 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  // Dynamic boundary alignment: ensures popover never overflows chat panel bounds or overlaps resizers
+  const [popoverShift, setPopoverShift] = useState<number>(0);
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+
+    const alignPopover = () => {
+      const buttonEl = buttonRef.current;
+      const popoverEl = popoverRef.current;
+      if (!buttonEl) return;
+
+      const buttonRect = buttonEl.getBoundingClientRect();
+      const popoverWidth = popoverEl?.offsetWidth || 340;
+
+      // Locate surrounding panel container (prioritizing explicit chat-panel-container)
+      const containerEl =
+        document.getElementById('chat-panel-container') ||
+        buttonEl.closest<HTMLElement>('#universal-prompt-input-container, section, [style*="width"]') ||
+        buttonEl.closest<HTMLElement>('.relative.shrink-0') ||
+        (document.getElementById('chat-resizer-handle')?.previousElementSibling as HTMLElement | null);
+
+      const containerRect = containerEl?.getBoundingClientRect();
+      const margin = 12; // 12px clean breathing room from panel border and resizer handle
+
+      if (containerRect && containerRect.width > 0) {
+        // Distance from container left to button left
+        const buttonLeftInContainer = buttonRect.left - containerRect.left;
+        const maxRightInContainer = containerRect.width - margin;
+        const popoverRightInContainer = buttonLeftInContainer + popoverWidth;
+
+        if (popoverRightInContainer > maxRightInContainer) {
+          const delta = maxRightInContainer - popoverRightInContainer;
+          const minDelta = margin - buttonLeftInContainer;
+          setPopoverShift(Math.max(delta, minDelta));
+        } else {
+          const minDelta = margin - buttonLeftInContainer;
+          setPopoverShift(Math.max(0, minDelta));
+        }
+      } else {
+        const rightEdge = buttonRect.left + popoverWidth;
+        const maxRight = window.innerWidth - margin;
+        if (rightEdge > maxRight) {
+          setPopoverShift(maxRight - rightEdge);
+        } else {
+          setPopoverShift(0);
+        }
+      }
+    };
+
+    alignPopover();
+    window.addEventListener('resize', alignPopover);
+    return () => {
+      window.removeEventListener('resize', alignPopover);
     };
   }, [isOpen]);
 
@@ -624,7 +679,6 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
         }`}
         title={`AI 모델 선택: ${chipLabel} (클릭하여 열기)`}
       >
-        <Sparkles className="w-3 h-3 text-indigo-400 shrink-0" />
         <span className="truncate text-left font-normal">{chipLabel}</span>
         <ChevronDown
           className={`w-3 h-3 text-zinc-400 shrink-0 transition-transform duration-150 ${
@@ -633,7 +687,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
         />
       </button>
 
-      {/* Strict Sizing & Positioning: w-[340px] min-w-[340px] max-w-[340px] absolute bottom-full left-0 mb-2 z-50 shadow-2xl */}
+      {/* Strict Sizing & Positioning: w-[340px] min-w-[340px] max-w-[340px] absolute bottom-full mb-2 z-50 shadow-2xl */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -642,7 +696,9 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.98 }}
             transition={{ duration: 0.12, ease: 'easeOut' }}
-            className="absolute bottom-full left-0 mb-2 z-50 w-[340px] min-w-[340px] max-w-[340px] h-[400px] flex flex-col bg-[#0f1015]/95 border border-white/[0.07] backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden text-xs font-normal"
+            style={{ left: `${popoverShift}px` }}
+            onWheel={(e) => e.stopPropagation()}
+            className="absolute bottom-full mb-2 z-50 w-[340px] min-w-[340px] max-w-[340px] h-[400px] flex flex-col bg-[#0f1015]/95 border border-white/[0.07] backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden text-xs font-normal"
           >
             {/* Header: Slim search bar + Simple text filter tabs & Mode switcher */}
             <div className="shrink-0 border-b border-white/[0.07] bg-[#09090b]/60 p-2 space-y-1.5">
