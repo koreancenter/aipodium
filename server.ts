@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from "express";
+import compression from "compression";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
@@ -126,8 +127,11 @@ async function startServer() {
     next();
   });
 
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ limit: '50mb', extended: true }));
+  // Enable HTTP response compression for fast API and asset delivery
+  app.use(compression());
+
+  app.use(express.json({ limit: '25mb' }));
+  app.use(express.urlencoded({ limit: '25mb', extended: true }));
 
   // Health check endpoint
   app.get("/api/health", (_req, res) => {

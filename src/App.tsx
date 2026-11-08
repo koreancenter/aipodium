@@ -5,11 +5,13 @@ import type { PdfViewerHandle, PdfViewerState } from './components/PdfViewer';
 import { SAMPLE_PDF_DATA_URL } from './data/samplePdfData';
 import { motion, AnimatePresence } from 'motion/react';
 import { googleDriveService, GoogleUserProfile, DriveFolderInfo } from './services/googleDriveService';
-import { PreferencesTab, UserPreferences, DEFAULT_PREFERENCES, AiInferenceParameters, DEFAULT_AI_PARAMETERS, applyThemeToDocument, PromptTemplate } from './components/PreferencesModal';
-import { DEFAULT_SYSTEM_PROMPTS } from './components/PromptLibraryModal';
-import { GithubConfig } from './components/GithubIntegrationModal';
+import type { PreferencesTab, UserPreferences, AiInferenceParameters, PromptTemplate } from './types/preferences';
+import { DEFAULT_PREFERENCES, DEFAULT_AI_PARAMETERS } from './types/preferences';
+import { applyThemeToDocument } from './utils/themeManager';
+import { DEFAULT_SYSTEM_PROMPTS } from './data/defaultPrompts';
+import type { GithubConfig } from './components/GithubIntegrationModal';
 import { GithubSyncStatusIndicator, GitHubSyncStatus } from './components/GithubSyncStatusIndicator';
-import { SSOTGeneratorConfig } from './components/SSOTGeneratorModal';
+import type { SSOTGeneratorConfig } from './components/SSOTGeneratorModal';
 import type { DocumentConversionResult } from './services/documentConverterService';
 import {
   ActiveWorkspace,

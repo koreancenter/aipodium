@@ -34,7 +34,10 @@ import {
   clearDb,
   blockStorageWrites,
   isStorageWritesBlocked,
-  indexedDbService
+  indexedDbService,
+  setDbItem,
+  getDbItem,
+  STORAGE_KEYS
 } from './indexedDbService';
 import {
   GUEST_SAMPLE_FILES,
@@ -728,7 +731,6 @@ export async function purgeGuestSession(
       // Seed IndexedDB app_state_store if supported
       if (typeof indexedDB !== 'undefined' && indexedDB) {
         try {
-          const { setDbItem, STORAGE_KEYS } = await import('./indexedDbService');
           await setDbItem(STORAGE_KEYS.FILES, GUEST_SAMPLE_FILES);
           await setDbItem(STORAGE_KEYS.FILE_FOLDERS, GUEST_SAMPLE_FOLDERS);
           await setDbItem(STORAGE_KEYS.EDITOR_CONTENT, GUEST_SAMPLE_FILES['welcome.md']);
@@ -1136,7 +1138,6 @@ export async function createProject(
   }
   try {
     if (typeof window !== 'undefined' && (window as any).indexedDB) {
-      const { getDbItem, setDbItem, STORAGE_KEYS } = await import('./indexedDbService');
       const existing = (await getDbItem<ChatSession[]>(STORAGE_KEYS.SESSIONS)) || [];
       const updated = [newProject, ...existing.filter((s) => s.id !== newProject.id && s.id !== 'session-default')];
       await setDbItem(STORAGE_KEYS.SESSIONS, updated);

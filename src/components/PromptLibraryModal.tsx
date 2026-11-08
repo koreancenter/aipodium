@@ -11,34 +11,10 @@ import {
   Copy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import type { PromptTemplate } from './PreferencesModal';
+import type { PromptTemplate } from '../types/preferences';
+export { DEFAULT_SYSTEM_PROMPTS } from '../data/defaultPrompts';
+import { DEFAULT_SYSTEM_PROMPTS } from '../data/defaultPrompts';
 
-export const DEFAULT_SYSTEM_PROMPTS: PromptTemplate[] = [
-  {
-    id: 'system-1',
-    title: '코드 검토 및 성능 분석',
-    description: '코드의 잠재적 오류, 가독성, 성능 병목, 보안 취약점을 종합 점검합니다.',
-    body: '제시된 코드의 가독성, 시간 및 공간 복잡도, 예외 처리, 타입 안정성, 보안 취약점을 꼼꼼히 점검하고 구체적인 개선 코드와 이유를 단계별로 설명해 주세요.\n\n[코드]:\n'
-  },
-  {
-    id: 'system-2',
-    title: '단위 테스트 생성기',
-    description: '주어진 코드의 경계 조건 및 핵심 기능 검증을 위한 테스트 코드를 작성합니다.',
-    body: '다음 코드에 대한 종합적인 단위 테스트 스위트를 작성해 주세요. 정상 동작 케이스뿐만 아니라 경계값, 예외 처리, 비동기 처리에 대한 테스트를 포함해 주세요.\n\n[코드]:\n'
-  },
-  {
-    id: 'system-3',
-    title: '마크다운 구조화 및 정제',
-    description: '긴 글이나 대화 내용을 명확한 계층형 마크다운 양식으로 정돈합니다.',
-    body: '다음 내용을 분석하여 핵심 요약, 주요 항목별 상세 설명, 결론 및 실행 과제로 구조화된 마크다운 문서로 변환해 주세요.\n\n[내용]:\n'
-  },
-  {
-    id: 'system-4',
-    title: '기준 기획서 및 요구사항 명세서',
-    description: '기능 구현을 위한 체계적인 프로덕트 요구사항 명세서 템플릿입니다.',
-    body: '다음 기능 아이디어에 대한 기획 명세서 문서를 작성해 주세요.\n1. 배경 및 문제 정의\n2. 핵심 목표 및 제외 항목\n3. 사용자 시나리오 및 흐름\n4. 기술적 요구사항 및 데이터 구조\n5. 성공 지표\n\n[아이디어]:\n'
-  }
-];
 
 export interface PromptLibraryModalProps {
   isOpen: boolean;
