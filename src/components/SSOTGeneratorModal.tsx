@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   X,
   ChevronDown,
   Check,
-  Zap,
   Paperclip,
   AtSign,
   Loader2
@@ -141,12 +140,40 @@ interface MentionItem {
   desc: string;
 }
 
-const DEFAULT_FALLBACK_MODEL_OPTIONS: ModelOption[] = DEFAULT_FALLBACK_MODELS.map((m) => ({
-  id: m.id,
-  name: m.name,
-  desc: m.desc || '',
-  group: m.group
-}));
+export const getVendorForModel = (modelId: string): string => {
+  const m = (modelId || '').toLowerCase();
+  if (m.startsWith('gpt-') || m.startsWith('o3-') || m.includes('openai')) return 'openai';
+  if (m.startsWith('claude-') || m.includes('anthropic')) return 'anthropic';
+  if (m.startsWith('deepseek-') || m.includes('deepseek')) return 'deepseek';
+  if (m.startsWith('llama-') || m.startsWith('groq-') || m.includes('groq')) return 'groq';
+  if (m.includes('qwen') || m.includes('webllm')) return 'webllm';
+  if (m.includes(':') || m.includes('ollama')) return 'ollama';
+  return 'gemini';
+};
+
+export function isModelConnected(
+  model: ModelOption & { hasApiKey?: boolean; vendor?: string },
+  keys: Record<string, string> = {}
+): boolean {
+  if (model.group === 'local') {
+    return true;
+  }
+  const vendor = model.vendor || getVendorForModel(model.id);
+  if (vendor === 'gemini') {
+    return true; // Gemini is built-in default engine
+  }
+  const key = keys[vendor]?.trim() || (model as any).hasApiKey;
+  return Boolean(key);
+}
+
+const DEFAULT_FALLBACK_MODEL_OPTIONS: ModelOption[] = DEFAULT_FALLBACK_MODELS
+  .filter((m) => isModelConnected(m as any, {}))
+  .map((m) => ({
+    id: m.id,
+    name: m.name,
+    desc: m.desc || '',
+    group: m.group
+  }));
 
 const DEFAULT_MODEL_ID = DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-2.5-flash';
 
@@ -214,9 +241,48 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
   const [mentionMatchStart, setMentionMatchStart] = useState<number>(-1);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const modelOptions = (availableModels && availableModels.length > 0)
-    ? availableModels
-    : DEFAULT_FALLBACK_MODEL_OPTIONS;
+  // Effective API keys across session and local storage
+  const effectiveApiKeys = useMemo<Record<string, string>>(() => {
+    let saved: Record<string, string> = {};
+    try {
+      const sess = sessionStorage.getItem('aipodium_api_keys');
+      if (sess) saved = { ...saved, ...JSON.parse(sess) };
+    } catch {}
+    try {
+      const loc = localStorage.getItem('aipodium_api_keys');
+      if (loc) saved = { ...saved, ...JSON.parse(loc) };
+    } catch {}
+    return {
+      ...saved,
+      ...apiKeys,
+    };
+  }, [apiKeys]);
+
+  // Dynamically filter models to only those that are actively connected (API key configured or local)
+  const connectedModelOptions = useMemo<ModelOption[]>(() => {
+    const rawList: (ModelOption & { vendor?: string; hasApiKey?: boolean })[] =
+      (availableModels && availableModels.length > 0)
+        ? availableModels
+        : DEFAULT_FALLBACK_MODEL_OPTIONS;
+
+    // Filter to connected models only
+    const filtered = rawList.filter((m) => isModelConnected(m, effectiveApiKeys));
+
+    // If activeSelectedModel is set, ensure it exists in options
+    const currentId = activeSelectedModel || selectedModelId;
+    if (currentId && !filtered.some((m) => m.id === currentId)) {
+      const found = rawList.find((m) => m.id === currentId);
+      if (found) {
+        filtered.unshift(found);
+      }
+    }
+
+    return filtered.length > 0
+      ? filtered
+      : DEFAULT_FALLBACK_MODEL_OPTIONS;
+  }, [availableModels, effectiveApiKeys, activeSelectedModel, selectedModelId]);
+
+  const modelOptions = connectedModelOptions;
 
   // Close custom dropdowns on outside click or Escape key
   useEffect(() => {
@@ -265,15 +331,18 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
       // Default Prompt
       setCustomPrompt('선택된 소스 문서들의 핵심 내용을 종합하여 프로젝트의 명확한 기준이 되는 마스터 문서로 작성해 줘.');
 
-      // Bind initial model: activeSelectedModel or active role model or fallback
-      const initialModel = activeSelectedModel || (modelOptions[0]?.id) || DEFAULT_MODEL_ID;
+      // Bind initial model: activeSelectedModel if connected, or first connected model, or fallback
+      const initialModel =
+        activeSelectedModel && connectedModelOptions.some((m) => m.id === activeSelectedModel)
+          ? activeSelectedModel
+          : connectedModelOptions[0]?.id || DEFAULT_MODEL_ID;
       setSelectedModelId(initialModel);
 
       setIsFolderDropdownOpen(false);
       setIsModelDropdownOpen(false);
       setShowMentionPopup(false);
     }
-  }, [isOpen, initialFolder, availableFolders, filesByFolder, activeSelectedModel]);
+  }, [isOpen, initialFolder, availableFolders, filesByFolder, activeSelectedModel, connectedModelOptions]);
 
   // Handle template file upload and client-side conversion
   const handleTemplateFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -462,6 +531,9 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
       activeProvider
     });
 
+    const vendor = getVendorForModel(selectedModelId);
+    const targetApiKey = effectiveApiKeys[vendor] || (vendor === 'gemini' ? (effectiveApiKeys.gemini || '') : '');
+
     onGenerate({
       selectedFolder: selectedFolder || 'Main Project',
       selectedFiles: finalFiles,
@@ -472,7 +544,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
       templateMarkdownContent: templateMarkdownContent.trim() || undefined,
       model: selectedModelId,
       provider: resolvedProvider,
-      apiKey: resolvedProvider === 'cloud' ? (apiKeys[selectedModelId] || apiKeys.gemini || '') : undefined,
+      apiKey: resolvedProvider === 'cloud' ? targetApiKey : undefined,
       apiKeys,
       ollamaEndpoint: ollamaEndpoint || 'http://localhost:11434',
       sourceContent,
@@ -772,9 +844,8 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
           <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-[#222226]">
             {/* Left: Model Selector Trigger & Popover strictly anchored */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-zinc-400 flex items-center gap-1.5 shrink-0 select-none">
-                <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" />
-                <span>구동 모델:</span>
+              <span className="text-xs text-zinc-400 shrink-0 select-none font-medium">
+                구동 모델:
               </span>
 
               <div className="relative" ref={modelDropdownRef}>
@@ -828,7 +899,7 @@ export const SSOTGeneratorModal: React.FC<SSOTGeneratorModalProps> = ({
                     )}
 
                     {localModels.length > 0 && (
-                      <div className="space-y-0.5 pt-1 border-t border-white/[0.06]">
+                      <div className={`space-y-0.5 pt-1 ${cloudModels.length > 0 ? 'border-t border-white/[0.06]' : ''}`}>
                         <div className="px-2.5 py-1 text-[10px] text-zinc-500 font-medium select-none">
                           로컬 AI
                         </div>

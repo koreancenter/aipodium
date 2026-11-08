@@ -52,3 +52,16 @@ test('applies reconciliation patch correctly', () => {
   const updated = applySSOTReconciliation(original, patch);
   assert.equal(updated, `# 프로젝트 계획\n총 예산: 1500만원`);
 });
+
+test('SSOTDriftAuditor component includes CSV export feature and locale definitions', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const auditorContent = fs.readFileSync(path.resolve('./src/components/SSOTDriftAuditor.tsx'), 'utf-8');
+  assert.ok(auditorContent.includes('handleExportCsv'), 'Must include handleExportCsv function');
+  assert.ok(auditorContent.includes('Download'), 'Must include Download icon button');
+  assert.ok(auditorContent.includes('text/csv;charset=utf-8;'), 'Must generate CSV blob');
+
+  const localeContent = fs.readFileSync(path.resolve('./src/locales/docModalsLocale.ts'), 'utf-8');
+  assert.ok(localeContent.includes("exportReport: '내보내기'"), 'Must include Korean exportReport locale key');
+  assert.ok(localeContent.includes("exportReport: 'Export'"), 'Must include English exportReport locale key');
+});

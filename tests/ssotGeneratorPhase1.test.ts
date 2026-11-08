@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveSSOTSourceContext, resolveSSOTProvider } from '../src/components/SSOTGeneratorModal';
+import fs from 'node:fs';
+import path from 'node:path';
+import { resolveSSOTSourceContext, resolveSSOTProvider, isModelConnected, getVendorForModel } from '../src/components/SSOTGeneratorModal';
 import { WEB_LLM_MODEL_ID } from '../src/utils/webllmService';
 
 test('1. SSOT Generator Empty Session: falls back to active editorContent when selectedFiles is empty', () => {
@@ -162,4 +164,44 @@ test('8. resolveSSOTProvider: routes to cloud for cloud models', () => {
   });
   assert.equal(p, 'cloud');
 });
+
+test('9. isModelConnected: Gemini is connected by default; 3P models require explicit API key', () => {
+  const gemini = { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', group: 'cloud' as const };
+  const gpt4o = { id: 'gpt-4o', name: 'GPT-4o', group: 'cloud' as const };
+  const claude = { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', group: 'cloud' as const };
+  const localModel = { id: 'qwen2.5:latest', name: 'Qwen 2.5', group: 'local' as const };
+
+  // Empty keys: Gemini and Local are connected; GPT-4o and Claude are not
+  assert.equal(isModelConnected(gemini, {}), true);
+  assert.equal(isModelConnected(localModel, {}), true);
+  assert.equal(isModelConnected(gpt4o, {}), false);
+  assert.equal(isModelConnected(claude, {}), false);
+
+  // When openai key is supplied, GPT-4o becomes connected
+  assert.equal(isModelConnected(gpt4o, { openai: 'sk-test-key' }), true);
+  assert.equal(isModelConnected(claude, { openai: 'sk-test-key' }), false);
+
+  // When anthropic key is supplied, Claude becomes connected
+  assert.equal(isModelConnected(claude, { anthropic: 'sk-ant-key' }), true);
+});
+
+test('10. SSOTGeneratorModal: lightning Zap icon next to 구동 모델 is deleted', () => {
+  const modalFilePath = path.resolve(process.cwd(), 'src/components/SSOTGeneratorModal.tsx');
+  const modalFileContent = fs.readFileSync(modalFilePath, 'utf-8');
+
+  // Verify Zap icon is NOT present next to 구동 모델
+  assert.doesNotMatch(
+    modalFileContent,
+    /<Zap[^>]*\/>\s*<span>구동 모델:<\/span>/,
+    'Zap lightning icon next to 구동 모델 must be removed'
+  );
+
+  // Verify Zap is not imported
+  assert.doesNotMatch(
+    modalFileContent,
+    /import\s*\{[^}]*\bZap\b[^}]*\}\s*from\s*['"]lucide-react['"]/,
+    'Zap icon should not be imported in SSOTGeneratorModal.tsx'
+  );
+});
+
 

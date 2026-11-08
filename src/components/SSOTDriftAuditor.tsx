@@ -1,24 +1,26 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
-  ShieldCheck,
-  ShieldAlert,
-  AlertTriangle,
-  Clock,
-  Coins,
-  CheckSquare,
-  HelpCircle,
   FileCheck2,
   Sparkles,
   ArrowRight,
   Check,
   X,
   RefreshCw,
-  Zap,
-  ExternalLink,
-  Layers,
   Copy,
+  Download,
   ChevronRight
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip
+} from 'recharts';
 import { useLanguage } from '../context/LanguageContext';
 import { getDocModalsTranslations } from '../locales/docModalsLocale';
 import {
@@ -56,6 +58,14 @@ export const SSOTDriftAuditor: React.FC<SSOTDriftAuditorProps> = ({
   );
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [copiedReport, setCopiedReport] = useState<boolean>(false);
+  const [isInfographicExpanded, setIsInfographicExpanded] = useState<boolean>(true);
+
+  // Synchronize local audit whenever content changes
+  useEffect(() => {
+    if (!isAiScanning) {
+      setAuditResult(analyzeSSOTDriftLocally(content));
+    }
+  }, [content, isAiScanning]);
 
   // Fast local re-scan
   const handleLocalRescan = () => {
@@ -174,6 +184,85 @@ ${
     setTimeout(() => setCopiedReport(false), 2000);
   };
 
+  // Export structured CSV Report
+  const handleExportCsv = () => {
+    const active = auditResult.issues.filter((iss) => !dismissedIds.has(iss.id));
+    const escapeCsv = (str: string | number | undefined) => {
+      if (str === undefined || str === null) return '""';
+      const formatted = String(str).replace(/"/g, '""');
+      return `"${formatted}"`;
+    };
+
+    const isEn = language === 'en';
+    const headers = isEn
+      ? ['ID', 'Severity', 'Category', 'Title', 'Line', 'Excerpt', 'Description', 'Suggested Fix', 'Patch Available']
+      : ['아이디', '심각도', '구분', '제목', '행번호', '발췌문', '설명', '권장해결방안', '자동화해가능여부'];
+
+    const metaRows = [
+      [escapeCsv(isEn ? '# Document Conformance Audit Report' : '# 기준 문서 적합성 검사 분석 보고서')],
+      [escapeCsv(isEn ? `# Audited At: ${auditResult.analyzedAt}` : `# 점검 일시: ${auditResult.analyzedAt}`)],
+      [escapeCsv(isEn ? `# Conformance Score: ${auditResult.score} / 100` : `# 적합성 점수: ${auditResult.score} / 100점`)],
+      [escapeCsv(isEn ? `# Status: ${statusConfig.label}` : `# 진단 판정: ${statusConfig.label}`)],
+      [escapeCsv(isEn ? `# Total Issues: ${active.length}` : `# 감지 불일치: ${active.length}건`)],
+      ['']
+    ];
+
+    const dataRows = active.map((iss) => {
+      const severityLabel =
+        iss.severity === 'critical'
+          ? t.severityCritical
+          : iss.severity === 'warning'
+          ? t.severityWarning
+          : t.severityInfo;
+
+      const typeLabel = (() => {
+        switch (iss.type) {
+          case 'timeline':
+            return t.categoryTimeline;
+          case 'metric':
+            return t.categoryMetric;
+          case 'task':
+            return t.categoryTask;
+          case 'ambiguity':
+            return t.categoryAmbiguity;
+          default:
+            return iss.type;
+        }
+      })();
+
+      return [
+        escapeCsv(iss.id),
+        escapeCsv(severityLabel),
+        escapeCsv(typeLabel),
+        escapeCsv(iss.title),
+        escapeCsv(iss.location.line),
+        escapeCsv(iss.location.text || ''),
+        escapeCsv(iss.description),
+        escapeCsv(iss.suggestedFix),
+        escapeCsv(iss.reconciliationPatch ? (isEn ? 'Yes' : '가능') : (isEn ? 'No' : '불가'))
+      ];
+    });
+
+    const csvContent =
+      '\uFEFF' +
+      [
+        ...metaRows.map((r) => r.join(',')),
+        headers.join(','),
+        ...dataRows.map((r) => r.join(','))
+      ].join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const downloadLink = document.createElement('a');
+    const timestamp = new Date().toISOString().slice(0, 10);
+    downloadLink.href = url;
+    downloadLink.download = `ssot_conformance_report_${timestamp}.csv`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    URL.revokeObjectURL(url);
+  };
+
   // Filter issues
   const visibleIssues = useMemo(() => {
     return auditResult.issues.filter((iss) => {
@@ -208,19 +297,90 @@ ${
     }
   }[auditResult.status];
 
-  const getTypeIcon = (type: SSOTDriftIssue['type']) => {
-    switch (type) {
-      case 'timeline':
-        return <Clock className="w-3.5 h-3.5 text-amber-400" />;
-      case 'metric':
-        return <Coins className="w-3.5 h-3.5 text-rose-400" />;
-      case 'task':
-        return <CheckSquare className="w-3.5 h-3.5 text-indigo-400" />;
-      case 'ambiguity':
-        return <HelpCircle className="w-3.5 h-3.5 text-orange-400" />;
-      default:
-        return <AlertTriangle className="w-3.5 h-3.5 text-slate-400" />;
+  // Active non-dismissed issues
+  const activeIssues = useMemo(() => {
+    return auditResult.issues.filter((iss) => !dismissedIds.has(iss.id));
+  }, [auditResult.issues, dismissedIds]);
+
+  // Reconcilable issues count
+  const reconcilableCount = useMemo(() => {
+    return activeIssues.filter((iss) => Boolean(iss.reconciliationPatch)).length;
+  }, [activeIssues]);
+
+  // Document total line count
+  const totalDocLines = useMemo(() => {
+    return content ? content.split('\n').length : 0;
+  }, [content]);
+
+  // Conformance Pie Chart Data
+  const pieData = useMemo(() => {
+    const critical = activeIssues.filter((i) => i.severity === 'critical').length;
+    const warning = activeIssues.filter((i) => i.severity === 'warning').length;
+    const info = activeIssues.filter((i) => i.severity === 'info').length;
+
+    if (activeIssues.length === 0 || auditResult.score === 100) {
+      return [{ name: '적합', value: 100, color: '#10b981' }];
     }
+
+    const healthyShare = Math.max(1, auditResult.score);
+    const criticalShare = critical * 25;
+    const warningShare = warning * 12;
+    const infoShare = info * 5;
+
+    return [
+      { name: '적합', value: healthyShare, color: '#10b981' },
+      { name: '치명적', value: criticalShare, color: '#f43f5e' },
+      { name: '주의', value: warningShare, color: '#fbbf24' },
+      { name: '권고', value: infoShare, color: '#38bdf8' }
+    ].filter((item) => item.value > 0);
+  }, [activeIssues, auditResult.score]);
+
+  // Category Conformance Rate Data for BarChart
+  const categoryChartData = useMemo(() => {
+    const categories = [
+      { key: 'timeline', label: t.categoryTimeline },
+      { key: 'metric', label: t.categoryMetric },
+      { key: 'task', label: t.categoryTask },
+      { key: 'ambiguity', label: t.categoryAmbiguity }
+    ];
+
+    return categories.map(({ key, label }) => {
+      const inType = activeIssues.filter((i) => i.type === key);
+      const crit = inType.filter((i) => i.severity === 'critical').length;
+      const warn = inType.filter((i) => i.severity === 'warning').length;
+      const inf = inType.filter((i) => i.severity === 'info').length;
+      const categoryScore = Math.max(0, 100 - crit * 40 - warn * 20 - inf * 8);
+
+      return {
+        name: label,
+        score: categoryScore,
+        issueCount: inType.length
+      };
+    });
+  }, [activeIssues, t]);
+
+  const renderCustomBarTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-[#121214] border border-[#222226] p-2 rounded shadow-xl text-xs font-mono">
+          <div className="text-zinc-200 font-semibold">{data.name}</div>
+          <div className="text-indigo-400 mt-0.5">
+            {t.conformanceRate}: {data.score}%
+          </div>
+          {data.issueCount > 0 ? (
+            <div className="text-amber-400 text-[10px] mt-0.5">
+              미해결: {data.issueCount}건
+            </div>
+          ) : (
+            <div className="text-emerald-400 text-[10px] mt-0.5">
+              정상 무결
+            </div>
+          )}
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -241,14 +401,34 @@ ${
           <p className="text-xs text-zinc-400 mt-0.5">{t.subtitle}</p>
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-[#18181b] transition cursor-pointer"
-          title={t.close}
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleCopyReport}
+            className="px-2 py-1 text-zinc-400 hover:text-zinc-200 hover:bg-[#18181b] rounded-md transition flex items-center gap-1 text-xs border border-[#222226] cursor-pointer"
+            title={t.copyReportTitle}
+          >
+            <Copy className="w-3.5 h-3.5" />
+            <span>{copiedReport ? t.copied : t.report}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            className="px-2 py-1 text-zinc-400 hover:text-zinc-200 hover:bg-[#18181b] rounded-md transition flex items-center gap-1 text-xs border border-[#222226] cursor-pointer"
+            title={t.exportReportTitle}
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>{t.exportReport}</span>
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-[#18181b] transition cursor-pointer"
+            title={t.close}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Health Score Overview Card */}
@@ -259,8 +439,7 @@ ${
             <span className="text-xs text-zinc-400 font-mono">{t.scoreSuffix}</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/[0.04] border border-[#222226] text-xs text-zinc-300">
-            <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`} />
+          <div className="flex items-center px-2.5 py-1 rounded-md bg-white/[0.04] border border-[#222226] text-xs text-zinc-300">
             <span>{statusConfig.label}</span>
           </div>
         </div>
@@ -282,22 +461,19 @@ ${
         {/* Quick Counters */}
         <div className="grid grid-cols-3 gap-2 text-xs font-mono">
           <div className="bg-[#121214] border border-[#222226] p-2 rounded-md text-center">
-            <div className="flex items-center justify-center gap-1 text-zinc-400 text-[11px] mb-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+            <div className="text-zinc-400 text-[11px] mb-0.5">
               <span>{t.severityCritical}</span>
             </div>
             <span className="font-semibold text-zinc-100 text-xs">{auditResult.criticalCount}</span>
           </div>
           <div className="bg-[#121214] border border-[#222226] p-2 rounded-md text-center">
-            <div className="flex items-center justify-center gap-1 text-zinc-400 text-[11px] mb-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            <div className="text-zinc-400 text-[11px] mb-0.5">
               <span>{t.severityWarning}</span>
             </div>
             <span className="font-semibold text-zinc-100 text-xs">{auditResult.warningCount}</span>
           </div>
           <div className="bg-[#121214] border border-[#222226] p-2 rounded-md text-center">
-            <div className="flex items-center justify-center gap-1 text-zinc-400 text-[11px] mb-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+            <div className="text-zinc-400 text-[11px] mb-0.5">
               <span>{t.severityInfo}</span>
             </div>
             <span className="font-semibold text-zinc-100 text-xs">{auditResult.infoCount}</span>
@@ -313,10 +489,8 @@ ${
             className="flex-1 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium py-1.5 px-2.5 rounded-md text-xs transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
             title={t.aiScanTitle}
           >
-            {isAiScanning ? (
-              <RefreshCw className="w-3 h-3 animate-spin" />
-            ) : (
-              <Sparkles className="w-3 h-3 text-indigo-200" />
+            {isAiScanning && (
+              <RefreshCw className="w-3 h-3 animate-spin mr-1" />
             )}
             <span>{isAiScanning ? t.aiScanning : t.aiScanTitle}</span>
           </button>
@@ -324,10 +498,9 @@ ${
           <button
             type="button"
             onClick={handleLocalRescan}
-            className="bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 py-1.5 px-2.5 rounded-md text-xs transition flex items-center justify-center gap-1 border border-[#222226] cursor-pointer"
+            className="bg-white/[0.05] hover:bg-white/[0.1] text-zinc-200 py-1.5 px-3 rounded-md text-xs transition flex items-center justify-center border border-[#222226] cursor-pointer"
             title={t.rescan}
           >
-            <Zap className="w-3 h-3 text-amber-400" />
             <span>{t.rescan}</span>
           </button>
 
@@ -346,7 +519,14 @@ ${
       </div>
 
       {/* Filter Tabs */}
-      <div className="px-4 py-2 bg-[#121214] border-b border-[#222226] flex items-center gap-1.5 overflow-x-auto shrink-0 scrollbar-none text-xs">
+      <div
+        className="px-3 py-2 bg-[#121214] border-b border-[#222226] flex items-center gap-1 overflow-x-auto shrink-0 scrollbar-none text-xs"
+        onWheel={(e) => {
+          if (e.deltaY !== 0) {
+            e.currentTarget.scrollLeft += e.deltaY;
+          }
+        }}
+      >
         {[
           { id: 'all', label: t.filterAll },
           { id: 'critical', label: t.filterCritical },
@@ -359,7 +539,7 @@ ${
             key={tab.id}
             type="button"
             onClick={() => setFilterType(tab.id)}
-            className={`px-2.5 py-1 rounded-md transition shrink-0 cursor-pointer text-xs ${
+            className={`px-2 py-1 rounded-md transition shrink-0 cursor-pointer text-xs whitespace-nowrap ${
               filterType === tab.id
                 ? 'bg-white/[0.08] text-zinc-100 font-medium'
                 : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
@@ -368,24 +548,150 @@ ${
             {tab.label}
           </button>
         ))}
-
-        <div className="ml-auto shrink-0">
-          <button
-            type="button"
-            onClick={handleCopyReport}
-            className="px-2 py-1 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] rounded-md transition flex items-center gap-1 text-xs"
-            title={t.copyReportTitle}
-          >
-            <Copy className="w-3 h-3" />
-            <span>{copiedReport ? t.copied : t.report}</span>
-          </button>
-        </div>
       </div>
 
-      {/* Issues List */}
+      {/* Issues List & Infographic Card */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0 select-text">
+        {/* Infographic Summary Card */}
+        <div className="p-3.5 rounded-lg border border-[#222226] bg-[#121214] space-y-3">
+          {/* Card Header */}
+          <div className="flex items-center justify-between pb-2 border-b border-[#222226]">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-zinc-200">
+                {t.infographicTitle}
+              </span>
+              <span className="text-[10px] font-mono text-zinc-300 bg-white/[0.04] px-1.5 py-0.5 rounded border border-[#222226]">
+                {t.conformanceRate} {auditResult.score}%
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsInfographicExpanded(!isInfographicExpanded)}
+              className="text-[11px] text-zinc-400 hover:text-zinc-200 transition cursor-pointer"
+              title={t.toggleInfographic}
+            >
+              {isInfographicExpanded ? '접기' : '펼치기'}
+            </button>
+          </div>
+
+          {isInfographicExpanded && (
+            <>
+              {/* Infographic Visual Body: Donut + 4 Key Stat Badges */}
+              <div className="flex items-center gap-3">
+                {/* Donut Chart with Score in Center */}
+                <div className="relative w-24 h-24 shrink-0 flex items-center justify-center">
+                  <PieChart width={96} height={96}>
+                    <Pie
+                      data={pieData}
+                      dataKey="value"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={28}
+                      outerRadius={42}
+                      stroke="none"
+                      startAngle={90}
+                      endAngle={-270}
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-sm font-bold text-zinc-100 font-mono leading-none">
+                      {auditResult.score}
+                    </span>
+                    <span className="text-[9px] text-zinc-400 font-mono mt-0.5">
+                      {t.conformanceRate}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4 Key Stat Badges Grid */}
+                <div className="grid grid-cols-2 gap-1.5 flex-1 text-[11px] font-mono">
+                  <div className="bg-[#09090b] border border-[#222226] p-2 rounded-md">
+                    <div className="text-zinc-500 text-[10px]">검사 라인</div>
+                    <div className="font-semibold text-zinc-200 mt-0.5">
+                      {t.totalLinesScanned(totalDocLines)}
+                    </div>
+                  </div>
+                  <div className="bg-[#09090b] border border-[#222226] p-2 rounded-md">
+                    <div className="text-zinc-500 text-[10px]">진단 판정</div>
+                    <div className="font-semibold text-zinc-200 mt-0.5 truncate">
+                      {statusConfig.label}
+                    </div>
+                  </div>
+                  <div className="bg-[#09090b] border border-[#222226] p-2 rounded-md">
+                    <div className="text-zinc-500 text-[10px]">감지 불일치</div>
+                    <div className="font-semibold text-zinc-200 mt-0.5">
+                      {activeIssues.length}건
+                    </div>
+                  </div>
+                  <div className="bg-[#09090b] border border-[#222226] p-2 rounded-md">
+                    <div className="text-zinc-500 text-[10px]">자동 화해</div>
+                    <div className="font-semibold text-indigo-400 mt-0.5">
+                      {t.reconcilableCount(reconcilableCount)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Conformance Bar Chart */}
+              <div className="pt-2 border-t border-[#222226]">
+                <div className="text-[11px] text-zinc-400 font-mono mb-1.5 flex items-center justify-between">
+                  <span>영역별 적합 지표</span>
+                  <span className="text-[10px] text-zinc-500">최대 100%</span>
+                </div>
+                <div className="w-full h-24">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={categoryChartData}
+                      margin={{ top: 4, right: 6, left: 6, bottom: 0 }}
+                    >
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fill: '#a1a1aa', fontSize: 10 }}
+                        axisLine={{ stroke: '#222226' }}
+                        tickLine={false}
+                      />
+                      <YAxis domain={[0, 100]} hide={true} />
+                      <RechartsTooltip
+                        content={renderCustomBarTooltip}
+                        cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                      />
+                      <Bar dataKey="score" radius={[3, 3, 0, 0]}>
+                        {categoryChartData.map((entry, index) => (
+                          <Cell
+                            key={`bar-${index}`}
+                            fill={
+                              entry.score >= 85
+                                ? '#6366f1'
+                                : entry.score >= 60
+                                ? '#fbbf24'
+                                : '#f43f5e'
+                            }
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Dynamic Insight Banner */}
+              <div className="p-2 rounded bg-[#09090b] border border-[#222226] text-[11px] leading-relaxed">
+                <span className={activeIssues.length === 0 ? 'text-emerald-400' : 'text-zinc-300'}>
+                  {activeIssues.length === 0
+                    ? t.perfectHealthInsight
+                    : t.issuesFoundInsight(activeIssues.length)}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+
         {visibleIssues.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-6 text-zinc-400">
+          <div className="py-6 flex flex-col items-center justify-center text-center p-4 text-zinc-400">
             <div className="w-10 h-10 rounded-lg bg-white/[0.04] border border-[#222226] flex items-center justify-center mb-3">
               <FileCheck2 className="w-5 h-5 text-emerald-400" />
             </div>
@@ -405,15 +711,6 @@ ${
               {/* Issue Header */}
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      issue.severity === 'critical'
-                        ? 'bg-rose-500'
-                        : issue.severity === 'warning'
-                        ? 'bg-amber-400'
-                        : 'bg-sky-400'
-                    }`}
-                  />
                   <h4 className="text-xs font-medium text-zinc-200 truncate">{issue.title}</h4>
                   <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/[0.04] text-zinc-400 shrink-0 font-medium border border-[#222226]">
                     {issue.severity === 'critical' ? t.severityCritical : issue.severity === 'warning' ? t.severityWarning : t.severityInfo}

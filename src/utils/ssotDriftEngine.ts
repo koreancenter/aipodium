@@ -110,7 +110,7 @@ export function analyzeSSOTDriftLocally(content: string): SSOTAuditSummary {
           type: 'timeline',
           severity: 'critical',
           title: '마일스톤 순서 및 타임라인 역전 모순',
-          description: `'${first.text}' (${first.dateStr || ''})가 선행 단계인 '${second.text}' (${second.dateStr || ''})보다 앞선 일정으로 설정되어 실행 정합성이 깨졌습니다.`,
+          description: `'${first.text}' (${first.dateStr || ''})가 선행 단계인 '${second.text}' (${second.dateStr || ''})보다 앞선 일정으로 설정되어 실행 적합성이 깨졌습니다.`,
           location: {
             line: first.lineIdx,
             text: first.text
@@ -169,7 +169,7 @@ export function analyzeSSOTDriftLocally(content: string): SSOTAuditSummary {
             type: 'metric',
             severity: 'critical',
             title: `'${kw}' 수치 및 금액 불일치`,
-            description: `${first.lineIdx}행의 '${first.valStr}'과 ${next.lineIdx}행의 '${next.valStr}'이 상호 충돌하여 단일 진실 공급원(SSOT) 원칙에 위배됩니다.`,
+            description: `${first.lineIdx}행의 '${first.valStr}'과 ${next.lineIdx}행의 '${next.valStr}'이 상호 충돌하여 기준 문서 원칙에 위배됩니다.`,
             location: {
               line: next.lineIdx,
               text: next.rawLine.trim()
@@ -225,7 +225,7 @@ export function analyzeSSOTDriftLocally(content: string): SSOTAuditSummary {
         type: 'ambiguity',
         severity: 'warning',
         title: `모호한 임시 표기 감지 ('${match[0]}')`,
-        description: `SSOT 문서 내에 미확정 임시 표기('${match[0]}')가 잔존해 있어 팀 간 정합성을 저해합니다.`,
+        description: `기준 문서 내에 미확정 임시 표기('${match[0]}')가 잔존해 있어 팀 간 적합성을 저해합니다.`,
         location: {
           line: idx + 1,
           text: line.trim()
@@ -256,7 +256,7 @@ export function analyzeSSOTDriftLocally(content: string): SSOTAuditSummary {
         id: 'arch-missing-sections',
         type: 'architecture',
         severity: 'info',
-        title: 'SSOT 필수 섹션 누락 권고',
+        title: '기준 문서 필수 섹션 누락 권고',
         description: `문서의 완결성을 위해 다음 핵심 섹션의 추가를 권장합니다: ${missingSections.join(', ')}`,
         location: {
           line: lines.length,
