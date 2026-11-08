@@ -891,7 +891,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
               )}
             </div>
 
-            {/* Bottom Bar: Clean 1-line status footer: text-[11px] text-zinc-400 py-2 px-3 border-t border-white/[0.06] flex justify-between */}
+            {/* Bottom Bar: Clean 1-line status footer */}
             <div className="shrink-0 text-[11px] text-zinc-400 py-2 px-3 border-t border-white/[0.06] flex items-center justify-between select-none">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 shrink-0" />
@@ -903,18 +903,6 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                       : `스마트 라우팅 · ${activeCount}개 후보 모델`}
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsOpen(false);
-                  if (onOpenSettings) onOpenSettings('ai-engine');
-                  else if (onOpenRoleModal) onOpenRoleModal();
-                }}
-                className="text-[11px] text-zinc-400 hover:text-indigo-300 transition-colors cursor-pointer font-normal flex items-center gap-1.5 shrink-0 ml-2 whitespace-nowrap"
-                title="API 키 및 AI 엔진 설정"
-              >
-                <span>API 키 설정</span>
-              </button>
             </div>
           </motion.div>
         )}
