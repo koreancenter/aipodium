@@ -13,6 +13,7 @@ import type { GithubConfig } from './components/GithubIntegrationModal';
 import { GithubSyncStatusIndicator, GitHubSyncStatus } from './components/GithubSyncStatusIndicator';
 import type { SSOTGeneratorConfig } from './components/SSOTGeneratorModal';
 import type { DocumentConversionResult } from './services/documentConverterService';
+import { AppModalOrchestrator } from './components/modals/AppModalOrchestrator';
 import {
   ActiveWorkspace,
   saveFileToLocalDirectory,
@@ -234,45 +235,6 @@ const PdfViewer = React.lazy(() =>
 );
 const UnifiedEditor = React.lazy(() =>
   import('./components/editor/UnifiedEditor').then(({ UnifiedEditor: component }) => ({ default: component }))
-);
-const GoogleDrivePickerModal = React.lazy(() =>
-  import('./components/GoogleDrivePickerModal').then(({ GoogleDrivePickerModal: component }) => ({ default: component }))
-);
-const GoogleAccountModal = React.lazy(() =>
-  import('./components/GoogleAccountModal').then(({ GoogleAccountModal: component }) => ({ default: component }))
-);
-const GithubIntegrationModal = React.lazy(() =>
-  import('./components/GithubIntegrationModal').then(({ GithubIntegrationModal: component }) => ({ default: component }))
-);
-const PromptLibraryModal = React.lazy(() =>
-  import('./components/PromptLibraryModal').then(({ PromptLibraryModal: component }) => ({ default: component }))
-);
-const PreferencesModal = React.lazy(() =>
-  import('./components/PreferencesModal').then(({ PreferencesModal: component }) => ({ default: component }))
-);
-const SSOTGeneratorModal = React.lazy(() =>
-  import('./components/SSOTGeneratorModal').then(({ SSOTGeneratorModal: component }) => ({ default: component }))
-);
-const WorkspaceConnectionModal = React.lazy(() =>
-  import('./components/WorkspaceConnectionModal').then(({ WorkspaceConnectionModal: component }) => ({ default: component }))
-);
-const DocumentConverterModal = React.lazy(() =>
-  import('./components/DocumentConverterModal').then(({ DocumentConverterModal: component }) => ({ default: component }))
-);
-const SaveUntitledModal = React.lazy(() =>
-  import('./components/SaveUntitledModal').then(({ SaveUntitledModal: component }) => ({ default: component }))
-);
-const CouncilOfCriticsModal = React.lazy(() =>
-  import('./components/CouncilOfCriticsModal').then(({ CouncilOfCriticsModal: component }) => ({ default: component }))
-);
-const AiRoleAssignmentModal = React.lazy(() =>
-  import('./components/AiRoleAssignmentModal').then(({ AiRoleAssignmentModal: component }) => ({ default: component }))
-);
-const GhostDiffModal = React.lazy(() =>
-  import('./components/GhostDiffModal').then(({ GhostDiffModal: component }) => ({ default: component }))
-);
-const AiEngineOnboardingModal = React.lazy(() =>
-  import('./components/AiEngineOnboardingModal').then(({ AiEngineOnboardingModal: component }) => ({ default: component }))
 );
 const SSOTDriftAuditor = React.lazy(() =>
   import('./components/SSOTDriftAuditor').then(({ SSOTDriftAuditor: component }) => ({ default: component }))
@@ -10130,629 +10092,88 @@ ${projectEvents
         </div>
       </footer>
 
-      {/* Delete Confirmation Warning Modal */}
-      {deleteConfirmSession && (
-        <div className="fixed inset-0 bg-[#09090b]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#121214] border border-[#222226] rounded-md max-w-md w-full p-5 space-y-4 animate-in fade-in zoom-in duration-150">
-            <div className="space-y-1.5 min-w-0">
-              <h3 className="text-sm font-semibold text-zinc-100">
-                프로젝트 삭제 경고
-              </h3>
-              <p className="text-xs text-zinc-200 leading-relaxed">
-                '<span className="font-medium text-amber-200">{deleteConfirmSession.title}</span>' 프로젝트를 삭제하시겠습니까?
-              </p>
-              <p className="text-[0.6875rem] text-zinc-400 leading-relaxed pt-0.5">
-                프로젝트를 삭제하면 좌측 대화, 중앙 메모, 우측 폴더 연동 항목이 모두 휴지통으로 이동합니다. 휴지통에서 언제든지 복구할 수 있습니다.
-              </p>
-            </div>
+      {/* Centralized App Modal Orchestrator */}
+      <AppModalOrchestrator
+        // Confirmation Dialogs
+        pendingAction={pendingAction}
+        onCancelPendingAction={() => setPendingAction(null)}
+        onProceedPendingAction={() => {
+          const action = pendingAction;
+          setPendingAction(null);
+          if (action) action();
+        }}
+        // 파일 삭제 확인
+        deleteConfirmFile={deleteConfirmFile}
+        onCancelDeleteFile={() => setDeleteConfirmFile(null)}
+        onExecuteDeleteFile={executeDeleteFile}
+        // 폴더 삭제 확인
+        deleteConfirmFolder={deleteConfirmFolder}
+        onCancelDeleteFolder={() => setDeleteConfirmFolder(null)}
+        onExecuteDeleteFolder={executeDeleteFolder}
+        deleteConfirmSession={deleteConfirmSession}
+        onCancelDeleteSession={() => setDeleteConfirmSession(null)}
+        onExecuteDeleteSession={executeDeleteSession}
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#222226]">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmSession(null)}
-                className="px-3 py-1.5 rounded-md bg-[#121214] hover:bg-white/[0.06] text-zinc-300 text-xs font-medium transition cursor-pointer border border-[#222226]"
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={executeDeleteSession}
-                className="px-3.5 py-1.5 rounded-md bg-rose-800/80 hover:bg-rose-700/80 text-rose-100 border border-rose-700/40 text-xs font-medium transition flex items-center gap-1.5 cursor-pointer shadow-sm"
-              >
-                <Trash2 className="w-3.5 h-3.5 text-rose-200" />
-                <span>휴지통으로 이동</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        // Trash Modal
+        isTrashOpen={isTrashOpen}
+        onCloseTrash={() => setIsTrashOpen(false)}
+        trashSessions={trashSessions}
+        onRestoreSession={handleRestoreSession}
+        onPermanentDeleteSession={handlePermanentDeleteSession}
+        onEmptyTrash={handleEmptyTrash}
 
-      {/* Trash / Recycle Bin Drawer Modal */}
-      {isTrashOpen && (
-        <div className="fixed inset-0 bg-[#09090b]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#121214] border border-[#222226] rounded-xs max-w-lg w-full p-5 flex flex-col max-h-[80vh] space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#222226]">
-              <div className="flex items-center gap-2">
-                <Trash2 className="w-4 h-4 text-rose-400" />
-                <h3 className="text-sm font-bold text-slate-200">휴지통</h3>
-                <span className="text-xs bg-[#09090b] text-indigo-300 px-2 py-0.5 rounded-xs font-mono font-semibold border border-[#222226]">
-                  {trashSessions.length}개 항목
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {trashSessions.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleEmptyTrash}
-                    className="text-[0.6875rem] text-rose-400 hover:text-rose-300 hover:underline px-2 py-1 rounded-xs bg-rose-950/40 border border-rose-900/60 transition cursor-pointer"
-                  >
-                    휴지통 전체 비우기
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setIsTrashOpen(false)}
-                  className="p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-white transition cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+        // Shortcuts & About Modals
+        isShortcutsModalOpen={isShortcutsModalOpen}
+        onCloseShortcuts={() => setIsShortcutsModalOpen(false)}
+        isAboutModalOpen={isAboutModalOpen}
+        onCloseAbout={() => setIsAboutModalOpen(false)}
 
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-              {trashSessions.length === 0 ? (
-                <div className="text-center py-10 space-y-2">
-                  <Trash2 className="w-8 h-8 text-slate-500 mx-auto opacity-50" />
-                  <p className="text-xs text-slate-400 font-medium">휴지통이 비어 있습니다.</p>
-                  <p className="text-[0.6875rem] text-slate-400">삭제한 프로젝트는 여기에 임시 보관되며 복구할 수 있습니다.</p>
-                </div>
-              ) : (
-                trashSessions.map((session) => (
-                  <div
-                    key={session.id}
-                    className="flex items-center justify-between p-3 rounded-xs bg-[#09090b] border border-[#222226] hover:border-[#222226] transition"
-                  >
-                    <div className="space-y-1 min-w-0 flex-1 pr-3">
-                      <div className="flex items-center gap-2">
-                        <Folder className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                        <span className="text-xs font-semibold text-slate-200 truncate">{session.title}</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-[0.625rem] text-slate-400 font-mono">
-                        <span>삭제 시각: {session.deletedAt || session.createdAt}</span>
-                        <span>대화 {session.messages.length}건</span>
-                      </div>
-                    </div>
+        // Event Manager Modal
+        isEventManagerOpen={isEventManagerOpen}
+        onCloseEventManager={() => setIsEventManagerOpen(false)}
+        activeSessionTitle={activeSession?.title}
+        projectEvents={projectEvents}
+        eventFilter={eventFilter}
+        onFilterChange={setEventFilter}
+        isExtractingEvents={isExtractingEvents}
+        onExtractEvents={() => handleExtractEventsWithAi(activeSession?.title)}
+        onExportEventsToEditor={handleExportEventsToEditor}
+        onExportEventsIcs={handleExportEventsIcs}
+        newEventTitle={newEventTitle}
+        onNewEventTitleChange={setNewEventTitle}
+        newEventDate={newEventDate}
+        onNewEventDateChange={setNewEventDate}
+        newEventType={newEventType}
+        onNewEventTypeChange={setNewEventType}
+        newEventPriority={newEventPriority}
+        onNewEventPriorityChange={setNewEventPriority}
+        newEventNotes={newEventNotes}
+        onNewEventNotesChange={setNewEventNotes}
+        onAddEvent={handleAddProjectEvent}
+        onToggleEventCompleted={handleToggleEventCompleted}
+        onDeleteEvent={handleDeleteProjectEvent}
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleRestoreSession(session.id)}
-                        className="px-2.5 py-1 rounded-xs bg-emerald-700 hover:bg-emerald-600 border border-emerald-600 text-white text-xs font-medium transition flex items-center gap-1 cursor-pointer"
-                        title="프로젝트, 대화, 메모, 폴더 복구"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                        <span>복구</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handlePermanentDeleteSession(session.id)}
-                        className="px-2.5 py-1 rounded-xs bg-[#121214] hover:bg-rose-950 border border-[#222226] hover:border-rose-800 text-slate-300 hover:text-rose-300 text-xs font-medium transition flex items-center gap-1 cursor-pointer"
-                        title="영구 삭제"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        <span>영구 삭제</span>
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+        // New File Modal
+        isNewFileModalOpen={isNewFileModalOpen}
+        onCloseNewFile={() => setIsNewFileModalOpen(false)}
+        newFileNameInput={newFileNameInput}
+        onNewFileNameChange={setNewFileNameInput}
+        newFileFolderTarget={newFileFolderTarget}
+        onNewFileFolderChange={setNewFileFolderTarget}
+        sessions={sessions}
+        onConfirmCreateNewFile={handleConfirmCreateNewFile}
+        newFileInputRef={newFileInputRef}
 
-            <div className="pt-3 border-t border-[#222226] flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsTrashOpen(false)}
-                className="px-3 py-1.5 rounded-xs bg-[#121214] hover:bg-[#18181b] text-slate-300 text-xs font-medium transition cursor-pointer border border-[#222226]"
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Shortcuts Modal (Standard VS Code Style) */}
-      {isShortcutsModalOpen && (
-        <div className="fixed inset-0 z-50 bg-[#09090b]/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative bg-[#121214]/95 backdrop-blur-xl border border-[#222226] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-5 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans">
-            <button
-              type="button"
-              onClick={() => setIsShortcutsModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-1.5 rounded-md hover:bg-[#18181b] transition cursor-pointer"
-              title="닫기"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="space-y-1 pt-1">
-              <h2 className="text-base font-semibold text-indigo-300">단축키 안내</h2>
-              <p className="text-xs text-slate-400">워크스페이스 작업 효율을 높이는 단축키 목록입니다.</p>
-            </div>
-
-            <div className="space-y-1.5 text-xs text-slate-300 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
-              <div className="flex items-center justify-between py-1.5 border-b border-[#222226]">
-                <span className="text-slate-300">메시지 전송</span>
-                <kbd className="bg-[#09090b] text-[#6366f1] font-mono px-2 py-0.5 rounded-sm text-[0.6875rem] border border-[#222226]">Ctrl + Enter</kbd>
-              </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-[#222226]">
-                <span className="text-slate-300">마크다운 파일 저장</span>
-                <kbd className="bg-[#09090b] text-[#6366f1] font-mono px-2 py-0.5 rounded-sm text-[0.6875rem] border border-[#222226]">Ctrl + S</kbd>
-              </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-[#222226]">
-                <span className="text-slate-300">새 프로젝트 생성</span>
-                <kbd className="bg-[#09090b] text-[#6366f1] font-mono px-2 py-0.5 rounded-sm text-[0.6875rem] border border-[#222226]">Alt + N</kbd>
-              </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-[#222226]">
-                <span className="text-slate-300">새 마크다운 노트</span>
-                <kbd className="bg-[#09090b] text-[#6366f1] font-mono px-2 py-0.5 rounded-sm text-[0.6875rem] border border-[#222226]">Ctrl + N</kbd>
-              </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-[#222226]">
-                <span className="text-slate-300">로컬 파일 불러오기</span>
-                <kbd className="bg-[#09090b] text-[#6366f1] font-mono px-2 py-0.5 rounded-sm text-[0.6875rem] border border-[#222226]">Ctrl + O</kbd>
-              </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-[#222226]">
-                <span className="text-slate-300">PDF / 인쇄 출력</span>
-                <kbd className="bg-[#09090b] text-[#6366f1] font-mono px-2 py-0.5 rounded-sm text-[0.6875rem] border border-[#222226]">Ctrl + P</kbd>
-              </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-[#222226]">
-                <span className="text-slate-300">이미지/파일 붙여넣기</span>
-                <kbd className="bg-[#09090b] text-[#6366f1] font-mono px-2 py-0.5 rounded-sm text-[0.6875rem] border border-[#222226]">Ctrl + V</kbd>
-              </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-[#222226]">
-                <span className="text-slate-300">전체 마크다운 복사</span>
-                <kbd className="bg-[#09090b] text-[#6366f1] font-mono px-2 py-0.5 rounded-sm text-[0.6875rem] border border-[#222226]">Ctrl + C</kbd>
-              </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-[#222226]">
-                <span className="text-slate-300">탐색기 파일 검색</span>
-                <kbd className="bg-[#09090b] text-[#6366f1] font-mono px-2 py-0.5 rounded-sm text-[0.6875rem] border border-[#222226]">Ctrl + F</kbd>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => setIsShortcutsModalOpen(false)}
-                className="px-4 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition cursor-pointer shadow-xs"
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Unsaved Changes Confirmation Modal (Standard Deep Teal Style) */}
-      {pendingAction !== null && (
-        <div className="fixed inset-0 z-[60] bg-[#09090b]/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative bg-[#121214]/95 backdrop-blur-xl border border-[#222226] rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans">
-            <div className="space-y-1 pt-1">
-              <h2 className="text-base font-semibold text-indigo-300">저장되지 않은 변경 사항</h2>
-              <p className="text-xs text-slate-300">
-                현재 에디터에 저장되지 않은 변경 사항이 있습니다. 계속 진행하시면 변경 사항이 유실될 수 있습니다.
-              </p>
-            </div>
-            <div className="flex justify-end gap-2.5 pt-3">
-              <button
-                type="button"
-                onClick={() => setPendingAction(null)}
-                className="px-3.5 py-1.5 rounded-md text-xs text-slate-300 hover:text-white bg-[#121214] hover:bg-[#18181b] transition cursor-pointer"
-              >
-                취소 (계속 편집)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const action = pendingAction;
-                  setPendingAction(null);
-                  if (action) action();
-                }}
-                className="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium rounded-md transition cursor-pointer"
-              >
-                무시하고 진행
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete File Confirmation Modal (Standard Deep Teal Style) */}
-      {deleteConfirmFile !== null && (
-        <div className="fixed inset-0 z-[60] bg-[#09090b]/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative bg-[#121214]/95 backdrop-blur-xl border border-[#222226] rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans">
-            <div className="space-y-2 pt-1">
-              <h2 className="text-base font-semibold text-rose-300">파일 삭제 확인</h2>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                <span className="font-mono text-[#6366f1] bg-[#09090b] px-1.5 py-0.5 rounded-sm border border-[#222226]">
-                  {deleteConfirmFile}
-                </span> 파일을 정말 삭제하시겠습니까?
-              </p>
-              <p className="text-[0.6875rem] text-slate-400">
-                이 작업은 되돌릴 수 없으며 워크스페이스에서 즉시 제거됩니다.
-              </p>
-            </div>
-            <div className="flex justify-end gap-2.5 pt-3">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmFile(null)}
-                className="px-3.5 py-1.5 rounded-md text-xs text-slate-300 hover:text-white bg-[#121214] hover:bg-[#18181b] transition cursor-pointer"
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={executeDeleteFile}
-                className="px-4 py-1.5 bg-rose-800/80 hover:bg-rose-700/80 text-rose-100 border border-rose-700/40 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5 shadow-sm"
-              >
-                <Trash2 className="w-3.5 h-3.5 text-rose-200" />
-                삭제
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Folder Confirmation Modal */}
-      {deleteConfirmFolder !== null && (
-        <div className="fixed inset-0 z-[60] bg-[#09090b]/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative bg-[#121214]/95 backdrop-blur-xl border border-[#222226] rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans">
-            <div className="space-y-2 pt-1">
-              <h2 className="text-base font-semibold text-rose-300">폴더 삭제 확인</h2>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                <span className="font-mono text-[#6366f1] bg-[#09090b] px-1.5 py-0.5 rounded-sm border border-[#222226]">
-                  {deleteConfirmFolder}
-                </span> 폴더 및 포함된 모든 문서를 정말 삭제하시겠습니까?
-              </p>
-              <p className="text-[0.6875rem] text-slate-400">
-                이 작업은 되돌릴 수 없으며 워크스페이스에서 즉시 제거됩니다.
-              </p>
-            </div>
-            <div className="flex justify-end gap-2.5 pt-3">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmFolder(null)}
-                className="px-3.5 py-1.5 rounded-md text-xs text-slate-300 hover:text-white bg-[#121214] hover:bg-[#18181b] transition cursor-pointer"
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={executeDeleteFolder}
-                className="px-4 py-1.5 bg-rose-800/80 hover:bg-rose-700/80 text-rose-100 border border-rose-700/40 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1.5 shadow-sm"
-              >
-                <Trash2 className="w-3.5 h-3.5 text-rose-200" />
-                삭제
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* About Modal (Standard Deep Teal Style) */}
-      {isAboutModalOpen && (
-        <div className="fixed inset-0 z-50 bg-[#09090b]/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative bg-[#121214]/95 backdrop-blur-xl border border-[#222226] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-5 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans">
-            <button
-              type="button"
-              onClick={() => setIsAboutModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-1.5 rounded-md hover:bg-[#18181b] transition cursor-pointer"
-              title="닫기"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="space-y-1 pt-1">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-indigo-600 flex items-center justify-center text-white shadow-xs">
-                  <Brain className="w-4 h-4 text-white" />
-                </div>
-                <h2 className="text-base font-bold text-white">About AI Podium</h2>
-              </div>
-              <p className="text-xs text-indigo-400 font-mono">v2.5 Professional Multi-AI Workstation</p>
-            </div>
-
-            <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
-              <p>
-                AI Podium은 지능형 Multi-AI 평가 라우팅, 실시간 마크다운 노트 및 목차 네비게이터, 프로젝트-메모-폴더 연동 시스템, 차세대 다중 포맷 내보내기 엔진을 제공하는 통합 워크스테이션입니다.
-              </p>
-              <div className="bg-[#09090b]/80 p-3 rounded-md border border-white/[0.08] text-[0.6875rem] space-y-1 font-mono text-slate-300">
-                <div className="text-indigo-300 font-semibold mb-1">Architecture Features:</div>
-                <div>• Deep Charcoal & Electric Purple Living SSOT Workspace</div>
-                <div>• Unified Multi-Tab Document Bar</div>
-                <div>• File System Access API & IndexedDB Vault</div>
-                <div>• Dynamic Height AI Prompt Studio & Routing</div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => setIsAboutModalOpen(false)}
-                className="px-4 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition cursor-pointer shadow-xs"
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Event Manager Modal */}
-      {isEventManagerOpen && (
-        <div className="fixed inset-0 z-50 bg-[#09090b]/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-2xl w-full p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-100 max-h-[90vh] flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
-              <div className="flex items-center gap-2">
-                <CalendarDays className="w-5 h-5 text-indigo-400" />
-                <div>
-                  <h3 className="font-bold text-slate-100 text-sm">프로젝트 일정 및 마일스톤 관리</h3>
-                  <p className="text-[0.6875rem] text-slate-400">
-                    프로젝트: <strong className="text-indigo-300">'{activeSession?.title || 'AI 지식 비서'}'</strong> 기반 일정 관리
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsEventManagerOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-white/[0.06] transition cursor-pointer"
-                title="닫기"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Quick Actions Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 bg-[#09090b]/80 p-2 rounded-md border border-white/[0.08]">
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleExtractEventsWithAi(activeSession?.title)}
-                  disabled={isExtractingEvents}
-                  className="px-2.5 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-medium transition flex items-center gap-1.5 shadow-xs"
-                >
-                  {isExtractingEvents ? (
-                    <RotateCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
-                  )}
-                  <span>AI 일정 자동 추출</span>
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleExportEventsToEditor}
-                  className="px-2.5 py-1.5 rounded-md bg-[#121214] hover:bg-[#18181b] text-slate-200 text-xs font-medium transition flex items-center gap-1.5 border border-[#222226] cursor-pointer"
-                  title="에디터에 마크다운 일정표로 삽입"
-                >
-                  <FileText className="w-3.5 h-3.5 text-[#6366f1]" />
-                  <span>에디터로 전송</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleExportEventsIcs}
-                  className="px-2.5 py-1.5 rounded-md bg-[#121214] hover:bg-[#18181b] text-slate-200 text-xs font-medium transition flex items-center gap-1.5 border border-[#222226] cursor-pointer"
-                  title="캘린더 파일 다운로드"
-                >
-                  <Download className="w-3.5 h-3.5 text-[#6366f1]" />
-                  <span>캘린더 파일 내보내기</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Add Event Form */}
-            <div className="bg-[#09090b]/60 p-3 rounded-md border border-[#222226] space-y-2">
-              <div className="text-[0.6875rem] font-semibold text-slate-300 flex items-center gap-1">
-                <CalendarPlus className="w-3.5 h-3.5 text-[#6366f1]" />
-                <span>새 일정 / 마일스톤 추가</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                <input
-                  type="text"
-                  value={newEventTitle}
-                  onChange={(e) => setNewEventTitle(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddProjectEvent(); }}
-                  placeholder="일정 또는 마일스톤 명칭 입력..."
-                  className="sm:col-span-5 bg-[#09090b] border border-[#222226] rounded-md px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-400 focus:outline-hidden focus:border-[#6366f1]"
-                />
-                <input
-                  type="date"
-                  value={newEventDate}
-                  onChange={(e) => setNewEventDate(e.target.value)}
-                  className="sm:col-span-3 bg-[#09090b] border border-[#222226] rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-hidden focus:border-[#6366f1] font-mono"
-                />
-                <select
-                  value={newEventType}
-                  onChange={(e) => setNewEventType(e.target.value as any)}
-                  className="sm:col-span-2 bg-[#09090b] border border-[#222226] rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-hidden focus:border-[#6366f1]"
-                >
-                  <option value="task">작업</option>
-                  <option value="milestone">마일스톤</option>
-                  <option value="meeting">회의</option>
-                  <option value="deadline">마감</option>
-                </select>
-                <select
-                  value={newEventPriority}
-                  onChange={(e) => setNewEventPriority(e.target.value as any)}
-                  className="sm:col-span-2 bg-[#09090b] border border-[#222226] rounded-md px-2 py-1.5 text-xs text-slate-200 focus:outline-hidden focus:border-[#6366f1]"
-                >
-                  <option value="high">🔴 높음</option>
-                  <option value="medium">🟡 보통</option>
-                  <option value="low">🟢 낮음</option>
-                </select>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newEventNotes}
-                  onChange={(e) => setNewEventNotes(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddProjectEvent(); }}
-                  placeholder="상세 메모 또는 설명 (선택사항)..."
-                  className="flex-1 bg-[#09090b] border border-[#222226] rounded-md px-2.5 py-1.5 text-xs text-slate-200 placeholder-slate-400 focus:outline-hidden focus:border-[#6366f1]"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddProjectEvent}
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-xs font-semibold transition flex items-center gap-1 shrink-0 shadow-xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>추가</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="flex items-center justify-between text-xs border-b border-white/[0.08] pb-1">
-              <div className="flex items-center gap-1">
-                {(['all', 'milestone', 'task', 'meeting', 'deadline'] as const).map((filterKey) => (
-                  <button
-                    key={filterKey}
-                    type="button"
-                    onClick={() => setEventFilter(filterKey)}
-                    className={`px-2.5 py-1 rounded-md text-[0.6875rem] font-medium transition ${
-                      eventFilter === filterKey
-                        ? 'bg-indigo-600 text-white font-medium shadow-xs'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.06]'
-                    }`}
-                  >
-                    {filterKey === 'all' && `전체 (${projectEvents.length})`}
-                    {filterKey === 'milestone' && `마일스톤 (${projectEvents.filter((e) => e.type === 'milestone').length})`}
-                    {filterKey === 'task' && `작업 (${projectEvents.filter((e) => e.type === 'task').length})`}
-                    {filterKey === 'meeting' && `회의 (${projectEvents.filter((e) => e.type === 'meeting').length})`}
-                    {filterKey === 'deadline' && `마감일 (${projectEvents.filter((e) => e.type === 'deadline').length})`}
-                  </button>
-                ))}
-              </div>
-              <span className="text-[0.6875rem] text-slate-400">
-                완료: {projectEvents.filter((e) => e.completed).length} / {projectEvents.length}
-              </span>
-            </div>
-
-            {/* Event List */}
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[220px] max-h-[300px]">
-              {projectEvents.length === 0 ? (
-                <div className="text-center py-10 text-slate-400 text-xs">
-                  등록된 프로젝트 일정이 없습니다. 상단의 'AI 일정 자동 추출'을 눌러보세요.
-                </div>
-              ) : (
-                projectEvents
-                  .filter((e) => eventFilter === 'all' || e.type === eventFilter)
-                  .map((evt) => (
-                    <div
-                      key={evt.id}
-                      className={`p-2.5 rounded-md border transition flex items-center justify-between gap-3 ${
-                        evt.completed
-                          ? 'bg-[#09090b]/40 border-[#222226] opacity-60'
-                          : 'bg-[#09090b]/80 border-[#222226] hover:border-[#222226]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                        <input
-                          type="checkbox"
-                          checked={evt.completed}
-                          onChange={() => handleToggleEventCompleted(evt.id)}
-                          className="w-4 h-4 rounded-sm border-[#222226] bg-[#09090b] text-emerald-500 focus:ring-0 cursor-pointer"
-                        />
-                        <div className="flex flex-col min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`text-xs font-semibold truncate ${
-                                evt.completed ? 'line-through text-slate-500' : 'text-slate-200'
-                              }`}
-                            >
-                              {evt.title}
-                            </span>
-                            <span
-                              className={`px-1.5 py-0.2 rounded-sm text-[0.5625rem] font-medium uppercase ${
-                                evt.type === 'milestone'
-                                  ? 'bg-purple-950/80 text-purple-300 border border-purple-800/80'
-                                  : evt.type === 'deadline'
-                                  ? 'bg-rose-950/80 text-rose-300 border border-rose-800/80'
-                                  : evt.type === 'meeting'
-                                  ? 'bg-sky-950/80 text-sky-300 border border-sky-800/80'
-                                  : 'bg-[#121214] text-slate-300'
-                              }`}
-                            >
-                              {evt.type}
-                            </span>
-                            <span
-                              className={`text-[0.5625rem] font-medium ${
-                                evt.priority === 'high'
-                                  ? 'text-rose-400'
-                                  : evt.priority === 'medium'
-                                  ? 'text-amber-400'
-                                  : 'text-[#6366f1]'
-                              }`}
-                            >
-                              {evt.priority === 'high' ? 'High' : evt.priority === 'medium' ? 'Med' : 'Low'}
-                            </span>
-                          </div>
-                          {evt.notes && (
-                            <span className="text-[0.6875rem] text-slate-400 truncate mt-0.5">{evt.notes}</span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-xs font-mono text-slate-400 flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-slate-500" />
-                          {evt.date}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteProjectEvent(evt.id)}
-                          className="text-slate-400 hover:text-rose-400 p-1 transition cursor-pointer"
-                          title="일정 삭제"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="pt-2 border-t border-[#222226] flex justify-between items-center text-xs">
-              <span className="text-slate-400 text-[0.6875rem]">
-                Google Calendar 및 iCal 표준 포맷 완벽 호환
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsEventManagerOpen(false)}
-                className="bg-[#121214] hover:bg-[#18181b] text-slate-200 px-4 py-1.5 rounded-md font-medium transition cursor-pointer"
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <React.Suspense fallback={null}>
-      {/* Google Drive SSOT & File Picker Modal */}
-      <GoogleDrivePickerModal
-        isOpen={isGdrivePickerOpen}
-        onClose={() => setIsGdrivePickerOpen(false)}
-        currentFolder={gdriveSsotFolder}
-        onSelectFolder={(folder) => {
+        // Google Drive SSOT Picker
+        isGdrivePickerOpen={isGdrivePickerOpen}
+        onCloseGdrivePicker={() => setIsGdrivePickerOpen(false)}
+        gdriveSsotFolder={gdriveSsotFolder}
+        onSelectGdriveFolder={(folder) => {
           setGdriveSsotFolder(folder);
           setWorkspaceRootType('gdrive');
           localStorage.setItem('aipodium_workspace_root_type', 'gdrive');
         }}
-        onToast={showToast}
-        onOpenFile={(openedName, content) => {
+        onOpenFileGdrive={(openedName, content) => {
           setFiles((prev) => ({ ...prev, [openedName]: content }));
           setCurrentActiveFile(openedName);
           setFileName(openedName);
@@ -10761,125 +10182,31 @@ ${projectEvents
             setOpenTabs((prev) => [...prev, openedName]);
           }
         }}
+        gdrivePickerTab={gdrivePickerTab}
         currentEditorContent={editorContent}
         currentEditorFileName={fileName || currentActiveFile}
-        initialTab={gdrivePickerTab}
-        user={googleUser}
-        onSignIn={async () => {
+        googleUser={googleUser}
+        onGoogleSignIn={async () => {
           await handleGoogleSignIn();
         }}
-        onSignOut={handleGoogleSignOut}
-      />
+        onGoogleSignOut={handleGoogleSignOut}
 
-      {/* Google Account & Login Modal */}
-      <GoogleAccountModal
-        isOpen={isGoogleAccountModalOpen}
-        onClose={() => setIsGoogleAccountModalOpen(false)}
-        user={googleUser}
-        onSignIn={async () => {
-          await handleGoogleSignIn();
-        }}
-        onSignOut={() => {
-          handleGoogleSignOut();
-        }}
-        onToast={showToast}
-      />
+        // Google Account Modal
+        isGoogleAccountModalOpen={isGoogleAccountModalOpen}
+        onCloseGoogleAccount={() => setIsGoogleAccountModalOpen(false)}
 
-      {/* Create New Markdown File Modal (Standard VS Code Style) */}
-      {isNewFileModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#09090b]/80 backdrop-blur-sm p-4"
-          onClick={() => setIsNewFileModalOpen(false)}
-        >
-          <div
-            className="relative bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-5 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setIsNewFileModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-1.5 rounded-md hover:bg-white/[0.06] transition cursor-pointer"
-              title="닫기"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="space-y-1 pt-1">
-              <h2 className="text-base font-bold text-white">새 마크다운 노트 생성</h2>
-              <p className="text-xs text-slate-400">워크스페이스에 새로운 마크다운 문서를 추가합니다.</p>
-            </div>
-
-            <form onSubmit={handleConfirmCreateNewFile} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs text-slate-300 flex items-center gap-1.5 font-medium">
-                  <FileText className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>문서 파일명</span>
-                </label>
-                <input
-                  ref={newFileInputRef}
-                  type="text"
-                  value={newFileNameInput}
-                  onChange={(e) => setNewFileNameInput(e.target.value)}
-                  placeholder="예: design_specs.md, meeting_notes.md"
-                  className="w-full bg-[#09090b] border border-white/[0.08] rounded-md px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition placeholder-slate-400"
-                  autoFocus
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs text-slate-300 flex items-center gap-1.5 font-medium">
-                  <Folder className="w-3.5 h-3.5 text-amber-400" />
-                  <span>소속 프로젝트 / 대상 폴더</span>
-                </label>
-                <select
-                  value={newFileFolderTarget}
-                  onChange={(e) => setNewFileFolderTarget(e.target.value)}
-                  className="w-full bg-[#09090b] border border-white/[0.08] rounded-md px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition font-sans cursor-pointer"
-                >
-                  {sessions.map((s) => (
-                    <option key={s.id} value={s.title} className="bg-[#121214] text-slate-200">
-                      📁 {s.title} (현재 프로젝트)
-                    </option>
-                  ))}
-                  <option value="docs" className="bg-[#121214] text-slate-200">📁 docs (공용 문서 폴더)</option>
-                  <option value="src" className="bg-[#121214] text-slate-200">📁 src (소스 폴더)</option>
-                  <option value="root" className="bg-[#121214] text-slate-200">📁 루트 (기본 디렉토리)</option>
-                </select>
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-white/[0.08]">
-                <button
-                  type="button"
-                  onClick={() => setIsNewFileModalOpen(false)}
-                  className="px-3.5 py-1.5 rounded-md text-xs text-slate-300 hover:text-white bg-[#121214] hover:bg-white/[0.06] transition cursor-pointer"
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-xs cursor-pointer"
-                >
-                  문서 생성
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* GitHub Integration Modal */}
-      <GithubIntegrationModal
-        isOpen={isGithubModalOpen}
-        onClose={() => setIsGithubModalOpen(false)}
-        initialConfig={githubConfig}
+        // GitHub Integration Modal
+        isGithubModalOpen={isGithubModalOpen}
+        onCloseGithubModal={() => setIsGithubModalOpen(false)}
+        githubConfig={githubConfig}
         currentUser={currentUser}
         currentActiveFile={currentActiveFile}
         editorContent={editorContent}
-        onOpenAccountModal={() => {
+        onOpenGoogleAccountFromGithub={() => {
           setIsGithubModalOpen(false);
           setIsGoogleAccountModalOpen(true);
         }}
-        onDisconnect={() => {
+        onDisconnectGithub={() => {
           setGithubConfig(null);
           try {
             sessionStorage.removeItem('aipodium_github_config');
@@ -10892,11 +10219,10 @@ ${projectEvents
           setIsGithubModalOpen(false);
           showToast(translateMessage('m118'), 'info');
         }}
-        onSave={async (config, pulledData) => {
+        onSaveGithub={async (config, pulledData) => {
           setGithubConfig(config);
           try {
             sessionStorage.setItem('aipodium_github_config', JSON.stringify(config));
-            // Keep persistent storage clean of raw access tokens
             localStorage.removeItem('aipodium_github_config');
             const safeMeta = {
               repo: config.repo,
@@ -10938,13 +10264,11 @@ ${projectEvents
           }
           setIsGithubModalOpen(false);
         }}
-      />
 
-      {/* Standalone Prompt Management Modal */}
-      <PromptLibraryModal
-        isOpen={isPromptLibraryModalOpen}
-        onClose={() => setIsPromptLibraryModalOpen(false)}
-        prompts={effectivePrompts}
+        // Prompt Library Modal
+        isPromptLibraryModalOpen={isPromptLibraryModalOpen}
+        onClosePromptLibrary={() => setIsPromptLibraryModalOpen(false)}
+        effectivePrompts={effectivePrompts}
         onSavePrompts={(updatedPrompts) => {
           const updated = { ...preferences, customPrompts: updatedPrompts };
           setPreferences(updated);
@@ -10953,7 +10277,7 @@ ${projectEvents
             localStorage.setItem('aipodium_custom_prompts', JSON.stringify(updatedPrompts));
           } catch {}
         }}
-        onApplyPrompt={(promptBody) => {
+        onApplyPromptFromLibrary={(promptBody) => {
           const matched: PromptTemplate = effectivePrompts.find((p) => p.body === promptBody) || {
             id: 'temp',
             title: '프롬프트',
@@ -10963,17 +10287,14 @@ ${projectEvents
           handleInstantInjectPrompt(matched);
           setIsPromptLibraryModalOpen(false);
         }}
-        onToast={showToast}
-      />
 
-      {/* Preferences & AI Engine Modal */}
-      <PreferencesModal
-        isOpen={isPreferencesModalOpen}
-        onClose={() => setIsPreferencesModalOpen(false)}
-        initialTab={preferencesInitialTab}
+        // Preferences Modal
+        isPreferencesModalOpen={isPreferencesModalOpen}
+        onClosePreferences={() => setIsPreferencesModalOpen(false)}
+        preferencesInitialTab={preferencesInitialTab}
         preferences={preferences}
         apiKeys={apiKeys}
-        onSave={(prefs) => {
+        onSavePreferences={(prefs) => {
           setPreferences(prefs);
           setSelectedModel(prefs.defaultModel);
           if (auth?.setDefaultModel) {
@@ -10997,16 +10318,16 @@ ${projectEvents
           }
           saveSafePreferences(prefs);
         }}
-        onOpenRoleAssignment={() => setIsAiRoleModalOpen(true)}
-        onApplyPrompt={(promptBody) => {
+        onOpenRoleAssignmentFromPrefs={() => setIsAiRoleModalOpen(true)}
+        onApplyPromptFromPrefs={(promptBody) => {
           setChatInput(promptBody);
           setIsPreferencesModalOpen(false);
           setTimeout(() => {
             chatInputRef.current?.focus();
           }, 100);
         }}
-        modelOptions={ghostWriterModelOptions}
-        dynamicModelsMap={dynamicProviderModels}
+        ghostWriterModelOptions={ghostWriterModelOptions}
+        dynamicProviderModels={dynamicProviderModels}
         onUpdateDynamicModels={(vendor, models) => {
           setDynamicProviderModels((prev) => ({
             ...prev,
@@ -11017,93 +10338,42 @@ ${projectEvents
         onSelectProvider={handleProviderSelect}
         selectedModel={selectedModel}
         onSelectModel={handleSelectModel}
-        currentApiKey={cloudApiKey}
+        cloudApiKey={cloudApiKey}
         onUpdateApiKey={setCloudApiKey}
-        currentEndpoint={localEndpointAddress}
+        localEndpointAddress={localEndpointAddress}
         onUpdateEndpoint={setLocalEndpointAddress}
         isVerified={isVerified}
         onVerify={handleVerify}
         isVerifying={isVerifying}
         aiParameters={aiParameters}
-        onSaveParameters={setAiParameters}
+        onSaveAiParameters={setAiParameters}
         onUpdateDiscoveredModels={setDiscoveredLocalModels}
-        initialDiscoveredModels={discoveredLocalModels}
-        onToast={showToast}
+        discoveredLocalModels={discoveredLocalModels}
         onWipeAllData={handleWipeAllData}
-        googleUser={googleUser}
-        onOpenGoogleAccount={() => {
-          handleOpenGoogleAccount();
-        }}
         workspaceRootType={workspaceRootType}
-        onOpenGoogleDrive={() => {
-          handleOpenGoogleDrive('open');
-        }}
-        githubConfig={githubConfig}
-        onOpenGithub={() => {
-          handleOpenGithubModal();
-        }}
-      />
+        onOpenGoogleDriveFromPrefs={() => handleOpenGoogleDrive('open')}
+        onOpenGithubFromPrefs={() => handleOpenGithubModal()}
 
-      {/* SSOT Document Generator Modal */}
-      <SSOTGeneratorModal
-        isOpen={isSSOTGeneratorModalOpen}
-        onClose={() => setIsSSOTGeneratorModalOpen(false)}
-        initialFolder={ssotGeneratorInitialFolder}
-        availableFolders={Array.from(new Set([
-          ...sessions.map(s => s.title),
-          ...Object.values(fileFolders).filter(Boolean)
-        ]))}
-        filesByFolder={
-          sessions.reduce((acc, s) => {
-            const memoFileName = s.fileName || `${s.title}.md`;
-            const matchedFiles = Object.keys(files).filter((fname) => {
-              if (fname.startsWith('01_SSOT_Sources/') || fname.startsWith('02_Studio_Outputs/') || fname.startsWith('.podium/')) {
-                return false;
-              }
-              return (fileFolders[fname] || s.title) === s.title || fname === memoFileName;
-            });
-            const chatAttachments = (s.messages || [])
-              .filter(m => m.attachments && m.attachments.length > 0)
-              .flatMap(m => (m.attachments || []).map(a => a.name));
-
-            acc[s.title] = Array.from(new Set([...matchedFiles, ...chatAttachments]));
-            return acc;
-          }, {} as Record<string, string[]>)
-        }
-        availableTemplates={Object.keys(files).filter(f => f.endsWith('.md') && !f.startsWith('.podium/'))}
-        availableModels={availableChatModels}
-        currentModel={selectedModel}
-        selectedModel={selectedModel}
-        provider={selectedModel === WEB_LLM_MODEL_ID ? 'webllm' : (provider === 'local-pc' || provider === 'local-server' ? 'local-pc' : 'cloud')}
-        currentProvider={provider}
-        apiKeys={apiKeys}
-        ollamaEndpoint={localEndpointAddress || 'http://localhost:11434'}
-        onModelChange={(modelId) => {
-          handleQuickDefaultModel(modelId, getModelDisplayName(modelId));
-        }}
+        // SSOT Generator Modal
+        isSSOTGeneratorModalOpen={isSSOTGeneratorModalOpen}
+        onCloseSSOTGenerator={() => setIsSSOTGeneratorModalOpen(false)}
+        ssotGeneratorInitialFolder={ssotGeneratorInitialFolder}
+        availableChatModels={availableChatModels}
         files={files}
-        editorContent={editorContent}
-        sessions={sessions}
+        fileFolders={fileFolders}
         activeSessionId={activeSessionId}
-        onToast={showToast}
-        onGenerate={(config) => {
-          setIsSSOTGeneratorModalOpen(false);
-          handleGenerateSSOTDocument(config);
-        }}
-      />
+        onGenerateSSOT={(config) => handleGenerateSSOTDocument(config)}
+        onQuickDefaultModel={handleQuickDefaultModel}
+        getModelDisplayName={getModelDisplayName}
 
-      {/* Workspace Connection & Vault Binding Modal */}
-      <WorkspaceConnectionModal
-        isOpen={isWorkspaceModalOpen}
-        onClose={() => setIsWorkspaceModalOpen(false)}
+        // Workspace Connection Modal
+        isWorkspaceModalOpen={isWorkspaceModalOpen}
+        onCloseWorkspaceModal={() => setIsWorkspaceModalOpen(false)}
         activeWorkspace={activeWorkspace}
-        onSelectWorkspace={handleSelectActiveWorkspace}
-        currentFiles={files}
-        currentFolders={fileFolders}
-        onToast={showToast}
-        onNewFile={handleAddNewNoteTab}
+        onSelectActiveWorkspace={handleSelectActiveWorkspace}
+        onAddNewNoteTab={handleAddNewNoteTab}
         onImportDocumentFiles={handleImportDocumentFiles}
-        onOpenFileContent={(name, content) => {
+        onOpenFileFromWorkspace={(name, content) => {
           setFiles((prev) => ({ ...prev, [name]: content }));
           setFileFolders((prev) => ({ ...prev, [name]: 'Opened Files' }));
           setCurrentActiveFile(name);
@@ -11113,105 +10383,64 @@ ${projectEvents
             setOpenTabs((prev) => [...prev, name]);
           }
         }}
-        onOpenSSOTGenerator={() => setIsSSOTGeneratorModalOpen(true)}
-        googleUser={googleUser}
-        githubConfig={githubConfig}
-        onOpenSettings={(tab) => {
+        onOpenSSOTGeneratorFromWorkspace={() => setIsSSOTGeneratorModalOpen(true)}
+        onOpenSettingsFromWorkspace={(tab) => {
           setIsWorkspaceModalOpen(false);
           setPreferencesInitialTab(tab || 'integrations');
           setIsPreferencesModalOpen(true);
         }}
-      />
 
-      {/* Document Converter Preview Modal (.pdf, .docx, .xlsx, .pptx) */}
-      <DocumentConverterModal
-        isOpen={isDocConverterModalOpen}
-        onClose={() => setIsDocConverterModalOpen(false)}
-        conversionResult={docConversionResult}
-        availableFolders={Array.from(new Set(['docs', ...sessions.map((s) => s.title)]))}
-        defaultFolder={activeSession?.title || 'docs'}
-        onConfirm={handleConfirmDocumentConversion}
+        // Document Converter Modal
+        isDocConverterModalOpen={isDocConverterModalOpen}
+        onCloseDocConverterModal={() => setIsDocConverterModalOpen(false)}
+        docConversionResult={docConversionResult}
+        onConfirmDocumentConversion={handleConfirmDocumentConversion}
         renderMarkdownToHtml={renderMarkdownToHtml}
-        defaultOllamaEndpoint={preferences.pdfParser?.ollamaEndpoint || 'http://localhost:11434'}
-        defaultOllamaModel={preferences.pdfParser?.ollamaModel || 'llama3.2-vision'}
-        onToast={showToast}
-      />
 
-      {/* Save In-Memory Untitled Document Modal */}
-      <SaveUntitledModal
-        isOpen={isSaveUntitledModalOpen}
-        onClose={() => setIsSaveUntitledModalOpen(false)}
-        onConfirmSave={handleConfirmSaveUntitled}
-        defaultFileName={
-          currentActiveFile.startsWith('Untitled-') ||
-          /^새 프로젝트(\s*\d*)?\.md$/i.test(currentActiveFile) ||
-          currentActiveFile === '새 문서.md'
-            ? '새 문서.md'
-            : currentActiveFile
-        }
-        defaultFolder={activeSession?.title || fileFolders[currentActiveFile] || 'docs'}
-        existingFiles={Object.keys(files)}
-        availableFolders={Array.from(new Set([activeSession?.title || 'docs', 'docs', ...sessions.map((s) => s.title)]))}
-      />
+        // Save Untitled Modal
+        isSaveUntitledModalOpen={isSaveUntitledModalOpen}
+        onCloseSaveUntitledModal={() => setIsSaveUntitledModalOpen(false)}
+        onConfirmSaveUntitled={handleConfirmSaveUntitled}
 
-      {/* Council of Critics Multi-Perspective Document Review Modal */}
-      <CouncilOfCriticsModal
-        isOpen={isCouncilModalOpen}
-        onClose={() => setIsCouncilModalOpen(false)}
-        content={editorContent}
-        apiKey={cloudApiKey}
-        model={roleModels.critic}
-        onApplyRevisions={(revised) => {
+        // Council of Critics Modal
+        isCouncilModalOpen={isCouncilModalOpen}
+        onCloseCouncilModal={() => setIsCouncilModalOpen(false)}
+        roleModels={roleModels}
+        onApplyCriticRevisions={(revised) => {
           handleEditorChange(revised);
           showToast(translateMessage('m121'));
         }}
         onJumpToLine={handleJumpToLine}
-      />
 
-      {/* Role-Based AI Model Assignment Modal */}
-      <AiRoleAssignmentModal
-        isOpen={isAiRoleModalOpen}
-        onClose={() => setIsAiRoleModalOpen(false)}
-        roleModels={roleModels}
+        // AI Role Assignment Modal
+        isAiRoleModalOpen={isAiRoleModalOpen}
+        onCloseAiRoleModal={() => setIsAiRoleModalOpen(false)}
         onSaveRoleModels={handleSaveRoleModels}
-        availableModels={availableChatModels}
-        onToast={showToast}
-        onOpenAiEngineSettings={() => {
+        onOpenAiEngineSettingsFromRoles={() => {
           setIsAiRoleModalOpen(false);
           setPreferencesInitialTab('ai-engine');
           setIsPreferencesModalOpen(true);
         }}
-      />
 
-      {/* Interactive Ghost Diff Modal for AI Proposals and Revisions */}
-      {diffModalData && (
-        <GhostDiffModal
-          isOpen={diffModalData.isOpen}
-          onClose={() => setDiffModalData(null)}
-          originalContent={editorContent}
-          proposedContent={diffModalData.proposedContent}
-          title={diffModalData.title}
-          sourceLabel={diffModalData.sourceLabel}
-          onApplyRevisions={(newContent) => {
-            handleEditorChange(newContent);
-            showToast(translateMessage('m122'));
-            setDiffModalData(null);
-          }}
-          onAppendRevisions={(contentToAppend) => {
-            handleSendToEditor(contentToAppend);
-            setDiffModalData(null);
-          }}
-        />
-      )}
+        // Ghost Diff Modal
+        diffModalData={diffModalData}
+        onCloseDiffModal={() => setDiffModalData(null)}
+        onApplyDiffRevisions={(newContent) => {
+          handleEditorChange(newContent);
+          showToast(translateMessage('m122'));
+          setDiffModalData(null);
+        }}
+        onAppendDiffRevisions={(contentToAppend) => {
+          handleSendToEditor(contentToAppend);
+          setDiffModalData(null);
+        }}
 
-      {/* First-Login AI Engine Selection Onboarding Modal */}
-      <AiEngineOnboardingModal
-        isOpen={isEngineOnboardingOpen}
-        onClose={() => setIsEngineOnboardingOpen(false)}
-        initialApiKey={cloudApiKey}
+        // AI Engine Onboarding Modal
+        isEngineOnboardingOpen={isEngineOnboardingOpen}
+        onCloseEngineOnboarding={() => setIsEngineOnboardingOpen(false)}
         webllmProgress={webllmProgress}
         onStartWebLlmDownload={handleStartWebLlmDownload}
-        onComplete={(engine, key) => {
+        onCompleteEngineOnboarding={(engine, key) => {
           if (engine === 'cloud') {
             setProvider('cloud');
             if (key) {
@@ -11236,8 +10465,10 @@ ${projectEvents
             showToast(translateMessage('m125'));
           }
         }}
+
+        // Toast
+        onToast={showToast}
       />
-      </React.Suspense>
 
       {/* File Tree Context Menu (Right Click) */}
       <FileTreeContextMenu
