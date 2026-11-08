@@ -460,22 +460,16 @@ ${
 
         {/* Quick Counters */}
         <div className="grid grid-cols-3 gap-2 text-xs font-mono">
-          <div className="bg-[#121214] border border-[#222226] p-2 rounded-md text-center">
-            <div className="text-zinc-400 text-[11px] mb-0.5">
-              <span>{t.severityCritical}</span>
-            </div>
+          <div className="bg-[#121214] border border-[#222226] px-2.5 py-1.5 rounded-md flex items-center justify-between">
+            <span className="text-zinc-400 text-[11px]">{t.severityCritical}</span>
             <span className="font-semibold text-zinc-100 text-xs">{auditResult.criticalCount}</span>
           </div>
-          <div className="bg-[#121214] border border-[#222226] p-2 rounded-md text-center">
-            <div className="text-zinc-400 text-[11px] mb-0.5">
-              <span>{t.severityWarning}</span>
-            </div>
+          <div className="bg-[#121214] border border-[#222226] px-2.5 py-1.5 rounded-md flex items-center justify-between">
+            <span className="text-zinc-400 text-[11px]">{t.severityWarning}</span>
             <span className="font-semibold text-zinc-100 text-xs">{auditResult.warningCount}</span>
           </div>
-          <div className="bg-[#121214] border border-[#222226] p-2 rounded-md text-center">
-            <div className="text-zinc-400 text-[11px] mb-0.5">
-              <span>{t.severityInfo}</span>
-            </div>
+          <div className="bg-[#121214] border border-[#222226] px-2.5 py-1.5 rounded-md flex items-center justify-between">
+            <span className="text-zinc-400 text-[11px]">{t.severityInfo}</span>
             <span className="font-semibold text-zinc-100 text-xs">{auditResult.infoCount}</span>
           </div>
         </div>
