@@ -77,6 +77,8 @@ import { LocalAiResourceMonitor } from './components/LocalAiResourceMonitor';
 import { getOnboardingResponse } from './utils/onboardingBot';
 import { WebLlmBanner } from './components/WebLlmBanner';
 import { TopMenuBar } from './components/TopMenuBar';
+import { PWAInstallButton } from './components/PWAInstallButton';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import {
   calculateDefaultPanelWidths,
   clampChatWidth,
@@ -8821,6 +8823,9 @@ ${projectEvents
         {/* Right Controls: Command Palette, Status, & Persistent Fixed-Position Right Workspace Drawer Toggle */}
         <div className={`${isMobile ? 'hidden' : 'flex'} items-center gap-1.5`}>
 
+          {/* PWA App Install Button */}
+          <PWAInstallButton />
+
           {/* GitHub Connection & Real-time Auto-Push Sync Status Indicator */}
           {((githubConfig?.token && githubConfig?.repo) || (workspaceRootType === 'github' && Boolean(githubConfig))) && (
             <GithubSyncStatusIndicator
@@ -10487,6 +10492,9 @@ ${projectEvents
 
       {/* Visual Toast Notification Popup */}
       <Toast toast={toast} onClose={closeToast} />
+
+      {/* Offline Status Toast Indicator */}
+      <OfflineIndicator />
 
     </div>
   );

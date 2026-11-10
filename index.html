@@ -6,7 +6,12 @@
   <title>AI Podium - 내가 지휘하는 AI 오케스트라</title>
   <meta name="description" content="외부 유출 걱정 없는 안전한 환경에서 흩어진 자료를 하나의 명확한 기준 문서로 통합하세요." />
   <meta name="robots" content="index, follow" />
-  <meta name="theme-color" content="#1e202b" />
+  <meta name="theme-color" content="#121214" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="AI Podium" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="canonical" href="https://aipodium.net/" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="manifest" href="/site.webmanifest" />
@@ -50,6 +55,26 @@
   <noscript>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   </noscript>
+  <script>
+    // Gracefully handle iframe proxy WebSocket disconnections (HMR disabled in AI Studio)
+    window.addEventListener('error', function(e) {
+      if (
+        (e.message && (e.message.indexOf('WebSocket') !== -1 || e.message.indexOf('ws://') !== -1 || e.message.indexOf('wss://') !== -1)) ||
+        (e.error && String(e.error).indexOf('WebSocket') !== -1)
+      ) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return true;
+      }
+    }, true);
+    window.addEventListener('unhandledrejection', function(e) {
+      if (e.reason && String(e.reason).indexOf('WebSocket') !== -1) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return true;
+      }
+    }, true);
+  </script>
 </head>
 <body class="bg-[#0f172a] text-[#e2e8f0] antialiased h-screen overflow-hidden select-none">
   <div id="root">
