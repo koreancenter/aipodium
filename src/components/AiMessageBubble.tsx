@@ -19,6 +19,8 @@ import {
 import { renderMarkdownToHtml, cleanAiContentText, sanitizeHtml } from '../utils/markdownParser';
 import type { ChatMessage } from '../types';
 import { aiClient } from '../services/aiPodiumIntegration';
+import { AIThinkingIndicator } from './chat/AIThinkingIndicator';
+
 
 interface AiMessageBubbleProps {
   msg: ChatMessage;
@@ -245,6 +247,17 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
             </button>
           </div>
         </div>
+
+        {/* Thinking / Reasoning state indicator */}
+        {(msg.isThinking || msg.thinking || (msg.isStreaming && !msg.text)) && (
+          <div className="pb-1">
+            <AIThinkingIndicator
+              isThinking={Boolean(msg.isThinking || (msg.isStreaming && !msg.text))}
+              thinkingContent={msg.thinking}
+              durationSeconds={msg.thinkingDuration}
+            />
+          </div>
+        )}
 
         {/* Message Markdown Content: Uniform Single Font Size with Bold-Only Headings & Smooth Stream Transition */}
         <div

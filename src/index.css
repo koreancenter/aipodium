@@ -912,3 +912,44 @@ select option:focus {
   color: #f4f4f5;
   box-shadow: 0 0 0 100px #27272a inset;
 }
+
+/* ==========================================================================
+   AI Thinking / Reasoning Text Shimmer Animation
+   Subtle soft white/gray light smoothly passing over text-zinc-400 (#a1a1aa)
+   ========================================================================== */
+@keyframes thinkingShimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.thinking-shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #a1a1aa 0%,
+    #a1a1aa 30%,
+    #f4f4f5 50%,
+    #a1a1aa 70%,
+    #a1a1aa 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  display: inline-block;
+  animation: thinkingShimmer 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thinking-shimmer-text {
+    animation: none;
+    background: none;
+    -webkit-text-fill-color: initial;
+    color: #a1a1aa;
+  }
+}
+

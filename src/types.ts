@@ -37,7 +37,11 @@ export interface ChatMessage {
   originalText?: string;
   ghostWriterLevel?: string;
   isStreaming?: boolean;
+  isThinking?: boolean;
+  thinking?: string;
+  thinkingDuration?: number;
   showOnboardingChips?: boolean;
+
   actionButtons?: ChatActionButton[];
   tokens?: {
     prompt: number;

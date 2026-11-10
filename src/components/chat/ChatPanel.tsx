@@ -9,7 +9,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Bot,
   User,
   ArrowDown,
   Link2,
@@ -24,7 +23,9 @@ import type { ChatMessage, ChatAttachment, GhostWriterLevel, MentionItem } from 
 import { AiMessageBubble } from '../AiMessageBubble';
 import { WebLlmBanner } from '../WebLlmBanner';
 import { UniversalPromptInput } from './UniversalPromptInput';
+import { AIThinkingIndicator } from './AIThinkingIndicator';
 import { WEB_LLM_MODEL_ID, WEB_LLM_MODEL_DISPLAY_NAME } from '../../utils/webllmService';
+
 import { useTranslation } from '../../context/LanguageContext';
 
 export interface ChatActivityRailProps {
@@ -489,24 +490,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               </>
             )}
 
-              {/* Preparation Indicator */}
+              {/* Minimalist AI Thinking State (Zero decorative icons, subtle shimmer) */}
               {isAiLoading && !messages.some((m) => m.isStreaming) && (
-                <div className="flex gap-2.5 items-center py-1 bg-transparent border-0 select-none">
-                  <div className="w-5 h-5 flex items-center justify-center text-indigo-400 text-xs shrink-0 select-none bg-transparent border-0">
-                    <Bot className="w-4 h-4 animate-pulse text-indigo-400" />
-                  </div>
-                  <div className="bg-transparent border-0 px-1 py-1 text-xs text-slate-400 flex items-center gap-2 font-sans shadow-none">
-                    <div className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></span>
-                    </div>
-                    <span className="text-slate-400 text-xs">
-                      {isOnboardingMode
-                        ? t.onboardingPreparing
-                        : t.modelPreparing}
-                    </span>
-                  </div>
+                <div className="py-1 px-1 select-none">
+                  <AIThinkingIndicator isThinking={true} />
                 </div>
               )}
             </motion.div>
