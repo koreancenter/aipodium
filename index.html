@@ -3,6 +3,57 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    // Prevent Vite HMR WebSocket connection errors in Cloud Run / iframe proxy environment
+    (function() {
+      var OriginalWebSocket = window.WebSocket;
+      if (!OriginalWebSocket) return;
+      function DummyWebSocket() {
+        var target = new EventTarget();
+        target.readyState = 1; // OPEN
+        target.OPEN = 1;
+        target.CLOSED = 3;
+        target.CLOSING = 2;
+        target.CONNECTING = 0;
+        target.send = function() {};
+        target.close = function() {};
+        return target;
+      }
+      window.WebSocket = function(url, protocols) {
+        if (
+          (typeof url === 'string' && (url.indexOf(':24678') !== -1 || url.indexOf('token=') !== -1 || url.indexOf('vite') !== -1)) ||
+          protocols === 'vite-hmr' ||
+          (Array.isArray(protocols) && protocols.indexOf('vite-hmr') !== -1)
+        ) {
+          return new DummyWebSocket();
+        }
+        return new OriginalWebSocket(url, protocols);
+      };
+      window.WebSocket.prototype = OriginalWebSocket.prototype;
+      window.WebSocket.CONNECTING = 0;
+      window.WebSocket.OPEN = 1;
+      window.WebSocket.CLOSING = 2;
+      window.WebSocket.CLOSED = 3;
+
+      window.addEventListener('error', function(e) {
+        if (
+          (e.message && (e.message.indexOf('WebSocket') !== -1 || e.message.indexOf('ws://') !== -1 || e.message.indexOf('wss://') !== -1)) ||
+          (e.error && String(e.error).indexOf('WebSocket') !== -1)
+        ) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          return true;
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', function(e) {
+        if (e.reason && String(e.reason).indexOf('WebSocket') !== -1) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          return true;
+        }
+      }, true);
+    })();
+  </script>
   <title>AI Podium - 내가 지휘하는 AI 오케스트라</title>
   <meta name="description" content="외부 유출 걱정 없는 안전한 환경에서 흩어진 자료를 하나의 명확한 기준 문서로 통합하세요." />
   <meta name="robots" content="index, follow" />
@@ -55,26 +106,6 @@
   <noscript>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   </noscript>
-  <script>
-    // Gracefully handle iframe proxy WebSocket disconnections (HMR disabled in AI Studio)
-    window.addEventListener('error', function(e) {
-      if (
-        (e.message && (e.message.indexOf('WebSocket') !== -1 || e.message.indexOf('ws://') !== -1 || e.message.indexOf('wss://') !== -1)) ||
-        (e.error && String(e.error).indexOf('WebSocket') !== -1)
-      ) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        return true;
-      }
-    }, true);
-    window.addEventListener('unhandledrejection', function(e) {
-      if (e.reason && String(e.reason).indexOf('WebSocket') !== -1) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        return true;
-      }
-    }, true);
-  </script>
 </head>
 <body class="bg-[#0f172a] text-[#e2e8f0] antialiased h-screen overflow-hidden select-none">
   <div id="root">

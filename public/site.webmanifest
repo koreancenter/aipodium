@@ -3,11 +3,31 @@
   "name": "AI Podium - 내가 지휘하는 AI 오케스트라",
   "short_name": "AI Podium",
   "description": "외부 유출 걱정 없는 안전한 환경에서 흩어진 자료를 하나의 명확한 기준 문서로 통합하세요.",
+  "lang": "ko",
+  "dir": "ltr",
+  "orientation": "any",
+  "categories": ["productivity", "utilities"],
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#09090b",
   "theme_color": "#121214",
+  "shortcuts": [
+    {
+      "name": "새 문서 작성",
+      "short_name": "새 문서",
+      "description": "새 마크다운 문서를 즉시 작성합니다.",
+      "url": "/?action=new-doc",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "문서 적합성 검사",
+      "short_name": "적합성 검사",
+      "description": "기준 문서와 작업 문서 간의 일관성을 검사합니다.",
+      "url": "/?action=ssot-check",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    }
+  ],
   "icons": [
     {
       "src": "/pwa-192x192.png",

@@ -79,6 +79,7 @@ import { WebLlmBanner } from './components/WebLlmBanner';
 import { TopMenuBar } from './components/TopMenuBar';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { offlineSyncManager } from './services/offlineSyncService';
 import {
   calculateDefaultPanelWidths,
   clampChatWidth,
@@ -4554,8 +4555,11 @@ export default function App() {
   const handleEditorChange = useCallback(
     (val: string) => {
       setEditorContent(val);
+      if (typeof navigator !== 'undefined' && !navigator.onLine && currentActiveFile) {
+        offlineSyncManager.markDirty(currentActiveFile);
+      }
     },
-    []
+    [currentActiveFile]
   );
 
   // Single-Document Push Engine & Graceful 409 Safe Fork Conflict Handler
@@ -4607,6 +4611,7 @@ export default function App() {
         if (res.success) {
           lastPushedContentRef.current[targetFile] = contentToPush;
           setGithubSyncStatus('synced');
+          offlineSyncManager.markSynced(targetFile);
           if (options?.showSuccessToast) {
             showToast(translateMessage('m057', targetFile), 'success');
           }
@@ -4791,6 +4796,7 @@ export default function App() {
       }
 
       setGithubSyncStatus('synced');
+      offlineSyncManager.clearQueue();
       setActiveWorkspace((prev) => ({
         ...prev,
         lastSynced: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
@@ -4816,6 +4822,34 @@ export default function App() {
       showToast('GitHub 즉시 동기화 중 오류가 발생했습니다.', 'error');
     }
   }, [githubConfig, currentActiveFile, editorContent, showToast, handleOpenGithubModal, translateMessage]);
+
+  // Register offline sync callback when network connection is restored
+  useEffect(() => {
+    const unregister = offlineSyncManager.registerSyncHandler(async () => {
+      if (githubConfig?.token && githubConfig?.repo) {
+        await handleForceGithubSync();
+      }
+    });
+    return unregister;
+  }, [githubConfig, handleForceGithubSync]);
+
+  // Handle PWA shortcut actions (?action=new-doc or ?action=ssot-check)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const action = params.get('action');
+      if (action === 'new-doc') {
+        handleCreateNewFile();
+        window.history.replaceState({}, '', window.location.pathname);
+      } else if (action === 'ssot-check') {
+        setIsSsotAuditorOpen(true);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    } catch {
+      // Ignore URL parsing errors
+    }
+  }, [handleCreateNewFile]);
 
   // Debounced GitHub Auto-Push: 3000ms after user typing stops
   useEffect(() => {
