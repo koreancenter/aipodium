@@ -148,7 +148,11 @@ const CORE_TRANSLATIONS = {
       sendKoreanOriginal: '한국어 원문으로 직접 전송',
       analyzingFile: '파일 분석 중...',
       sendEnglishPrompt: '영문 프롬프트로 AI에 전송',
-      sendMessage: '메시지 전송'
+      sendMessage: '메시지 전송',
+      selectionContextLabel: '에디터 선택 영역',
+      clearSelectionContext: '선택 영역 컨텍스트 해제',
+      selectionChars: (count: number) => `${count}자`,
+      selectionIncluded: '질문 시 자동 첨부'
     }
   },
   en: {
@@ -298,7 +302,11 @@ const CORE_TRANSLATIONS = {
       sendKoreanOriginal: 'Send Korean original',
       analyzingFile: 'Analyzing file...',
       sendEnglishPrompt: 'Send English prompt to AI',
-      sendMessage: 'Send message'
+      sendMessage: 'Send message',
+      selectionContextLabel: 'Selected editor text',
+      clearSelectionContext: 'Clear selection context',
+      selectionChars: (count: number) => `${count} chars`,
+      selectionIncluded: 'Attached to prompt'
     }
   }
 } as const;

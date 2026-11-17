@@ -28,6 +28,22 @@ if (typeof window !== 'undefined') {
     }
     console.warn('[AI Podium] Handled unhandled rejection:', event.reason);
   });
+
+  // Automatically unregister stale development service workers that interfere with Vite module resolution
+  if ('serviceWorker' in navigator && import.meta.env.DEV) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister();
+      }
+    }).catch(() => {});
+    if (typeof caches !== 'undefined') {
+      caches.keys().then((keys) => {
+        for (const key of keys) {
+          caches.delete(key);
+        }
+      }).catch(() => {});
+    }
+  }
 }
 
 createRoot(document.getElementById('root')!).render(

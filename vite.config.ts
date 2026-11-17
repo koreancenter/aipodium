@@ -117,15 +117,35 @@ export default defineConfig(() => {
           ],
         },
         devOptions: {
-          enabled: true,
+          enabled: false,
           type: 'module',
         },
       }),
     ],
     resolve: {
+      dedupe: ['react', 'react-dom'],
       alias: [
         { find: /^@tiptap\/pm$/, replacement: path.resolve(__dirname, 'src/shims/tiptap-pm.ts') },
         { find: '@', replacement: path.resolve(__dirname, '.') },
+      ],
+    },
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react-dom/client',
+        'react/jsx-runtime',
+        'react/jsx-dev-runtime',
+        '@tiptap/react',
+        '@tiptap/starter-kit',
+        '@tiptap/extension-table',
+        '@tiptap/extension-table-row',
+        '@tiptap/extension-table-cell',
+        '@tiptap/extension-table-header',
+        '@tiptap/extension-task-list',
+        '@tiptap/extension-task-item',
+        '@tiptap/extension-placeholder',
+        'tiptap-markdown'
       ],
     },
     worker: {

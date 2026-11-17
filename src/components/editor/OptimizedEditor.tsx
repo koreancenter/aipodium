@@ -39,7 +39,9 @@ import { TiptapWysiwygEditor, TiptapWysiwygEditorRef } from './TiptapWysiwygEdit
 import { getTextareaSelectionCoordinates } from '../../utils/caretCoordinates';
 import { sanitizeHtml } from '../../utils/securitySanitizer';
 import { VirtualizedMarkdownPreview } from '../VirtualizedMarkdownPreview';
-import { getEphemeralDecryptedApiKey } from '../../services/aiPodiumIntegration';
+import { getEphemeralDecryptedApiKey, aiClient } from '../../services/aiPodiumIntegration';
+import { WEB_LLM_MODEL_ID } from '../../utils/webllmService';
+import type { EditorSelectionContext } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 import { getEditorTranslations } from '../../locales/editorLocale';
 
@@ -47,12 +49,18 @@ export interface OptimizedEditorProps {
   value: string;
   onChange: (newValue: string) => void;
   onFocus?: () => void;
+  onSelectionChange?: (selection: EditorSelectionContext | null) => void;
   editorRef?: React.RefObject<HTMLTextAreaElement | null>;
   tiptapRef?: React.Ref<TiptapWysiwygEditorRef>;
   placeholder?: string;
   editorTab: 'wysiwyg' | 'edit' | 'split' | 'preview';
   renderMarkdownToHtml: (md: string) => string;
   fontSize?: number;
+  activeProvider?: 'cloud' | 'local-pc' | 'local-server' | 'webllm';
+  localEndpoint?: string;
+  selectedModel?: string;
+  cloudApiKey?: string;
+  apiKeys?: Record<string, string>;
 }
 
 interface SlashCommandBase {
@@ -177,12 +185,18 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
   value,
   onChange,
   onFocus,
+  onSelectionChange,
   editorRef: externalRef,
   tiptapRef,
   placeholder,
   editorTab,
   renderMarkdownToHtml,
-  fontSize
+  fontSize,
+  activeProvider: propActiveProvider,
+  localEndpoint: propLocalEndpoint,
+  selectedModel: propSelectedModel,
+  cloudApiKey: propCloudApiKey,
+  apiKeys: propApiKeys
 }) => {
   const [localValue, setLocalValue] = useState(value);
   const internalRef = useRef<HTMLTextAreaElement>(null);
@@ -232,6 +246,7 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
   const [isAiTextLoading, setIsAiTextLoading] = useState(false);
   const [isTextBubbleDismissed, setIsTextBubbleDismissed] = useState(false);
   const lastDismissedSelectionRef = useRef<{ start: number; end: number } | null>(null);
+  const activeSelectionRangeRef = useRef<{ start: number; end: number; text: string } | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleCloseTextBubble = useCallback(() => {
@@ -249,7 +264,23 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
   const updateEditorBubbleContext = useCallback((text: string, selStart: number, selEnd?: number) => {
     const end = typeof selEnd === 'number' ? selEnd : selStart;
     const hasSel = end > selStart;
+    const selText = hasSel ? text.slice(selStart, end) : '';
     const textarea = refToUse.current;
+
+    // Update shared editor selection state (preserve when focus moves outside textarea)
+    if (hasSel && selText.trim()) {
+      activeSelectionRangeRef.current = { start: selStart, end, text: selText };
+      onSelectionChange?.({
+        text: selText,
+        startOffset: selStart,
+        endOffset: end,
+        mode: editorTab,
+        updatedAt: Date.now()
+      });
+    } else if (!textarea || document.activeElement === textarea) {
+      activeSelectionRangeRef.current = null;
+      onSelectionChange?.(null);
+    }
 
     // 1. Check if cursor/selection is inside a markdown table
     const info = getTableAtCursor(text, selStart);
@@ -283,7 +314,6 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
     }
 
     // 2. Normal General Text Context
-    const selText = hasSel ? text.slice(selStart, end) : '';
     setSelectedText(selText);
     setHasSelection(hasSel);
 
@@ -330,7 +360,7 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
       // Show bubble menu if selection is currently visible in viewport and not dismissed
       setIsTextBubbleVisible(isSelectionInView && !dismissed);
     }
-  }, [refToUse, isTextBubbleDismissed]);
+  }, [refToUse, isTextBubbleDismissed, onSelectionChange, editorTab]);
 
   const updateTableContext = useCallback((text: string, cursorPos: number) => {
     updateEditorBubbleContext(text, cursorPos, cursorPos);
@@ -558,24 +588,300 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
     }, 20);
   }, [currentTableInfo, localValue, debouncedOnChange, refToUse, updateTableContext]);
 
+  const executeAiTask = useCallback(async (opts: {
+    prompt: string;
+    systemInstruction: string;
+  }): Promise<string> => {
+    // 1. Resolve local Ollama endpoint
+    const cleanEndpoint = (
+      propLocalEndpoint ||
+      sessionStorage.getItem('aipodium_local_endpoint') ||
+      localStorage.getItem('aipodium_local_endpoint') ||
+      'http://localhost:11434'
+    ).trim().replace(/\/+$/, '');
+
+    // 2. Resolve API key for cloud providers
+    let geminiKey = propCloudApiKey || propApiKeys?.gemini || '';
+    if (!geminiKey) {
+      try {
+        geminiKey = await getEphemeralDecryptedApiKey('gemini');
+      } catch {}
+    }
+
+    // 3. Resolve active provider
+    let activeProvider = propActiveProvider;
+    if (!activeProvider) {
+      try {
+        const saved = localStorage.getItem('aipodium_preferences');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.activeProvider) activeProvider = parsed.activeProvider;
+        }
+      } catch {}
+    }
+
+    const isWebLlm = activeProvider === 'webllm' || propSelectedModel === WEB_LLM_MODEL_ID;
+    const isExplicitLocal = !isWebLlm && (activeProvider === 'local-pc' || activeProvider === 'local-server');
+
+    // 4-A. WebLLM (Browser WebGPU) provider
+    if (isWebLlm) {
+      let streamed = '';
+      const result = await aiClient.streamCompletion('webllm', {
+        model: WEB_LLM_MODEL_ID,
+        messages: [
+          { role: 'system', content: opts.systemInstruction },
+          { role: 'user', content: opts.prompt }
+        ],
+        systemInstruction: opts.systemInstruction,
+        temperature: 0.2,
+        onChunk: (delta) => {
+          streamed += delta;
+        }
+      });
+      const reply = (result?.fullText || streamed || '').trim();
+      if (!reply || reply.startsWith('⚠️ WebLLM') || reply.startsWith('⚠️ 현재 브라우저가 WebGPU')) {
+        throw new Error(reply || et.errNoReply);
+      }
+      return reply;
+    }
+
+    // 4-B. If explicit local provider, call Ollama endpoint directly from browser
+    if (isExplicitLocal) {
+      try {
+        let modelToUse = propSelectedModel || '';
+        const looksLikeCloudModel = !modelToUse || /^(gemini-|gpt-|claude-|o1|o3|deepseek-)/i.test(modelToUse);
+        if (looksLikeCloudModel) {
+          try {
+            const tagsRes = await fetch(`${cleanEndpoint}/api/tags`, {
+              method: 'GET',
+              signal: AbortSignal.timeout(1500)
+            });
+            if (tagsRes.ok) {
+              const tagsData = await tagsRes.json();
+              modelToUse = tagsData?.models?.[0]?.name || 'llama3.3:latest';
+            }
+          } catch {}
+        }
+
+        const res = await fetch(`${cleanEndpoint}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: modelToUse || 'llama3.3:latest',
+            messages: [
+              { role: 'system', content: opts.systemInstruction },
+              { role: 'user', content: opts.prompt }
+            ],
+            stream: false
+          })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData?.error || `Ollama 통신 실패 (HTTP ${res.status})`);
+        }
+
+        const data = await res.json();
+        const reply = data?.message?.content || data?.response || '';
+        if (reply.trim()) return reply.trim();
+        throw new Error(et.errNoReply);
+      } catch (err: any) {
+        if (err?.name === 'TypeError' || err?.message?.includes('Failed to fetch')) {
+          throw new Error('로컬 Ollama 연결 실패: 터미널에서 OLLAMA_ORIGINS="*" ollama serve 실행 여부를 확인하세요.');
+        }
+        throw err;
+      }
+    }
+
+    // 5. Cloud provider:
+    // Try the proxy endpoint (/api/chat) for local development server support.
+    // If the proxy returns HTTP 405/404, returns the unconfigured local guidance message, or fails to fetch:
+    // Gracefully fall back to client-side direct execution (BYOK API or local Ollama auto-detection).
+    let serverStatic405 = false;
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: opts.prompt,
+          apiKey: geminiKey || undefined,
+          model: propSelectedModel || 'gemini-2.5-flash',
+          systemInstruction: opts.systemInstruction
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const reply = data.reply || data.text || '';
+        const isGuidanceFallback =
+          data?.usage?.costEstimate?.includes('로컬 안내 모드') ||
+          reply.trim().startsWith('**AI Podium 안내**');
+        if (isGuidanceFallback) {
+          serverStatic405 = true;
+        } else if (reply.trim()) {
+          return reply.trim();
+        }
+      } else if (res.status === 405 || res.status === 404) {
+        serverStatic405 = true;
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.error || `AI 통신 실패 (HTTP ${res.status})`);
+      }
+    } catch (err: any) {
+      if (err?.message?.includes('AI 통신 실패')) throw err;
+      serverStatic405 = true;
+    }
+
+    // 6. Direct Client-Side Fallback for static hosting deployments (e.g. https://aipodium.net)
+    if (serverStatic405) {
+      const modelLower = (propSelectedModel || '').toLowerCase();
+
+      // 6-A1. Direct OpenAI-compatible BYOK (OpenAI / DeepSeek / Groq) when matching model selected
+      const openaiKey = propApiKeys?.openai || '';
+      const deepseekKey = propApiKeys?.deepseek || '';
+      const groqKey = propApiKeys?.groq || '';
+
+      if ((modelLower.startsWith('gpt-') || modelLower.startsWith('o1') || modelLower.startsWith('o3')) && openaiKey) {
+        const oaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${openaiKey}` },
+          body: JSON.stringify({
+            model: propSelectedModel,
+            messages: [
+              { role: 'system', content: opts.systemInstruction },
+              { role: 'user', content: opts.prompt }
+            ],
+            temperature: 0.2
+          })
+        });
+        if (!oaiRes.ok) {
+          const errData = await oaiRes.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `OpenAI API 통신 오류 (HTTP ${oaiRes.status})`);
+        }
+        const oaiData = await oaiRes.json();
+        const reply = oaiData?.choices?.[0]?.message?.content || '';
+        if (reply.trim()) return reply.trim();
+      }
+
+      if (modelLower.startsWith('deepseek-') && deepseekKey) {
+        const dsRes = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${deepseekKey}` },
+          body: JSON.stringify({
+            model: propSelectedModel,
+            messages: [
+              { role: 'system', content: opts.systemInstruction },
+              { role: 'user', content: opts.prompt }
+            ],
+            temperature: 0.2
+          })
+        });
+        if (!dsRes.ok) {
+          const errData = await dsRes.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `DeepSeek API 통신 오류 (HTTP ${dsRes.status})`);
+        }
+        const dsData = await dsRes.json();
+        const reply = dsData?.choices?.[0]?.message?.content || '';
+        if (reply.trim()) return reply.trim();
+      }
+
+      if (modelLower.includes('llama') && groqKey) {
+        const gRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+          body: JSON.stringify({
+            model: propSelectedModel,
+            messages: [
+              { role: 'system', content: opts.systemInstruction },
+              { role: 'user', content: opts.prompt }
+            ],
+            temperature: 0.2
+          })
+        });
+        if (!gRes.ok) {
+          const errData = await gRes.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `Groq API 통신 오류 (HTTP ${gRes.status})`);
+        }
+        const gData = await gRes.json();
+        const reply = gData?.choices?.[0]?.message?.content || '';
+        if (reply.trim()) return reply.trim();
+      }
+
+      // 6-A2. Direct Google Gemini REST API (BYOK)
+      if (geminiKey) {
+        const cleanModel = (propSelectedModel && propSelectedModel.startsWith('gemini-'))
+          ? propSelectedModel
+          : 'gemini-2.5-flash';
+        const directRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${geminiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: opts.prompt }] }],
+              systemInstruction: opts.systemInstruction
+                ? { parts: [{ text: opts.systemInstruction }] }
+                : undefined,
+              generationConfig: { temperature: 0.2 }
+            })
+          }
+        );
+
+        if (!directRes.ok) {
+          const errData = await directRes.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `Google Gemini API 통신 오류 (HTTP ${directRes.status})`);
+        }
+
+        const dData = await directRes.json();
+        const reply = dData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        if (reply.trim()) return reply.trim();
+        throw new Error(et.errNoReply);
+      }
+
+      // 6-B. Direct Local Ollama Auto-Detection (if user has Ollama running on localhost:11434)
+      try {
+        const ollamaCheck = await fetch(`${cleanEndpoint}/api/tags`, {
+          method: 'GET',
+          signal: AbortSignal.timeout(1500)
+        });
+        if (ollamaCheck.ok) {
+          const tagsData = await ollamaCheck.json();
+          const discoveredModel = tagsData?.models?.[0]?.name || 'llama3.3:latest';
+          const oRes = await fetch(`${cleanEndpoint}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: discoveredModel,
+              messages: [
+                { role: 'system', content: opts.systemInstruction },
+                { role: 'user', content: opts.prompt }
+              ],
+              stream: false
+            })
+          });
+          if (oRes.ok) {
+            const oData = await oRes.json();
+            const oReply = oData?.message?.content || oData?.response || '';
+            if (oReply.trim()) return oReply.trim();
+          }
+        }
+      } catch {}
+
+      // 6-C. Neither Gemini API key nor local Ollama reachable
+      throw new Error('AI 엔진 연결 필요: 상단 [설정]에서 Gemini API 키를 등록하거나 로컬 PC에서 Ollama를 실행해 주세요.');
+    }
+
+    throw new Error(et.errNoReply);
+  }, [propActiveProvider, propLocalEndpoint, propSelectedModel, propCloudApiKey, propApiKeys, et]);
+
   const handleAiTableEdit = useCallback(async (prompt: string) => {
     if (!currentTableInfo) return false;
     setIsAiTableLoading(true);
     try {
       const tableMarkdown = currentTableInfo.lines.join('\n');
 
-      let apiKey = '';
-      try {
-        apiKey = await getEphemeralDecryptedApiKey('gemini');
-      } catch (e) {
-        // ignore
-      }
-
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `다음 마크다운 표를 사용자의 요청에 따라 정확히 수정 또는 요약하세요.
+      let reply = await executeAiTask({
+        prompt: `다음 마크다운 표를 사용자의 요청에 따라 정확히 수정 또는 요약하세요.
 
 [사용자 요청]: ${prompt}
 
@@ -586,18 +892,9 @@ ${tableMarkdown}
 1. 오직 가공/요약된 결과 마크다운 표 문자열(| ... |)만 반환할 것.
 2. 마크다운 코드블록(\`\`\`markdown)이나 인사말, 설명 등 부연 텍스트는 절대 포함하지 말 것.
 3. 마크다운 표 헤더, 구분선, 행 파이프 문법을 온전히 유지할 것.`,
-          apiKey: apiKey || undefined,
-          model: 'gemini-2.5-flash',
-          systemInstruction: 'You are a professional Markdown Table Editor. Output ONLY the clean Markdown table syntax (| ... |). Do not output any markdown code blocks (```) or explanation text.'
-        })
+        systemInstruction: 'You are a professional Markdown Table Editor. Output ONLY the clean Markdown table syntax (| ... |). Do not output any markdown code blocks (```) or explanation text.'
       });
 
-      if (!res.ok) {
-        throw new Error(`AI 서버 통신 실패 (HTTP ${res.status})`);
-      }
-
-      const data = await res.json();
-      let reply = data.reply || data.text || '';
       if (!reply.trim()) {
         throw new Error(et.errNoTable);
       }
@@ -614,14 +911,23 @@ ${tableMarkdown}
         throw new Error(et.errBadTable);
       }
 
-      const nextVal =
-        localValue.slice(0, currentTableInfo.startOffset) +
-        trimmedReply +
-        localValue.slice(currentTableInfo.endOffset);
+      const textarea = refToUse.current;
+      const val = localValue;
+      const startPos = currentTableInfo.startOffset;
+      const endPos = currentTableInfo.endOffset;
 
+      const nextVal = val.slice(0, startPos) + trimmedReply + val.slice(endPos);
       setLocalValue(nextVal);
       debouncedOnChange(nextVal);
-      updateTableContext(nextVal, currentTableInfo.startOffset);
+
+      setTimeout(() => {
+        if (textarea) {
+          textarea.focus();
+          const newPos = startPos + trimmedReply.length;
+          textarea.setSelectionRange(newPos, newPos);
+          updateTableContext(nextVal, newPos);
+        }
+      }, 20);
       return true;
     } catch (err: any) {
       console.error('AI Table Edit error:', err);
@@ -670,7 +976,7 @@ ${tableMarkdown}
     } finally {
       setIsAiTableLoading(false);
     }
-  }, [currentTableInfo, localValue, debouncedOnChange, updateTableContext, et]);
+  }, [currentTableInfo, executeAiTask, localValue, debouncedOnChange, refToUse, updateTableContext, et]);
 
   // General Text Bubble Menu Actions
   const handleApplyTextFormat = useCallback((formatType: TextFormatAction) => {
@@ -929,35 +1235,50 @@ ${tableMarkdown}
     }, 20);
   }, [localValue, debouncedOnChange, refToUse, updateEditorBubbleContext, et]);
 
-  const handleAiTextEdit = useCallback(async (prompt: string) => {
-    const textarea = refToUse.current;
-    if (!textarea) return false;
-
+  const handleAiTextEdit = useCallback(async (prompt: string, overrideTargetText?: string): Promise<string | boolean> => {
     const val = localValue;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const hasSel = end > start;
+    const isDirectTextCall = typeof overrideTargetText === 'string';
+    const textarea = refToUse.current;
+
+    if (!isDirectTextCall && !textarea) return false;
 
     let targetText = '';
-    let replaceStart = start;
-    let replaceEnd = end;
+    let replaceStart = 0;
+    let replaceEnd = 0;
 
-    if (hasSel) {
-      targetText = val.slice(start, end);
-      replaceStart = start;
-      replaceEnd = end;
-    } else {
-      let pStart = val.lastIndexOf('\n\n', start - 1);
-      if (pStart === -1) pStart = val.lastIndexOf('\n', start - 1);
-      pStart = pStart === -1 ? 0 : pStart + 1;
+    if (isDirectTextCall) {
+      targetText = overrideTargetText.trim();
+    } else if (textarea) {
+      let start = textarea.selectionStart;
+      let end = textarea.selectionEnd;
 
-      let pEnd = val.indexOf('\n\n', end);
-      if (pEnd === -1) pEnd = val.indexOf('\n', end);
-      if (pEnd === -1) pEnd = val.length;
+      // Preserve previously captured selection if focus shifted into bubble input
+      if (end <= start && activeSelectionRangeRef.current) {
+        const saved = activeSelectionRangeRef.current;
+        if (val.slice(saved.start, saved.end) === saved.text) {
+          start = saved.start;
+          end = saved.end;
+        }
+      }
 
-      targetText = val.slice(pStart, pEnd).trim();
-      replaceStart = pStart;
-      replaceEnd = pEnd;
+      const hasSel = end > start;
+      if (hasSel) {
+        targetText = val.slice(start, end);
+        replaceStart = start;
+        replaceEnd = end;
+      } else {
+        let pStart = val.lastIndexOf('\n\n', start - 1);
+        if (pStart === -1) pStart = val.lastIndexOf('\n', start - 1);
+        pStart = pStart === -1 ? 0 : pStart + 1;
+
+        let pEnd = val.indexOf('\n\n', end);
+        if (pEnd === -1) pEnd = val.indexOf('\n', end);
+        if (pEnd === -1) pEnd = val.length;
+
+        targetText = val.slice(pStart, pEnd).trim();
+        replaceStart = pStart;
+        replaceEnd = pEnd;
+      }
     }
 
     if (!targetText) {
@@ -966,18 +1287,8 @@ ${tableMarkdown}
 
     setIsAiTextLoading(true);
     try {
-      let apiKey = '';
-      try {
-        apiKey = await getEphemeralDecryptedApiKey('gemini');
-      } catch (e) {
-        // ignore
-      }
-
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `다음 텍스트를 사용자의 요청에 따라 정확하게 수정, 교정, 요약 또는 변환하세요.
+      let reply = await executeAiTask({
+        prompt: `다음 텍스트를 사용자의 요청에 따라 정확하게 수정, 교정, 요약 또는 변환하세요.
 
 [사용자 요청]: ${prompt}
 
@@ -988,18 +1299,9 @@ ${targetText}
 1. 오직 가공/변환된 결과 텍스트만 그대로 반환할 것.
 2. 불필요한 인사말, 따옴표, 설명이나 부연 텍스트(예: "수정된 텍스트입니다:")는 절대 포함하지 말 것.
 3. 마크다운 서식이 요청된 경우 올바른 마크다운 문법을 적용할 것.`,
-          apiKey: apiKey || undefined,
-          model: 'gemini-2.5-flash',
-          systemInstruction: 'You are an expert Markdown and Text Editor assistant. Output ONLY the edited/transformed text directly. Never output conversational pleasantries, explanations, or meta commentary.'
-        })
+        systemInstruction: 'You are an expert Markdown and Text Editor assistant. Output ONLY the edited/transformed text directly. Never output conversational pleasantries, explanations, or meta commentary.'
       });
 
-      if (!res.ok) {
-        throw new Error(`AI 서버 통신 실패 (HTTP ${res.status})`);
-      }
-
-      const data = await res.json();
-      let reply = data.reply || data.text || '';
       if (!reply.trim()) {
         throw new Error(et.errNoReply);
       }
@@ -1011,6 +1313,10 @@ ${targetText}
       }
 
       const trimmedReply = reply.trim();
+      if (isDirectTextCall) {
+        return trimmedReply;
+      }
+
       const nextVal = val.slice(0, replaceStart) + trimmedReply + val.slice(replaceEnd);
       setLocalValue(nextVal);
       debouncedOnChange(nextVal);
@@ -1027,7 +1333,7 @@ ${targetText}
     } finally {
       setIsAiTextLoading(false);
     }
-  }, [localValue, debouncedOnChange, refToUse, updateEditorBubbleContext, et]);
+  }, [executeAiTask, localValue, debouncedOnChange, refToUse, updateEditorBubbleContext, et]);
 
   const handleCleanText = useCallback(() => {
     const textarea = refToUse.current;
@@ -1866,6 +2172,21 @@ ${targetText}
           onChange(newMd);
         }}
         onFocus={onFocus}
+        onSelectionChange={(sel) => {
+          if (sel && sel.text.trim()) {
+            onSelectionChange?.({
+              text: sel.text,
+              startOffset: sel.from,
+              endOffset: sel.to,
+              mode: 'wysiwyg',
+              updatedAt: Date.now()
+            });
+          } else {
+            onSelectionChange?.(null);
+          }
+        }}
+        onAiEditText={(prompt, targetText) => handleAiTextEdit(prompt, targetText)}
+        isAiLoading={isAiTextLoading}
         placeholder={placeholder}
         fontSize={fontSize}
       />
@@ -1887,13 +2208,29 @@ ${targetText}
     }
 
     return (
-      <VirtualizedMarkdownPreview
-        id="markdown-preview"
-        content={localValue}
-        renderMarkdownToHtml={renderMarkdownToHtml}
-        fontSize={fontSize}
-        isSplitMode={false}
-      />
+      <div
+        className="w-full h-full"
+        onMouseUp={() => {
+          const domSel = window.getSelection()?.toString() || '';
+          if (domSel.trim()) {
+            onSelectionChange?.({
+              text: domSel,
+              mode: 'preview',
+              updatedAt: Date.now()
+            });
+          } else {
+            onSelectionChange?.(null);
+          }
+        }}
+      >
+        <VirtualizedMarkdownPreview
+          id="markdown-preview"
+          content={localValue}
+          renderMarkdownToHtml={renderMarkdownToHtml}
+          fontSize={fontSize}
+          isSplitMode={false}
+        />
+      </div>
     );
   }
 
@@ -1973,7 +2310,7 @@ ${targetText}
               onApplyFormat={handleApplyTextFormat}
               onCleanText={handleCleanText}
               onClose={handleCloseTextBubble}
-              onAiEditText={handleAiTextEdit}
+              onAiEditText={(prompt) => handleAiTextEdit(prompt).then((r) => r !== false)}
               isAiLoading={isAiTextLoading}
             />
           )}
@@ -2011,15 +2348,29 @@ ${targetText}
               sandbox="allow-scripts allow-modals"
             />
           ) : (
-            <VirtualizedMarkdownPreview
-              id="markdown-preview-split"
-              ref={previewContainerRef}
-              content={localValue}
-              renderMarkdownToHtml={renderMarkdownToHtml}
-              fontSize={fontSize}
-              isSplitMode={true}
-              className="flex-1 w-full"
-            />
+            <div
+              className="flex-1 w-full min-h-0 flex flex-col"
+              onMouseUp={() => {
+                const domSel = window.getSelection()?.toString() || '';
+                if (domSel.trim()) {
+                  onSelectionChange?.({
+                    text: domSel,
+                    mode: 'split',
+                    updatedAt: Date.now()
+                  });
+                }
+              }}
+            >
+              <VirtualizedMarkdownPreview
+                id="markdown-preview-split"
+                ref={previewContainerRef}
+                content={localValue}
+                renderMarkdownToHtml={renderMarkdownToHtml}
+                fontSize={fontSize}
+                isSplitMode={true}
+                className="flex-1 w-full"
+              />
+            </div>
           )}
         </div>
 
@@ -2106,7 +2457,7 @@ ${targetText}
             onApplyFormat={handleApplyTextFormat}
             onCleanText={handleCleanText}
             onClose={handleCloseTextBubble}
-            onAiEditText={handleAiTextEdit}
+            onAiEditText={(prompt) => handleAiTextEdit(prompt).then((r) => r !== false)}
             isAiLoading={isAiTextLoading}
           />
         )}

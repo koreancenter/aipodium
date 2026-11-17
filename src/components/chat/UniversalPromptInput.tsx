@@ -23,9 +23,10 @@ import {
   FileText,
   Languages,
   Square,
-  Globe
+  Globe,
+  Quote
 } from 'lucide-react';
-import type { ChatAttachment, GhostWriterLevel, MentionItem } from '../../types';
+import type { ChatAttachment, GhostWriterLevel, MentionItem, EditorSelectionContext } from '../../types';
 import { InlineModelSelector } from '../InlineModelSelector';
 import { LinkAttachmentInput } from '../LinkAttachmentInput';
 import { useTranslation } from '../../context/LanguageContext';
@@ -39,6 +40,8 @@ export interface UniversalPromptInputProps {
   onAddFiles?: (files: FileList | File[]) => void;
   onSendMessage: (overrideText?: string, meta?: any) => void;
   isAiLoading: boolean;
+  editorSelection?: EditorSelectionContext | null;
+  onClearEditorSelection?: () => void;
 
   // Workspace Mentions
   allMentionItems?: MentionItem[];
@@ -92,6 +95,8 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
   onAddFiles,
   onSendMessage,
   isAiLoading,
+  editorSelection,
+  onClearEditorSelection,
   allMentionItems = [],
   selectedModel,
   onSelectModel,
@@ -142,6 +147,11 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
   const [mentionStartIndex, setMentionStartIndex] = useState(-1);
   const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
   const [mentionFilterType, setMentionFilterType] = useState<'all' | 'file' | 'folder'>('all');
+  const [isSelectionExpanded, setIsSelectionExpanded] = useState(false);
+
+  useEffect(() => {
+    setIsSelectionExpanded(false);
+  }, [editorSelection?.updatedAt]);
 
   // Bidirectional Math.max height synchronization for dual-pane Ghost Writer
   const [koreanHeight, setKoreanHeight] = useState<number>(72);
@@ -399,6 +409,59 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Active Editor Selection Context Bar */}
+      {editorSelection?.text?.trim() && (
+        <div
+          id="editor-selection-context-bar"
+          className="flex flex-col gap-1 px-3 py-1.5 bg-[#0c0c0e] border-b border-[#222226] border-l-2 border-l-[#6366f1] text-[0.6875rem] select-none"
+        >
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={() => setIsSelectionExpanded((prev) => !prev)}
+              className="flex items-center gap-1.5 min-w-0 flex-1 text-left hover:text-white transition-colors cursor-pointer"
+            >
+              <Quote className="w-3 h-3 text-[#6366f1] shrink-0" />
+              <span className="font-medium text-indigo-300 shrink-0">{t.selectionContextLabel}</span>
+              {editorSelection.fileName && (
+                <span className="text-[0.625rem] font-mono text-slate-400 truncate max-w-[120px] bg-[#121214] border border-[#222226] px-1.5 py-0.2 rounded-xs shrink-0">
+                  {editorSelection.fileName}
+                </span>
+              )}
+              <span className="text-[0.625rem] font-mono text-slate-500 shrink-0">
+                {t.selectionChars(editorSelection.text.trim().length)}
+              </span>
+              {!isSelectionExpanded && (
+                <span className="text-slate-400 truncate flex-1 font-sans">
+                  {editorSelection.text.trim().replace(/\s+/g, ' ')}
+                </span>
+              )}
+            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[0.625rem] text-slate-500 hidden sm:inline">
+                {t.selectionIncluded}
+              </span>
+              {onClearEditorSelection && (
+                <button
+                  type="button"
+                  onClick={onClearEditorSelection}
+                  className="text-slate-400 hover:text-rose-400 p-0.5 rounded-xs hover:bg-[#18181b] transition cursor-pointer"
+                  title={t.clearSelectionContext}
+                  aria-label={t.clearSelectionContext}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          </div>
+          {isSelectionExpanded && (
+            <div className="max-h-24 overflow-y-auto custom-scrollbar bg-[#121214] border border-[#222226] rounded-xs px-2 py-1 text-[0.6875rem] text-slate-300 whitespace-pre-wrap break-words font-sans leading-relaxed select-text">
+              {editorSelection.text.trim()}
+            </div>
+          )}
         </div>
       )}
 

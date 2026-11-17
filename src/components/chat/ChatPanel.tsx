@@ -17,9 +17,10 @@ import {
   Globe,
   Loader2,
   ChevronRight,
-  MessageSquare
+  MessageSquare,
+  Quote
 } from 'lucide-react';
-import type { ChatMessage, ChatAttachment, GhostWriterLevel, MentionItem } from '../../types';
+import type { ChatMessage, ChatAttachment, GhostWriterLevel, MentionItem, EditorSelectionContext } from '../../types';
 import { AiMessageBubble } from '../AiMessageBubble';
 import { WebLlmBanner } from '../WebLlmBanner';
 import { UniversalPromptInput } from './UniversalPromptInput';
@@ -98,6 +99,8 @@ export interface ChatPanelProps {
   onAddAttachment: (att: ChatAttachment) => void;
   onAddFiles?: (files: FileList | File[]) => void;
   onSendMessage: (overrideText?: string, meta?: any) => void;
+  editorSelection?: EditorSelectionContext | null;
+  onClearEditorSelection?: () => void;
 
   // Message Actions
   onSendToEditor: (text: string) => void;
@@ -187,6 +190,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   onAddAttachment,
   onAddFiles,
   onSendMessage,
+  editorSelection,
+  onClearEditorSelection,
   onSendToEditor,
   onDiff,
   onActionChipClick,
@@ -476,6 +481,23 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                           </div>
                         )}
 
+                        {msg.selectionContext?.text && (
+                          <div className="bg-[#121214] border border-[#222226] border-l-2 border-l-[#6366f1] rounded-xs px-2.5 py-1.5 text-[0.6875rem] text-slate-300 space-y-1">
+                            <div className="flex items-center gap-1.5 text-[0.625rem] text-indigo-300 font-medium">
+                              <Quote className="w-3 h-3 text-[#6366f1] shrink-0" />
+                              <span>{t.selectionContextLabel}</span>
+                              {msg.selectionContext.fileName && (
+                                <span className="font-mono text-slate-400 truncate max-w-[160px]">
+                                  {msg.selectionContext.fileName}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-slate-300/90 whitespace-pre-wrap line-clamp-3 font-sans leading-snug">
+                              {msg.selectionContext.text}
+                            </div>
+                          </div>
+                        )}
+
                         <div className="whitespace-pre-wrap font-sans space-y-1 select-text cursor-text selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)]">
                           {renderFormattedMessageText(msg.text)}
                         </div>
@@ -528,6 +550,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         onAddFiles={onAddFiles}
         onSendMessage={onSendMessage}
         isAiLoading={isAiLoading}
+        editorSelection={editorSelection}
+        onClearEditorSelection={onClearEditorSelection}
         allMentionItems={allMentionItems}
         selectedModel={selectedModel}
         onSelectModel={onSelectModel}

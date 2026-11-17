@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, forwardRef, useImperativeHandle, memo } from 'react';
+import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle, memo } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Table } from '@tiptap/extension-table';
@@ -19,6 +19,7 @@ import { renderMarkdownToHtml } from '../../utils/markdownParser';
 import { sanitizeHtml } from '../../utils/securitySanitizer';
 import { useLanguage } from '../../context/LanguageContext';
 import { getEditorTranslations } from '../../locales/editorLocale';
+import { TextFloatingBubbleMenu, TextFormatAction } from '../TextFloatingBubbleMenu';
 
 export interface TiptapWysiwygEditorRef {
   executeCommand: (formatType: string) => void;
@@ -42,6 +43,9 @@ export interface TiptapWysiwygEditorProps {
   value: string;
   onChange: (markdown: string) => void;
   onFocus?: () => void;
+  onSelectionChange?: (selection: { text: string; from?: number; to?: number } | null) => void;
+  onAiEditText?: (prompt: string, targetText: string) => Promise<string | boolean>;
+  isAiLoading?: boolean;
   placeholder?: string;
   className?: string;
   fontSize?: number;
@@ -62,14 +66,91 @@ const getInitialContent = (md: string): string => {
 
 export const TiptapWysiwygEditor = memo(
   forwardRef<TiptapWysiwygEditorRef, TiptapWysiwygEditorProps>(
-    ({ value, onChange, onFocus, placeholder, className, fontSize }, ref) => {
+    ({ value, onChange, onFocus, onSelectionChange, onAiEditText, isAiLoading = false, placeholder, className, fontSize }, ref) => {
       const { language } = useLanguage();
       const tt = getEditorTranslations(language).tiptap;
       const ttRef = useRef(tt);
       ttRef.current = tt;
+      const onChangeRef = useRef(onChange);
+      onChangeRef.current = onChange;
+      const onFocusRef = useRef(onFocus);
+      onFocusRef.current = onFocus;
+      const onSelectionChangeRef = useRef(onSelectionChange);
+      onSelectionChangeRef.current = onSelectionChange;
+      const onAiEditTextRef = useRef(onAiEditText);
+      onAiEditTextRef.current = onAiEditText;
+
       const isInternalUpdateRef = useRef(false);
+      const containerRef = useRef<HTMLDivElement>(null);
+      const scrollContainerRef = useRef<HTMLDivElement>(null);
+      const selectionRangeRef = useRef<{ from: number; to: number; text: string } | null>(null);
+      const lastDismissedRangeRef = useRef<{ from: number; to: number } | null>(null);
+      const isDismissedRef = useRef(false);
+
+      const [selectedText, setSelectedText] = useState('');
+      const [hasSelection, setHasSelection] = useState(false);
+      const [bubblePos, setBubblePos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+      const [isBubbleVisible, setIsBubbleVisible] = useState(false);
+      const [isLocalAiLoading, setIsLocalAiLoading] = useState(false);
+
+      const updateSelectionContext = useCallback((currentEditor: any) => {
+        if (!currentEditor) return;
+        const { from, to, empty } = currentEditor.state.selection;
+        const text = empty ? '' : currentEditor.state.doc.textBetween(from, to, '\n');
+
+        if (empty || !text.trim()) {
+          setIsBubbleVisible(false);
+          setHasSelection(false);
+          setSelectedText('');
+          if (currentEditor.isFocused) {
+            selectionRangeRef.current = null;
+            onSelectionChangeRef.current?.(null);
+          }
+          return;
+        }
+
+        selectionRangeRef.current = { from, to, text };
+        setSelectedText(text);
+        setHasSelection(true);
+        onSelectionChangeRef.current?.({ text, from, to });
+
+        if (currentEditor.isActive('table')) {
+          setIsBubbleVisible(false);
+          return;
+        }
+
+        if (
+          isDismissedRef.current &&
+          lastDismissedRangeRef.current &&
+          lastDismissedRangeRef.current.from === from &&
+          lastDismissedRangeRef.current.to === to
+        ) {
+          setIsBubbleVisible(false);
+          return;
+        }
+        isDismissedRef.current = false;
+        lastDismissedRangeRef.current = null;
+
+        const containerEl = containerRef.current;
+        if (containerEl && currentEditor.view) {
+          try {
+            const containerRect = containerEl.getBoundingClientRect();
+            const startCoords = currentEditor.view.coordsAtPos(from);
+            const endCoords = currentEditor.view.coordsAtPos(to);
+            const rawTop = startCoords.top - containerRect.top - 44;
+            const top = rawTop < 6 ? Math.max(6, endCoords.bottom - containerRect.top + 8) : rawTop;
+            const midX = (startCoords.left + endCoords.right) / 2 - containerRect.left;
+            const left = Math.max(8, midX - 230);
+            setBubblePos({ top, left });
+            setIsBubbleVisible(true);
+          } catch {
+            setIsBubbleVisible(false);
+          }
+        }
+      }, []);
 
       const editor = useEditor({
+        immediatelyRender: false,
         extensions: [
           StarterKit.configure({
             heading: {
@@ -130,7 +211,7 @@ export const TiptapWysiwygEditor = memo(
           isInternalUpdateRef.current = true;
           try {
             const md = (currentEditor.storage as any).markdown?.getMarkdown() ?? '';
-            onChange(md);
+            onChangeRef.current(md);
           } catch (err) {
             console.error('Failed to get markdown from Tiptap:', err);
           }
@@ -138,8 +219,22 @@ export const TiptapWysiwygEditor = memo(
             isInternalUpdateRef.current = false;
           }, 30);
         },
-        onFocus: () => {
-          onFocus?.();
+        onSelectionUpdate: ({ editor: currentEditor }) => {
+          updateSelectionContext(currentEditor);
+        },
+        onFocus: ({ editor: currentEditor }) => {
+          onFocusRef.current?.();
+          updateSelectionContext(currentEditor);
+        },
+        onBlur: () => {
+          setTimeout(() => {
+            const activeEl = document.activeElement;
+            const textMenu = document.getElementById('text-floating-bubble-menu');
+            if (textMenu?.contains(activeEl)) {
+              return;
+            }
+            setIsBubbleVisible(false);
+          }, 220);
         }
       });
 
@@ -308,6 +403,126 @@ export const TiptapWysiwygEditor = memo(
         }
       }, [value, editor]);
 
+      const handleCloseBubble = useCallback(() => {
+        if (editor) {
+          const { from, to } = editor.state.selection;
+          lastDismissedRangeRef.current = { from, to };
+        }
+        isDismissedRef.current = true;
+        setIsBubbleVisible(false);
+      }, [editor]);
+
+      const handleBubbleApplyFormat = useCallback(
+        (formatType: TextFormatAction) => {
+          if (!editor) return;
+          switch (formatType) {
+            case 'h1':
+              editor.chain().focus().toggleHeading({ level: 1 }).run();
+              break;
+            case 'h2':
+              editor.chain().focus().toggleHeading({ level: 2 }).run();
+              break;
+            case 'h3':
+              editor.chain().focus().toggleHeading({ level: 3 }).run();
+              break;
+            case 'bold':
+              editor.chain().focus().toggleBold().run();
+              break;
+            case 'italic':
+              editor.chain().focus().toggleItalic().run();
+              break;
+            case 'strikethrough':
+              editor.chain().focus().toggleStrike().run();
+              break;
+            case 'code':
+              editor.chain().focus().toggleCode().run();
+              break;
+            case 'codeblock':
+              editor.chain().focus().toggleCodeBlock().run();
+              break;
+            case 'bullet':
+              editor.chain().focus().toggleBulletList().run();
+              break;
+            case 'number':
+              editor.chain().focus().toggleOrderedList().run();
+              break;
+            case 'task':
+              editor.chain().focus().toggleTaskList().run();
+              break;
+            case 'quote':
+              editor.chain().focus().toggleBlockquote().run();
+              break;
+            case 'link': {
+              const { from, to } = editor.state.selection;
+              const text = editor.state.doc.textBetween(from, to, ' ');
+              editor.chain().focus().insertContent(`[${text || ttRef.current.linkText}](https://)`).run();
+              break;
+            }
+            default:
+              break;
+          }
+        },
+        [editor]
+      );
+
+      const handleBubbleAiEdit = useCallback(
+        async (prompt: string) => {
+          if (!editor || !onAiEditTextRef.current) return false;
+          const saved = selectionRangeRef.current;
+          const { from, to } = saved || editor.state.selection;
+          const targetText = saved?.text || editor.state.doc.textBetween(from, to, '\n') || selectedText;
+          if (!targetText.trim()) return false;
+
+          setIsLocalAiLoading(true);
+          try {
+            const result = await onAiEditTextRef.current(prompt, targetText);
+            if (typeof result === 'string' && result.trim()) {
+              const edited = result.trim();
+              const isRichMarkdown =
+                /\n|^#{1,6}\s|^[-*+]\s|^\d+\.\s|^>\s|```|\|.+\|/m.test(edited);
+              const contentToInsert = isRichMarkdown
+                ? sanitizeHtml(renderMarkdownToHtml(edited))
+                : edited;
+
+              isInternalUpdateRef.current = true;
+              editor
+                .chain()
+                .focus()
+                .insertContentAt({ from, to }, contentToInsert)
+                .run();
+
+              try {
+                const md = (editor.storage as any).markdown?.getMarkdown() ?? '';
+                onChangeRef.current(md);
+              } catch (err) {
+                console.error('Failed to sync markdown after inline AI edit:', err);
+              }
+              setTimeout(() => {
+                isInternalUpdateRef.current = false;
+              }, 60);
+
+              setIsBubbleVisible(false);
+              return true;
+            }
+            return result !== false;
+          } finally {
+            setIsLocalAiLoading(false);
+          }
+        },
+        [editor, selectedText]
+      );
+
+      const handleEditorScroll = useCallback(() => {
+        const activeEl = document.activeElement;
+        const textMenu = document.getElementById('text-floating-bubble-menu');
+        if (textMenu?.contains(activeEl)) {
+          return;
+        }
+        if (editor) {
+          updateSelectionContext(editor);
+        }
+      }, [editor, updateSelectionContext]);
+
       if (!editor) {
         return (
           <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">
@@ -320,6 +535,7 @@ export const TiptapWysiwygEditor = memo(
 
       return (
         <div
+          ref={containerRef}
           style={{ background: 'var(--bg-editor)' }}
           className={`relative w-full h-full flex flex-col ${className || ''}`}
         >
@@ -387,8 +603,25 @@ export const TiptapWysiwygEditor = memo(
             </div>
           )}
 
+          {/* Floating Inline General Text & AI Edit Bubble Menu */}
+          {!isTableActive && isBubbleVisible && hasSelection && onAiEditText && (
+            <TextFloatingBubbleMenu
+              position={bubblePos}
+              selectedText={selectedText}
+              hasSelection={hasSelection}
+              onApplyFormat={handleBubbleApplyFormat}
+              onClose={handleCloseBubble}
+              onAiEditText={handleBubbleAiEdit}
+              isAiLoading={isAiLoading || isLocalAiLoading}
+            />
+          )}
+
           {/* Main Document Body (Clean, Full Viewport) */}
-          <div className="flex-1 w-full overflow-y-auto custom-scrollbar">
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleEditorScroll}
+            className="flex-1 w-full overflow-y-auto custom-scrollbar"
+          >
             <div
               className="max-w-3xl mx-auto px-8 py-10 min-h-full"
               style={{ fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 12px)' }}

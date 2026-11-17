@@ -31,6 +31,7 @@ import { FreeformDrawingOverlay } from './FreeformDrawingOverlay';
 import { TableGridPicker } from './TableGridPicker';
 import { TiptapWysiwygEditorRef } from './TiptapWysiwygEditor';
 import { renderMarkdownToHtml as defaultRenderMarkdownToHtml } from '../../utils/markdownParser';
+import type { EditorSelectionContext } from '../../types';
 
 export interface UnifiedEditorRef {
   applyFormat: (action: string) => void;
@@ -54,6 +55,7 @@ export interface UnifiedEditorProps {
   placeholder?: string;
   renderMarkdownToHtml?: (md: string) => string;
   onFocus?: () => void;
+  onSelectionChange?: (selection: EditorSelectionContext | null) => void;
   editorRef?: React.RefObject<HTMLTextAreaElement | null>;
   tiptapRef?: React.Ref<TiptapWysiwygEditorRef>;
   ref?: React.Ref<UnifiedEditorRef>;
@@ -69,6 +71,13 @@ export interface UnifiedEditorProps {
   className?: string;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
+
+  // AI Settings props for client-side direct AI features
+  activeProvider?: 'cloud' | 'local-pc' | 'local-server' | 'webllm';
+  localEndpoint?: string;
+  selectedModel?: string;
+  cloudApiKey?: string;
+  apiKeys?: Record<string, string>;
 }
 
 export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
@@ -87,6 +96,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
     placeholder = et.defaultPlaceholder,
     renderMarkdownToHtml = defaultRenderMarkdownToHtml,
     onFocus,
+    onSelectionChange,
     editorRef,
     tiptapRef,
     ref,
@@ -102,6 +112,11 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
     className = '',
     isFullscreen = false,
     onToggleFullscreen,
+    activeProvider,
+    localEndpoint,
+    selectedModel,
+    cloudApiKey,
+    apiKeys,
   } = props;
   const [internalMode, setInternalMode] = useState<string>(mode || 'wysiwyg');
   const [internalDrawingOpen, setInternalDrawingOpen] = useState<boolean>(isDrawingOpen);
@@ -777,12 +792,18 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
           onFocus?.();
           handleCursorActivity();
         }}
+        onSelectionChange={onSelectionChange}
         editorRef={activeEditorRef}
         tiptapRef={handleTiptapRef}
         placeholder={placeholder}
         editorTab={mappedEditorTab}
         renderMarkdownToHtml={renderMarkdownToHtml}
         fontSize={fontSize}
+        activeProvider={activeProvider}
+        localEndpoint={localEndpoint}
+        selectedModel={selectedModel}
+        cloudApiKey={cloudApiKey}
+        apiKeys={apiKeys}
       />
 
       {/* Freeform Drawing Canvas Overlay encapsulated within editor layer */}

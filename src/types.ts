@@ -26,6 +26,15 @@ export interface ChatActionButton {
   payload?: string;
 }
 
+export interface EditorSelectionContext {
+  text: string;
+  fileName?: string;
+  mode?: 'wysiwyg' | 'edit' | 'split' | 'preview';
+  startOffset?: number;
+  endOffset?: number;
+  updatedAt: number;
+}
+
 export interface ChatMessage {
   id: string;
   sender: 'user' | 'ai';
@@ -33,6 +42,10 @@ export interface ChatMessage {
   timestamp: string;
   model?: string;
   attachments?: ChatAttachment[];
+  selectionContext?: {
+    text: string;
+    fileName?: string;
+  };
   translatedText?: string;
   originalText?: string;
   ghostWriterLevel?: string;

@@ -113,7 +113,8 @@ import type {
   MentionItem,
   GhostWriterLevel,
   MenuType,
-  AiRoleModels
+  AiRoleModels,
+  EditorSelectionContext
 } from './types';
 import { DEFAULT_AI_ROLE_MODELS } from './types';
 import { useToast } from './hooks/useToast';
@@ -2570,6 +2571,18 @@ export default function App() {
   const tiptapEditorRef = useRef<TiptapWysiwygEditorRef>(null);
   const unifiedEditorRef = useRef<UnifiedEditorRef>(null);
   const lastActiveTextTargetRef = useRef<'editor' | 'chat'>('chat');
+  const [editorSelection, setEditorSelection] = useState<EditorSelectionContext | null>(null);
+
+  useEffect(() => {
+    setEditorSelection(null);
+  }, [currentActiveFile, activeSessionId]);
+
+  const handleEditorSelectionChange = useCallback(
+    (sel: EditorSelectionContext | null) => {
+      setEditorSelection(sel ? { ...sel, fileName: currentActiveFile || fileName } : null);
+    },
+    [currentActiveFile, fileName]
+  );
 
   // Resolved list of prompt templates for top menu instant injection
   const effectivePrompts: PromptTemplate[] = useMemo(() => {
@@ -7934,11 +7947,15 @@ ${projectEvents
     const userMessageText = (overrideText !== undefined ? overrideText : chatInput).trim();
     if (!userMessageText && chatAttachments.length === 0) return;
 
-    // Snapshot current attachments
+    // Snapshot current attachments & editor selection context
     const attachedFiles = [...chatAttachments];
+    const activeEditorSelection = editorSelection?.text?.trim() ? editorSelection : null;
 
-    // Inject Attached File Content into the Outgoing AI Prompt
+    // Inject Attached File Content & Selected Editor Text into the Outgoing AI Prompt
     let finalPrompt = userMessageText;
+    if (activeEditorSelection) {
+      finalPrompt = `${finalPrompt}\n\n[Selected Editor Text${activeEditorSelection.fileName ? ` (${activeEditorSelection.fileName})` : ''}]:\n"""\n${activeEditorSelection.text.trim()}\n"""`;
+    }
     if (attachedFiles.length > 0) {
       const contextBlock = attachedFiles
         .map((file) => {
@@ -7958,6 +7975,9 @@ ${projectEvents
       text: userMessageText || (attachedFiles.length > 0 ? `[첨부 파일: ${attachedFiles.map((a) => a.name).join(', ')}]` : ''),
       timestamp: userTimestamp,
       attachments: attachedFiles.length > 0 ? [...attachedFiles] : undefined,
+      selectionContext: activeEditorSelection
+        ? { text: activeEditorSelection.text.trim(), fileName: activeEditorSelection.fileName }
+        : undefined,
       originalText: meta?.originalText,
       translatedText: meta?.translatedText,
       ghostWriterLevel: meta?.ghostWriterLevel,
@@ -9292,6 +9312,8 @@ ${projectEvents
               onAddAttachment={(att) => setChatAttachments((prev) => [...prev, att])}
               onAddFiles={(files) => processFiles(files)}
               onSendMessage={handleSendMessage}
+              editorSelection={editorSelection}
+              onClearEditorSelection={() => setEditorSelection(null)}
               onSendToEditor={(text: string) => {
                 handleSendToEditor(text);
                 if (isMobile) setMobileTab('editor');
@@ -9760,6 +9782,7 @@ ${projectEvents
                             lastActiveTextTargetRef.current = 'editor';
                             if (hasUnreadAiChanges) setHasUnreadAiChanges(false);
                           }}
+                          onSelectionChange={handleEditorSelectionChange}
                           editorRef={editorRef}
                           tiptapRef={tiptapEditorRef}
                           placeholder="# 마크다운 노트&#10;&#10;AI 답변의 [에디터로 내용 전송] 또는 직접 작성..."
@@ -9782,6 +9805,11 @@ ${projectEvents
                             }
                           }}
                           onToast={showToast}
+                          activeProvider={selectedModel === WEB_LLM_MODEL_ID ? 'webllm' : (provider === 'local-pc' || provider === 'local-server' ? 'local-pc' : 'cloud')}
+                          localEndpoint={localEndpointAddress}
+                          selectedModel={selectedModel}
+                          cloudApiKey={cloudApiKey}
+                          apiKeys={apiKeys}
                         />
                       )}
                     </React.Suspense>
