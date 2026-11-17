@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { renderMarkdownToHtml } from '../../utils/markdownParser';
 import { sanitizeHtml } from '../../utils/securitySanitizer';
+import { extractChangedMarkdownSpan } from '../../utils/rewriteHistory';
 import { useLanguage } from '../../context/LanguageContext';
 import { getEditorTranslations } from '../../locales/editorLocale';
 import { TextFloatingBubbleMenu, TextFormatAction } from '../TextFloatingBubbleMenu';
@@ -45,6 +46,13 @@ export interface TiptapWysiwygEditorProps {
   onFocus?: () => void;
   onSelectionChange?: (selection: { text: string; from?: number; to?: number } | null) => void;
   onAiEditText?: (prompt: string, targetText: string) => Promise<string | boolean>;
+  onAiEditApplied?: (info: {
+    prompt: string;
+    originalText: string;
+    rewrittenText: string;
+    startOffset?: number;
+    endOffset?: number;
+  }) => void;
   isAiLoading?: boolean;
   placeholder?: string;
   className?: string;
@@ -66,7 +74,7 @@ const getInitialContent = (md: string): string => {
 
 export const TiptapWysiwygEditor = memo(
   forwardRef<TiptapWysiwygEditorRef, TiptapWysiwygEditorProps>(
-    ({ value, onChange, onFocus, onSelectionChange, onAiEditText, isAiLoading = false, placeholder, className, fontSize }, ref) => {
+    ({ value, onChange, onFocus, onSelectionChange, onAiEditText, onAiEditApplied, isAiLoading = false, placeholder, className, fontSize }, ref) => {
       const { language } = useLanguage();
       const tt = getEditorTranslations(language).tiptap;
       const ttRef = useRef(tt);
@@ -79,6 +87,8 @@ export const TiptapWysiwygEditor = memo(
       onSelectionChangeRef.current = onSelectionChange;
       const onAiEditTextRef = useRef(onAiEditText);
       onAiEditTextRef.current = onAiEditText;
+      const onAiEditAppliedRef = useRef(onAiEditApplied);
+      onAiEditAppliedRef.current = onAiEditApplied;
 
       const isInternalUpdateRef = useRef(false);
       const containerRef = useRef<HTMLDivElement>(null);
@@ -484,6 +494,8 @@ export const TiptapWysiwygEditor = memo(
                 ? sanitizeHtml(renderMarkdownToHtml(edited))
                 : edited;
 
+              const beforeMd = (editor.storage as any).markdown?.getMarkdown() ?? value ?? '';
+
               isInternalUpdateRef.current = true;
               editor
                 .chain()
@@ -494,6 +506,16 @@ export const TiptapWysiwygEditor = memo(
               try {
                 const md = (editor.storage as any).markdown?.getMarkdown() ?? '';
                 onChangeRef.current(md);
+                const span = extractChangedMarkdownSpan(beforeMd, md, targetText, edited);
+                if (span.originalText && span.rewrittenText && span.originalText !== span.rewrittenText) {
+                  onAiEditAppliedRef.current?.({
+                    prompt,
+                    originalText: span.originalText,
+                    rewrittenText: span.rewrittenText,
+                    startOffset: span.startOffset,
+                    endOffset: span.endOffset,
+                  });
+                }
               } catch (err) {
                 console.error('Failed to sync markdown after inline AI edit:', err);
               }

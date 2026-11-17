@@ -114,7 +114,9 @@ import type {
   GhostWriterLevel,
   MenuType,
   AiRoleModels,
-  EditorSelectionContext
+  EditorSelectionContext,
+  RewriteHistoryMetadata,
+  SessionRewriteHistoryItem
 } from './types';
 import { DEFAULT_AI_ROLE_MODELS } from './types';
 import { useToast } from './hooks/useToast';
@@ -123,8 +125,12 @@ import { useProjectEvents } from './hooks/useProjectEvents';
 import { useAutoLock } from './hooks/useAutoLock';
 import { useAuth } from './context/AuthContext';
 import { useLanguage, useTranslation } from './context/LanguageContext';
+import { useOptionalEditorEventBus, useEditorEventSubscription } from './context/EditorEventBusContext';
 import { detectBrowserLanguage, LanguagePreference, AppLanguage } from './locales/language';
+import { getCoreTranslations } from './locales/coreLocale';
+import { getEditorTranslations } from './locales/editorLocale';
 import { translateMessage } from './locales/appMessages';
+import { replaceTextSegment, finalizeRewriteHistory } from './utils/rewriteHistory';
 import {
   encryptWithVaultKey,
   decryptWithVaultKey,
@@ -2577,12 +2583,149 @@ export default function App() {
     setEditorSelection(null);
   }, [currentActiveFile, activeSessionId]);
 
+  const editorEventBus = useOptionalEditorEventBus();
+
   const handleEditorSelectionChange = useCallback(
     (sel: EditorSelectionContext | null) => {
-      setEditorSelection(sel ? { ...sel, fileName: currentActiveFile || fileName } : null);
+      const normalized = sel ? { ...sel, fileName: currentActiveFile || fileName } : null;
+      setEditorSelection(normalized);
     },
     [currentActiveFile, fileName]
   );
+
+  const lastRewriteEventRef = useRef<number>(0);
+  const handleRewriteWithAi = useCallback(
+    (selection?: EditorSelectionContext | null) => {
+      const now = Date.now();
+      if (now - lastRewriteEventRef.current < 80) return;
+      lastRewriteEventRef.current = now;
+
+      const activeSel = selection?.text?.trim() ? selection : editorSelection;
+      if (!activeSel?.text?.trim()) return;
+
+      if (!isLeftPanelVisible) {
+        toggleLeftPanel(true);
+      }
+      if (isMobile) {
+        setMobileTab('chat');
+      }
+
+      const populatedSelection: EditorSelectionContext = {
+        ...activeSel,
+        text: activeSel.text.trim(),
+        fileName: activeSel.fileName || currentActiveFile || fileName,
+        autoExpand: true,
+        intent: 'rewrite',
+        updatedAt: now,
+      };
+      setEditorSelection(populatedSelection);
+
+      const rewritePrompt = getEditorTranslations(language).rewritePrompt;
+      setChatInput((prev) => {
+        const trimmedPrev = prev.trim();
+        if (!trimmedPrev || trimmedPrev === rewritePrompt) {
+          return rewritePrompt;
+        }
+        return `${rewritePrompt}\n\n${prev}`;
+      });
+
+      lastActiveTextTargetRef.current = 'chat';
+      setTimeout(() => {
+        if (chatInputRef.current) {
+          chatInputRef.current.focus();
+          const len = chatInputRef.current.value.length;
+          chatInputRef.current.setSelectionRange(len, len);
+        }
+      }, 100);
+    },
+    [
+      editorSelection,
+      isLeftPanelVisible,
+      toggleLeftPanel,
+      isMobile,
+      currentActiveFile,
+      fileName,
+      language,
+    ]
+  );
+
+  useEditorEventSubscription('editor:rewrite-with-ai', (sel) => {
+    handleRewriteWithAi(sel);
+  });
+
+  useEditorEventSubscription('chat:open-panel', (opts) => {
+    if (!isLeftPanelVisible) {
+      toggleLeftPanel(true);
+    }
+    if (isMobile) {
+      setMobileTab('chat');
+    }
+    if (opts?.focusInput) {
+      lastActiveTextTargetRef.current = 'chat';
+      setTimeout(() => {
+        chatInputRef.current?.focus();
+      }, 100);
+    }
+  });
+
+  useEditorEventSubscription('editor:pin-anchor', () => {
+    if (!isLeftPanelVisible) {
+      toggleLeftPanel(true);
+    }
+    if (isMobile) {
+      setMobileTab('chat');
+    }
+    showToast(getCoreTranslations(language).chat.pinnedAnchorAdded, 'success');
+  });
+
+  useEditorEventSubscription('editor:rewrite-applied', (payload) => {
+    if (!payload?.originalText?.trim() || !payload?.rewrittenText?.trim()) return;
+    const now = payload.createdAt || Date.now();
+    const targetFile = payload.fileName || currentActiveFile || fileName;
+    const itemId =
+      payload.id || `rw-inline-${now}-${Math.random().toString(36).slice(2, 6)}`;
+    const timestamp = new Date(now).toLocaleTimeString('ko-KR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const newItem: SessionRewriteHistoryItem = {
+      id: itemId,
+      sessionId: activeSessionId,
+      source: 'inline',
+      prompt: payload.prompt,
+      originalText: payload.originalText.trim(),
+      rewrittenText: payload.rewrittenText.trim(),
+      lastAppliedText: payload.rewrittenText.trim(),
+      fileName: targetFile,
+      startOffset: payload.startOffset,
+      endOffset: payload.endOffset,
+      appliedCount: 1,
+      createdAt: now,
+      timestamp,
+      model: selectedModel,
+    };
+
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.id === activeSessionId
+          ? {
+              ...s,
+              rewriteHistory: [newItem, ...(s.rewriteHistory || [])].slice(0, 50),
+            }
+          : s
+      )
+    );
+  });
+
+  useEffect(() => {
+    const onRewriteEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<EditorSelectionContext | undefined>;
+      handleRewriteWithAi(customEvent.detail);
+    };
+    window.addEventListener('aipodium:rewrite_with_ai', onRewriteEvent);
+    return () => window.removeEventListener('aipodium:rewrite_with_ai', onRewriteEvent);
+  }, [handleRewriteWithAi]);
 
   // Resolved list of prompt templates for top menu instant injection
   const effectivePrompts: PromptTemplate[] = useMemo(() => {
@@ -3526,6 +3669,220 @@ export default function App() {
     });
     setHasUnreadAiChanges(true);
   };
+
+  const handleApplyRewriteSegment = useCallback(
+    (itemId: string, rewrittenText: string) => {
+      const chatT = getCoreTranslations(language).chat;
+      const targetMsg = messages.find((m) => m.id === itemId);
+      const inlineItem = activeSession?.rewriteHistory?.find((item) => item.id === itemId);
+      const history = targetMsg?.rewriteHistory || inlineItem;
+      if (!history) return;
+
+      const targetFile = history.fileName || currentActiveFile;
+      const docContent =
+        targetFile === currentActiveFile
+          ? editorContent
+          : files[targetFile] ?? editorContent;
+
+      const { updated, replaced, matchStart, matchEnd } = replaceTextSegment(
+        docContent,
+        [history.lastAppliedText, history.originalText],
+        rewrittenText.trim(),
+        history.startOffset,
+        history.endOffset
+      );
+
+      if (!replaced) {
+        showToast(chatT.rewriteSegmentNotFoundToast, 'warn');
+        return;
+      }
+
+      if (targetFile) {
+        setFiles((prev) => ({ ...prev, [targetFile]: updated }));
+      }
+      if (targetFile === currentActiveFile || !targetFile) {
+        setEditorContent(updated);
+      } else {
+        setCurrentActiveFile(targetFile);
+        setFileName(targetFile);
+        setEditorContent(updated);
+      }
+
+      const appliedTrimmed = rewrittenText.trim();
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === activeSessionId
+            ? {
+                ...s,
+                editorContent: targetFile === currentActiveFile || !targetFile ? updated : s.editorContent,
+                messages: targetMsg
+                  ? s.messages.map((m) =>
+                      m.id === itemId && m.rewriteHistory
+                        ? {
+                            ...m,
+                            rewriteHistory: {
+                              ...m.rewriteHistory,
+                              rewrittenText: appliedTrimmed,
+                              lastAppliedText: appliedTrimmed,
+                              appliedCount: (m.rewriteHistory.appliedCount || 0) + 1,
+                              startOffset: matchStart ?? m.rewriteHistory.startOffset,
+                              endOffset: matchEnd ?? m.rewriteHistory.endOffset,
+                              revertedAt: undefined,
+                            },
+                          }
+                        : m
+                    )
+                  : s.messages,
+                rewriteHistory: inlineItem
+                  ? (s.rewriteHistory || []).map((item) =>
+                      item.id === itemId
+                        ? {
+                            ...item,
+                            rewrittenText: appliedTrimmed,
+                            lastAppliedText: appliedTrimmed,
+                            appliedCount: (item.appliedCount || 0) + 1,
+                            startOffset: matchStart ?? item.startOffset,
+                            endOffset: matchEnd ?? item.endOffset,
+                            revertedAt: undefined,
+                          }
+                        : item
+                    )
+                  : s.rewriteHistory,
+              }
+            : s
+        )
+      );
+
+      showToast(chatT.rewriteAppliedToast, 'success');
+    },
+    [messages, activeSession, currentActiveFile, editorContent, files, activeSessionId, language, showToast]
+  );
+
+  const handleRevertRewriteSegment = useCallback(
+    (itemId: string, previousText?: string) => {
+      const chatT = getCoreTranslations(language).chat;
+      const targetMsg = messages.find((m) => m.id === itemId);
+      const inlineItem = activeSession?.rewriteHistory?.find((item) => item.id === itemId);
+      const history = targetMsg?.rewriteHistory || inlineItem;
+      if (!history) return;
+
+      const restoreTarget = (previousText ?? history.originalText).trim();
+      if (!restoreTarget) return;
+
+      const targetFile = history.fileName || currentActiveFile;
+      const docContent =
+        targetFile === currentActiveFile
+          ? editorContent
+          : files[targetFile] ?? editorContent;
+
+      const { updated, replaced, matchStart, matchEnd } = replaceTextSegment(
+        docContent,
+        [history.lastAppliedText, history.rewrittenText, targetMsg?.text],
+        restoreTarget,
+        history.startOffset,
+        history.endOffset
+      );
+
+      if (!replaced) {
+        if (docContent.includes(restoreTarget)) {
+          const revertedAt = Date.now();
+          setSessions((prev) =>
+            prev.map((s) =>
+              s.id === activeSessionId
+                ? {
+                    ...s,
+                    messages: targetMsg
+                      ? s.messages.map((m) =>
+                          m.id === itemId && m.rewriteHistory
+                            ? {
+                                ...m,
+                                rewriteHistory: {
+                                  ...m.rewriteHistory,
+                                  lastAppliedText: restoreTarget,
+                                  revertedAt,
+                                },
+                              }
+                            : m
+                        )
+                      : s.messages,
+                    rewriteHistory: inlineItem
+                      ? (s.rewriteHistory || []).map((item) =>
+                          item.id === itemId
+                            ? {
+                                ...item,
+                                lastAppliedText: restoreTarget,
+                                revertedAt,
+                              }
+                            : item
+                        )
+                      : s.rewriteHistory,
+                  }
+                : s
+            )
+          );
+          showToast(chatT.rewriteAlreadyOriginalToast, 'info');
+          return;
+        }
+        showToast(chatT.rewriteSegmentNotFoundToast, 'warn');
+        return;
+      }
+
+      if (targetFile) {
+        setFiles((prev) => ({ ...prev, [targetFile]: updated }));
+      }
+      if (targetFile === currentActiveFile || !targetFile) {
+        setEditorContent(updated);
+      } else {
+        setCurrentActiveFile(targetFile);
+        setFileName(targetFile);
+        setEditorContent(updated);
+      }
+
+      const revertedAt = Date.now();
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === activeSessionId
+            ? {
+                ...s,
+                editorContent: targetFile === currentActiveFile || !targetFile ? updated : s.editorContent,
+                messages: targetMsg
+                  ? s.messages.map((m) =>
+                      m.id === itemId && m.rewriteHistory
+                        ? {
+                            ...m,
+                            rewriteHistory: {
+                              ...m.rewriteHistory,
+                              lastAppliedText: restoreTarget,
+                              startOffset: matchStart ?? m.rewriteHistory.startOffset,
+                              endOffset: matchEnd ?? m.rewriteHistory.endOffset,
+                              revertedAt,
+                            },
+                          }
+                        : m
+                    )
+                  : s.messages,
+                rewriteHistory: inlineItem
+                  ? (s.rewriteHistory || []).map((item) =>
+                      item.id === itemId
+                        ? {
+                            ...item,
+                            lastAppliedText: restoreTarget,
+                            startOffset: matchStart ?? item.startOffset,
+                            endOffset: matchEnd ?? item.endOffset,
+                            revertedAt,
+                          }
+                        : item
+                    )
+                  : s.rewriteHistory,
+              }
+            : s
+        )
+      );
+
+      showToast(chatT.rewriteRevertedToast, 'success');
+    },
+    [messages, activeSession, currentActiveFile, editorContent, files, activeSessionId, language, showToast]
+  );
 
   // REQUIREMENT 3: Save to File Logic
   const handleSaveToFile = () => {
@@ -7648,6 +8005,8 @@ ${projectEvents
       originalText?: string;
       translatedText?: string;
       ghostWriterLevel?: string;
+      selectionContext?: EditorSelectionContext;
+      rewriteHistory?: RewriteHistoryMetadata;
     },
     attachedFiles?: ChatAttachment[],
     overrideSessionId?: string
@@ -7661,6 +8020,9 @@ ${projectEvents
       text: queryText || (filesToAttach.length > 0 ? `[첨부 파일: ${filesToAttach.map((a) => a.name).join(', ')}]` : ''),
       timestamp: userTimestamp,
       attachments: filesToAttach.length > 0 ? [...filesToAttach] : undefined,
+      selectionContext: meta?.selectionContext
+        ? { text: meta.selectionContext.text.trim(), fileName: meta.selectionContext.fileName }
+        : undefined,
       originalText: meta?.originalText,
       translatedText: meta?.translatedText,
       ghostWriterLevel: meta?.ghostWriterLevel,
@@ -7703,6 +8065,7 @@ ${projectEvents
         timestamp: aiTimestamp,
         isStreaming: true,
         actionButtons: responseData.actionButtons,
+        rewriteHistory: meta?.rewriteHistory,
       };
 
       setSessions((prev) =>
@@ -7784,6 +8147,11 @@ ${projectEvents
                       ...m,
                       text: responseData.text,
                       isStreaming: false,
+                      rewriteHistory: finalizeRewriteHistory(
+                        m.rewriteHistory,
+                        responseData.text,
+                        getCoreTranslations(language).chat.rewriteResultLabel
+                      ),
                     };
                   }),
                 };
@@ -7937,6 +8305,7 @@ ${projectEvents
       originalText?: string;
       translatedText?: string;
       ghostWriterLevel?: string;
+      selectionContext?: EditorSelectionContext;
     }
   ) => {
     if (chatAttachments.some((a) => a.isParsing)) {
@@ -7949,10 +8318,24 @@ ${projectEvents
 
     // Snapshot current attachments & editor selection context
     const attachedFiles = [...chatAttachments];
-    const activeEditorSelection = editorSelection?.text?.trim() ? editorSelection : null;
+    const activeEditorSelection =
+      (meta?.selectionContext?.text?.trim() ? meta.selectionContext : null) ||
+      (editorSelection?.text?.trim() ? editorSelection : null);
 
-    // Inject Attached File Content & Selected Editor Text into the Outgoing AI Prompt
+    // Inject Attached File Content, Pinned Reference Anchors, & Selected Editor Text into the Outgoing AI Prompt
     let finalPrompt = userMessageText;
+    const pinnedList = (editorEventBus?.pinnedAnchors || []).filter(
+      (anchor) => anchor.text.trim() && anchor.text.trim() !== activeEditorSelection?.text?.trim()
+    );
+    if (pinnedList.length > 0) {
+      const anchorBlock = pinnedList
+        .map(
+          (anchor, idx) =>
+            `[Pinned Reference #${idx + 1}${anchor.fileName ? ` (${anchor.fileName})` : ''}]:\n"""\n${anchor.text.trim()}\n"""`
+        )
+        .join('\n\n');
+      finalPrompt = `${finalPrompt}\n\n${anchorBlock}`;
+    }
     if (activeEditorSelection) {
       finalPrompt = `${finalPrompt}\n\n[Selected Editor Text${activeEditorSelection.fileName ? ` (${activeEditorSelection.fileName})` : ''}]:\n"""\n${activeEditorSelection.text.trim()}\n"""`;
     }
@@ -7969,6 +8352,31 @@ ${projectEvents
     }
 
     const userTimestamp = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    const isRewriteFlow = Boolean(
+      activeEditorSelection?.text?.trim() &&
+        (activeEditorSelection.intent === 'rewrite' ||
+          userMessageText === getEditorTranslations(language).rewritePrompt)
+    );
+    const initialRewriteHistory: RewriteHistoryMetadata | undefined =
+      isRewriteFlow && activeEditorSelection
+        ? {
+            originalText: activeEditorSelection.text.trim(),
+            fileName: activeEditorSelection.fileName || currentActiveFile || fileName,
+            startOffset: activeEditorSelection.startOffset,
+            endOffset: activeEditorSelection.endOffset,
+            appliedCount: 0,
+            versions: [
+              {
+                id: `ver-orig-${Date.now()}`,
+                label: getCoreTranslations(language).chat.rewriteOriginalLabel,
+                text: activeEditorSelection.text.trim(),
+                createdAt: Date.now(),
+                isOriginal: true,
+              },
+            ],
+          }
+        : undefined;
+
     const userMsg: ChatMessage = {
       id: `msg-user-${Date.now()}`,
       sender: 'user',
@@ -7978,6 +8386,7 @@ ${projectEvents
       selectionContext: activeEditorSelection
         ? { text: activeEditorSelection.text.trim(), fileName: activeEditorSelection.fileName }
         : undefined,
+      rewriteHistory: initialRewriteHistory,
       originalText: meta?.originalText,
       translatedText: meta?.translatedText,
       ghostWriterLevel: meta?.ghostWriterLevel,
@@ -8105,7 +8514,17 @@ ${projectEvents
 
     // Route to Onboarding Interactive Guide Bot for guest users without API keys or Ollama
     if (isOnboardingMode) {
-      executeOnboardingSimulation(userMessageText, undefined, meta, attachedFiles, targetSessionId);
+      executeOnboardingSimulation(
+        userMessageText,
+        undefined,
+        {
+          ...meta,
+          selectionContext: activeEditorSelection || meta?.selectionContext,
+          rewriteHistory: initialRewriteHistory,
+        },
+        attachedFiles,
+        targetSessionId
+      );
       setChatInput('');
       resetChatInputHeight();
       setChatAttachments([]);
@@ -8173,6 +8592,7 @@ ${projectEvents
           text: '',
           timestamp: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
           isStreaming: true,
+          rewriteHistory: initialRewriteHistory,
         }
       };
     });
@@ -8281,6 +8701,11 @@ ${projectEvents
                       isStreaming: false,
                       tokens: finalMeta?.tokens ?? m.tokens,
                       groundingSources: finalMeta?.groundingSources ?? m.groundingSources,
+                      rewriteHistory: finalizeRewriteHistory(
+                        m.rewriteHistory,
+                        currentText,
+                        getCoreTranslations(language).chat.rewriteResultLabel
+                      ),
                     };
                   }),
                 };
@@ -9314,10 +9739,16 @@ ${projectEvents
               onSendMessage={handleSendMessage}
               editorSelection={editorSelection}
               onClearEditorSelection={() => setEditorSelection(null)}
+              pinnedAnchors={editorEventBus?.pinnedAnchors}
+              onUnpinAnchor={editorEventBus?.unpinAnchor}
+              onClearPinnedAnchors={editorEventBus?.clearPinnedAnchors}
               onSendToEditor={(text: string) => {
                 handleSendToEditor(text);
                 if (isMobile) setMobileTab('editor');
               }}
+              sessionRewriteHistory={activeSession?.rewriteHistory}
+              onApplyRewrite={handleApplyRewriteSegment}
+              onRevertRewrite={handleRevertRewriteSegment}
               onDiff={(text, model) => {
                 setDiffModalData({
                   isOpen: true,
@@ -9783,6 +10214,9 @@ ${projectEvents
                             if (hasUnreadAiChanges) setHasUnreadAiChanges(false);
                           }}
                           onSelectionChange={handleEditorSelectionChange}
+                          editorSelection={editorSelection}
+                          onRewriteWithAi={handleRewriteWithAi}
+                          isAiLoading={isAiLoading}
                           editorRef={editorRef}
                           tiptapRef={tiptapEditorRef}
                           placeholder="# 마크다운 노트&#10;&#10;AI 답변의 [에디터로 내용 전송] 또는 직접 작성..."

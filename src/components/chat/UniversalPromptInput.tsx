@@ -150,8 +150,18 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
   const [isSelectionExpanded, setIsSelectionExpanded] = useState(false);
 
   useEffect(() => {
-    setIsSelectionExpanded(false);
-  }, [editorSelection?.updatedAt]);
+    const shouldExpand = Boolean(editorSelection?.autoExpand);
+    setIsSelectionExpanded(shouldExpand);
+    if (shouldExpand && chatInputRef.current) {
+      requestAnimationFrame(() => {
+        if (chatInputRef.current) {
+          chatInputRef.current.focus();
+          const len = chatInputRef.current.value.length;
+          chatInputRef.current.setSelectionRange(len, len);
+        }
+      });
+    }
+  }, [editorSelection?.updatedAt, editorSelection?.autoExpand, chatInputRef]);
 
   // Bidirectional Math.max height synchronization for dual-pane Ghost Writer
   const [koreanHeight, setKoreanHeight] = useState<number>(72);

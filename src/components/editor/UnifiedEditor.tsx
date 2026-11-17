@@ -22,15 +22,19 @@ import {
   Table as TableIcon,
   PenTool,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Sparkles,
+  Pin
 } from 'lucide-react';
 import { OptimizedEditor } from './OptimizedEditor';
 import { useLanguage } from '../../context/LanguageContext';
+import { useOptionalEditorEventBus } from '../../context/EditorEventBusContext';
 import { getEditorTranslations } from '../../locales/editorLocale';
 import { FreeformDrawingOverlay } from './FreeformDrawingOverlay';
 import { TableGridPicker } from './TableGridPicker';
 import { TiptapWysiwygEditorRef } from './TiptapWysiwygEditor';
 import { renderMarkdownToHtml as defaultRenderMarkdownToHtml } from '../../utils/markdownParser';
+import { getTextareaSelectionCoordinates } from '../../utils/caretCoordinates';
 import type { EditorSelectionContext } from '../../types';
 
 export interface UnifiedEditorRef {
@@ -56,6 +60,10 @@ export interface UnifiedEditorProps {
   renderMarkdownToHtml?: (md: string) => string;
   onFocus?: () => void;
   onSelectionChange?: (selection: EditorSelectionContext | null) => void;
+  editorSelection?: EditorSelectionContext | null;
+  onRewriteWithAi?: (selection: EditorSelectionContext) => void;
+  onPinToChat?: (selection: EditorSelectionContext) => void;
+  isAiLoading?: boolean;
   editorRef?: React.RefObject<HTMLTextAreaElement | null>;
   tiptapRef?: React.Ref<TiptapWysiwygEditorRef>;
   ref?: React.Ref<UnifiedEditorRef>;
@@ -83,6 +91,7 @@ export interface UnifiedEditorProps {
 export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
   const { language } = useLanguage();
   const et = getEditorTranslations(language);
+  const eventBus = useOptionalEditorEventBus();
   const {
     value,
     onChange,
@@ -97,6 +106,10 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
     renderMarkdownToHtml = defaultRenderMarkdownToHtml,
     onFocus,
     onSelectionChange,
+    editorSelection,
+    onRewriteWithAi,
+    onPinToChat,
+    isAiLoading = false,
     editorRef,
     tiptapRef,
     ref,
@@ -123,8 +136,118 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
   const [internalFullscreen, setInternalFullscreen] = useState<boolean>(isFullscreen);
   const internalEditorRef = useRef<HTMLTextAreaElement | null>(null);
   const internalTiptapRef = useRef<TiptapWysiwygEditorRef | null>(null);
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
+  const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
+
+  const [localSelection, setLocalSelection] = useState<EditorSelectionContext | null>(null);
+  const [rewriteBtnPos, setRewriteBtnPos] = useState<{ top: number; left: number } | null>(null);
+  const [isRewriteDismissed, setIsRewriteDismissed] = useState(false);
 
   const activeEditorRef = editorRef || internalEditorRef;
+  const activeSelection = editorSelection !== undefined ? editorSelection : localSelection;
+
+  const computeRewriteButtonPosition = useCallback(
+    (sel: EditorSelectionContext | null, pointerX?: number, pointerY?: number) => {
+      const container = editorContainerRef.current;
+      if (!container || !sel || !sel.text.trim()) {
+        setRewriteBtnPos(null);
+        return;
+      }
+
+      const containerRect = container.getBoundingClientRect();
+      const maxLeft = Math.max(12, container.clientWidth - 240);
+      const minTop = 40;
+      const maxTop = Math.max(44, container.clientHeight - 36);
+
+      // 1. Markdown / Split textarea selection coordinates
+      const textarea = activeEditorRef.current;
+      const isTextareaSelection =
+        (internalMode === 'markdown' || internalMode === 'edit' || internalMode === 'split') &&
+        sel.mode !== 'wysiwyg' &&
+        sel.mode !== 'preview' &&
+        (sel.mode !== 'split' || typeof sel.startOffset === 'number');
+      if (
+        textarea &&
+        isTextareaSelection &&
+        (textarea.selectionEnd > textarea.selectionStart || typeof sel.startOffset === 'number')
+      ) {
+        const start = textarea.selectionEnd > textarea.selectionStart ? textarea.selectionStart : (sel.startOffset ?? 0);
+        const end = textarea.selectionEnd > textarea.selectionStart ? textarea.selectionEnd : (sel.endOffset ?? start);
+        if (end > start) {
+          const textareaRect = textarea.getBoundingClientRect();
+          const coords = getTextareaSelectionCoordinates(textarea, start, end);
+          const relBottom = textareaRect.top - containerRect.top + coords.bottom;
+          const relTop = textareaRect.top - containerRect.top + coords.top;
+          const relLeft = textareaRect.left - containerRect.left + coords.left;
+          // Offset below bubble menu if selection is at the top edge and bubble flips below
+          const verticalOffset = relTop - 36 < 44 ? 46 : 8;
+          setRewriteBtnPos({
+            top: Math.max(minTop, Math.min(maxTop, relBottom + verticalOffset)),
+            left: Math.max(12, Math.min(maxLeft, relLeft))
+          });
+          return;
+        }
+      }
+
+      // 2. TipTap WYSIWYG / Preview / Split Preview DOM Range coordinates
+      if (typeof window !== 'undefined') {
+        const domSel = window.getSelection();
+        if (domSel && domSel.rangeCount > 0 && !domSel.getRangeAt(0).collapsed) {
+          const range = domSel.getRangeAt(0);
+          if (container.contains(range.commonAncestorContainer)) {
+            const clientRects = range.getClientRects();
+            const targetRect = clientRects.length > 0 ? clientRects[clientRects.length - 1] : range.getBoundingClientRect();
+            if (targetRect && (targetRect.width > 0 || targetRect.height > 0)) {
+              const relBottom = targetRect.bottom - containerRect.top;
+              const relTop = targetRect.top - containerRect.top;
+              const relRight = targetRect.right - containerRect.left;
+              const verticalOffset = relTop - 36 < 44 && internalMode === 'wysiwyg' ? 46 : 8;
+              setRewriteBtnPos({
+                top: Math.max(minTop, Math.min(maxTop, relBottom + verticalOffset)),
+                left: Math.max(12, Math.min(maxLeft, relRight - 24))
+              });
+              return;
+            }
+          }
+        }
+      }
+
+      // 3. Fallback to recorded mouse pointer coordinates near the cursor
+      const px = pointerX ?? lastPointerRef.current?.x;
+      const py = pointerY ?? lastPointerRef.current?.y;
+      if (typeof px === 'number' && typeof py === 'number') {
+        setRewriteBtnPos({
+          top: Math.max(minTop, Math.min(maxTop, py - containerRect.top + 12)),
+          left: Math.max(12, Math.min(maxLeft, px - containerRect.left))
+        });
+      }
+    },
+    [activeEditorRef, internalMode]
+  );
+
+  const handleSelectionUpdate = useCallback(
+    (sel: EditorSelectionContext | null) => {
+      setLocalSelection(sel);
+      setIsRewriteDismissed(false);
+      eventBus?.publishSelection(sel);
+      onSelectionChange?.(sel);
+      if (sel && sel.text.trim()) {
+        computeRewriteButtonPosition(sel);
+      } else {
+        setRewriteBtnPos(null);
+      }
+    },
+    [onSelectionChange, computeRewriteButtonPosition, eventBus]
+  );
+
+  useEffect(() => {
+    setIsRewriteDismissed(false);
+    if (activeSelection?.text?.trim()) {
+      computeRewriteButtonPosition(activeSelection);
+    } else {
+      setRewriteBtnPos(null);
+    }
+  }, [activeSelection?.text, activeSelection?.updatedAt, computeRewriteButtonPosition]);
 
   // Sync internal drawing state with incoming props
   useEffect(() => {
@@ -542,12 +665,14 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
     [value, onChange, onToast, onCloseDrawing, et]
   );
 
-  // Global Ctrl+S handler when inside editor
+  // Global Ctrl+S and Escape handler when inside editor
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         onSave?.(value);
+      } else if (e.key === 'Escape') {
+        setIsRewriteDismissed(true);
       }
     },
     [onSave, value]
@@ -555,6 +680,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
 
   return (
     <div
+      ref={editorContainerRef}
       className={`${
         activeFullscreen
           ? 'fixed inset-0 z-50 bg-[#09090b] flex flex-col'
@@ -562,7 +688,18 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
       } ${className}`}
       style={{ '--editor-font-size': `${fontSize}px` } as React.CSSProperties}
       onKeyDown={handleKeyDown}
-      onKeyUp={handleCursorActivity}
+      onKeyUp={() => {
+        handleCursorActivity();
+        if (activeSelection?.text?.trim()) {
+          computeRewriteButtonPosition(activeSelection);
+        }
+      }}
+      onMouseUp={(e) => {
+        lastPointerRef.current = { x: e.clientX, y: e.clientY };
+        if (activeSelection?.text?.trim()) {
+          computeRewriteButtonPosition(activeSelection, e.clientX, e.clientY);
+        }
+      }}
       onClick={handleCursorActivity}
     >
       {/* Top Toolbar: Clean single-row horizontal toolbar above editor canvas */}
@@ -792,7 +929,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
           onFocus?.();
           handleCursorActivity();
         }}
-        onSelectionChange={onSelectionChange}
+        onSelectionChange={handleSelectionUpdate}
         editorRef={activeEditorRef}
         tiptapRef={handleTiptapRef}
         placeholder={placeholder}
@@ -805,6 +942,67 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
         cloudApiKey={cloudApiKey}
         apiKeys={apiKeys}
       />
+
+      {/* Floating Cursor-Near Selection Quick Actions ('Rewrite with AI' + 'Pin to Chat') */}
+      {activeSelection?.text?.trim() && rewriteBtnPos && !isRewriteDismissed && (
+        <div
+          id="unified-editor-selection-actions"
+          style={{
+            top: `${rewriteBtnPos.top}px`,
+            left: `${rewriteBtnPos.left}px`
+          }}
+          className="absolute z-40 flex items-center gap-1 select-none"
+        >
+          <button
+            id="unified-editor-rewrite-ai-btn"
+            type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onClick={() => {
+              if (!activeSelection?.text?.trim()) return;
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(
+                  new CustomEvent('aipodium:rewrite_with_ai', {
+                    detail: activeSelection,
+                  })
+                );
+              }
+              eventBus?.triggerRewriteWithAi(activeSelection);
+              onRewriteWithAi?.(activeSelection);
+              setIsRewriteDismissed(true);
+            }}
+            title={et.rewriteWithAiTitle}
+            aria-label={et.rewriteWithAi}
+            className="h-7 px-2.5 rounded-xs bg-[#121214] hover:bg-[#18181b] border border-[#6366f1]/70 hover:border-[#6366f1] text-indigo-200 hover:text-white text-[0.6875rem] font-medium flex items-center gap-1.5 shadow-lg transition-colors cursor-pointer select-none whitespace-nowrap"
+          >
+            <Sparkles className="w-3 h-3 text-[#6366f1] shrink-0" />
+            <span>{et.rewriteWithAi}</span>
+          </button>
+
+          <button
+            id="unified-editor-pin-anchor-btn"
+            type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onClick={() => {
+              if (!activeSelection?.text?.trim()) return;
+              eventBus?.pinSelection(activeSelection);
+              onPinToChat?.(activeSelection);
+              setIsRewriteDismissed(true);
+            }}
+            title={et.pinToChatTitle}
+            aria-label={et.pinToChat}
+            className="h-7 px-2.5 rounded-xs bg-[#121214] hover:bg-[#18181b] border border-[#222226] hover:border-[#6366f1]/70 text-zinc-200 hover:text-white text-[0.6875rem] font-medium flex items-center gap-1.5 shadow-lg transition-colors cursor-pointer select-none whitespace-nowrap"
+          >
+            <Pin className="w-3 h-3 text-[#6366f1] shrink-0" />
+            <span>{et.pinToChat}</span>
+          </button>
+        </div>
+      )}
 
       {/* Freeform Drawing Canvas Overlay encapsulated within editor layer */}
       {activeDrawing && (

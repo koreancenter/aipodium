@@ -4,6 +4,7 @@ import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { AuthProvider } from './context/AuthContext.tsx';
 import { LanguageProvider } from './context/LanguageContext.tsx';
+import { EditorEventBusProvider } from './context/EditorEventBusContext.tsx';
 import './index.css';
 
 // Global error handlers for resilience
@@ -51,7 +52,9 @@ createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <AuthProvider>
         <LanguageProvider>
-          <App />
+          <EditorEventBusProvider>
+            <App />
+          </EditorEventBusProvider>
         </LanguageProvider>
       </AuthProvider>
     </ErrorBoundary>

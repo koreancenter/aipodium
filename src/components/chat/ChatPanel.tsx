@@ -6,7 +6,7 @@
  * - Bottom-Flush UniversalPromptInput
  */
 
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   User,
@@ -18,9 +18,24 @@ import {
   Loader2,
   ChevronRight,
   MessageSquare,
-  Quote
+  Quote,
+  Pin,
+  X,
+  History,
+  RotateCcw,
+  Check,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
-import type { ChatMessage, ChatAttachment, GhostWriterLevel, MentionItem, EditorSelectionContext } from '../../types';
+import type {
+  ChatMessage,
+  ChatAttachment,
+  GhostWriterLevel,
+  MentionItem,
+  EditorSelectionContext,
+  PinnedReferenceAnchor,
+  SessionRewriteHistoryItem,
+} from '../../types';
 import { AiMessageBubble } from '../AiMessageBubble';
 import { WebLlmBanner } from '../WebLlmBanner';
 import { UniversalPromptInput } from './UniversalPromptInput';
@@ -28,6 +43,8 @@ import { AIThinkingIndicator } from './AIThinkingIndicator';
 import { WEB_LLM_MODEL_ID, WEB_LLM_MODEL_DISPLAY_NAME } from '../../utils/webllmService';
 
 import { useTranslation } from '../../context/LanguageContext';
+import { useOptionalEditorEventBus } from '../../context/EditorEventBusContext';
+import { buildSessionRewriteHistoryItems } from '../../utils/rewriteHistory';
 
 export interface ChatActivityRailProps {
   onOpen: () => void;
@@ -101,10 +118,16 @@ export interface ChatPanelProps {
   onSendMessage: (overrideText?: string, meta?: any) => void;
   editorSelection?: EditorSelectionContext | null;
   onClearEditorSelection?: () => void;
+  pinnedAnchors?: PinnedReferenceAnchor[];
+  onUnpinAnchor?: (id: string) => void;
+  onClearPinnedAnchors?: () => void;
 
-  // Message Actions
+  // Message & Rewrite History Actions
   onSendToEditor: (text: string) => void;
   onDiff: (text: string, model?: string) => void;
+  sessionRewriteHistory?: SessionRewriteHistoryItem[];
+  onApplyRewrite?: (historyOrMsgId: string, rewrittenText: string) => void;
+  onRevertRewrite?: (historyOrMsgId: string, previousText?: string) => void;
   onActionChipClick?: (chipType: string) => void;
   onOpenSettings?: (tab?: string) => void;
   onTranslate?: (msgId: string, text: string) => Promise<string> | void;
@@ -194,6 +217,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   onClearEditorSelection,
   onSendToEditor,
   onDiff,
+  sessionRewriteHistory,
+  onApplyRewrite,
+  onRevertRewrite,
   onActionChipClick,
   onOpenSettings,
   onTranslate,
@@ -236,15 +262,57 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   onSetGhostShowFullAnswer,
   chatInputRef,
   onInputFocus,
+  pinnedAnchors: propPinnedAnchors,
+  onUnpinAnchor: propOnUnpinAnchor,
+  onClearPinnedAnchors: propOnClearPinnedAnchors,
   className = '',
   isCollapsed = false,
   onToggleCollapse,
 }) => {
-  const { t: dict } = useTranslation();
+  const { t: dict, language } = useTranslation();
   const t = dict.core.chat;
+  const eventBus = useOptionalEditorEventBus();
+  const pinnedAnchors = propPinnedAnchors ?? eventBus?.pinnedAnchors ?? [];
+  const handleUnpinAnchor = propOnUnpinAnchor ?? eventBus?.unpinAnchor;
+  const handleClearPinnedAnchors = propOnClearPinnedAnchors ?? eventBus?.clearPinnedAnchors;
+  const [expandedAnchorIds, setExpandedAnchorIds] = useState<Record<string, boolean>>({});
+  const rewriteHistoryItems = useMemo(
+    () => buildSessionRewriteHistoryItems(messages, sessionRewriteHistory, activeSessionId),
+    [messages, sessionRewriteHistory, activeSessionId]
+  );
+  const [isRewriteHistoryOpen, setIsRewriteHistoryOpen] = useState<boolean>(
+    () => rewriteHistoryItems.length > 0
+  );
+  const [expandedHistoryIds, setExpandedHistoryIds] = useState<Record<string, boolean>>({});
+  const prevHistoryMetaRef = useRef<{ sessionId: string; count: number }>({
+    sessionId: activeSessionId,
+    count: rewriteHistoryItems.length,
+  });
+
+  useEffect(() => {
+    const prev = prevHistoryMetaRef.current;
+    if (prev.sessionId !== activeSessionId) {
+      setIsRewriteHistoryOpen(rewriteHistoryItems.length > 0);
+      setExpandedHistoryIds({});
+    } else if (rewriteHistoryItems.length > prev.count) {
+      setIsRewriteHistoryOpen(true);
+    }
+    prevHistoryMetaRef.current = {
+      sessionId: activeSessionId,
+      count: rewriteHistoryItems.length,
+    };
+  }, [activeSessionId, rewriteHistoryItems.length]);
+
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const isUserScrolledUpRef = useRef<boolean>(false);
   const [isScrolledUp, setIsScrolledUp] = useState<boolean>(false);
+
+  const scrollToThreadMessage = useCallback((msgId: string) => {
+    const el = document.getElementById(`chat-msg-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
 
   // Smart Auto scroll chat: locks to bottom during generation, releases if user scrolls up
   const handleChatScroll = useCallback(() => {
@@ -290,6 +358,269 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     <div className={`flex-1 flex flex-col min-w-0 bg-transparent relative overflow-hidden h-full ${className}`}>
       {/* Top Header: Rendered only when explicit header is provided */}
       {header !== undefined ? header : null}
+
+      {/* Pinned Reference Anchors Docked at Top of Chat Panel */}
+      {pinnedAnchors.length > 0 && (
+        <div
+          id="chat-pinned-anchors"
+          className="shrink-0 bg-[#0c0c0e] border-b border-[#222226] px-3 py-2 flex flex-col gap-1.5 select-none z-10"
+        >
+          <div className="flex items-center justify-between gap-2 text-[0.6875rem]">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Pin className="w-3 h-3 text-[#6366f1] shrink-0" />
+              <span className="font-medium text-indigo-300 truncate">{t.pinnedAnchorTitle}</span>
+              <span className="text-[0.625rem] font-mono text-zinc-400 bg-[#121214] border border-[#222226] px-1.5 py-0.2 rounded-xs shrink-0">
+                {t.pinnedAnchorCount(pinnedAnchors.length)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[0.625rem] text-zinc-500 hidden sm:inline">{t.pinnedAnchorIncluded}</span>
+              {pinnedAnchors.length > 1 && handleClearPinnedAnchors && (
+                <button
+                  type="button"
+                  onClick={handleClearPinnedAnchors}
+                  className="text-[0.625rem] text-zinc-400 hover:text-rose-400 transition-colors cursor-pointer"
+                >
+                  {t.clearAllPinnedAnchors}
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1 max-h-32 overflow-y-auto custom-scrollbar">
+            {pinnedAnchors.map((anchor) => {
+              const isExpanded = Boolean(expandedAnchorIds[anchor.id]);
+              return (
+                <div
+                  key={anchor.id}
+                  data-pinned-anchor-id={anchor.id}
+                  className="bg-[#121214] border border-[#222226] border-l-2 border-l-[#6366f1] rounded-xs px-2 py-1 flex flex-col gap-1"
+                >
+                  <div className="flex items-center justify-between gap-2 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedAnchorIds((prev) => ({ ...prev, [anchor.id]: !prev[anchor.id] }))
+                      }
+                      className="flex items-center gap-1.5 min-w-0 flex-1 text-left text-[0.6875rem] text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                    >
+                      {anchor.fileName && (
+                        <span className="text-[0.625rem] font-mono text-zinc-400 bg-[#09090b] border border-[#222226] px-1 rounded-xs truncate max-w-[110px] shrink-0">
+                          {anchor.fileName}
+                        </span>
+                      )}
+                      {!isExpanded && (
+                        <span className="truncate text-zinc-300 font-sans">
+                          {anchor.text.replace(/\s+/g, ' ')}
+                        </span>
+                      )}
+                      {isExpanded && (
+                        <span className="text-[0.625rem] font-mono text-indigo-300">
+                          {t.selectionChars(anchor.text.length)}
+                        </span>
+                      )}
+                    </button>
+                    {handleUnpinAnchor && (
+                      <button
+                        type="button"
+                        onClick={() => handleUnpinAnchor(anchor.id)}
+                        className="text-zinc-400 hover:text-rose-400 p-0.5 rounded-xs hover:bg-[#18181b] transition-colors cursor-pointer shrink-0"
+                        title={t.unpinAnchor}
+                        aria-label={t.unpinAnchor}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                  {isExpanded && (
+                    <div className="max-h-20 overflow-y-auto custom-scrollbar text-[0.6875rem] text-zinc-200 whitespace-pre-wrap break-words font-sans leading-relaxed select-text border-t border-[#222226] pt-1">
+                      {anchor.text}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Collapsible Session-Scoped Rewrite with AI History View */}
+      {rewriteHistoryItems.length > 0 && (
+        <div
+          id="chat-rewrite-history"
+          className="shrink-0 bg-[#0c0c0e] border-b border-[#222226] px-3 py-1.5 flex flex-col gap-1.5 select-none z-10"
+        >
+          <div className="flex items-center justify-between gap-2 text-[0.6875rem]">
+            <button
+              type="button"
+              id="chat-rewrite-history-toggle"
+              onClick={() => setIsRewriteHistoryOpen((prev) => !prev)}
+              className="flex items-center gap-1.5 min-w-0 flex-1 text-left hover:text-white transition-colors cursor-pointer"
+            >
+              <History className="w-3 h-3 text-[#6366f1] shrink-0" />
+              <span className="font-medium text-indigo-300 truncate">{t.rewriteHistoryTitle}</span>
+              <span className="text-[0.625rem] font-mono text-zinc-400 bg-[#121214] border border-[#222226] px-1.5 py-0.2 rounded-xs shrink-0">
+                {t.rewriteHistoryCount(rewriteHistoryItems.length)}
+              </span>
+              {isRewriteHistoryOpen ? (
+                <ChevronUp className="w-3 h-3 text-zinc-400 shrink-0" />
+              ) : (
+                <ChevronDown className="w-3 h-3 text-zinc-400 shrink-0" />
+              )}
+            </button>
+
+            {!isRewriteHistoryOpen && onRevertRewrite && !rewriteHistoryItems[0].isStreaming && (
+              <button
+                type="button"
+                data-revert-history-id={rewriteHistoryItems[0].id}
+                onClick={() =>
+                  onRevertRewrite(
+                    rewriteHistoryItems[0].id,
+                    rewriteHistoryItems[0].originalText
+                  )
+                }
+                title={t.revertRewriteAction}
+                aria-label={t.revertRewriteAction}
+                className="h-5 px-1.5 rounded-xs bg-[#121214] hover:bg-[#18181b] border border-[#222226] hover:border-amber-500/60 text-zinc-300 hover:text-amber-200 text-[0.625rem] font-medium flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+              >
+                <RotateCcw className="w-2.5 h-2.5 text-amber-400" />
+                <span>{t.revertShortAction}</span>
+              </button>
+            )}
+          </div>
+
+          {isRewriteHistoryOpen && (
+            <div className="flex flex-col gap-1.5 max-h-44 overflow-y-auto custom-scrollbar pb-0.5">
+              {rewriteHistoryItems.map((item) => {
+                const isExpanded = Boolean(expandedHistoryIds[item.id]);
+                const isReverted = Boolean(item.revertedAt);
+                const isApplied = !isReverted && (item.appliedCount || 0) > 0;
+                return (
+                  <div
+                    key={item.id}
+                    data-history-entry-id={item.id}
+                    data-history-source={item.source}
+                    className="bg-[#121214] border border-[#222226] rounded-xs px-2 py-1.5 flex flex-col gap-1"
+                  >
+                    <div className="flex items-center justify-between gap-2 text-[0.625rem]">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                        <span className="font-mono text-zinc-400 shrink-0">{item.timestamp}</span>
+                        <span className="px-1 rounded-xs bg-[#09090b] border border-[#222226] text-zinc-400 shrink-0">
+                          {item.source === 'inline' ? t.rewriteSourceInline : t.rewriteSourceChat}
+                        </span>
+                        {item.fileName && (
+                          <span className="font-mono text-zinc-400 bg-[#09090b] border border-[#222226] px-1 rounded-xs truncate max-w-[100px]">
+                            {item.fileName}
+                          </span>
+                        )}
+                        <span
+                          className={`px-1 rounded-xs border font-medium shrink-0 ${
+                            isReverted
+                              ? 'border-amber-500/40 text-amber-300'
+                              : isApplied
+                              ? 'border-emerald-500/40 text-emerald-300'
+                              : 'border-[#222226] text-zinc-400'
+                          }`}
+                        >
+                          {isReverted
+                            ? t.rewriteStatusReverted
+                            : isApplied
+                            ? t.rewriteStatusApplied
+                            : t.rewriteStatusReady}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {item.msgId && (
+                          <button
+                            type="button"
+                            onClick={() => scrollToThreadMessage(item.msgId!)}
+                            className="text-indigo-300 hover:text-indigo-200 transition-colors cursor-pointer"
+                          >
+                            {t.jumpToMessage}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedHistoryIds((prev) => ({
+                              ...prev,
+                              [item.id]: !prev[item.id],
+                            }))
+                          }
+                          className="text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+                        >
+                          {t.toggleRewriteCompare}
+                        </button>
+                      </div>
+                    </div>
+
+                    {item.prompt && (
+                      <div className="text-[0.625rem] text-indigo-300/90 truncate font-sans">
+                        {item.prompt}
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedHistoryIds((prev) => ({
+                          ...prev,
+                          [item.id]: !prev[item.id],
+                        }))
+                      }
+                      className="text-left text-[0.6875rem] text-zinc-400 font-sans cursor-pointer hover:text-zinc-200 transition-colors"
+                    >
+                      <div className={isExpanded ? 'whitespace-pre-wrap break-words' : 'truncate'}>
+                        <span className="text-zinc-500 mr-1">{t.rewriteOriginalLabel}:</span>
+                        <span className="text-zinc-300">
+                          {isExpanded ? item.originalText : item.originalText.replace(/\s+/g, ' ')}
+                        </span>
+                      </div>
+                      {isExpanded && item.rewrittenText && (
+                        <div className="mt-1 pt-1 border-t border-[#222226] whitespace-pre-wrap break-words">
+                          <span className="text-indigo-400/90 mr-1">{t.rewriteResultLabel}:</span>
+                          <span className="text-zinc-200">{item.rewrittenText}</span>
+                        </div>
+                      )}
+                    </button>
+
+                    {!item.isStreaming && (
+                      <div className="flex items-center justify-between gap-1.5 flex-wrap pt-0.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {onRevertRewrite && (
+                            <button
+                              type="button"
+                              data-revert-history-id={item.id}
+                              onClick={() => onRevertRewrite(item.id, item.originalText)}
+                              title={t.revertRewriteAction}
+                              aria-label={t.revertRewriteAction}
+                              className="h-5 px-2 rounded-xs bg-[#09090b] hover:bg-[#18181b] border border-[#222226] hover:border-amber-500/60 text-zinc-200 hover:text-amber-200 text-[0.625rem] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <RotateCcw className="w-2.5 h-2.5 text-amber-400" />
+                              <span>{t.revertShortAction}</span>
+                            </button>
+                          )}
+                          {onApplyRewrite && item.rewrittenText && (
+                            <button
+                              type="button"
+                              data-apply-history-id={item.id}
+                              onClick={() => onApplyRewrite(item.id, item.rewrittenText)}
+                              className="h-5 px-1.5 rounded-xs bg-[#09090b] hover:bg-[#18181b] border border-[#6366f1]/50 hover:border-[#6366f1] text-indigo-200 hover:text-white text-[0.625rem] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <Check className="w-2.5 h-2.5 text-[#6366f1]" />
+                              <span>{t.applyRewriteAction}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
 
       {/* Middle Message Viewport & Confined Project Drawer Flex Container */}
@@ -402,30 +733,34 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   )}
                   {messages.map((msg) =>
                   msg.sender === 'ai' ? (
-                    <AiMessageBubble
-                      key={msg.id}
-                      msg={msg}
-                      selectedModel={
-                        selectedModel === WEB_LLM_MODEL_ID
-                          ? WEB_LLM_MODEL_DISPLAY_NAME
-                          : isOnboardingMode
-                          ? t.onboardingAssistant
-                          : selectedModel
-                      }
-                      onCopy={(text) => {
-                        navigator.clipboard.writeText(text);
-                        onToast(t.copySuccess);
-                      }}
-                      onDiff={(text, model) => {
-                        onDiff(text, model);
-                      }}
-                      onSendToEditor={(text) => onSendToEditor(text)}
-                      onActionChipClick={(chipType) => onActionChipClick?.(chipType)}
-                      onOpenSettings={(tab) => onOpenSettings?.(tab)}
-                      onTranslate={onTranslate}
-                    />
+                    <div key={msg.id} id={`chat-msg-${msg.id}`}>
+                      <AiMessageBubble
+                        msg={msg}
+                        language={language}
+                        selectedModel={
+                          selectedModel === WEB_LLM_MODEL_ID
+                            ? WEB_LLM_MODEL_DISPLAY_NAME
+                            : isOnboardingMode
+                            ? t.onboardingAssistant
+                            : selectedModel
+                        }
+                        onCopy={(text) => {
+                          navigator.clipboard.writeText(text);
+                          onToast(t.copySuccess);
+                        }}
+                        onDiff={(text, model) => {
+                          onDiff(text, model);
+                        }}
+                        onSendToEditor={(text) => onSendToEditor(text)}
+                        onApplyRewrite={onApplyRewrite}
+                        onRevertRewrite={onRevertRewrite}
+                        onActionChipClick={(chipType) => onActionChipClick?.(chipType)}
+                        onOpenSettings={(tab) => onOpenSettings?.(tab)}
+                        onTranslate={onTranslate}
+                      />
+                    </div>
                   ) : (
-                    <div key={msg.id} className="flex gap-2.5 items-start select-text justify-end">
+                    <div key={msg.id} id={`chat-msg-${msg.id}`} className="flex gap-2.5 items-start select-text justify-end">
                       <div className="rounded-md p-3 text-xs leading-relaxed space-y-2 select-text cursor-text bg-[#18181f] border border-white/[0.08] text-slate-100 max-w-[85%]">
                         {/* Attachment Rendering */}
                         {msg.attachments && msg.attachments.length > 0 && (

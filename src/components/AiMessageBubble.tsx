@@ -15,19 +15,29 @@ import {
   Languages,
   RotateCw,
   X,
+  History,
+  RotateCcw,
+  Check,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { renderMarkdownToHtml, cleanAiContentText, sanitizeHtml } from '../utils/markdownParser';
 import type { ChatMessage } from '../types';
 import { aiClient } from '../services/aiPodiumIntegration';
 import { AIThinkingIndicator } from './chat/AIThinkingIndicator';
+import { getCoreTranslations } from '../locales/coreLocale';
+import { getActiveLanguage, type AppLanguage } from '../locales/language';
 
 
 interface AiMessageBubbleProps {
   msg: ChatMessage;
   selectedModel: string;
+  language?: AppLanguage;
   onCopy: (text: string) => void;
   onDiff: (text: string, model?: string) => void;
   onSendToEditor: (text: string) => void;
+  onApplyRewrite?: (msgId: string, rewrittenText: string) => void;
+  onRevertRewrite?: (msgId: string, previousText?: string) => void;
   onActionChipClick?: (chipType: 'gemini-key' | 'ollama-guide' | 'demo-knowledge') => void;
   onOpenSettings?: (tab?: 'ai-engine') => void;
   onTranslate?: (msgId: string, text: string) => Promise<string> | void;
@@ -78,19 +88,24 @@ function renderAiMessageHtml(text: string, isStreaming?: boolean): string {
 export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
   msg,
   selectedModel,
+  language,
   onCopy,
   onDiff,
   onSendToEditor,
+  onApplyRewrite,
+  onRevertRewrite,
   onActionChipClick,
   onOpenSettings,
   onTranslate,
 }) => {
+  const chatLabels = getCoreTranslations(language || getActiveLanguage()).chat;
   // Micro Fade-In transition: initial opacity-0 translate-y-1 -> rendered opacity-100 translate-y-0
   const [isMounted, setIsMounted] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [showOnlyTranslation, setShowOnlyTranslation] = useState(false);
   const [isTranslationHidden, setIsTranslationHidden] = useState(false);
   const [localTranslatedText, setLocalTranslatedText] = useState(msg.translatedText || '');
+  const [isRewriteCompareOpen, setIsRewriteCompareOpen] = useState(false);
 
   useEffect(() => {
     if (msg.translatedText) {
@@ -269,6 +284,135 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
           }}
         />
 
+        {/* Inline Rewrite with AI History & Quick Revert Card */}
+        {msg.rewriteHistory && !msg.isStreaming && (
+          <div
+            data-rewrite-history-msg={msg.id}
+            className="mt-2.5 bg-[#0c0c0e] border border-[#222226] border-l-2 border-l-[#6366f1] rounded-xs p-2.5 space-y-2 select-none"
+          >
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <History className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
+                <span className="text-[0.6875rem] font-medium text-indigo-300">
+                  {chatLabels.rewriteHistoryTitle}
+                </span>
+                {msg.rewriteHistory.fileName && (
+                  <span className="text-[0.625rem] font-mono text-zinc-400 bg-[#121214] border border-[#222226] px-1.5 py-0.2 rounded-xs truncate max-w-[140px]">
+                    {msg.rewriteHistory.fileName}
+                  </span>
+                )}
+                <span
+                  className={`text-[0.625rem] px-1.5 py-0.2 rounded-xs border font-medium ${
+                    msg.rewriteHistory.revertedAt
+                      ? 'bg-[#121214] border-amber-500/40 text-amber-300'
+                      : (msg.rewriteHistory.appliedCount || 0) > 0
+                      ? 'bg-[#121214] border-emerald-500/40 text-emerald-300'
+                      : 'bg-[#121214] border-[#222226] text-zinc-400'
+                  }`}
+                >
+                  {msg.rewriteHistory.revertedAt
+                    ? chatLabels.rewriteStatusReverted
+                    : (msg.rewriteHistory.appliedCount || 0) > 0
+                    ? chatLabels.rewriteStatusApplied
+                    : chatLabels.rewriteStatusReady}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsRewriteCompareOpen((prev) => !prev)}
+                className="flex items-center gap-1 text-[0.625rem] text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <span>{chatLabels.toggleRewriteCompare}</span>
+                {isRewriteCompareOpen ? (
+                  <ChevronUp className="w-3 h-3" />
+                ) : (
+                  <ChevronDown className="w-3 h-3" />
+                )}
+              </button>
+            </div>
+
+            {!isRewriteCompareOpen && (
+              <div className="text-[0.6875rem] text-zinc-400 truncate font-sans">
+                <span className="text-zinc-500 mr-1.5">{chatLabels.rewriteOriginalLabel}:</span>
+                <span className="text-zinc-300">
+                  {msg.rewriteHistory.originalText.replace(/\s+/g, ' ')}
+                </span>
+              </div>
+            )}
+
+            {isRewriteCompareOpen && (
+              <div className="space-y-1.5 pt-1 border-t border-[#222226]">
+                <div className="bg-[#121214] border border-[#222226] rounded-xs p-2 space-y-1">
+                  <div className="flex items-center justify-between text-[0.625rem] text-zinc-400 font-medium">
+                    <span>{chatLabels.rewriteOriginalLabel}</span>
+                    {onRevertRewrite && (
+                      <button
+                        type="button"
+                        onClick={() => onRevertRewrite(msg.id, msg.rewriteHistory?.originalText)}
+                        className="text-amber-300 hover:text-amber-200 transition-colors cursor-pointer"
+                      >
+                        {chatLabels.restoreVersionAction}
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-24 overflow-y-auto custom-scrollbar text-[0.6875rem] text-zinc-300 whitespace-pre-wrap break-words font-sans leading-relaxed select-text">
+                    {msg.rewriteHistory.originalText}
+                  </div>
+                </div>
+
+                <div className="bg-[#121214] border border-[#222226] rounded-xs p-2 space-y-1">
+                  <div className="flex items-center justify-between text-[0.625rem] text-indigo-300 font-medium">
+                    <span>{chatLabels.rewriteResultLabel}</span>
+                    {onApplyRewrite && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onApplyRewrite(
+                            msg.id,
+                            msg.rewriteHistory?.rewrittenText || cleanedText
+                          )
+                        }
+                        className="text-indigo-300 hover:text-indigo-200 transition-colors cursor-pointer"
+                      >
+                        {chatLabels.applyRewriteAction}
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-24 overflow-y-auto custom-scrollbar text-[0.6875rem] text-zinc-200 whitespace-pre-wrap break-words font-sans leading-relaxed select-text">
+                    {msg.rewriteHistory.rewrittenText || cleanedText}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+              {onApplyRewrite && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onApplyRewrite(msg.id, msg.rewriteHistory?.rewrittenText || cleanedText)
+                  }
+                  className="h-6 px-2 rounded-xs bg-[#121214] hover:bg-[#18181b] border border-[#6366f1]/60 hover:border-[#6366f1] text-indigo-200 hover:text-white text-[0.6875rem] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <Check className="w-3 h-3 text-[#6366f1]" />
+                  <span>{chatLabels.applyRewriteAction}</span>
+                </button>
+              )}
+              {onRevertRewrite && (
+                <button
+                  type="button"
+                  onClick={() => onRevertRewrite(msg.id, msg.rewriteHistory?.originalText)}
+                  className="h-6 px-2 rounded-xs bg-[#121214] hover:bg-[#18181b] border border-[#222226] hover:border-amber-500/60 text-zinc-200 hover:text-amber-200 text-[0.6875rem] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3 text-amber-400" />
+                  <span>{chatLabels.revertRewriteAction}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Expandable Translation Block beneath Original Text */}
         {activeTranslation && !isTranslationHidden && (
           <div className="mt-3 pt-2.5 border-t border-white/10 text-zinc-300 text-xs leading-relaxed bg-white/[0.02] p-2.5 rounded">
@@ -420,9 +564,11 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
     prevProps.msg.text === nextProps.msg.text &&
     prevProps.msg.isStreaming === nextProps.msg.isStreaming &&
     prevProps.selectedModel === nextProps.selectedModel &&
+    prevProps.language === nextProps.language &&
     prevProps.msg.showOnboardingChips === nextProps.msg.showOnboardingChips &&
     prevProps.msg.groundingSources === nextProps.msg.groundingSources &&
     prevProps.msg.tokens === nextProps.msg.tokens &&
-    prevProps.msg.actionButtons === nextProps.msg.actionButtons
+    prevProps.msg.actionButtons === nextProps.msg.actionButtons &&
+    prevProps.msg.rewriteHistory === nextProps.msg.rewriteHistory
   );
 });

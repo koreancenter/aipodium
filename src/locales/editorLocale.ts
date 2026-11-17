@@ -115,7 +115,12 @@ const EDITOR_TRANSLATIONS = {
       delTable: "표 삭제",
       linkText: "링크",
       imageAlt: "이미지"
-    }
+    },
+    rewriteWithAi: 'AI로 다시 쓰기',
+    rewriteWithAiTitle: '선택한 텍스트를 AI 모델로 다듬기',
+    rewritePrompt: '선택한 텍스트의 문맥과 가독성을 자연스럽게 다듬어 다시 작성해 주세요.',
+    pinToChat: '채팅에 고정',
+    pinToChatTitle: '선택한 텍스트를 채팅 패널 상단 참조 앵커로 고정'
   },
   en: {
     slash: {
@@ -231,7 +236,12 @@ const EDITOR_TRANSLATIONS = {
       delTable: "Delete table",
       linkText: "Link",
       imageAlt: "Image"
-    }
+    },
+    rewriteWithAi: 'Rewrite with AI',
+    rewriteWithAiTitle: 'Refine highlighted text with AI',
+    rewritePrompt: 'Please refine and rewrite the selected text for clarity, grammar, and natural flow.',
+    pinToChat: 'Pin to Chat',
+    pinToChatTitle: 'Pin selected text to the top of the chat panel'
   }
 };
 

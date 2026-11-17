@@ -43,6 +43,7 @@ import { getEphemeralDecryptedApiKey, aiClient } from '../../services/aiPodiumIn
 import { WEB_LLM_MODEL_ID } from '../../utils/webllmService';
 import type { EditorSelectionContext } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { useOptionalEditorEventBus } from '../../context/EditorEventBusContext';
 import { getEditorTranslations } from '../../locales/editorLocale';
 
 export interface OptimizedEditorProps {
@@ -235,6 +236,7 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
   const [tableBubblePos, setTableBubblePos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const { language } = useLanguage();
   const et = getEditorTranslations(language);
+  const eventBus = useOptionalEditorEventBus();
   const [isAiTableLoading, setIsAiTableLoading] = useState(false);
   const [isVisualModalOpen, setIsVisualModalOpen] = useState(false);
 
@@ -1318,8 +1320,24 @@ ${targetText}
       }
 
       const nextVal = val.slice(0, replaceStart) + trimmedReply + val.slice(replaceEnd);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
       setLocalValue(nextVal);
-      debouncedOnChange(nextVal);
+      onChange(nextVal);
+
+      if (targetText.trim() && trimmedReply && targetText.trim() !== trimmedReply) {
+        eventBus?.emit('editor:rewrite-applied', {
+          prompt,
+          originalText: targetText.trim(),
+          rewrittenText: trimmedReply,
+          mode: editorTab,
+          startOffset: replaceStart,
+          endOffset: replaceStart + trimmedReply.length,
+          createdAt: Date.now(),
+        });
+      }
 
       setTimeout(() => {
         if (textarea) {
@@ -1333,7 +1351,7 @@ ${targetText}
     } finally {
       setIsAiTextLoading(false);
     }
-  }, [executeAiTask, localValue, debouncedOnChange, refToUse, updateEditorBubbleContext, et]);
+  }, [executeAiTask, localValue, onChange, refToUse, updateEditorBubbleContext, et, eventBus, editorTab]);
 
   const handleCleanText = useCallback(() => {
     const textarea = refToUse.current;
@@ -2186,6 +2204,13 @@ ${targetText}
           }
         }}
         onAiEditText={(prompt, targetText) => handleAiTextEdit(prompt, targetText)}
+        onAiEditApplied={(info) => {
+          eventBus?.emit('editor:rewrite-applied', {
+            ...info,
+            mode: 'wysiwyg',
+            createdAt: Date.now(),
+          });
+        }}
         isAiLoading={isAiTextLoading}
         placeholder={placeholder}
         fontSize={fontSize}
