@@ -68,7 +68,7 @@ export const ChatActivityRail: React.FC<ChatActivityRailProps> = ({
           type="button"
           id="chat-rail-open-btn"
           onClick={onOpen}
-          className="p-2 rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
+          className="p-2 rounded-md hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
           title={t.open}
           aria-label={t.open}
         >
@@ -362,13 +362,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             >
               <History className="w-3 h-3 text-[var(--accent-primary)] shrink-0" />
               <span className="font-medium text-[var(--text-main)] truncate">{t.rewriteHistoryTitle}</span>
-              <span className="text-[0.625rem] font-mono text-[var(--text-muted)] shrink-0">
+              <span className="text-[0.625rem] font-mono text-[var(--text-secondary)] shrink-0">
                 · {t.rewriteHistoryCount(rewriteHistoryItems.length)}
               </span>
               {isRewriteHistoryOpen ? (
-                <ChevronUp className="w-3 h-3 text-[var(--text-muted)] shrink-0" />
+                <ChevronUp className="w-3 h-3 text-[var(--text-secondary)] shrink-0" />
               ) : (
-                <ChevronDown className="w-3 h-3 text-[var(--text-muted)] shrink-0" />
+                <ChevronDown className="w-3 h-3 text-[var(--text-secondary)] shrink-0" />
               )}
             </button>
 
@@ -384,7 +384,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 }
                 title={t.revertRewriteAction}
                 aria-label={t.revertRewriteAction}
-                className="h-5 px-2 rounded-md bg-[var(--bg-elevated)] hover:bg-white/[0.08] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-[var(--text-muted)] hover:text-amber-200 text-[0.625rem] font-medium flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                className="h-5 px-2 rounded-md bg-[var(--bg-elevated)] hover:bg-white/[0.08] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-[var(--text-secondary)] hover:text-amber-200 text-[0.625rem] font-medium flex items-center gap-1 transition-colors cursor-pointer shrink-0"
               >
                 <RotateCcw className="w-2.5 h-2.5 text-amber-400" />
                 <span>{t.revertShortAction}</span>
@@ -407,13 +407,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   >
                     <div className="flex items-center justify-between gap-2 text-[0.625rem]">
                       <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                        <span className="font-mono text-[var(--text-muted)] shrink-0">{item.timestamp}</span>
+                        <span className="font-mono text-[var(--text-secondary)] shrink-0">{item.timestamp}</span>
                         <span className="text-[var(--text-tertiary)] shrink-0">·</span>
-                        <span className="text-[var(--text-muted)] shrink-0">
+                        <span className="text-[var(--text-secondary)] shrink-0">
                           {item.source === 'inline' ? t.rewriteSourceInline : t.rewriteSourceChat}
                         </span>
                         {item.fileName && (
-                          <span className="font-mono text-[var(--text-muted)] bg-[var(--bg-elevated)] px-1.5 py-0.5 rounded truncate max-w-[100px]">
+                          <span className="font-mono text-[var(--text-secondary)] bg-[var(--bg-elevated)] px-1.5 py-0.5 rounded truncate max-w-[100px]">
                             {item.fileName}
                           </span>
                         )}
@@ -462,7 +462,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                               [item.id]: !prev[item.id],
                             }))
                           }
-                          className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
+                          className="text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
                         >
                           {t.toggleRewriteCompare}
                         </button>
@@ -483,11 +483,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                           [item.id]: !prev[item.id],
                         }))
                       }
-                      className="text-left text-[0.6875rem] text-[var(--text-muted)] font-sans cursor-pointer hover:text-[var(--text-main)] transition-colors"
+                      className="text-left text-[0.6875rem] text-[var(--text-secondary)] font-sans cursor-pointer hover:text-[var(--text-main)] transition-colors"
                     >
                       <div className={isExpanded ? 'whitespace-pre-wrap break-words' : 'truncate'}>
-                        <span className="text-[var(--text-tertiary)] mr-1">{t.rewriteOriginalLabel}:</span>
-                        <span className="text-[var(--text-muted)]">
+                        <span className="text-[var(--text-muted)] mr-1">{t.rewriteOriginalLabel}:</span>
+                        <span className="text-[var(--text-secondary)]">
                           {isExpanded ? item.originalText : item.originalText.replace(/\s+/g, ' ')}
                         </span>
                       </div>
@@ -509,7 +509,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                               onClick={() => onRevertRewrite(item.id, item.originalText)}
                               title={t.revertRewriteAction}
                               aria-label={t.revertRewriteAction}
-                              className="h-5 px-2 rounded-md bg-[var(--bg-elevated)] hover:bg-white/[0.08] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-[var(--text-muted)] hover:text-amber-200 text-[0.625rem] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                              className="h-5 px-2 rounded-md bg-[var(--bg-elevated)] hover:bg-white/[0.08] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-[var(--text-secondary)] hover:text-amber-200 text-[0.625rem] font-medium flex items-center gap-1 transition-colors cursor-pointer"
                             >
                               <RotateCcw className="w-2.5 h-2.5 text-amber-400" />
                               <span>{t.revertShortAction}</span>
@@ -591,7 +591,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                     <h3 className="text-sm font-semibold text-[var(--text-main)] mb-1">
                       {t.downloadTitle}
                     </h3>
-                    <p className="text-xs text-[var(--text-muted)] mb-5 leading-relaxed break-keep">
+                    <p className="text-xs text-[var(--text-secondary)] mb-5 leading-relaxed break-keep">
                       {t.downloadDescription}
                     </p>
 
@@ -603,7 +603,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                       />
                     </div>
 
-                    <div className="flex items-center justify-between w-full text-xs text-[var(--text-muted)] font-mono">
+                    <div className="flex items-center justify-between w-full text-xs text-[var(--text-secondary)] font-mono">
                       <span className="truncate max-w-[75%] text-left text-[11px]" title={webllmProgress.progressText}>
                         {webllmProgress.progressText || t.downloadProgress}
                       </span>
@@ -611,7 +611,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                         {webllmProgress.progressPercent ?? 0}%
                       </span>
                     </div>
-                    <div className="mt-3 text-[10px] text-[var(--text-tertiary)] font-mono">
+                    <div className="mt-3 text-[10px] text-[var(--text-muted)] font-mono">
                       {t.memoryRecommendation}
                     </div>
                   </div>
@@ -692,16 +692,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                                     className="max-h-36 rounded border border-[var(--border-structural)] object-cover"
                                   />
                                 ) : att.type === 'link' ? (
-                                  <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-[var(--text-main)] font-mono">
+                                  <div className="flex items-center gap-1 px-1 text-[0.6875rem] text-[var(--text-main)] font-mono">
                                     <Link2 className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                                     <span className="truncate max-w-[150px] font-medium">{att.name}</span>
-                                    <span className="text-[0.625rem] text-[var(--text-muted)]">({att.size})</span>
+                                    <span className="text-[0.625rem] text-[var(--text-secondary)]">({att.size})</span>
                                   </div>
                                 ) : (
                                   <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-[var(--text-main)] font-mono">
                                     <FileText className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                                     <span className="truncate max-w-[150px] font-medium">{att.name}</span>
-                                    <span className="text-[0.625rem] text-[var(--text-muted)]">({att.size})</span>
+                                    <span className="text-[0.625rem] text-[var(--text-secondary)]">({att.size})</span>
                                   </div>
                                 )}
                               </div>
@@ -723,8 +723,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                               </span>
                             </div>
                             {msg.originalText && msg.originalText !== msg.text && (
-                              <div className="text-[0.6875rem] text-[var(--text-muted)] flex items-start gap-1 font-sans pt-0.5">
-                                <span className="font-medium text-[var(--text-tertiary)] shrink-0">{t.koreanOriginal}</span>
+                              <div className="text-[0.6875rem] text-[var(--text-secondary)] flex items-start gap-1 font-sans pt-0.5">
+                                <span className="font-medium text-[var(--text-muted)] shrink-0">{t.koreanOriginal}</span>
                                 <span className="italic text-[var(--text-main)]">{msg.originalText}</span>
                               </div>
                             )}
@@ -732,17 +732,17 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                         )}
 
                         {msg.selectionContext?.text && (
-                          <div className="bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-md px-2.5 py-1.5 text-[0.6875rem] text-[var(--text-muted)] space-y-1">
+                          <div className="bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-md px-2.5 py-1.5 text-[0.6875rem] text-[var(--text-secondary)] space-y-1">
                             <div className="flex items-center gap-1.5 text-[0.625rem] text-[var(--text-main)] font-medium">
                               <Quote className="w-3 h-3 text-[var(--accent-primary)] shrink-0" />
                               <span>{t.selectionContextLabel}</span>
                               {msg.selectionContext.fileName && (
-                                <span className="font-mono text-[var(--text-muted)] truncate max-w-[160px]">
+                                <span className="font-mono text-[var(--text-secondary)] truncate max-w-[160px]">
                                   {msg.selectionContext.fileName}
                                 </span>
                               )}
                             </div>
-                            <div className="text-[var(--text-muted)] whitespace-pre-wrap line-clamp-3 font-sans leading-snug">
+                            <div className="text-[var(--text-secondary)] whitespace-pre-wrap line-clamp-3 font-sans leading-snug">
                               {msg.selectionContext.text}
                             </div>
                           </div>
@@ -753,7 +753,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                         </div>
                       </div>
 
-                      <div className="w-6 h-6 rounded-md bg-[var(--bg-editor)] border border-[var(--border-structural)] flex items-center justify-center text-[var(--text-muted)] text-xs shrink-0 mt-0.5 select-none">
+                      <div className="w-6 h-6 rounded-md bg-[var(--bg-editor)] border border-[var(--border-structural)] flex items-center justify-center text-[var(--text-secondary)] text-xs shrink-0 mt-0.5 select-none">
                         <User className="w-3.5 h-3.5" />
                       </div>
                     </div>

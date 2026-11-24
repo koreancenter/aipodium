@@ -379,7 +379,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
   };
 
   return (
-    <div className={`bg-[var(--bg-surface)] season-shell border-t border-[var(--border-structural)] focus-within:border-[var(--border-luminous)] cyber-rim-top flex flex-col relative shrink-0 overflow-visible ${className}`}>
+    <div className={`bg-[var(--bg-surface)] season-shell border-t border-[var(--border-structural)] focus-within:border-[rgba(var(--accent-rgb),0.55)] cyber-rim-top flex flex-col relative shrink-0 overflow-visible ${className}`}>
       {/* Hidden File Input */}
       <input
         ref={fileInputRef}
@@ -409,12 +409,12 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
               ) : (
                 <Paperclip className="w-3 h-3 text-[var(--accent-primary)] shrink-0" />
               )}
-              <span className="truncate max-w-[140px] font-mono">{att.name}</span>
-              <span className="text-[0.625rem] text-[var(--text-muted)] font-mono">({att.size})</span>
+              <span className="truncate max-w-[140px] font-mono text-[var(--text-main)]">{att.name}</span>
+              <span className="text-[0.625rem] text-[var(--text-secondary)] font-mono">({att.size})</span>
               <button
                 type="button"
                 onClick={() => onRemoveAttachment(att.id)}
-                className="text-[var(--text-muted)] hover:text-rose-400 p-0.5 rounded transition cursor-pointer ml-0.5"
+                className="text-[var(--text-secondary)] hover:text-rose-400 p-0.5 rounded transition cursor-pointer ml-0.5"
                 title={t.attachmentRemoved}
               >
                 <X className="w-3 h-3" />
@@ -450,16 +450,16 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                   {t.selectionExcerpt(truncatedExcerpt)}
                 </span>
                 {editorSelection?.fileName && (
-                  <span className="text-[0.625rem] font-mono text-[var(--text-muted)] truncate max-w-[110px] bg-[var(--bg-elevated)] border border-[var(--border-structural)] px-1.5 py-0.5 rounded shrink-0">
+                  <span className="text-[0.625rem] font-mono text-[var(--text-secondary)] truncate max-w-[110px] bg-[var(--bg-elevated)] border border-[var(--border-structural)] px-1.5 py-0.5 rounded shrink-0">
                     {editorSelection.fileName}
                   </span>
                 )}
-                <span className="text-[0.625rem] font-mono text-[var(--text-tertiary)] shrink-0">
+                <span className="text-[0.625rem] font-mono text-[var(--text-muted)] shrink-0">
                   {t.selectionChars(rawSelectionText.length)}
                 </span>
               </button>
               <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-[0.625rem] text-[var(--text-tertiary)] hidden sm:inline">
+                <span className="text-[0.625rem] text-[var(--text-secondary)] hidden sm:inline">
                   {t.selectionIncluded}
                 </span>
                 {onClearEditorSelection && (
@@ -467,7 +467,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                     type="button"
                     id="editor-selection-clear-btn"
                     onClick={onClearEditorSelection}
-                    className="text-[var(--text-muted)] hover:text-rose-400 p-0.5 rounded hover:bg-white/[0.06] transition cursor-pointer"
+                    className="text-[var(--text-secondary)] hover:text-rose-400 p-0.5 rounded hover:bg-white/[0.06] transition cursor-pointer"
                     title={t.clearSelectionContext}
                     aria-label={t.clearSelectionContext}
                   >
@@ -511,7 +511,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                     className={`px-1.5 py-0.5 text-[0.625rem] rounded transition cursor-pointer ${
                       mentionFilterType === filterType
                         ? 'bg-[#F1F5F9] text-[#0F172A] font-medium'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06]'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.06]'
                     }`}
                   >
                     {filterType === 'all'
@@ -527,8 +527,8 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
             {/* List */}
             <div className="flex-1 overflow-y-auto p-1 space-y-0.5 custom-scrollbar text-xs">
               {filteredMentionItems.length === 0 ? (
-                <div className="py-6 text-center text-[var(--text-tertiary)] text-xs flex flex-col items-center gap-2">
-                  <Info className="w-4 h-4 text-[var(--text-tertiary)]" />
+                <div className="py-6 text-center text-[var(--text-secondary)] text-xs flex flex-col items-center gap-2">
+                  <Info className="w-4 h-4 text-[var(--text-secondary)]" />
                   <span>{t.noMatchingReferences(mentionQuery)}</span>
                 </div>
               ) : (
@@ -543,18 +543,18 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                       onClick={() => handleSelectMention(item)}
                       onMouseEnter={() => setMentionSelectedIndex(index)}
                       className={`group flex items-center justify-between px-3 py-1.5 h-8 rounded-md cursor-pointer transition-colors ${
-                        isSelected ? 'bg-white/[0.08] text-[var(--text-main)]' : 'text-[var(--text-muted)] hover:bg-white/[0.05] hover:text-[var(--text-main)]'
+                        isSelected ? 'bg-white/[0.08] text-[var(--text-main)]' : 'text-[var(--text-secondary)] hover:bg-white/[0.05] hover:text-[var(--text-main)]'
                       }`}
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1 mr-3">
                         {item.type === 'folder' ? (
-                          <Folder className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" />
+                          <Folder className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
                         ) : (
-                          <FileText className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" />
+                          <FileText className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
                         )}
                         <span className="text-xs truncate font-medium">{item.name}</span>
                       </div>
-                      <span className="text-[0.6875rem] font-mono text-[var(--text-tertiary)]">{item.detail}</span>
+                      <span className="text-[0.6875rem] font-mono text-[var(--text-muted)]">{item.detail}</span>
                     </div>
                   );
                 })
@@ -612,7 +612,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
               >
                 <div className="absolute inset-0 p-0 text-[0.625rem] font-mono leading-relaxed select-none pointer-events-none whitespace-pre-wrap break-words overflow-y-auto">
                   {isGhostLoading ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-[var(--text-muted)] gap-2">
+                    <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-[var(--text-secondary)] gap-2">
                       <Sparkles className="w-4 h-4 text-[var(--accent-primary)] animate-spin" />
                       <span className="text-[0.625rem] text-[var(--secondary-accent)] font-medium animate-pulse">{t.ghostGenerating}</span>
                     </div>
@@ -625,7 +625,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                       )}
                     </div>
                   ) : chatInput.trim() ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-[var(--text-muted)] gap-1.5 pointer-events-auto">
+                    <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-[var(--text-secondary)] gap-1.5 pointer-events-auto">
                       <div className="flex items-center gap-1.5 text-[var(--secondary-accent)] text-[0.625rem] font-medium">
                         <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                         <span>{t.waitingForKorean}</span>
@@ -641,9 +641,9 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                       </button>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-[var(--text-muted)] gap-1">
-                      <Ghost className="w-4 h-4 text-[var(--text-tertiary)] mb-0.5" />
-                      <p className="text-[0.625rem] text-[var(--text-tertiary)] font-sans">
+                    <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-[var(--text-secondary)] gap-1">
+                      <Ghost className="w-4 h-4 text-[var(--text-secondary)] mb-0.5" />
+                      <p className="text-[0.625rem] text-[var(--text-secondary)] font-sans">
                         {t.ghostWriterHint}
                       </p>
                     </div>
@@ -689,7 +689,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-1 hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded transition flex items-center justify-center cursor-pointer"
+            className="p-1 hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-[var(--text-main)] rounded transition flex items-center justify-center cursor-pointer"
             title={t.attachFile}
           >
             <Paperclip className="w-3.5 h-3.5" />
@@ -700,7 +700,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
             type="button"
             onClick={() => setIsLinkInputOpen((prev) => !prev)}
             className={`p-1 hover:bg-white/[0.06] rounded transition flex items-center justify-center cursor-pointer ${
-              isLinkInputOpen ? 'bg-white/[0.08] text-[var(--accent-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+              isLinkInputOpen ? 'bg-white/[0.08] text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
             }`}
             title={t.attachLink}
           >
@@ -711,7 +711,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
           <button
             type="button"
             onClick={handleTriggerMention}
-            className="p-1 hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded transition flex items-center justify-center cursor-pointer"
+            className="p-1 hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-[var(--text-main)] rounded transition flex items-center justify-center cursor-pointer"
             title={t.referenceWorkspace}
           >
             <AtSign className="w-3.5 h-3.5" />
@@ -779,7 +779,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                   });
                 }
               }}
-              className="hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed text-[var(--text-muted)] hover:text-[var(--text-main)] h-6 w-6 flex items-center justify-center rounded transition cursor-pointer"
+              className="hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed text-[var(--text-secondary)] hover:text-[var(--text-main)] h-6 w-6 flex items-center justify-center rounded transition cursor-pointer"
               title={t.sendKoreanOriginal}
             >
               <Languages className="w-3.5 h-3.5" />
@@ -798,7 +798,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
             }}
             className={`h-6 px-2.5 rounded-md transition flex items-center justify-center ${
               isAiLoading || chatAttachments.some((a) => a.isParsing) || (!chatInput.trim() && chatAttachments.length === 0)
-                ? 'bg-white/[0.04] text-[var(--text-tertiary)] border border-white/[0.04] cursor-not-allowed'
+                ? 'bg-white/[0.04] text-[var(--text-muted)] border border-[var(--border-structural)] cursor-not-allowed'
                 : 'bg-[#F1F5F9] hover:bg-white active:bg-slate-200 text-[#0F172A] cursor-pointer shadow-xs'
             }`}
             title={

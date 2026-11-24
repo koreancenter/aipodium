@@ -59,7 +59,7 @@ export const WorkspaceActivityRail: React.FC<WorkspaceActivityRailProps> = ({
           type="button"
           id="explorer-rail-open-btn"
           onClick={onOpen}
-          className="p-2 rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
+          className="p-2 rounded-md hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
           title={t.open}
           aria-label={t.open}
         >
@@ -73,7 +73,7 @@ export const WorkspaceActivityRail: React.FC<WorkspaceActivityRailProps> = ({
           type="button"
           id="explorer-rail-file-btn"
           onClick={onOpen}
-          className="p-2 rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
+          className="p-2 rounded-md hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
           title={t.browseDocuments}
           aria-label={t.browseDocuments}
         >
@@ -345,7 +345,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
             type="button"
             id="workspace-drawer-toggle-btn"
             onClick={onToggleOpen}
-            className="absolute top-[5px] right-2 z-10 w-6 h-6 rounded hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer"
+            className="absolute top-[5px] right-2 z-10 w-6 h-6 rounded hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer"
             title={isOpen ? t.collapse : t.expand}
             aria-label={isOpen ? t.collapse : t.expand}
           >
@@ -361,14 +361,14 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
         ) : (
           <div style={{ width: `${width}px` }} className="max-w-full h-full flex flex-col min-h-0 overflow-hidden">
             {/* Explorer Header Toolbar (Row 1 - perfectly aligned with Editor Multi-Tab Bar & Chat Header) */}
-            <div className={`flex items-center justify-between h-[34px] pl-2 ${isMobile ? 'pr-2' : 'pr-9'} bg-[var(--bg-surface)] border-b border-[var(--border-structural)] shrink-0 text-[var(--text-muted)] select-none`}>
+            <div className={`flex items-center justify-between h-[34px] pl-2 ${isMobile ? 'pr-2' : 'pr-9'} bg-[var(--bg-surface)] border-b border-[var(--border-structural)] shrink-0 text-[var(--text-secondary)] select-none`}>
             <div className="flex items-center gap-1 shrink-0 ml-auto">
 
               {/* [📁+ New Folder] */}
               <button
                 type="button"
                 onClick={() => onCreateSession?.()}
-                className="p-1 rounded hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
+                className="p-1 rounded hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition cursor-pointer"
                 title={t.addFolder}
               >
                 <FolderPlus className="w-3.5 h-3.5" />
@@ -378,7 +378,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
               <button
                 type="button"
                 onClick={() => onCreateFile()}
-                className="p-1 rounded hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
+                className="p-1 rounded hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition cursor-pointer"
                 title={t.addFile}
               >
                 <FilePlus className="w-3.5 h-3.5" />
@@ -388,7 +388,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
               <button
                 type="button"
                 onClick={() => onOpenWorkspaceModal?.()}
-                className="p-1 rounded hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
+                className="p-1 rounded hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition cursor-pointer"
                 title={t.manageWorkspace}
               >
                 <FolderOpen className="w-3.5 h-3.5" />
@@ -398,7 +398,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
               <button
                 type="button"
                 onClick={() => onOpenSSOTModal(activeSession?.title)}
-                className="p-1 rounded hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition cursor-pointer"
+                className="p-1 rounded hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition cursor-pointer"
                 title={t.createSsot}
               >
                 <Sparkles className="w-3.5 h-3.5" />
@@ -409,7 +409,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                 <button
                   type="button"
                   onClick={onOpenDriftModal}
-                  className="p-1 rounded hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-amber-300 transition cursor-pointer"
+                  className="p-1 rounded hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-amber-300 transition cursor-pointer"
                   title={t.auditDocuments}
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
@@ -421,7 +421,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenGoogleDrive('open')}
-                  className="p-1 rounded hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer relative group"
+                  className="p-1 rounded hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition cursor-pointer relative group"
                   title={t.googleDrive}
                 >
                   <Globe className="w-3.5 h-3.5" />
@@ -436,7 +436,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                 <button
                   type="button"
                   onClick={() => docFileInputRef.current?.click()}
-                  className="p-1 rounded hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer relative group"
+                  className="p-1 rounded hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition cursor-pointer relative group"
                   title={t.importOfficePdf}
                 >
                   <FileUp className="w-3.5 h-3.5" />
@@ -460,7 +460,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                 <button
                   type="button"
                   onClick={() => handleSearchChange('')}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-main)] p-0.5 cursor-pointer"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-main)] p-0.5 cursor-pointer"
                   title={t.clearSearch}
                 >
                   <X className="w-2.5 h-2.5" />
@@ -491,7 +491,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
               Object.keys(files).filter((f) =>
                 f.toLowerCase().includes(activeSearchQuery.trim().toLowerCase())
               ).length === 0 && (
-                  <div className="py-8 text-center text-[var(--text-muted)] text-xs space-y-2">
+                  <div className="py-8 text-center text-[var(--text-secondary)] text-xs space-y-2">
                   <p>{t.noResults(activeSearchQuery)}</p>
                   <button
                     type="button"
@@ -563,25 +563,25 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                         ? 'bg-white/[0.08] text-[var(--text-main)] border border-[var(--border-luminous)] font-medium'
                         : isCurrentActiveSession
                         ? 'bg-white/[0.06] text-[var(--text-main)] font-medium hover:bg-white/[0.08]'
-                        : 'text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-[var(--text-main)]'
+                        : 'text-[var(--text-secondary)] hover:bg-white/[0.04] hover:text-[var(--text-main)]'
                     }`}
                   >
-                    {isCurrentActiveSession && (
+                    {(isCurrentActiveSession || focusedTreeItemId === `session:${session.id}`) && (
                       <span className="absolute left-0 top-1 bottom-1 w-[2px] cyber-active-rail rounded-r" />
                     )}
                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       {/* Folder Chevron */}
                       {isFolderOpen ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+                        <ChevronDown className="w-3.5 h-3.5 text-[var(--text-secondary)] shrink-0" />
                       ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+                        <ChevronRight className="w-3.5 h-3.5 text-[var(--text-secondary)] shrink-0" />
                       )}
 
                       {/* Folder Icon */}
                       {isFolderOpen ? (
-                        <FolderOpen className={`w-4 h-4 shrink-0 ${isCurrentActiveSession ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'}`} />
+                        <FolderOpen className={`w-4 h-4 shrink-0 ${isCurrentActiveSession ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`} />
                       ) : (
-                        <Folder className={`w-4 h-4 shrink-0 ${isCurrentActiveSession ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'}`} />
+                        <Folder className={`w-4 h-4 shrink-0 ${isCurrentActiveSession ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`} />
                       )}
 
                       {/* Folder Title */}
@@ -608,14 +608,14 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                       </span>
 
                       {/* Hover Action Icons */}
-                      <div className="hidden group-hover:flex items-center gap-0.5 text-[var(--text-muted)]">
+                      <div className="hidden group-hover:flex items-center gap-0.5 text-[var(--text-secondary)]">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             onOpenSSOTModal(session.title);
                           }}
-                          className="p-1 rounded hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition cursor-pointer"
+                          className="p-1 rounded hover:bg-white/[0.08] text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition cursor-pointer"
                           title={t.createSsot}
                         >
                           <Sparkles className="w-3 h-3" />
@@ -760,18 +760,18 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                         folder: '가이드 & 도움말',
                       });
                     }}
-                    className="flex items-center justify-between px-2 h-7 cursor-pointer group transition-colors rounded-md text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-[var(--text-main)] select-none"
+                    className="flex items-center justify-between px-2 h-7 cursor-pointer group transition-colors rounded-md text-[var(--text-secondary)] hover:bg-white/[0.04] hover:text-[var(--text-main)] select-none"
                   >
                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       {isHelpSectionOpen ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+                        <ChevronDown className="w-3.5 h-3.5 text-[var(--text-secondary)] shrink-0" />
                       ) : (
-                        <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+                        <ChevronRight className="w-3.5 h-3.5 text-[var(--text-secondary)] shrink-0" />
                       )}
                       {isHelpSectionOpen ? (
-                        <FolderOpen className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
+                        <FolderOpen className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
                       ) : (
-                        <Folder className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
+                        <Folder className="w-4 h-4 text-[var(--text-secondary)] shrink-0" />
                       )}
                       <span className="truncate text-xs font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-main)]">
                         {t.guideHelp}
@@ -872,7 +872,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                         folder: '기타 파일',
                       });
                     }}
-                    className="px-3 py-1 text-[0.625rem] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider flex items-center gap-1.5 cursor-pointer hover:text-[var(--text-muted)]"
+                    className="px-3 py-1 text-[0.625rem] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider flex items-center gap-1.5 cursor-pointer hover:text-[var(--text-secondary)]"
                   >
                     <Folder className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
                     <span>{t.otherFilesCount(unassignedFiles.length)}</span>

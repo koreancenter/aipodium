@@ -159,7 +159,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
       return (
         <FileText
           className={`w-3.5 h-3.5 shrink-0 ${
-            isSelected ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'
+            isSelected ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'
           }`}
         />
       );
@@ -185,7 +185,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
     if (lower.endsWith('.html') || lower.endsWith('.htm')) {
       return <FileCode className="w-3.5 h-3.5 text-[var(--accent-primary)]/80 shrink-0" />;
     }
-    return <FileText className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />;
+    return <FileText className="w-3.5 h-3.5 text-[var(--text-secondary)] shrink-0" />;
   };
 
   const subfolderItemId = `folder:${sessionTitle}/${node.path}`;
@@ -220,7 +220,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
           className={`group flex items-center justify-between px-2 h-[26px] cursor-pointer transition-colors rounded-md ${
             isSubfolderFocused
               ? 'bg-white/[0.08] text-[var(--text-main)] border border-[var(--border-luminous)] font-medium'
-              : 'text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-[var(--text-main)]'
+              : 'text-[var(--text-secondary)] hover:bg-white/[0.04] hover:text-[var(--text-main)]'
           }`}
           style={{ paddingLeft: `${Math.max(level * 10, 8)}px` }}
         >
@@ -230,7 +230,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                 e.stopPropagation();
                 handleToggle();
               }}
-              className="text-[var(--text-muted)] group-hover:text-[var(--text-main)] transition shrink-0 p-0.5"
+              className="text-[var(--text-secondary)] group-hover:text-[var(--text-main)] transition shrink-0 p-0.5"
             >
               {isOpen ? (
                 <ChevronDown className="w-3 h-3" />
@@ -241,7 +241,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
             {isOpen ? (
               <FolderOpen className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
             ) : (
-              <Folder className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+              <Folder className="w-3.5 h-3.5 text-[var(--text-secondary)] shrink-0" />
             )}
 
             {isEditingThisSubfolder && onCommitRename && onCancelRename ? (
@@ -266,7 +266,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
             </span>
 
             {/* Subfolder Hover Actions */}
-            <div className="hidden group-hover:flex items-center gap-0.5 text-[var(--text-muted)]">
+            <div className="hidden group-hover:flex items-center gap-0.5 text-[var(--text-secondary)]">
               {onStartRename && (
                 <button
                   type="button"
@@ -388,7 +388,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                     ? 'bg-white/[0.08] text-[var(--text-main)] border border-[var(--border-luminous)] font-medium'
                     : isSelectedFile
                     ? 'bg-white/[0.06] text-[var(--text-main)] font-medium'
-                    : 'text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-[var(--text-main)]'
+                    : 'text-[var(--text-secondary)] hover:bg-white/[0.04] hover:text-[var(--text-main)]'
                 }`}
                 style={{
                   paddingLeft: isLevelZero
@@ -396,7 +396,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                     : `${Math.max(level * 8 + 4, 12)}px`,
                 }}
               >
-                {isSelectedFile && (
+                {(isSelectedFile || isFocused) && (
                   <span className="absolute left-0 top-1 bottom-1 w-[2px] cyber-active-rail rounded-r" />
                 )}
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
@@ -429,7 +429,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                 </div>
 
                 {/* File Action Icons */}
-                <div className="hidden group-hover:flex items-center gap-0.5 text-[var(--text-muted)] shrink-0">
+                <div className="hidden group-hover:flex items-center gap-0.5 text-[var(--text-secondary)] shrink-0">
                   {onStartRename ? (
                     <button
                       type="button"

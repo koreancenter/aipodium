@@ -801,13 +801,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.98, y: 6 }}
           transition={{ duration: 0.15 }}
-          className="bg-[var(--bg-elevated)]/95 backdrop-blur-md border-0 sm:border border-[var(--border-luminous)] rounded-none sm:rounded-xl shadow-2xl shadow-[var(--rim-glow)] sm:cyber-rim-top w-full sm:max-w-4xl h-full sm:h-[630px] sm:max-h-[92vh] flex flex-col overflow-hidden text-[var(--text-main)]"
+          className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border-0 sm:border border-[rgba(var(--accent-rgb),0.28)] rounded-none sm:rounded-xl shadow-2xl shadow-[var(--rim-glow)] cyber-rim-top w-full sm:max-w-4xl h-full sm:h-[630px] sm:max-h-[92vh] flex flex-col overflow-hidden text-[var(--text-main)]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="px-5 py-3.5 border-b border-[var(--border-structural)] bg-[var(--bg-surface)]/90 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              <Settings className="w-4 h-4 text-[var(--text-muted)]" />
+              <Settings className="w-4 h-4 text-[var(--text-secondary)]" />
               <h2 className="font-medium text-xs text-[var(--text-main)] tracking-wide">
                 {st.title}
               </h2>
@@ -815,7 +815,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] rounded transition cursor-pointer"
+              className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.06] rounded transition cursor-pointer"
               title={st.close}
               aria-label={st.close}
             >
@@ -842,7 +842,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   {isActive && (
                     <span className="cyber-active-rail absolute bottom-0 left-2 right-2 h-[2px] rounded-full pointer-events-none" />
                   )}
-                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'}`} />
+                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`} />
                   <span>{tab.label}</span>
                   {tab.badge && (
                     <span className="inline-flex items-center gap-1 text-[10px] font-mono text-[var(--text-secondary)] font-normal">
@@ -877,7 +877,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       <span className="cyber-active-rail absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full pointer-events-none" />
                     )}
                     <span className="flex items-center gap-2 truncate">
-                      <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'}`} />
+                      <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}`} />
                       <span className="truncate">{tab.label}</span>
                     </span>
                     {tab.badge && (
@@ -891,13 +891,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               })}
 
               {/* System Status & Environment Info Widget */}
-              <div className="mt-auto pt-3 border-t border-[var(--border-structural)] px-2 py-1.5 text-[11px] text-[var(--text-muted)] space-y-1.5 select-none">
+              <div className="mt-auto pt-3 border-t border-[var(--border-structural)] px-2 py-1.5 text-[11px] text-[var(--text-secondary)] space-y-1.5 select-none">
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-[var(--text-tertiary)] font-normal">{st.status.build}</span>
+                  <span className="text-[var(--text-muted)] font-normal">{st.status.build}</span>
                   <span className="font-mono text-[var(--text-secondary)] font-normal">v0.1.0</span>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-[var(--text-tertiary)] font-normal">{st.status.retention}</span>
+                  <span className="text-[var(--text-muted)] font-normal">{st.status.retention}</span>
                   <span className="font-mono text-[var(--text-secondary)] flex items-center gap-1.5 font-normal">
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] inline-block" />
                     {st.status.encrypted}
@@ -922,7 +922,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         </h3>
                         <HelpTooltip side="bottom" content={st.themePanel.description} />
                       </div>
-                      <span className="text-[11px] font-mono text-[var(--text-tertiary)] shrink-0">
+                      <span className="text-[11px] font-mono text-[var(--text-secondary)] shrink-0">
                         {st.themePanel.activeSeasonPrefix}: {st.themePanel.options[currentCalendarSeason].title}
                       </span>
                     </div>
@@ -940,20 +940,34 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             type="button"
                             data-season-option={seasonId}
                             onClick={() => setLocalPrefs((prev) => ({ ...prev, seasonTheme: seasonId }))}
-                            className={`group text-left rounded-lg border p-2.5 transition-colors cursor-pointer flex flex-col gap-2.5 ${
+                            className={`relative group text-left rounded-lg border p-2.5 transition-colors cursor-pointer flex flex-col gap-2.5 ${
                               isSelected
-                                ? 'bg-white/[0.06] border-[var(--border-luminous)] shadow-[var(--rim-glow)]'
+                                ? 'bg-white/[0.06] border-[var(--border-luminous)] shadow-[var(--rim-glow)] cyber-rim-top'
                                 : 'bg-white/[0.02] border-[var(--border-structural)] hover:bg-white/[0.04] hover:border-[var(--border-luminous)]'
                             }`}
                           >
-                            {/* Miniature 3-Pane IDE Swatch Preview */}
+                            {/* Miniature 3-Pane IDE Swatch Preview with Luminous Accent Rail & High-Clarity Text */}
                             <div
-                              className="w-full h-16 rounded-md overflow-hidden border border-[var(--border-structural)] flex flex-col"
-                              style={{ backgroundColor: preview.bgMain }}
+                              className="relative w-full h-16 rounded-md overflow-hidden border flex flex-col"
+                              style={{
+                                backgroundColor: preview.bgMain,
+                                borderColor: isSelected
+                                  ? `rgba(${preview.accentRgb}, 0.45)`
+                                  : preview.borderColor,
+                              }}
                             >
                               <div
-                                className="h-3 px-2 flex items-center justify-between border-b border-[var(--border-structural)]"
-                                style={{ backgroundColor: preview.bgMain }}
+                                className="h-[1px] w-full shrink-0"
+                                style={{
+                                  background: `linear-gradient(90deg, transparent 5%, rgba(${preview.accentRgb}, 0.65) 50%, transparent 95%)`,
+                                }}
+                              />
+                              <div
+                                className="h-3 px-2 flex items-center justify-between border-b"
+                                style={{
+                                  backgroundColor: preview.bgMain,
+                                  borderColor: preview.borderColor,
+                                }}
                               >
                                 <div className="flex items-center gap-1">
                                   <span
@@ -961,7 +975,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                     style={{ backgroundColor: preview.accentPrimary }}
                                   />
                                   <span
-                                    className="w-5 h-1 rounded-full opacity-70"
+                                    className="w-6 h-1 rounded-full"
                                     style={{ backgroundColor: preview.textSecondary }}
                                   />
                                 </div>
@@ -972,20 +986,32 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               </div>
                               <div className="flex-1 flex min-h-0">
                                 <div
-                                  className="w-1/4 border-r border-[var(--border-structural)] p-1.5 flex flex-col gap-1"
-                                  style={{ backgroundColor: preview.bgSurface }}
+                                  className="w-1/4 border-r p-1.5 flex flex-col gap-1"
+                                  style={{
+                                    backgroundColor: preview.bgSurface,
+                                    borderColor: preview.borderColor,
+                                  }}
                                 >
+                                  <div className="flex items-center gap-1">
+                                    <span
+                                      className="w-[2px] h-2 rounded-full shrink-0"
+                                      style={{
+                                        backgroundColor: preview.accentPrimary,
+                                        boxShadow: `0 0 8px rgba(${preview.accentRgb}, 0.65)`,
+                                      }}
+                                    />
+                                    <span
+                                      className="flex-1 h-1 rounded-full"
+                                      style={{ backgroundColor: preview.textMain }}
+                                    />
+                                  </div>
                                   <span
-                                    className="w-full h-1 rounded-full opacity-75"
-                                    style={{ backgroundColor: preview.textMuted }}
-                                  />
-                                  <span
-                                    className="w-3/4 h-1 rounded-full opacity-45"
+                                    className="w-4/5 h-1 rounded-full"
                                     style={{ backgroundColor: preview.textMuted }}
                                   />
                                 </div>
                                 <div
-                                  className="flex-1 p-2 flex flex-col justify-between"
+                                  className="flex-1 p-2 flex flex-col justify-between relative"
                                   style={{ backgroundColor: preview.bgEditor }}
                                 >
                                   <div className="space-y-1">
@@ -994,40 +1020,70 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                       style={{ backgroundColor: preview.textMain }}
                                     />
                                     <span
-                                      className="block w-4/5 h-1 rounded-full opacity-70"
+                                      className="block w-4/5 h-1 rounded-full"
                                       style={{ backgroundColor: preview.textSecondary }}
                                     />
                                   </div>
-                                  <div className="flex items-center gap-1">
+                                  <div className="flex items-center justify-between gap-1">
+                                    <div className="flex items-center gap-1">
+                                      <span
+                                        className="w-6 h-1 rounded-full"
+                                        style={{
+                                          backgroundColor: preview.accentPrimary,
+                                          boxShadow: `0 0 8px rgba(${preview.accentRgb}, 0.6)`,
+                                        }}
+                                      />
+                                      <span
+                                        className="w-4 h-1 rounded-full"
+                                        style={{ backgroundColor: preview.secondaryAccent }}
+                                      />
+                                    </div>
                                     <span
-                                      className="w-6 h-1.5 rounded-sm"
-                                      style={{ backgroundColor: preview.accentPrimary }}
-                                    />
-                                    <span
-                                      className="w-4 h-1.5 rounded-sm opacity-80"
-                                      style={{ backgroundColor: preview.secondaryAccent }}
+                                      className="w-3 h-1 rounded-full"
+                                      style={{ backgroundColor: preview.textTertiary }}
                                     />
                                   </div>
                                 </div>
                                 <div
-                                  className="w-1/5 border-l border-[var(--border-structural)] p-1.5 flex flex-col gap-1"
-                                  style={{ backgroundColor: preview.bgSurface }}
+                                  className="w-1/5 border-l p-1.5 flex flex-col gap-1"
+                                  style={{
+                                    backgroundColor: preview.bgSurface,
+                                    borderColor: preview.borderColor,
+                                  }}
                                 >
+                                  <div className="flex items-center gap-0.5">
+                                    <span
+                                      className="w-[2px] h-1.5 rounded-full shrink-0"
+                                      style={{
+                                        backgroundColor: preview.accentPrimary,
+                                        boxShadow: `0 0 6px rgba(${preview.accentRgb}, 0.6)`,
+                                      }}
+                                    />
+                                    <span
+                                      className="flex-1 h-1 rounded-full"
+                                      style={{ backgroundColor: preview.textSecondary }}
+                                    />
+                                  </div>
                                   <span
-                                    className="w-full h-1 rounded-full opacity-60"
-                                    style={{ backgroundColor: preview.textTertiary }}
+                                    className="w-4/5 h-1 rounded-full"
+                                    style={{ backgroundColor: preview.textMuted }}
                                   />
                                 </div>
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-between gap-2 min-w-0 w-full">
-                              <div className="text-xs font-medium text-[var(--text-main)] truncate min-w-0">
-                                {meta.title}
+                            <div className="space-y-0.5 min-w-0 w-full">
+                              <div className="flex items-center justify-between gap-2 min-w-0 w-full">
+                                <div className="text-xs font-medium text-[var(--text-main)] truncate min-w-0">
+                                  {meta.title}
+                                </div>
+                                {isSelected && (
+                                  <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
+                                )}
                               </div>
-                              {isSelected && (
-                                <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
-                              )}
+                              <p className="text-[11px] text-[var(--text-secondary)] truncate leading-snug">
+                                {meta.subtitle}
+                              </p>
                             </div>
                           </button>
                         );
@@ -1052,7 +1108,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                 className={`px-3 py-1 text-xs rounded transition cursor-pointer ${
                                   active
                                     ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
-                                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
                                 }`}
                               >
                                 {density === 'dense' ? st.themePanel.compactLabel : st.themePanel.spaciousLabel}
@@ -1079,7 +1135,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                 className={`px-2.5 py-1 text-xs rounded transition cursor-pointer ${
                                   active
                                     ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
-                                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
                                 }`}
                               >
                                 {st.themePanel.fontSizes[size]}
@@ -1143,7 +1199,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           />
                           <span className="min-w-0">
                             <span className="block text-xs font-medium text-[var(--text-main)]">{option.title}</span>
-                            <span className="mt-1 block text-[11px] leading-relaxed text-[var(--text-muted)]">{option.description}</span>
+                            <span className="mt-1 block text-[11px] leading-relaxed text-[var(--text-secondary)]">{option.description}</span>
                           </span>
                         </label>
                       );
@@ -1170,7 +1226,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center justify-center ${
                           localProviderType === 'cloud'
                             ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
-                            : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                            : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
                         }`}
                       >
                         <span>{st.body.cloudApi}</span>
@@ -1182,7 +1238,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center justify-center ${
                           localProviderType === 'local'
                             ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
-                            : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                            : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
                         }`}
                       >
                         <span>{st.body.localOllama}</span>
@@ -1220,7 +1276,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)]" title={st.body.keyRegistered} />
                                 )}
                               </div>
-                              <span className={`text-[10px] leading-tight ${isSelected ? 'text-[var(--accent-primary)] font-normal' : 'text-[var(--text-tertiary)] font-normal'}`}>
+                              <span className={`text-[10px] leading-tight ${isSelected ? 'text-[var(--accent-primary)] font-normal' : 'text-[var(--text-secondary)] font-normal'}`}>
                                 {vendorSub}
                               </span>
                             </button>
@@ -2254,11 +2310,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
           {/* Footer */}
           <div className="px-5 py-3.5 border-t border-[var(--border-structural)] bg-[var(--bg-surface)]/90 flex justify-between items-center shrink-0 gap-2">
-            <span className="hidden sm:flex text-xs text-[var(--text-muted)] items-center gap-2">
+            <span className="hidden sm:flex text-xs text-[var(--text-secondary)] items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] inline-block shrink-0" />
               <span>{st.body.footerNote}</span>
             </span>
-            <span className="sm:hidden text-[11px] text-[var(--text-muted)] flex items-center gap-1.5 truncate mr-auto">
+            <span className="sm:hidden text-[11px] text-[var(--text-secondary)] flex items-center gap-1.5 truncate mr-auto">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] inline-block shrink-0" />
               <span className="truncate">로컬 암호화 보존</span>
             </span>
@@ -2266,7 +2322,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-1.5 rounded-md text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition-colors cursor-pointer whitespace-nowrap"
+                className="px-3.5 py-1.5 rounded-md text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition-colors cursor-pointer whitespace-nowrap"
               >
                 {st.body.cancel}
               </button>

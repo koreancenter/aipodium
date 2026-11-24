@@ -196,7 +196,7 @@ test('External Link Ingestion Pipeline & Model Selector', async (t) => {
     // Verify fixed dimensions on outer popover with ultra-luxury cyber-luxury glassmorphism surface
     assert.match(
       selectorFile,
-      /w-\[340px\]\s+min-w-\[340px\]\s+max-w-\[340px\]\s+h-\[400px\]\s+flex\s+flex-col\s+bg-\[var\(--bg-elevated\)\]\/95\s+border\s+border-\[var\(--border-luminous\)\]\s+shadow-\[var\(--rim-glow\)\]\s+cyber-rim-top\s+backdrop-blur-md\s+rounded-xl\s+overflow-hidden/,
+      /w-\[340px\]\s+min-w-\[340px\]\s+max-w-\[340px\]\s+h-\[400px\]\s+flex\s+flex-col\s+bg-\[var\(--bg-elevated\)\]\/95\s+border\s+border-\[rgba\(var\(--accent-rgb\),0\.28\)\]\s+shadow-\[var\(--rim-glow\)\]\s+cyber-rim-top\s+backdrop-blur-md\s+rounded-xl\s+overflow-hidden/,
       'Outer popover container must enforce ultra-luxury glassmorphism surface'
     );
 
@@ -217,7 +217,7 @@ test('External Link Ingestion Pipeline & Model Selector', async (t) => {
     // Verify footer slot (clean 1-line status footer)
     assert.match(
       selectorFile,
-      /shrink-0\s+text-\[11px\]\s+text-\[var\(--text-muted\)\]\s+py-2\s+px-3\s+border-t\s+border-\[var\(--border-structural\)\]\s+flex/,
+      /shrink-0\s+text-\[11px\]\s+text-\[var\(--text-secondary\)\]\s+py-2\s+px-3\s+border-t\s+border-\[var\(--border-structural\)\]\s+flex/,
       'Footer slot must have clean 1-line status footer'
     );
 

@@ -219,7 +219,7 @@ const MENU_DIVIDER_CLASS =
           setPreferencesInitialTab('ai-engine');
           setIsPreferencesModalOpen(true);
         }}
-        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-md text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.05] transition-colors cursor-pointer"
+        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-md text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.05] transition-colors cursor-pointer"
         title={t.settings}
         aria-label={t.settings}
       >
@@ -643,7 +643,7 @@ const MENU_DIVIDER_CLASS =
               <button
                 type="button"
                 onClick={handleEditorZoomOut}
-                className="p-1 hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-md transition-colors cursor-pointer"
+                className="p-1 hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-[var(--text-main)] rounded-md transition-colors cursor-pointer"
                 title={t.decreaseFont}
               >
                 <ZoomOut className="w-3.5 h-3.5" />
@@ -654,7 +654,7 @@ const MENU_DIVIDER_CLASS =
               <button
                 type="button"
                 onClick={handleEditorZoomIn}
-                className="p-1 hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-md transition-colors cursor-pointer"
+                className="p-1 hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-[var(--text-main)] rounded-md transition-colors cursor-pointer"
                 title={t.increaseFont}
               >
                 <ZoomIn className="w-3.5 h-3.5" />
