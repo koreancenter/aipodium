@@ -77,7 +77,7 @@ export const InlineRenameInput: React.FC<{
       onKeyDown={handleKeyDown}
       onBlur={() => onCommit(val)}
       onClick={(e) => e.stopPropagation()}
-      className="bg-[#09090b] border border-indigo-500 rounded px-1.5 py-0.5 text-xs text-white outline-none ring-1 ring-indigo-500 min-w-0 w-full font-sans shadow-inner z-10"
+      className="bg-[var(--bg-editor)] border border-[var(--accent-primary)]/60 rounded px-1.5 py-0.5 text-xs text-[var(--text-main)] outline-none ring-1 ring-[var(--accent-primary)]/40 min-w-0 w-full font-sans z-10"
     />
   );
 };
@@ -159,7 +159,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
       return (
         <FileText
           className={`w-3.5 h-3.5 shrink-0 ${
-            isSelected ? 'text-indigo-400' : 'text-slate-400'
+            isSelected ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'
           }`}
         />
       );
@@ -168,7 +168,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
       return (
         <FileSpreadsheet
           className={`w-3.5 h-3.5 shrink-0 ${
-            isSelected ? 'text-emerald-400' : 'text-emerald-500/80'
+            isSelected ? 'text-[var(--secondary-accent)]' : 'text-[var(--secondary-accent)]/75'
           }`}
         />
       );
@@ -183,9 +183,9 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
       );
     }
     if (lower.endsWith('.html') || lower.endsWith('.htm')) {
-      return <FileCode className="w-3.5 h-3.5 text-indigo-400/80 shrink-0" />;
+      return <FileCode className="w-3.5 h-3.5 text-[var(--accent-primary)]/80 shrink-0" />;
     }
-    return <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />;
+    return <FileText className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />;
   };
 
   const subfolderItemId = `folder:${sessionTitle}/${node.path}`;
@@ -217,10 +217,10 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
               });
             }
           }}
-          className={`group flex items-center justify-between px-2 h-[26px] cursor-pointer transition-colors rounded-xs ${
+          className={`group flex items-center justify-between px-2 h-[26px] cursor-pointer transition-colors rounded-md ${
             isSubfolderFocused
-              ? 'bg-[#1c1c20] text-white ring-1 ring-indigo-500/70 font-medium'
-              : 'text-slate-300 hover:bg-white/5 hover:text-slate-100'
+              ? 'bg-white/[0.08] text-[var(--text-main)] ring-1 ring-[var(--accent-primary)]/50 font-medium'
+              : 'text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-[var(--text-main)]'
           }`}
           style={{ paddingLeft: `${Math.max(level * 10, 8)}px` }}
         >
@@ -230,7 +230,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                 e.stopPropagation();
                 handleToggle();
               }}
-              className="text-slate-400 group-hover:text-slate-200 transition shrink-0 p-0.5"
+              className="text-[var(--text-muted)] group-hover:text-[var(--text-main)] transition shrink-0 p-0.5"
             >
               {isOpen ? (
                 <ChevronDown className="w-3 h-3" />
@@ -239,9 +239,9 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
               )}
             </span>
             {isOpen ? (
-              <FolderOpen className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <FolderOpen className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
             ) : (
-              <Folder className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <Folder className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
             )}
 
             {isEditingThisSubfolder && onCommitRename && onCancelRename ? (
@@ -254,19 +254,19 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                 />
               </div>
             ) : (
-              <span className="truncate text-[0.75rem] font-medium tracking-tight text-slate-300 group-hover:text-slate-100">
+              <span className="truncate text-[0.75rem] font-medium tracking-tight text-[var(--text-secondary)] group-hover:text-[var(--text-main)]">
                 {node.name}
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
-            <span className="text-[0.625rem] font-mono text-slate-400 group-hover:hidden">
+            <span className="text-[0.625rem] font-mono text-[var(--text-tertiary)] group-hover:hidden">
               {node.files.length + node.subdirectories.length}
             </span>
 
             {/* Subfolder Hover Actions */}
-            <div className="hidden group-hover:flex items-center gap-0.5 text-slate-300">
+            <div className="hidden group-hover:flex items-center gap-0.5 text-[var(--text-muted)]">
               {onStartRename && (
                 <button
                   type="button"
@@ -281,7 +281,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                       sessionId,
                     });
                   }}
-                  className="p-1 rounded-xs hover:bg-[#18181b] hover:text-slate-100 transition cursor-pointer"
+                  className="p-1 rounded hover:bg-white/[0.08] hover:text-[var(--text-main)] transition cursor-pointer"
                   title="폴더 이름 변경"
                 >
                   <Pencil className="w-3 h-3" />
@@ -294,7 +294,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                     e.stopPropagation();
                     onDeleteFolder(node.path);
                   }}
-                  className="p-1 rounded-xs hover:bg-[#18181b] hover:text-rose-400 transition cursor-pointer"
+                  className="p-1 rounded hover:bg-white/[0.08] hover:text-rose-400 transition cursor-pointer"
                   title="폴더 삭제"
                 >
                   <Trash2 className="w-3 h-3" />
@@ -310,7 +310,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
         <div
           className={
             !isLevelZero
-              ? 'relative pl-2.5 before:absolute before:left-[14px] before:top-0 before:bottom-1 before:w-[1px] before:bg-[#222226]'
+              ? 'relative pl-2.5 before:absolute before:left-[14px] before:top-0 before:bottom-1 before:w-[1px] before:bg-white/[0.06]'
               : ''
           }
         >
@@ -381,14 +381,14 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                     });
                   }
                 }}
-                className={`group flex items-center justify-between pr-2 h-[26px] cursor-pointer transition-colors rounded-xs ${
+                className={`group flex items-center justify-between pr-2 h-[26px] cursor-pointer transition-colors rounded-md ${
                   isDraggingFile
-                    ? 'opacity-40 bg-[#18181b]'
+                    ? 'opacity-40 bg-white/[0.04]'
                     : isFocused
-                    ? 'bg-[#1c1c20] text-white ring-1 ring-indigo-500/70 font-medium'
+                    ? 'bg-white/[0.08] text-[var(--text-main)] ring-1 ring-[var(--accent-primary)]/50 font-medium'
                     : isSelectedFile
-                    ? 'bg-white/10 text-indigo-300 font-medium border-l-2 border-indigo-500'
-                    : 'text-slate-300 hover:bg-white/5 hover:text-slate-100'
+                    ? 'bg-white/[0.06] text-[var(--text-main)] font-medium'
+                    : 'text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-[var(--text-main)]'
                 }`}
                 style={{
                   paddingLeft: isLevelZero
@@ -397,7 +397,10 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                 }}
               >
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  <GripVertical className="w-2.5 h-2.5 text-slate-500 opacity-0 group-hover:opacity-100 cursor-grab transition shrink-0" />
+                  <GripVertical className="w-2.5 h-2.5 text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100 cursor-grab transition shrink-0" />
+                  {isSelectedFile && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0" />
+                  )}
 
                   {isEditingThisFile && onCommitRename && onCancelRename ? (
                     <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
@@ -409,21 +412,21 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                       />
                     </div>
                   ) : (
-                    <span className="truncate text-xs text-slate-200 group-hover:text-white">
+                    <span className={`truncate text-xs ${isSelectedFile ? 'text-[var(--text-main)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-main)]'}`}>
                       {file.name}
                     </span>
                   )}
 
                   {isSelectedFile && isCurrentFileDirty && (
                     <span
-                      className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0 ml-1"
+                      className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 ml-1"
                       title="수정됨 (저장되지 않음)"
                     />
                   )}
                 </div>
 
                 {/* File Action Icons */}
-                <div className="hidden group-hover:flex items-center gap-0.5 text-slate-300 shrink-0">
+                <div className="hidden group-hover:flex items-center gap-0.5 text-[var(--text-muted)] shrink-0">
                   {onStartRename ? (
                     <button
                       type="button"
@@ -438,7 +441,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                           sessionId,
                         });
                       }}
-                      className="p-1 rounded-xs hover:bg-[#18181b] hover:text-slate-100 transition cursor-pointer"
+                      className="p-1 rounded hover:bg-white/[0.08] hover:text-[var(--text-main)] transition cursor-pointer"
                       title="파일명 변경"
                     >
                       <Pencil className="w-3 h-3" />
@@ -450,7 +453,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                         e.stopPropagation();
                         onRenameFile(file.path);
                       }}
-                      className="p-1 rounded-xs hover:bg-[#18181b] hover:text-slate-100 transition cursor-pointer"
+                      className="p-1 rounded hover:bg-white/[0.08] hover:text-[var(--text-main)] transition cursor-pointer"
                       title="파일명 변경"
                     >
                       <Pencil className="w-3 h-3" />
@@ -464,7 +467,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                         e.stopPropagation();
                         onDeleteFile(file.path);
                       }}
-                      className="p-1 rounded-xs hover:bg-[#18181b] hover:text-rose-400 transition cursor-pointer"
+                      className="p-1 rounded hover:bg-white/[0.08] hover:text-rose-400 transition cursor-pointer"
                       title="파일 삭제"
                     >
                       <Trash2 className="w-3 h-3" />

@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from "express";
+import compression from "compression";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
@@ -22,6 +23,66 @@ function checkRateLimit(ip: string): boolean {
   recent.push(now);
   rateLimitMap.set(ip, { timestamps: recent });
   return true;
+}
+
+function getClientIp(req: express.Request): string {
+  return (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+}
+
+function apiRateLimit(
+  errorMessage = 'Too many requests. Please wait a moment before trying again.',
+  extraFields: Record<string, unknown> = {}
+): express.RequestHandler {
+  return (req, res, next) => {
+    if (!checkRateLimit(getClientIp(req))) {
+      return res.status(429).json({ ...extraFields, error: errorMessage });
+    }
+    next();
+  };
+}
+
+function resolveGeminiApiKey(clientApiKey: unknown, allowDots = false): string {
+  let effectiveApiKey = process.env.GEMINI_API_KEY || '';
+  if (typeof clientApiKey === 'string' && clientApiKey.trim()) {
+    const trimmedKey = clientApiKey.trim();
+    const pattern = allowDots ? /^[A-Za-z0-9_\-.]{20,128}$/ : /^[A-Za-z0-9_\-]{20,128}$/;
+    if ((allowDots && trimmedKey.startsWith('AIza') && trimmedKey.length > 20) || pattern.test(trimmedKey)) {
+      effectiveApiKey = trimmedKey;
+    }
+  }
+  return effectiveApiKey;
+}
+
+function createGeminiClient(apiKey: string): GoogleGenAI {
+  return new GoogleGenAI({
+    apiKey,
+    httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+  });
+}
+
+function extractGroundingSources(candidate: any): { title: string; url: string }[] {
+  const groundingMetadata = candidate?.groundingMetadata;
+  if (!Array.isArray(groundingMetadata?.groundingChunks)) return [];
+  return groundingMetadata.groundingChunks
+    .map((chunk: any) => ({
+      title: chunk.web?.title || 'Google 웹 검색 출처',
+      url: chunk.web?.uri || ''
+    }))
+    .filter((src: { title: string; url: string }) => Boolean(src.url));
+}
+
+function stripMarkdownFences(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.startsWith('```')) {
+    return trimmed.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/, '').trim();
+  }
+  return trimmed;
+}
+
+function getRequestOrigin(req: express.Request): string {
+  const host = req.get('host') || 'aipodium.net';
+  const protocol = req.protocol === 'http' && !req.secure && host.includes('localhost') ? 'http' : 'https';
+  return `${protocol}://${host}`;
 }
 
 // Cleanup stale rate limit records every 5 minutes
@@ -126,8 +187,11 @@ async function startServer() {
     next();
   });
 
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ limit: '50mb', extended: true }));
+  // Enable HTTP response compression for fast API and asset delivery
+  app.use(compression());
+
+  app.use(express.json({ limit: '25mb' }));
+  app.use(express.urlencoded({ limit: '25mb', extended: true }));
 
   // Health check endpoint
   app.get("/api/health", (_req, res) => {
@@ -135,12 +199,7 @@ async function startServer() {
   });
 
   // API route for API Key and Connection Verification
-  app.post("/api/verify", async (req, res) => {
-    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
-    if (!checkRateLimit(clientIp)) {
-      return res.status(429).json({ valid: false, error: 'Too many requests. Please wait a moment before trying again.' });
-    }
-
+  app.post("/api/verify", apiRateLimit('Too many requests. Please wait a moment before trying again.', { valid: false }), async (req, res) => {
     try {
       const { apiKey: clientApiKey, vendor = 'gemini' } = req.body;
       const trimmedKey = typeof clientApiKey === 'string' ? clientApiKey.trim() : '';
@@ -175,20 +234,13 @@ async function startServer() {
       }
 
       // Gemini Provider Verification
-      let effectiveApiKey = process.env.GEMINI_API_KEY || '';
-      const sanitizedKey = trimmedKey.trim();
-      if (sanitizedKey && ((sanitizedKey.startsWith('AIza') && sanitizedKey.length > 20) || /^[A-Za-z0-9_\-.]{20,128}$/.test(sanitizedKey))) {
-        effectiveApiKey = sanitizedKey;
-      }
+      const effectiveApiKey = resolveGeminiApiKey(trimmedKey, true);
 
       if (!effectiveApiKey) {
         return res.status(400).json({ valid: false, error: 'HTTP 400 Invalid Argument: GEMINI_API_KEY가 입력되지 않았습니다. 설정에서 API 키를 입력하세요.' });
       }
 
-      const ai = new GoogleGenAI({
-        apiKey: effectiveApiKey,
-        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
-      });
+      const ai = createGeminiClient(effectiveApiKey);
 
       const testRes = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -260,13 +312,7 @@ async function startServer() {
   });
 
   // API route for Chat
-  app.post("/api/chat", async (req, res) => {
-    // 1. Enforce Rate Limiting
-    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
-    if (!checkRateLimit(clientIp)) {
-      return res.status(429).json({ error: 'Too many requests. Please wait a moment before trying again.' });
-    }
-
+  app.post("/api/chat", apiRateLimit(), async (req, res) => {
     let cleanMessage = '';
     let safeEditorContent = '';
     let systemInstruction = '';
@@ -274,21 +320,14 @@ async function startServer() {
     try {
       const { message, editorContent, model, parameters, apiKey: clientApiKey, googleSearchGrounding } = req.body;
 
-      // 2. Validate Message
+      // 1. Validate Message
       cleanMessage = typeof message === 'string' ? message.trim() : '';
       if (!cleanMessage || cleanMessage.length > 250000) {
         return res.status(400).json({ error: 'A valid chat message between 1 and 250,000 characters is required.' });
       }
 
-      // 3. Resolve API Key Securely
-      let effectiveApiKey = process.env.GEMINI_API_KEY || '';
-      if (typeof clientApiKey === 'string' && clientApiKey.trim()) {
-        const trimmedKey = clientApiKey.trim();
-        // Allow valid API key formats only (alphanumeric, underscores, hyphens, 20-128 chars)
-        if (/^[A-Za-z0-9_\-]{20,128}$/.test(trimmedKey)) {
-          effectiveApiKey = trimmedKey;
-        }
-      }
+      // 2. Resolve API Key Securely
+      const effectiveApiKey = resolveGeminiApiKey(clientApiKey);
 
       // 4. Validate and Sanitize Context
       if (typeof editorContent === 'string') {
@@ -357,10 +396,7 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
         });
       }
 
-      const ai = new GoogleGenAI({ 
-        apiKey: effectiveApiKey,
-        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
-      });
+      const ai = createGeminiClient(effectiveApiKey);
 
       // 5. Model Selection
       let aiModel = "gemini-3.8-flash"; // default
@@ -432,16 +468,7 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
         // Extract token usage and grounding sources
         const promptTokens = Math.ceil(cleanMessage.length / 4);
         const completionTokens = Math.ceil(accumulatedText.length / 4);
-        let groundingSources: { title: string; url: string }[] = [];
-        const groundingMetadata = lastCandidate?.groundingMetadata;
-        if (groundingMetadata?.groundingChunks && Array.isArray(groundingMetadata.groundingChunks)) {
-          groundingSources = groundingMetadata.groundingChunks
-            .map((item: any) => ({
-              title: item.web?.title || 'Google 웹 검색 출처',
-              url: item.web?.uri || ''
-            }))
-            .filter((src: any) => Boolean(src.url));
-        }
+        const groundingSources = extractGroundingSources(lastCandidate);
 
         res.write(`data: ${JSON.stringify({
           done: true,
@@ -466,17 +493,7 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
       const totalTokens = usageMetadata?.totalTokenCount || (promptTokens + completionTokens);
 
       // Extract Grounding sources if available
-      let groundingSources: { title: string; url: string }[] = [];
-      const candidate = response.candidates?.[0];
-      const groundingMetadata = (candidate as any)?.groundingMetadata;
-      if (groundingMetadata?.groundingChunks && Array.isArray(groundingMetadata.groundingChunks)) {
-        groundingSources = groundingMetadata.groundingChunks
-          .map((chunk: any) => ({
-            title: chunk.web?.title || 'Google 웹 검색 출처',
-            url: chunk.web?.uri || ''
-          }))
-          .filter((src: any) => Boolean(src.url));
-      }
+      const groundingSources = extractGroundingSources(response.candidates?.[0]);
 
       res.json({
         text: response.text,
@@ -522,12 +539,7 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
   });
 
   // API route for SSOT Drift & Consistency Deep Audit
-  app.post("/api/ssot/audit", async (req, res) => {
-    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
-    if (!checkRateLimit(clientIp)) {
-      return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
-    }
-
+  app.post("/api/ssot/audit", apiRateLimit('Too many requests. Please wait a moment.'), async (req, res) => {
     try {
       const { document, apiKey: clientApiKey, model: requestedModel } = req.body;
       const docText = typeof document === 'string' ? document.slice(0, 250000) : '';
@@ -545,13 +557,7 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
         });
       }
 
-      let effectiveApiKey = process.env.GEMINI_API_KEY || '';
-      if (typeof clientApiKey === 'string' && clientApiKey.trim()) {
-        const trimmedKey = clientApiKey.trim();
-        if (/^[A-Za-z0-9_\-]{20,128}$/.test(trimmedKey)) {
-          effectiveApiKey = trimmedKey;
-        }
-      }
+      const effectiveApiKey = resolveGeminiApiKey(clientApiKey);
 
       // If no AI key available, inform client to use local heuristic analysis
       if (!effectiveApiKey) {
@@ -561,10 +567,7 @@ Please provide a helpful, concise response. If the user asks for suggestions or 
         });
       }
 
-      const ai = new GoogleGenAI({
-        apiKey: effectiveApiKey,
-        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
-      });
+      const ai = createGeminiClient(effectiveApiKey);
 
       const auditPrompt = `You are the SSOT (Single Source of Truth) Document Consistency & Drift Auditor.
 Analyze the following markdown document for internal contradictions, timeline conflicts, numeric/budget discrepancies, ambiguous placeholders (TBD, TODO), or unassigned dangling tasks.
@@ -631,12 +634,7 @@ ${docText}
   });
 
   // API route for Multi-Perspective Council of Critics Review
-  app.post("/api/critics/review", async (req, res) => {
-    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
-    if (!checkRateLimit(clientIp)) {
-      return res.status(429).json({ error: 'Too many requests. Please wait a moment.' });
-    }
-
+  app.post("/api/critics/review", apiRateLimit('Too many requests. Please wait a moment.'), async (req, res) => {
     try {
       const { document, apiKey: clientApiKey, model: requestedModel } = req.body;
       const docText = typeof document === 'string' ? document.slice(0, 250000) : '';
@@ -645,22 +643,13 @@ ${docText}
         return res.json({ fallbackToLocal: true });
       }
 
-      let effectiveApiKey = process.env.GEMINI_API_KEY || '';
-      if (typeof clientApiKey === 'string' && clientApiKey.trim()) {
-        const trimmedKey = clientApiKey.trim();
-        if (/^[A-Za-z0-9_\-]{20,128}$/.test(trimmedKey)) {
-          effectiveApiKey = trimmedKey;
-        }
-      }
+      const effectiveApiKey = resolveGeminiApiKey(clientApiKey);
 
       if (!effectiveApiKey) {
         return res.json({ fallbackToLocal: true });
       }
 
-      const ai = new GoogleGenAI({
-        apiKey: effectiveApiKey,
-        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
-      });
+      const ai = createGeminiClient(effectiveApiKey);
 
       const councilPrompt = `You are the "Council of Critics", a 4-member executive review committee conducting a rigorous, adversarial audit of this technical/business specification.
 
@@ -735,22 +724,11 @@ ${docText}
   });
 
   // API route for Server-Side Gemini PDF Parsing
-  app.post("/api/pdf/parse-gemini", async (req, res) => {
-    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
-    if (!checkRateLimit(clientIp)) {
-      return res.status(429).json({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' });
-    }
-
+  app.post("/api/pdf/parse-gemini", apiRateLimit('요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'), async (req, res) => {
     try {
       const { textContent, imageBase64, fileName, pageNumber, apiKey: clientApiKey } = req.body;
 
-      let effectiveApiKey = process.env.GEMINI_API_KEY || '';
-      if (typeof clientApiKey === 'string' && clientApiKey.trim()) {
-        const trimmedKey = clientApiKey.trim();
-        if (/^[A-Za-z0-9_\-]{20,128}$/.test(trimmedKey)) {
-          effectiveApiKey = trimmedKey;
-        }
-      }
+      const effectiveApiKey = resolveGeminiApiKey(clientApiKey);
 
       if (!effectiveApiKey) {
         return res.status(400).json({
@@ -758,10 +736,7 @@ ${docText}
         });
       }
 
-      const ai = new GoogleGenAI({
-        apiKey: effectiveApiKey,
-        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
-      });
+      const ai = createGeminiClient(effectiveApiKey);
 
       const systemPrompt = '너는 전문 문서 구조화 및 PDF-투-마크다운 변환 엔지니어이다. 주어진 문서의 제목, 본문, 표(Table), 목록, 수식을 완벽한 마크다운 문법으로 변환하라. 오직 마크다운 텍스트만 출력하고 불필요한 서두나 사족은 절대 포함하지 마라.';
 
@@ -793,12 +768,7 @@ ${docText}
         }
       });
 
-      let md = aiResponse.text?.trim() || '';
-      if (md.startsWith('```markdown')) {
-        md = md.replace(/^```markdown\s*/i, '').replace(/```\s*$/, '').trim();
-      } else if (md.startsWith('```')) {
-        md = md.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/, '').trim();
-      }
+      const md = stripMarkdownFences(aiResponse.text || '');
 
       res.json({
         markdown: md,
@@ -883,38 +853,9 @@ ${docText}
     }
   });
 
-  app.post("/api/ollama/proxy-tags", async (req, res) => {
-    try {
-      const { endpoint = 'http://localhost:11434' } = req.body;
-      const cleanEndpoint = String(endpoint).trim().replace(/\/+$/, '');
-      const targetUrl = `${cleanEndpoint}/api/tags`;
-
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 4000);
-
-      const forwardRes = await fetch(targetUrl, {
-        method: 'GET',
-        signal: controller.signal
-      });
-
-      clearTimeout(timeout);
-
-      if (!forwardRes.ok) {
-        return res.status(forwardRes.status).json({ models: [] });
-      }
-
-      const data = await forwardRes.json();
-      res.json(data);
-    } catch {
-      res.json({ models: [] });
-    }
-  });
-
   // Dedicated SEO Endpoints for Crawlers & Google Lighthouse
   app.get("/robots.txt", (req, res) => {
-    const host = req.get('host') || 'aipodium.net';
-    const protocol = req.protocol === 'http' && !req.secure && host.includes('localhost') ? 'http' : 'https';
-    const origin = `${protocol}://${host}`;
+    const origin = getRequestOrigin(req);
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.send(
 `# Google Lighthouse & Web Crawler Configuration
@@ -930,9 +871,7 @@ Sitemap: ${origin}/sitemap.xml
   });
 
   app.get("/sitemap.xml", (req, res) => {
-    const host = req.get('host') || 'aipodium.net';
-    const protocol = req.protocol === 'http' && !req.secure && host.includes('localhost') ? 'http' : 'https';
-    const origin = `${protocol}://${host}`;
+    const origin = getRequestOrigin(req);
     res.setHeader("Content-Type", "application/xml; charset=utf-8");
     res.send(
 `<?xml version="1.0" encoding="UTF-8"?>
@@ -966,7 +905,10 @@ Sitemap: ${origin}/sitemap.xml
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: false,
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);

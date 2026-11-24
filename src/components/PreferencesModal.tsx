@@ -34,7 +34,8 @@ import {
   Terminal,
   CheckCheck,
   AlertTriangle,
-  Zap
+  Zap,
+  User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SecuritySettings, SecurityConfig, DEFAULT_SECURITY_CONFIG } from './SecuritySettings';
@@ -55,6 +56,7 @@ import { getSettingsTranslations } from '../locales/settingsLocale';
 import {
   VENDOR_MODELS_MAP,
   CLOUD_MODEL_OPTIONS,
+  DEFAULT_CLOUD_MODELS_BY_VENDOR,
   DEFAULT_LOCAL_MODEL_OPTIONS,
   fetchOllamaTags,
   fetchProviderActiveModels,
@@ -63,6 +65,11 @@ import {
   getModelSpec,
   DEFAULT_FALLBACK_MODELS
 } from '../config/models.config';
+import {
+  WEB_LLM_MODEL_ID,
+  WEB_LLM_MODEL_DISPLAY_NAME,
+  getLoadedWebLLMEngine
+} from '../utils/webllmService';
 
 export type { ModelSpec };
 export {
@@ -76,119 +83,24 @@ export {
   fetchProviderActiveModels
 };
 
-export interface PromptTemplate {
-  id: string;
-  title: string;
-  description: string;
-  body: string;
-}
-
-export interface AiInferenceParameters {
-  temperature: number;
-  topP: number;
-  maxTokens: number;
-  presencePenalty: number;
-  frequencyPenalty: number;
-  systemInstruction: string;
-  streamEnabled: boolean;
-  reasoningEffort: 'low' | 'medium' | 'high';
-}
-
-export const DEFAULT_AI_PARAMETERS: AiInferenceParameters = {
-  temperature: 0.7,
-  topP: 0.95,
-  maxTokens: 4096,
-  presencePenalty: 0.0,
-  frequencyPenalty: 0.0,
-  systemInstruction: '당신은 AI Podium의 전문 어시스턴트이자 숙련된 소프트웨어 엔지니어 및 테크니컬 라이터입니다. 사용자의 질문에 체계적이고 정확하며 친절하게 답변하세요.',
-  streamEnabled: true,
-  reasoningEffort: 'medium'
-};
-
+export * from '../types/preferences';
 export * from '../utils/themeManager';
-import { applyThemeToDocument } from '../utils/themeManager';
-import type { AiRoleModels } from '../types';
-import { DEFAULT_AI_ROLE_MODELS } from '../types';
+import {
+  applyThemeToDocument,
+  SEASON_THEMES,
+  resolveSeasonTheme,
+  getCalendarSeason,
+} from '../utils/themeManager';
+import {
+  PromptTemplate,
+  AiInferenceParameters,
+  DEFAULT_AI_PARAMETERS,
+  UserPreferences,
+  DEFAULT_PREFERENCES,
+  PreferencesTab,
+  SeasonThemeId
+} from '../types/preferences';
 
-export interface UserPreferences {
-  baseTheme?: string;
-  themeAccent?: string;
-  themeMode?: string;
-  fontSize: 'sm' | 'md' | 'lg' | 'xl';
-  compactness: 'dense' | 'spacious';
-  defaultModel: string;
-  roleModels?: AiRoleModels;
-  aiPersona: {
-    name: string;
-    role: string;
-    systemInstruction: string;
-  };
-  customPrompts: PromptTemplate[];
-  security?: SecurityConfig;
-  // Ghost Writer preferences
-  ghostWriterLevel?: 'off' | '100' | '70' | '50' | '30';
-  ghostWriterModel?: string;
-  // Multi-vendor BYOK keys
-  apiKeys?: {
-    gemini?: string;
-    openai?: string;
-    anthropic?: string;
-    deepseek?: string;
-    groq?: string;
-  };
-  googleSearchGrounding?: boolean;
-  // PDF Parsing Engine Config
-  pdfParser?: {
-    engine: 'fast' | 'gemini' | 'ollama';
-    ollamaEndpoint?: string;
-    ollamaModel?: string;
-  };
-}
-
-export const DEFAULT_PREFERENCES: UserPreferences = {
-  baseTheme: 'emerald',
-  themeAccent: 'emerald',
-  themeMode: 'standard',
-  fontSize: 'md',
-  compactness: 'dense',
-  defaultModel: 'gemini-2.5-flash',
-  roleModels: DEFAULT_AI_ROLE_MODELS,
-  ghostWriterLevel: 'off',
-  ghostWriterModel: 'gemini-2.5-flash',
-  apiKeys: {
-    gemini: '',
-    openai: '',
-    anthropic: '',
-    deepseek: '',
-    groq: ''
-  },
-  googleSearchGrounding: false,
-  pdfParser: {
-    engine: 'fast',
-    ollamaEndpoint: 'http://localhost:11434',
-    ollamaModel: 'llama3.2-vision'
-  },
-  aiPersona: {
-    name: 'Podium Assistant',
-    role: 'Professional Software Engineer',
-    systemInstruction: 'You are an expert AI coding assistant and tech lead inside the AI Podium IDE. Always provide concise, accurate, and production-ready code. Explain complex architectures clearly.'
-  },
-  customPrompts: [
-    {
-      id: 'p-1',
-      title: 'Code Review',
-      description: '보안 및 성능 관점에서 코드 리뷰',
-      body: 'Please review the following code for any security vulnerabilities, performance bottlenecks, and adherence to best practices. Provide specific recommendations.'
-    },
-    {
-      id: 'p-2',
-      title: 'Unit Test Generator',
-      description: 'Jest/React Testing Library 단위 테스트 생성',
-      body: 'Write comprehensive unit tests for the following component/function using Jest and React Testing Library. Cover edge cases and error states.'
-    }
-  ],
-  security: DEFAULT_SECURITY_CONFIG
-};
 
 export interface CloudVendorMeta {
   id: 'gemini' | 'openai' | 'anthropic' | 'deepseek' | 'groq';
@@ -256,8 +168,6 @@ export const CLOUD_VENDORS: CloudVendorMeta[] = [
   }
 ];
 
-export type PreferencesTab = 'ai' | 'ai-engine' | 'persona' | 'integrations' | 'storage' | 'security' | 'ghost-writer' | 'language';
-
 export interface PreferencesModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -265,7 +175,7 @@ export interface PreferencesModalProps {
   preferences: UserPreferences;
   onSave: (prefs: UserPreferences) => void;
   onApplyPrompt?: (promptBody: string) => void;
-  modelOptions?: { id: string; name: string; tier?: string; desc?: string; group?: string }[];
+  modelOptions?: { id: string; name: string; tier?: string; desc?: string; group?: string; vendor?: string; hasApiKey?: boolean }[];
   
   // AI Engine & Provider props
   provider?: 'cloud' | 'local-pc' | 'local-server';
@@ -283,6 +193,7 @@ export interface PreferencesModalProps {
   onSaveParameters?: (params: AiInferenceParameters) => void;
   onUpdateDiscoveredModels?: (models: { id: string; name: string }[]) => void;
   initialDiscoveredModels?: { id: string; name: string }[];
+  webllmReady?: boolean;
 
   onToast?: (msg: string, type?: 'info' | 'success' | 'warn' | 'error') => void;
   onWipeAllData?: () => void;
@@ -324,6 +235,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   onSaveParameters,
   onUpdateDiscoveredModels,
   initialDiscoveredModels,
+  webllmReady = false,
   onToast = (_m: string, _t?: 'info' | 'success' | 'warn' | 'error') => {},
   onWipeAllData = () => {},
   googleUser = null,
@@ -516,7 +428,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
       setLocalGoogleGrounding(preferences.googleSearchGrounding ?? false);
 
       let targetTab: PreferencesTab = 'ai';
-      if (initialTab === 'persona') targetTab = 'persona';
+      if (initialTab === 'appearance' || initialTab === 'theme') targetTab = 'appearance';
+      else if (initialTab === 'persona') targetTab = 'persona';
       else if (initialTab === 'integrations') targetTab = 'integrations';
       else if (initialTab === 'storage') targetTab = 'storage';
       else if (initialTab === 'security') targetTab = 'security';
@@ -556,6 +469,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
         }
       }
 
+      if (initialDiscoveredModels && initialDiscoveredModels.length > 0) {
+        setDiscoveredModels(initialDiscoveredModels);
+      }
+
       if (provider !== 'cloud' && currentEndpoint) {
         fetchLocalModels(currentEndpoint);
       }
@@ -563,21 +480,23 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
       const tokenStat = googleDriveService.getTokenStatus();
       setGoogleTokenStatus(tokenStat);
     }
-  }, [isOpen, initialTab, preferences, provider, currentApiKey, currentEndpoint, selectedModel, aiParameters, fetchLocalModels, googleUser]);
+  }, [isOpen, initialTab, preferences, provider, currentApiKey, currentEndpoint, selectedModel, aiParameters, fetchLocalModels, googleUser, initialDiscoveredModels]);
 
   useEffect(() => {
     if (isOpen) {
       applyThemeToDocument(
         localPrefs.compactness || 'dense',
-        localPrefs.fontSize || 'md'
+        localPrefs.fontSize || 'md',
+        localPrefs.seasonTheme || 'default'
       );
     } else {
       applyThemeToDocument(
         preferences.compactness || 'dense',
-        preferences.fontSize || 'md'
+        preferences.fontSize || 'md',
+        preferences.seasonTheme || 'default'
       );
     }
-  }, [isOpen, localPrefs.compactness, localPrefs.fontSize, preferences]);
+  }, [isOpen, localPrefs.compactness, localPrefs.fontSize, localPrefs.seasonTheme, preferences]);
 
   if (!isOpen) return null;
 
@@ -812,11 +731,68 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
     }
   };
 
+  const isGoogleConnected = googleTokenStatus === 'connected' && !!googleUser;
+  const isGithubConnected = !!(githubConfig?.owner && githubConfig?.repo) || !!githubConfig?.token;
+  const connectedCount = [isGoogleConnected, isGithubConnected].filter(Boolean).length;
+
+  const tabItems = [
+    {
+      id: 'ai' as PreferencesTab,
+      label: st.tabs.ai,
+      icon: Cpu,
+      badge: localProviderType === 'cloud' ? st.badges.cloud : st.badges.local
+    },
+    {
+      id: 'appearance' as PreferencesTab,
+      label: st.tabs.appearance,
+      icon: Palette,
+      badge: undefined
+    },
+    {
+      id: 'persona' as PreferencesTab,
+      label: st.tabs.persona,
+      icon: User,
+      badge: undefined
+    },
+    {
+      id: 'ghost-writer' as PreferencesTab,
+      label: st.tabs.ghostWriter,
+      icon: Ghost,
+      badge: localPrefs.ghostWriterLevel && localPrefs.ghostWriterLevel !== 'off'
+        ? `${localPrefs.ghostWriterLevel}%`
+        : 'OFF'
+    },
+    {
+      id: 'integrations' as PreferencesTab,
+      label: st.tabs.integrations,
+      icon: PlugZap,
+      badge: connectedCount > 0 ? st.badges.connected(connectedCount) : st.badges.disconnected
+    },
+    {
+      id: 'storage' as PreferencesTab,
+      label: st.tabs.storage,
+      icon: Database,
+      badge: st.badges.localDb
+    },
+    {
+      id: 'security' as PreferencesTab,
+      label: st.tabs.security,
+      icon: ShieldCheck,
+      badge: undefined
+    },
+    {
+      id: 'language' as PreferencesTab,
+      label: st.tabs.language,
+      icon: Globe,
+      badge: undefined
+    }
+  ];
+
   return (
     <AnimatePresence>
       <div
         id="preferences-modal-overlay"
-        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs text-xs"
+        className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/65 backdrop-blur-xs text-xs"
         onClick={onClose}
       >
         <motion.div
@@ -825,21 +801,21 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.98, y: 6 }}
           transition={{ duration: 0.15 }}
-          className="bg-[#121214] border border-white/[0.08] rounded-xl shadow-2xl w-full max-w-4xl h-[630px] max-h-[92vh] flex flex-col overflow-hidden text-zinc-200"
+          className="bg-[var(--bg-elevated)]/95 backdrop-blur-md border-0 sm:border border-white/[0.08] rounded-none sm:rounded-xl shadow-2xl w-full sm:max-w-4xl h-full sm:h-[630px] sm:max-h-[92vh] flex flex-col overflow-hidden text-[var(--text-main)]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-4 py-3 border-b border-white/[0.08] bg-[#121214] flex items-center justify-between shrink-0">
+          <div className="px-5 py-3.5 border-b border-white/[0.06] bg-[var(--bg-surface)]/90 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              <Settings className="w-4 h-4 text-zinc-400" />
-              <h2 className="font-medium text-xs text-zinc-200 tracking-wide">
+              <Settings className="w-4 h-4 text-[var(--text-muted)]" />
+              <h2 className="font-medium text-xs text-[var(--text-main)] tracking-wide">
                 {st.title}
               </h2>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="p-1 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] rounded transition cursor-pointer"
+              className="p-1 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] rounded transition cursor-pointer"
               title={st.close}
               aria-label={st.close}
             >
@@ -847,135 +823,77 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             </button>
           </div>
 
+          {/* Mobile Horizontal Tabs (visible on mobile only) */}
+          <div className="sm:hidden flex items-center gap-1 overflow-x-auto no-scrollbar px-2 bg-[var(--bg-surface)] border-b border-white/[0.06] shrink-0 select-none">
+            {tabItems.map((tab) => {
+              const isActive = activeTab === tab.id || (tab.id === 'ai' && activeTab === 'ai-engine');
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-1.5 px-3 py-2.5 text-xs whitespace-nowrap shrink-0 border-b-2 transition-colors cursor-pointer ${
+                    isActive
+                      ? 'border-[var(--accent-primary)] text-[var(--text-main)] font-medium bg-white/[0.04]'
+                      : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.02]'
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'}`} />
+                  <span>{tab.label}</span>
+                  {tab.badge && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono text-[var(--text-secondary)] font-normal">
+                      <span className={`w-1.5 h-1.5 rounded-full ${tab.badge === 'OFF' ? 'bg-[#64748B]' : 'bg-[var(--secondary-accent)]'}`} />
+                      <span>{tab.badge}</span>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Main Body */}
           <div className="flex flex-1 overflow-hidden min-h-0">
-            {/* Sidebar Tabs */}
-            <div className="w-52 bg-[#0c0c0e] border-r border-white/[0.08] p-2 flex flex-col gap-1 shrink-0 select-none overflow-y-auto min-h-0">
-              {/* TAB: AI Engine & Provider */}
-              <button
-                type="button"
-                onClick={() => setActiveTab('ai')}
-                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
-                  (activeTab === 'ai' || activeTab === 'ai-engine')
-                    ? 'bg-white/[0.08] text-white font-medium'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-                }`}
-              >
-                <span className="truncate">{st.tabs.ai}</span>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 shrink-0 ml-1 font-normal">
-                  {localProviderType === 'cloud' ? st.badges.cloud : st.badges.local}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('persona')}
-                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
-                  activeTab === 'persona'
-                    ? 'bg-white/[0.08] text-white font-medium'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-                }`}
-              >
-                <span className="truncate">{st.tabs.persona}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('ghost-writer')}
-                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
-                  activeTab === 'ghost-writer'
-                    ? 'bg-white/[0.08] text-white font-medium'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-                }`}
-              >
-                <span className="truncate">{st.tabs.ghostWriter}</span>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 shrink-0 ml-1 font-normal">
-                  {localPrefs.ghostWriterLevel && localPrefs.ghostWriterLevel !== 'off'
-                    ? `${localPrefs.ghostWriterLevel}%`
-                    : 'OFF'}
-                </span>
-              </button>
-
-              {(() => {
-                const isGoogleConnected = googleTokenStatus === 'connected' && !!googleUser;
-                const isGithubConnected = !!(githubConfig?.owner && githubConfig?.repo) || !!githubConfig?.token;
-                const connectedCount = [isGoogleConnected, isGithubConnected].filter(Boolean).length;
+            {/* Desktop Sidebar Tabs (visible on sm and up) */}
+            <div className="hidden sm:flex sm:w-52 bg-[var(--bg-surface)] border-r border-white/[0.06] p-2.5 flex-col gap-1 shrink-0 select-none overflow-y-auto min-h-0">
+              {tabItems.map((tab) => {
+                const isActive = activeTab === tab.id || (tab.id === 'ai' && activeTab === 'ai-engine');
+                const Icon = tab.icon;
                 return (
                   <button
+                    key={tab.id}
                     type="button"
-                    onClick={() => setActiveTab('integrations')}
+                    onClick={() => setActiveTab(tab.id)}
                     className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
-                      activeTab === 'integrations'
-                        ? 'bg-white/[0.08] text-white font-medium'
-                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+                      isActive
+                        ? 'bg-white/[0.06] text-[var(--text-main)] font-medium'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.04]'
                     }`}
                   >
-                    <span className="truncate">{st.tabs.integrations}</span>
-                    {connectedCount > 0 ? (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-300 font-normal shrink-0 ml-1">
-                        {st.badges.connected(connectedCount)}
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-zinc-500 font-normal shrink-0 ml-1">
-                        {st.badges.disconnected}
+                    <span className="flex items-center gap-2 truncate">
+                      <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'}`} />
+                      <span className="truncate">{tab.label}</span>
+                    </span>
+                    {tab.badge && (
+                      <span className="inline-flex items-center gap-1.5 text-[10px] font-mono text-[var(--text-secondary)] shrink-0 ml-1 font-normal">
+                        <span className={`w-1.5 h-1.5 rounded-full ${tab.badge === 'OFF' ? 'bg-[#64748B]' : 'bg-[var(--secondary-accent)]'}`} />
+                        <span>{tab.badge}</span>
                       </span>
                     )}
                   </button>
                 );
-              })()}
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('storage')}
-                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
-                  activeTab === 'storage'
-                    ? 'bg-white/[0.08] text-white font-medium'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-                }`}
-              >
-                <span className="truncate">{st.tabs.storage}</span>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 font-normal shrink-0 ml-1">
-                  {st.badges.localDb}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('security')}
-                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
-                  activeTab === 'security'
-                    ? 'bg-white/[0.08] text-white font-medium'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-                }`}
-              >
-                <span className="truncate">{st.tabs.security}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('language')}
-                className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
-                  activeTab === 'language'
-                    ? 'bg-white/[0.08] text-white font-medium'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-                }`}
-              >
-                <span className="flex items-center gap-2 truncate">
-                  <Globe className="w-3.5 h-3.5" />
-                  <span>{st.tabs.language}</span>
-                </span>
-              </button>
+              })}
 
               {/* System Status & Environment Info Widget */}
-              <div className="mt-auto pt-3 border-t border-white/[0.08] px-2 py-1.5 text-[11px] text-zinc-400 space-y-1.5 select-none">
-                <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-zinc-500 font-normal">{st.status.build}</span>
-                  <span className="font-mono text-zinc-300 font-normal">v2.4.0</span>
+              <div className="mt-auto pt-3 border-t border-white/[0.06] px-2 py-1.5 text-[11px] text-[var(--text-muted)] space-y-1.5 select-none">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-[var(--text-tertiary)] font-normal">{st.status.build}</span>
+                  <span className="font-mono text-[var(--text-secondary)] font-normal">v0.1.0</span>
                 </div>
-                <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-zinc-500 font-normal">{st.status.retention}</span>
-                  <span className="font-mono text-zinc-300 flex items-center gap-1.5 font-normal">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-[var(--text-tertiary)] font-normal">{st.status.retention}</span>
+                  <span className="font-mono text-[var(--text-secondary)] flex items-center gap-1.5 font-normal">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] inline-block" />
                     {st.status.encrypted}
                   </span>
                 </div>
@@ -983,22 +901,207 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             </div>
 
             {/* Tab Content Area */}
-            <div className="flex-1 min-w-0 overflow-y-auto p-6 bg-[#16161a]">
+            <div className="flex-1 min-w-0 overflow-y-auto p-5 sm:p-7 bg-[var(--bg-editor)]">
+              {/* TAB: Appearance & Four Seasons Themes */}
+              {activeTab === 'appearance' && (() => {
+                const selectedSeason: SeasonThemeId = localPrefs.seasonTheme || 'default';
+                const currentCalendarSeason = getCalendarSeason();
+                const seasonOptions: SeasonThemeId[] = ['default', 'spring', 'summer', 'autumn', 'winter', 'auto'];
+                return (
+                  <section className="space-y-6 animate-in fade-in duration-150">
+                    <div className="border-b border-white/[0.06] pb-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="text-sm font-semibold text-[var(--text-main)]">
+                          {st.themePanel.title}
+                        </h3>
+                        <HelpTooltip side="bottom" content={st.themePanel.description} />
+                      </div>
+                      <span className="text-[11px] font-mono text-[var(--text-tertiary)] shrink-0">
+                        {st.themePanel.activeSeasonPrefix}: {st.themePanel.options[currentCalendarSeason].title}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {seasonOptions.map((seasonId) => {
+                        const resolvedId = resolveSeasonTheme(seasonId);
+                        const preview = SEASON_THEMES[resolvedId];
+                        const isSelected = selectedSeason === seasonId;
+                        const meta = st.themePanel.options[seasonId];
+
+                        return (
+                          <button
+                            key={seasonId}
+                            type="button"
+                            data-season-option={seasonId}
+                            onClick={() => setLocalPrefs((prev) => ({ ...prev, seasonTheme: seasonId }))}
+                            className={`group text-left rounded-lg border p-2.5 transition-colors cursor-pointer flex flex-col gap-2.5 ${
+                              isSelected
+                                ? 'bg-white/[0.06] border-[var(--accent-primary)]/70'
+                                : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.14]'
+                            }`}
+                          >
+                            {/* Miniature 3-Pane IDE Swatch Preview */}
+                            <div
+                              className="w-full h-16 rounded-md overflow-hidden border border-white/[0.08] flex flex-col"
+                              style={{ backgroundColor: preview.bgMain }}
+                            >
+                              <div
+                                className="h-3 px-2 flex items-center justify-between border-b border-white/[0.06]"
+                                style={{ backgroundColor: preview.bgMain }}
+                              >
+                                <div className="flex items-center gap-1">
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full"
+                                    style={{ backgroundColor: preview.accentPrimary }}
+                                  />
+                                  <span
+                                    className="w-5 h-1 rounded-full opacity-70"
+                                    style={{ backgroundColor: preview.textSecondary }}
+                                  />
+                                </div>
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full"
+                                  style={{ backgroundColor: preview.secondaryAccent }}
+                                />
+                              </div>
+                              <div className="flex-1 flex min-h-0">
+                                <div
+                                  className="w-1/4 border-r border-white/[0.06] p-1.5 flex flex-col gap-1"
+                                  style={{ backgroundColor: preview.bgSurface }}
+                                >
+                                  <span
+                                    className="w-full h-1 rounded-full opacity-75"
+                                    style={{ backgroundColor: preview.textMuted }}
+                                  />
+                                  <span
+                                    className="w-3/4 h-1 rounded-full opacity-45"
+                                    style={{ backgroundColor: preview.textMuted }}
+                                  />
+                                </div>
+                                <div
+                                  className="flex-1 p-2 flex flex-col justify-between"
+                                  style={{ backgroundColor: preview.bgEditor }}
+                                >
+                                  <div className="space-y-1">
+                                    <span
+                                      className="block w-2/3 h-1.5 rounded-full"
+                                      style={{ backgroundColor: preview.textMain }}
+                                    />
+                                    <span
+                                      className="block w-4/5 h-1 rounded-full opacity-70"
+                                      style={{ backgroundColor: preview.textSecondary }}
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span
+                                      className="w-6 h-1.5 rounded-sm"
+                                      style={{ backgroundColor: preview.accentPrimary }}
+                                    />
+                                    <span
+                                      className="w-4 h-1.5 rounded-sm opacity-80"
+                                      style={{ backgroundColor: preview.secondaryAccent }}
+                                    />
+                                  </div>
+                                </div>
+                                <div
+                                  className="w-1/5 border-l border-white/[0.06] p-1.5 flex flex-col gap-1"
+                                  style={{ backgroundColor: preview.bgSurface }}
+                                >
+                                  <span
+                                    className="w-full h-1 rounded-full opacity-60"
+                                    style={{ backgroundColor: preview.textTertiary }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-2 min-w-0 w-full">
+                              <div className="text-xs font-medium text-[var(--text-main)] truncate min-w-0">
+                                {meta.title}
+                              </div>
+                              {isSelected && (
+                                <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="divide-y divide-white/[0.06] border-t border-white/[0.06]">
+                      {/* Compactness control */}
+                      <div className="py-4 flex items-center justify-between gap-4">
+                        <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
+                          <span>{st.themePanel.densityTitle}</span>
+                          <HelpTooltip side="bottom" content={st.themePanel.densityDescription} />
+                        </div>
+                        <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-white/[0.06] rounded-md shrink-0">
+                          {(['dense', 'spacious'] as const).map((density) => {
+                            const active = (localPrefs.compactness || 'dense') === density;
+                            return (
+                              <button
+                                key={density}
+                                type="button"
+                                onClick={() => setLocalPrefs((prev) => ({ ...prev, compactness: density }))}
+                                className={`px-3 py-1 text-xs rounded transition cursor-pointer ${
+                                  active
+                                    ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+                                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                                }`}
+                              >
+                                {density === 'dense' ? st.themePanel.compactLabel : st.themePanel.spaciousLabel}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Font size control */}
+                      <div className="py-4 pb-0 flex items-center justify-between gap-4">
+                        <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
+                          <span>{st.themePanel.fontSizeTitle}</span>
+                          <HelpTooltip side="bottom" content={st.themePanel.fontSizeDescription} />
+                        </div>
+                        <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-white/[0.06] rounded-md shrink-0">
+                          {(['sm', 'md', 'lg', 'xl'] as const).map((size) => {
+                            const active = (localPrefs.fontSize || 'md') === size;
+                            return (
+                              <button
+                                key={size}
+                                type="button"
+                                onClick={() => setLocalPrefs((prev) => ({ ...prev, fontSize: size }))}
+                                className={`px-2.5 py-1 text-xs rounded transition cursor-pointer ${
+                                  active
+                                    ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+                                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                                }`}
+                              >
+                                {st.themePanel.fontSizes[size]}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                );
+              })()}
               {/* TAB 0: AI Engine & Provider (Default fallback if not any other tab) */}
               {activeTab === 'language' && (
-                <section className="max-w-xl space-y-4 animate-in fade-in duration-150">
-                  <div className="border-b border-white/[0.06] pb-3">
-                    <h3 className="text-sm font-semibold text-zinc-100">
+                <section className="max-w-xl space-y-6 animate-in fade-in duration-150">
+                  <div className="border-b border-white/[0.06] pb-3 flex items-center gap-1.5">
+                    <h3 className="text-sm font-semibold text-[var(--text-main)]">
                       {st.languagePanel.title}
                     </h3>
-                    <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-                      {st.languagePanel.description}
-                    </p>
+                    <HelpTooltip
+                      side="bottom"
+                      content={st.languagePanel.description}
+                    />
                   </div>
-                  <div className="space-y-2">
+                  <div className="divide-y divide-white/[0.06]">
                     {([
                       {
-                        value: 'system',
+                        value: 'auto',
                         title: st.languagePanel.systemTitle,
                         description: st.languagePanel.systemDescription
                       },
@@ -1012,48 +1115,56 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         title: 'English',
                         description: st.languagePanel.enDescription
                       }
-                    ] as const).map((option) => (
-                      <label
-                        key={option.value}
-                        className="flex items-start gap-3 rounded-md border border-white/[0.08] bg-[#0c0c0e] p-3 hover:bg-white/[0.03] cursor-pointer"
-                      >
-                        <input
-                          type="radio"
-                          name="app-language"
-                          value={option.value}
-                          checked={languagePreference === option.value}
-                          onChange={() => setLanguagePreference(option.value)}
-                          className="mt-0.5 accent-indigo-500"
-                        />
-                        <span className="min-w-0">
-                          <span className="block text-xs font-medium text-zinc-200">{option.title}</span>
-                          <span className="mt-1 block text-[11px] leading-relaxed text-zinc-500">{option.description}</span>
-                        </span>
-                      </label>
-                    ))}
+                    ] as const).map((option) => {
+                      const isOptionSelected =
+                        option.value === 'auto'
+                          ? languagePreference === 'auto' || languagePreference === 'system'
+                          : languagePreference === option.value;
+                      return (
+                        <label
+                          key={option.value}
+                          className={`flex items-start gap-3 px-3 py-3.5 rounded-md transition-colors cursor-pointer ${
+                            isOptionSelected ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="app-language"
+                            value={option.value}
+                            checked={isOptionSelected}
+                            onChange={() => setLanguagePreference(option.value)}
+                            className="mt-0.5 accent-[var(--accent-primary)]"
+                          />
+                          <span className="min-w-0">
+                            <span className="block text-xs font-medium text-[var(--text-main)]">{option.title}</span>
+                            <span className="mt-1 block text-[11px] leading-relaxed text-[var(--text-muted)]">{option.description}</span>
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </section>
               )}
 
-              {(activeTab === 'ai' || activeTab === 'ai-engine' || !['persona', 'integrations', 'storage', 'security', 'ghost-writer', 'language'].includes(activeTab)) && (
-                <div className="space-y-0 animate-in fade-in duration-150">
+              {(activeTab === 'ai' || activeTab === 'ai-engine' || !['appearance', 'persona', 'integrations', 'storage', 'security', 'ghost-writer', 'language'].includes(activeTab)) && (
+                <div className="space-y-0 divide-y divide-white/[0.06] animate-in fade-in duration-150">
                   {/* 1. Mode Switcher: Cloud API vs Local Ollama */}
-                  <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.06]">
-                    <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
+                  <div className="flex items-center justify-between pb-4">
+                    <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5">
                       <span>{st.body.engineMode}</span>
                       <HelpTooltip
                         side="bottom"
                         content={st.body.engineModeHelp}
                       />
                     </div>
-                    <div className="inline-flex p-0.5 bg-[#09090b] border border-white/10 rounded-md">
+                    <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-white/[0.06] rounded-md">
                       <button
                         type="button"
                         onClick={() => handleSwitchProvider('cloud')}
                         className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center justify-center ${
                           localProviderType === 'cloud'
-                            ? 'bg-white/10 text-white font-medium'
-                            : 'text-zinc-400 hover:text-zinc-200'
+                            ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                         }`}
                       >
                         <span>{st.body.cloudApi}</span>
@@ -1064,8 +1175,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         onClick={() => handleSwitchProvider('local')}
                         className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center justify-center ${
                           localProviderType === 'local'
-                            ? 'bg-white/10 text-white font-medium'
-                            : 'text-zinc-400 hover:text-zinc-200'
+                            ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                         }`}
                       >
                         <span>{st.body.localOllama}</span>
@@ -1075,9 +1186,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
                   {/* 2. Provider Specific Credentials / Endpoint */}
                   {localProviderType === 'cloud' ? (
-                    <div>
+                    <div className="divide-y divide-white/[0.06]">
                       {/* BYOK Multi-Vendor Tabs - Flat Single Row */}
-                      <div className="flex items-stretch border-b border-white/[0.06]">
+                      <div className="flex items-stretch">
                         {CLOUD_VENDORS.map((v) => {
                           const isSelected = selectedVendor === v.id;
                           const hasKey = !!(localPrefs.apiKeys?.[v.id] || (v.id === selectedVendor && localApiKeyInput.trim()));
@@ -1090,17 +1201,17 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               onClick={() => handleSelectVendor(v.id)}
                               className={`flex-1 py-2.5 px-1.5 text-center transition cursor-pointer flex flex-col items-center justify-center gap-0.5 relative border-b-2 ${
                                 isSelected
-                                  ? 'border-indigo-500 text-white font-medium bg-white/[0.04]'
-                                  : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.02]'
+                                  ? 'border-[var(--accent-primary)] text-[var(--text-main)] font-medium bg-white/[0.04]'
+                                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.02]'
                               }`}
                             >
                               <div className="flex items-center gap-1.5 text-xs font-normal">
                                 <span>{vendorShort}</span>
                                 {hasKey && (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" title={st.body.keyRegistered} />
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)]" title={st.body.keyRegistered} />
                                 )}
                               </div>
-                              <span className={`text-[10px] leading-tight ${isSelected ? 'text-indigo-300 font-normal' : 'text-zinc-500 font-normal'}`}>
+                              <span className={`text-[10px] leading-tight ${isSelected ? 'text-[var(--accent-primary)] font-normal' : 'text-[var(--text-tertiary)] font-normal'}`}>
                                 {vendorSub}
                               </span>
                             </button>
@@ -1112,10 +1223,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       {(() => {
                         const currentVendorMeta = CLOUD_VENDORS.find((v) => v.id === selectedVendor) || CLOUD_VENDORS[0];
                         return (
-                          <div>
+                          <div className="divide-y divide-white/[0.06]">
                             {/* API Key Row */}
-                            <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
-                              <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
+                            <div className="py-4 flex items-center justify-between gap-4">
+                              <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
                                 <span>{st.body.apiKeyLabel(currentVendorMeta.name)}</span>
                                 <HelpTooltip
                                   side="bottom"
@@ -1139,12 +1250,12 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                       }));
                                     }}
                                     placeholder={st.body.apiKeyPlaceholder(currentVendorMeta.name)}
-                                    className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 pr-8 py-1.5 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none transition"
+                                    className="w-full bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded-md px-3 pr-8 py-1.5 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
                                   />
                                   <button
                                     type="button"
                                     onClick={() => setShowApiKey(!showApiKey)}
-                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 cursor-pointer"
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-slate-200 cursor-pointer"
                                     title={showApiKey ? st.body.hide : st.body.show}
                                   >
                                     {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -1155,7 +1266,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                   type="button"
                                   onClick={handleTriggerVerify}
                                   disabled={isVerifying}
-                                  className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
+                                  className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
                                 >
                                   <span>{isVerifying ? st.body.verifying : st.body.verify}</span>
                                 </button>
@@ -1164,7 +1275,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                   href={currentVendorMeta.signupUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
+                                  className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
                                   title={st.vendors[currentVendorMeta.id as keyof typeof st.vendors]?.guide ?? currentVendorMeta.guide}
                                 >
                                   <span>{st.body.getApiKey}</span>
@@ -1182,8 +1293,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               const specText = st.body.modelSpec(contextStr, spec.inputCostPer1M.toFixed(spec.inputCostPer1M < 0.01 ? 3 : 2), spec.outputCostPer1M.toFixed(2), badgeClean);
 
                               return (
-                                <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
-                                  <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
+                                <div className="py-4 flex items-center justify-between gap-4">
+                                  <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
                                     <span>{st.body.defaultModel}</span>
                                     <HelpTooltip
                                       side="bottom"
@@ -1209,7 +1320,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                         onClick={() => {
                                           onOpenRoleAssignment();
                                         }}
-                                        className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
+                                        className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
                                         title={st.body.roleModelsTitle}
                                       >
                                         <span>{st.body.roleModels}</span>
@@ -1222,8 +1333,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
                             {/* Search Grounding for Gemini */}
                             {selectedVendor === 'gemini' && (
-                              <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
-                                <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
+                              <div className="py-4 flex items-center justify-between gap-4">
+                                <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
                                   <span>{st.body.googleSearch}</span>
                                   <HelpTooltip
                                     side="bottom"
@@ -1236,7 +1347,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                   onClick={() => setLocalGoogleGrounding(!localGoogleGrounding)}
                                   title={localGoogleGrounding ? st.body.googleSearchOff : st.body.googleSearchOn}
                                   className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                                    localGoogleGrounding ? 'bg-indigo-600' : 'bg-white/10'
+                                    localGoogleGrounding ? 'bg-[var(--accent-primary)]' : 'bg-white/10'
                                   }`}
                                 >
                                   <span
@@ -1252,10 +1363,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       })()}
                     </div>
                   ) : (
-                    <div>
+                    <div className="divide-y divide-white/[0.06]">
                       {/* Local Endpoint Row */}
-                      <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
-                        <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
+                      <div className="py-4 flex items-center justify-between gap-4">
+                        <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
                           <span>{st.body.ollamaEndpoint}</span>
                           <HelpTooltip
                             side="bottom"
@@ -1268,13 +1379,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             value={localEndpointInput}
                             onChange={(e) => setLocalEndpointInput(e.target.value)}
                             placeholder="http://localhost:11434"
-                            className="max-w-xs w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 py-1.5 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none"
+                            className="max-w-xs w-full bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded-md px-3 py-1.5 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none"
                           />
                           <button
                             type="button"
                             onClick={handleTriggerVerify}
                             disabled={isVerifying}
-                            className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
+                            className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
                           >
                             <span>{isVerifying ? st.body.connecting : st.body.verify}</span>
                           </button>
@@ -1282,8 +1393,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       </div>
 
                       {/* Local Model Selector Row */}
-                      <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
-                        <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
+                      <div className="py-4 flex items-center justify-between gap-4">
+                        <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
                           <span>{st.body.localModel}</span>
                           <HelpTooltip
                             side="bottom"
@@ -1300,8 +1411,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       </div>
 
                       {localSelectedModel === 'custom' && (
-                        <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
-                          <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
+                        <div className="py-4 flex items-center justify-between gap-4">
+                          <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
                             <span>{st.body.customTag}</span>
                             <HelpTooltip
                               side="bottom"
@@ -1313,28 +1424,28 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             value={customModelInput}
                             onChange={(e) => setCustomModelInput(e.target.value)}
                             placeholder={st.body.customTagPlaceholder}
-                            className="max-w-xs w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 py-1.5 text-xs text-zinc-200 outline-none transition"
+                            className="max-w-xs w-full bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded-md px-3 py-1.5 text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
                           />
                         </div>
                       )}
 
                       {/* CORS Diagnostic & Guide Row */}
-                      <div className="py-3.5 border-b border-white/[0.06] space-y-2">
+                      <div className="py-4 space-y-2.5">
                         <div className="flex items-center justify-between">
                           <button
                             type="button"
                             onClick={() => setIsCorsGuideOpen((prev) => !prev)}
-                            className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 hover:text-white transition cursor-pointer"
+                            className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
                           >
                             <span>{st.body.corsGuide}</span>
-                            <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-150 ${isCorsGuideOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDown className={`w-3.5 h-3.5 text-[var(--text-muted)] transition-transform duration-150 ${isCorsGuideOpen ? 'rotate-180' : ''}`} />
                           </button>
 
                           <button
                             type="button"
                             onClick={() => runCorsDiagnostic()}
                             disabled={corsStatus === 'testing'}
-                            className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
+                            className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
                           >
                             <span>{corsStatus === 'testing' ? st.body.diagnosing : st.body.corsDiagnose}</span>
                           </button>
@@ -1343,18 +1454,18 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         {/* Diagnostic Result */}
                         {corsStatus !== 'idle' && (
                           <div
-                            className={`p-2.5 rounded-md border text-xs leading-relaxed flex items-start gap-2 ${
+                            className={`py-2.5 px-3 rounded-md text-xs leading-relaxed flex items-start gap-2 ${
                               corsStatus === 'success'
-                                ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300'
+                                ? 'bg-[var(--secondary-accent)]/10 text-[var(--secondary-accent)]'
                                 : corsStatus === 'blocked'
-                                ? 'bg-amber-950/20 border-amber-500/30 text-amber-200'
+                                ? 'bg-amber-500/10 text-amber-200'
                                 : corsStatus === 'offline'
-                                ? 'bg-rose-950/20 border-rose-500/30 text-rose-200'
-                                : 'bg-[#09090b] border-white/10 text-zinc-300'
+                                ? 'bg-rose-500/10 text-rose-200'
+                                : 'bg-[var(--bg-surface)]/70 text-[var(--text-muted)]'
                             }`}
                           >
                             {corsStatus === 'success' ? (
-                              <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                              <CheckCircle className="w-3.5 h-3.5 text-[var(--secondary-accent)] shrink-0 mt-0.5" />
                             ) : (
                               <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
                             )}
@@ -1364,8 +1475,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
                         {/* Collapsible Accordion Content for CORS Commands */}
                         {isCorsGuideOpen && (
-                          <div className="p-3 bg-[#09090b] border border-white/10 rounded-md space-y-2 text-xs">
-                            <div className="flex items-center justify-between border-b border-white/[0.06] pb-1.5">
+                          <div className="pt-2.5 border-t border-white/[0.06] space-y-2.5 text-xs">
+                            <div className="flex items-center justify-between pb-1">
                               <div className="flex gap-1">
                                 {[
                                   { id: 'powershell', label: st.body.osPowershell },
@@ -1379,8 +1490,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                     onClick={() => setCorsOsTab(tab.id as any)}
                                     className={`px-2 py-0.5 rounded text-[11px] font-normal transition cursor-pointer ${
                                       corsOsTab === tab.id
-                                        ? 'bg-white/10 text-white font-medium'
-                                        : 'text-zinc-400 hover:text-zinc-200'
+                                        ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+                                        : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                                     }`}
                                   >
                                     {tab.label}
@@ -1405,7 +1516,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               const isCopied = corsCopiedCmd === cmdText;
 
                               return (
-                                <div className="flex items-center justify-between bg-[#0c0c0e] border border-white/10 rounded-md px-3 py-1.5 font-mono text-xs text-indigo-300">
+                                <div className="flex items-center justify-between bg-[var(--bg-surface)] border border-white/[0.06] rounded-md px-3 py-1.5 font-mono text-xs text-[var(--accent-primary)]">
                                   <span className="select-all truncate mr-2">{cmdText}</span>
                                   <button
                                     type="button"
@@ -1415,7 +1526,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                       onToast(st.body.copied, 'success');
                                       setTimeout(() => setCorsCopiedCmd(null), 2500);
                                     }}
-                                    className="px-2 py-1 rounded text-[11px] text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center justify-center cursor-pointer"
+                                    className="px-2 py-1 rounded text-[11px] text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors inline-flex items-center justify-center cursor-pointer"
                                   >
                                     <span>{isCopied ? st.body.copiedShort : st.body.copy}</span>
                                   </button>
@@ -1429,8 +1540,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   )}
 
                   {/* 3. Inference Mode Presets */}
-                  <div className="py-3.5 border-b border-white/[0.06] flex items-center justify-between gap-4">
-                    <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
+                  <div className="py-4 flex items-center justify-between gap-4">
+                    <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
                       <span>{st.body.inferenceMode}</span>
                       <HelpTooltip
                         side="top"
@@ -1439,7 +1550,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <div className="inline-flex p-0.5 bg-[#09090b] border border-white/10 rounded-md">
+                      <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-white/[0.06] rounded-md">
                         {[
                           { id: 'precision', label: st.body.presetPrecise },
                           { id: 'balanced', label: st.body.presetBalanced },
@@ -1453,8 +1564,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               onClick={() => handleApplyPreset(p.id as any)}
                               className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer ${
                                 isSelected
-                                  ? 'bg-white/10 text-white font-medium'
-                                  : 'text-zinc-400 hover:text-zinc-200'
+                                  ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+                                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                               }`}
                             >
                               {p.label}
@@ -1466,13 +1577,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setIsAdvancedParamsOpen(!isAdvancedParamsOpen)}
-                        className="px-2.5 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors inline-flex items-center gap-1 cursor-pointer"
                       >
                         <span>{st.body.detailParams}</span>
                         {isAdvancedParamsOpen ? (
-                          <ChevronUp className="w-3 h-3 text-zinc-400" />
+                          <ChevronUp className="w-3 h-3 text-[var(--text-muted)]" />
                         ) : (
-                          <ChevronDown className="w-3 h-3 text-zinc-400" />
+                          <ChevronDown className="w-3 h-3 text-[var(--text-muted)]" />
                         )}
                       </button>
                     </div>
@@ -1480,11 +1591,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
                   {/* 4. Collapsible Advanced Parameters */}
                   {isAdvancedParamsOpen && (
-                    <div className="py-3.5 border-b border-white/[0.06] space-y-3">
+                    <div className="py-4 space-y-3.5">
                       {/* Temperature Row */}
                       <div className="flex items-center justify-between gap-4">
                         <div className="w-48 shrink-0 flex items-center gap-1.5">
-                          <span className="text-xs text-zinc-300">{st.body.temperature}</span>
+                          <span className="text-xs text-[var(--text-muted)]">{st.body.temperature}</span>
                           <HelpTooltip
                             side="top"
                             content={st.body.temperatureHelp}
@@ -1500,9 +1611,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             onChange={(e) =>
                               setLocalAiParams((prev) => ({ ...prev, temperature: parseFloat(e.target.value) }))
                             }
-                            className="flex-1 accent-indigo-500 cursor-pointer h-1.5 bg-[#18181b] rounded appearance-none"
+                            className="flex-1 accent-[var(--accent-primary)] cursor-pointer h-1.5 bg-[var(--bg-surface)] rounded appearance-none"
                           />
-                          <span className="w-12 text-right font-mono text-xs font-medium text-zinc-300 shrink-0">
+                          <span className="w-12 text-right font-mono text-xs font-medium text-[var(--text-main)] shrink-0">
                             {localAiParams.temperature.toFixed(2)}
                           </span>
                         </div>
@@ -1511,7 +1622,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       {/* Max Tokens Row */}
                       <div className="flex items-center justify-between gap-4">
                         <div className="w-48 shrink-0 flex items-center gap-1.5">
-                          <span className="text-xs text-zinc-300">{st.body.maxTokens}</span>
+                          <span className="text-xs text-[var(--text-muted)]">{st.body.maxTokens}</span>
                           <HelpTooltip
                             side="top"
                             content={st.body.maxTokensHelp}
@@ -1527,9 +1638,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             onChange={(e) =>
                               setLocalAiParams((prev) => ({ ...prev, maxTokens: parseInt(e.target.value, 10) }))
                             }
-                            className="flex-1 accent-indigo-500 cursor-pointer h-1.5 bg-[#18181b] rounded appearance-none"
+                            className="flex-1 accent-[var(--accent-primary)] cursor-pointer h-1.5 bg-[var(--bg-surface)] rounded appearance-none"
                           />
-                          <span className="w-12 text-right font-mono text-xs font-medium text-zinc-300 shrink-0">
+                          <span className="w-12 text-right font-mono text-xs font-medium text-[var(--text-main)] shrink-0">
                             {localAiParams.maxTokens}
                           </span>
                         </div>
@@ -1538,7 +1649,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       {/* Top-P Row */}
                       <div className="flex items-center justify-between gap-4">
                         <div className="w-48 shrink-0 flex items-center gap-1.5">
-                          <span className="text-xs text-zinc-300">{st.body.topP}</span>
+                          <span className="text-xs text-[var(--text-muted)]">{st.body.topP}</span>
                           <HelpTooltip
                             side="top"
                             content={st.body.topPHelp}
@@ -1554,9 +1665,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             onChange={(e) =>
                               setLocalAiParams((prev) => ({ ...prev, topP: parseFloat(e.target.value) }))
                             }
-                            className="flex-1 accent-indigo-500 cursor-pointer h-1.5 bg-[#18181b] rounded appearance-none"
+                            className="flex-1 accent-[var(--accent-primary)] cursor-pointer h-1.5 bg-[var(--bg-surface)] rounded appearance-none"
                           />
-                          <span className="w-12 text-right font-mono text-xs font-medium text-zinc-300 shrink-0">
+                          <span className="w-12 text-right font-mono text-xs font-medium text-[var(--text-main)] shrink-0">
                             {localAiParams.topP.toFixed(2)}
                           </span>
                         </div>
@@ -1565,7 +1676,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       {/* Streaming Checkbox Row */}
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-zinc-300">{st.body.streaming}</span>
+                          <span className="text-xs text-[var(--text-muted)]">{st.body.streaming}</span>
                           <HelpTooltip
                             side="top"
                             content={st.body.streamingHelp}
@@ -1576,7 +1687,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           onClick={() => setLocalAiParams((prev) => ({ ...prev, streamEnabled: !prev.streamEnabled }))}
                           title={localAiParams.streamEnabled ? st.body.streamingOff : st.body.streamingOn}
                           className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                            localAiParams.streamEnabled ? 'bg-indigo-600' : 'bg-white/10'
+                            localAiParams.streamEnabled ? 'bg-[var(--accent-primary)]' : 'bg-white/10'
                           }`}
                         >
                           <span
@@ -1590,9 +1701,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   )}
 
                   {/* 5. PDF parsing engine */}
-                  <div className="py-3.5 border-b border-white/[0.06] space-y-3">
+                  <div className="py-4 space-y-3">
                     <div className="flex items-center justify-between gap-4">
-                      <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
+                      <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
                         <span>{st.body.pdfEngine}</span>
                         <HelpTooltip
                           side="top"
@@ -1602,14 +1713,14 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       </div>
 
                       {/* Parser Selector Segments */}
-                      <div className="inline-flex p-0.5 bg-[#09090b] border border-white/10 rounded-md shrink-0">
+                      <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-white/[0.06] rounded-md shrink-0">
                         <button
                           type="button"
                           onClick={() => setPdfParserEngine('fast')}
                           className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center justify-center ${
                             pdfParserEngine === 'fast'
-                              ? 'bg-white/10 text-white font-medium'
-                              : 'text-zinc-400 hover:text-zinc-200'
+                              ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+                              : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                           }`}
                         >
                           <span>{st.body.pdfBrowser}</span>
@@ -1620,8 +1731,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           onClick={() => setPdfParserEngine('gemini')}
                           className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center justify-center ${
                             pdfParserEngine === 'gemini'
-                              ? 'bg-white/10 text-white font-medium'
-                              : 'text-zinc-400 hover:text-zinc-200'
+                              ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+                              : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                           }`}
                         >
                           <span>{st.body.pdfCloud}</span>
@@ -1632,8 +1743,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           onClick={() => setPdfParserEngine('ollama')}
                           className={`px-3 py-1 rounded text-xs font-normal transition cursor-pointer flex items-center justify-center ${
                             pdfParserEngine === 'ollama'
-                              ? 'bg-white/10 text-white font-medium'
-                              : 'text-zinc-400 hover:text-zinc-200'
+                              ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+                              : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                           }`}
                         >
                           <span>{st.body.pdfLocal}</span>
@@ -1651,13 +1762,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               value={pdfOllamaEndpoint}
                               onChange={(e) => setPdfOllamaEndpoint(e.target.value)}
                               placeholder="http://localhost:11434"
-                              className="flex-1 bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded px-2.5 py-1 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none"
+                              className="flex-1 bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded px-2.5 py-1 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none"
                             />
                             <button
                               type="button"
                               onClick={handleRefreshOllamaPdfModels}
                               disabled={isCheckingPdfOllama}
-                              className="px-2.5 py-1 rounded text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center justify-center cursor-pointer"
+                              className="px-2.5 py-1 rounded text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors inline-flex items-center justify-center cursor-pointer"
                               title={st.body.refreshModels}
                             >
                               <span>{isCheckingPdfOllama ? st.body.checking : st.body.check}</span>
@@ -1696,13 +1807,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
                         {pdfOllamaModel === 'custom' && (
                           <div className="flex items-center gap-2">
-                            <label className="text-[11px] font-normal text-zinc-400 shrink-0">{st.body.customTagColon}</label>
+                            <label className="text-[11px] font-normal text-[var(--text-muted)] shrink-0">{st.body.customTagColon}</label>
                             <input
                               type="text"
                               value={pdfCustomModel}
                               onChange={(e) => setPdfCustomModel(e.target.value)}
                               placeholder={st.body.pdfTagPlaceholder}
-                              className="flex-1 bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded px-2.5 py-1 text-xs font-mono text-zinc-200 outline-none"
+                              className="flex-1 bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded px-2.5 py-1 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none"
                             />
                           </div>
                         )}
@@ -1714,13 +1825,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
               {/* TAB 1: AI Persona */}
               {activeTab === 'persona' && (
-                <div className="space-y-4 animate-in fade-in duration-150 flex flex-col h-full">
+                <div className="space-y-6 animate-in fade-in duration-150 flex flex-col h-full">
                   {/* Row 1: Top 2 Fields in a 2-column grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 shrink-0">
                     {/* Field 1: Assistant Name */}
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-1.5">
-                        <label className="text-xs text-zinc-300 font-medium">{st.body.assistantName}</label>
+                        <label className="text-xs text-[var(--text-main)] font-medium">{st.body.assistantName}</label>
                         <HelpTooltip
                           content={st.body.assistantNameHelp}
                         />
@@ -1735,14 +1846,14 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           })
                         }
                         placeholder="Podium Assistant"
-                        className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 py-2 text-xs text-zinc-200 outline-none transition placeholder:text-zinc-600"
+                        className="w-full bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded-md px-3 py-2 text-xs text-[var(--text-main)] outline-none transition placeholder:text-[var(--text-tertiary)]"
                       />
                     </div>
 
                     {/* Field 2: Role / Tone */}
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-1.5">
-                        <label className="text-xs text-zinc-300 font-medium">{st.body.roleTone}</label>
+                        <label className="text-xs text-[var(--text-main)] font-medium">{st.body.roleTone}</label>
                         <HelpTooltip
                           content={st.body.roleToneHelp}
                         />
@@ -1757,16 +1868,16 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           })
                         }
                         placeholder={st.body.rolePlaceholder}
-                        className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md px-3 py-2 text-xs text-zinc-200 outline-none transition placeholder:text-zinc-600"
+                        className="w-full bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded-md px-3 py-2 text-xs text-[var(--text-main)] outline-none transition placeholder:text-[var(--text-tertiary)]"
                       />
                     </div>
                   </div>
 
                   {/* Row 2: System Instruction (Single Flat Textarea) */}
-                  <div className="flex-1 flex flex-col min-h-0 space-y-1.5 pt-0.5">
+                  <div className="flex-1 flex flex-col min-h-0 space-y-2 pt-2 border-t border-white/[0.06]">
                     <div className="flex items-center justify-between shrink-0">
                       <div className="flex items-center gap-1.5">
-                        <label className="text-xs text-zinc-300 font-medium">{st.body.systemPrompt}</label>
+                        <label className="text-xs text-[var(--text-main)] font-medium">{st.body.systemPrompt}</label>
                         <HelpTooltip
                           content={st.body.systemPromptHelp}
                         />
@@ -1782,7 +1893,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             }
                           })
                         }
-                        className="px-2.5 py-1 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center justify-center cursor-pointer"
+                        className="px-2.5 py-1 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors inline-flex items-center justify-center cursor-pointer"
                       >
                         <span>{st.body.restoreDefault}</span>
                       </button>
@@ -1795,7 +1906,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           aiPersona: { ...localPrefs.aiPersona, systemInstruction: e.target.value }
                         })
                       }
-                      className="w-full flex-1 min-h-[360px] bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded-md p-3 text-xs font-mono text-zinc-200 outline-none transition resize-none leading-relaxed placeholder:text-zinc-600"
+                      className="w-full flex-1 min-h-[340px] bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded-md p-3 text-xs font-mono text-[var(--text-main)] outline-none transition resize-none leading-relaxed placeholder:text-[var(--text-tertiary)]"
                       placeholder={st.body.systemPromptPlaceholder}
                     />
                   </div>
@@ -1811,27 +1922,28 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     const isExpired = googleTokenStatus === 'expired';
 
                     return (
-                      <div className="py-3.5 flex items-center justify-between gap-3">
+                      <div className="py-4 first:pt-0 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-xs font-medium text-zinc-200">{st.body.googleDrive}</span>
+                          <span className="text-xs font-medium text-[var(--text-main)]">{st.body.googleDrive}</span>
                           <HelpTooltip
                             side="bottom"
                             content={st.body.googleDriveHelp}
                           />
                           {isConnected && googleUser && (
-                            <span className="font-mono text-[11px] text-zinc-400 truncate max-w-[200px]">
+                            <span className="font-mono text-[11px] text-[var(--text-muted)] truncate max-w-[200px]">
                               {googleUser.email}
                             </span>
                           )}
                           {isConnected && (
-                            <span className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-normal shrink-0">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            <span className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] font-normal shrink-0">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] shadow-[0_0_6px_rgba(52,211,153,0.45)]" />
                               <span>{st.body.linked}</span>
                             </span>
                           )}
                           {isExpired && (
-                            <span className="text-[11px] text-amber-400 font-normal shrink-0">
-                              {st.body.tokenExpired}
+                            <span className="flex items-center gap-1.5 text-[11px] text-amber-400 font-normal shrink-0">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                              <span>{st.body.tokenExpired}</span>
                             </span>
                           )}
                         </div>
@@ -1842,7 +1954,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               <button
                                 type="button"
                                 onClick={onOpenGoogleDrive}
-                                className="px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
+                                className="px-3 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
                                 title={st.body.openDrivePicker}
                               >
                                 <span>{st.body.browseDrive}</span>
@@ -1850,7 +1962,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               <button
                                 type="button"
                                 onClick={onOpenGoogleAccount}
-                                className="px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
+                                className="px-3 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
                                 title={st.body.manageGoogle}
                               >
                                 <span>{st.body.manageAccount}</span>
@@ -1868,7 +1980,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             <button
                               type="button"
                               onClick={onOpenGoogleDrive || onOpenGoogleAccount}
-                              className="px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
+                              className="px-3 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
                               title={st.body.startOauth}
                             >
                               <span>{st.body.connectDrive}</span>
@@ -1885,29 +1997,30 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     const hasPat = !!githubConfig?.token;
 
                     return (
-                      <div className="py-3.5 flex items-center justify-between gap-3">
+                      <div className="py-4 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-xs font-medium text-zinc-200">GitHub</span>
+                          <span className="text-xs font-medium text-[var(--text-main)]">GitHub</span>
                           <HelpTooltip
                             side="bottom"
                             content={st.body.githubHelp}
                           />
                           {isConnected && (
-                            <span className="font-mono text-[11px] text-zinc-400 truncate max-w-[200px]">
+                            <span className="font-mono text-[11px] text-[var(--text-muted)] truncate max-w-[200px]">
                               {githubConfig?.repo?.includes('/')
                                 ? githubConfig.repo
                                 : (githubConfig?.owner ? `${githubConfig.owner}/${githubConfig.repo}` : githubConfig?.repo)}
                             </span>
                           )}
                           {isConnected && (
-                            <span className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-normal shrink-0">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            <span className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] font-normal shrink-0">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] shadow-[0_0_6px_rgba(52,211,153,0.45)]" />
                               <span>{st.body.connected}</span>
                             </span>
                           )}
                           {!isConnected && hasPat && (
-                            <span className="text-[11px] text-amber-400 font-normal shrink-0">
-                              {st.body.tokenRegistered}
+                            <span className="flex items-center gap-1.5 text-[11px] text-amber-400 font-normal shrink-0">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                              <span>{st.body.tokenRegistered}</span>
                             </span>
                           )}
                         </div>
@@ -1916,7 +2029,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           <button
                             type="button"
                             onClick={onOpenGithub}
-                            className="px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
+                            className="px-3 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
                           >
                             <span>{isConnected ? st.body.manageRepo : st.body.connectSettings}</span>
                           </button>
@@ -1953,15 +2066,15 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               {activeTab === 'ghost-writer' && (
                 <div className="divide-y divide-white/[0.06] animate-in fade-in duration-150">
                   {/* Mode & Level Selection */}
-                  <div className="py-3.5 flex items-center justify-between gap-4">
-                    <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
+                  <div className="py-4 first:pt-0 flex items-center justify-between gap-4">
+                    <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
                       <span>{st.body.ghostLevel}</span>
                       <HelpTooltip
                         title={st.body.ghostLevelTitle}
                         content={st.body.ghostLevelHelp}
                       />
                     </div>
-                    <div className="inline-flex p-0.5 bg-[#09090b] border border-white/10 rounded-md shrink-0">
+                    <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-white/[0.06] rounded-md shrink-0">
                       {[
                         { id: 'off', label: st.body.off },
                         { id: '30', label: '30%' },
@@ -1977,8 +2090,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             onClick={() => setLocalPrefs({ ...localPrefs, ghostWriterLevel: lvl.id as any })}
                             className={`px-2.5 py-1 text-xs font-normal rounded transition cursor-pointer ${
                               isSelected
-                                ? 'bg-white/10 text-white font-medium'
-                                : 'text-zinc-400 hover:text-zinc-200'
+                                ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+                                : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                             }`}
                           >
                             {lvl.label}
@@ -1989,67 +2102,169 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   </div>
 
                   {/* Translation Model Selection */}
-                  <div className="py-3.5 flex items-center justify-between gap-4">
-                    <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5 shrink-0">
-                      <span>{st.body.translationModel}</span>
-                      <HelpTooltip
-                        title={st.body.ghostModelTitle}
-                        content={st.body.ghostModelHelp}
-                      />
-                    </div>
-                    <div className="min-w-[220px]">
-                      {(() => {
-                        const opts = modelOptions && modelOptions.length > 0 ? modelOptions : DEFAULT_FALLBACK_MODELS;
-                        const cloudOpts = opts.filter((m) => (m as any).group !== 'local');
-                        const localOpts = opts.filter((m) => (m as any).group === 'local');
-                        const currentVal = localPrefs.ghostWriterModel || (modelOptions && modelOptions[0]?.id) || 'gemini-2.5-flash';
+                  {(() => {
+                    const effectiveKeys: Record<string, string> = {
+                      ...(auth.apiKeys || {}),
+                      ...(apiKeysProp || {}),
+                      ...(localPrefs.apiKeys || {}),
+                    };
 
-                        return (
-                          <CustomSelectDropdown
-                            value={currentVal}
-                            onChange={(val) => setLocalPrefs({ ...localPrefs, ghostWriterModel: val })}
-                            groups={cloudOpts.length > 0 && localOpts.length > 0 ? [
-                              {
-                                label: st.body.cloudModels,
-                                options: cloudOpts.map((m) => ({ id: m.id, name: m.name }))
-                              },
-                              {
-                                label: st.body.localModels,
-                                options: localOpts.map((m) => ({ id: m.id, name: m.name }))
-                              }
-                            ] : [
-                              {
-                                options: opts.map((m) => ({ id: m.id, name: m.name }))
-                              }
-                            ]}
-                          />
-                        );
-                      })()}
-                    </div>
-                  </div>
+                    const cloudOpts: { id: string; name: string }[] = [];
+                    const seenCloud = new Set<string>();
+                    (['gemini', 'openai', 'anthropic', 'deepseek', 'groq'] as const).forEach((vendor) => {
+                      if (!effectiveKeys[vendor]?.trim()) return;
+                      const vendorList =
+                        vendorActiveModels[vendor] && vendorActiveModels[vendor].length > 0
+                          ? vendorActiveModels[vendor]
+                          : DEFAULT_CLOUD_MODELS_BY_VENDOR[vendor] || [];
+                      vendorList.forEach((m) => {
+                        if (!seenCloud.has(m.id)) {
+                          seenCloud.add(m.id);
+                          cloudOpts.push({ id: m.id, name: m.name });
+                        }
+                      });
+                    });
+
+                    (modelOptions || []).forEach((m) => {
+                      if (m.group === 'cloud' && !seenCloud.has(m.id)) {
+                        const inferredVendor =
+                          m.vendor ||
+                          (m.id.startsWith('gpt-') || m.id.startsWith('o3-')
+                            ? 'openai'
+                            : m.id.startsWith('claude-')
+                            ? 'anthropic'
+                            : m.id.startsWith('deepseek-')
+                            ? 'deepseek'
+                            : m.id.startsWith('llama-') || m.id.startsWith('groq-')
+                            ? 'groq'
+                            : 'gemini');
+                        const hasLiveKey = inferredVendor in effectiveKeys
+                          ? Boolean(effectiveKeys[inferredVendor]?.trim())
+                          : Boolean(m.hasApiKey);
+                        if (hasLiveKey) {
+                          seenCloud.add(m.id);
+                          cloudOpts.push({ id: m.id, name: m.name });
+                        }
+                      }
+                    });
+
+                    const localOpts: { id: string; name: string }[] = [];
+                    const seenLocal = new Set<string>();
+
+                    const isWebLlmConnected = Boolean(webllmReady) || Boolean(getLoadedWebLLMEngine());
+                    if (isWebLlmConnected) {
+                      seenLocal.add(WEB_LLM_MODEL_ID);
+                      localOpts.push({
+                        id: WEB_LLM_MODEL_ID,
+                        name: WEB_LLM_MODEL_DISPLAY_NAME,
+                      });
+                    }
+
+                    discoveredModels.forEach((dm) => {
+                      if (
+                        dm.id &&
+                        dm.id !== 'custom' &&
+                        dm.id !== 'Qwen2.5-0.5B-Instruct' &&
+                        dm.id !== WEB_LLM_MODEL_ID &&
+                        !seenLocal.has(dm.id)
+                      ) {
+                        seenLocal.add(dm.id);
+                        localOpts.push({ id: dm.id, name: dm.name });
+                      }
+                    });
+
+                    (modelOptions || []).forEach((m) => {
+                      if (
+                        m.group === 'local' &&
+                        m.vendor !== 'webllm' &&
+                        m.id !== 'Qwen2.5-0.5B-Instruct' &&
+                        m.id !== WEB_LLM_MODEL_ID &&
+                        !seenLocal.has(m.id)
+                      ) {
+                        seenLocal.add(m.id);
+                        localOpts.push({ id: m.id, name: m.name });
+                      }
+                    });
+
+                    const connectedAll = [...cloudOpts, ...localOpts];
+                    const hasSelectionInConnected = connectedAll.some(
+                      (m) => m.id === localPrefs.ghostWriterModel
+                    );
+                    const currentVal = hasSelectionInConnected
+                      ? (localPrefs.ghostWriterModel || '')
+                      : connectedAll[0]?.id || '';
+
+                    const groups: { label?: string; options: { id: string; name: string }[] }[] = [];
+                    if (cloudOpts.length > 0) {
+                      groups.push({ label: st.body.cloudModels, options: cloudOpts });
+                    }
+                    if (localOpts.length > 0) {
+                      groups.push({ label: st.body.localModels, options: localOpts });
+                    }
+
+                    return (
+                      <div className="py-4 space-y-2.5">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
+                            <span>{st.body.translationModel}</span>
+                            <HelpTooltip
+                              title={st.body.ghostModelTitle}
+                              content={st.body.ghostModelHelp}
+                            />
+                          </div>
+                          <div className="min-w-[220px]">
+                            <CustomSelectDropdown
+                              value={currentVal}
+                              onChange={(val) => setLocalPrefs({ ...localPrefs, ghostWriterModel: val })}
+                              groups={groups}
+                              placeholder={st.body.noConnectedModels}
+                              emptyText={st.body.noConnectedModels}
+                            />
+                          </div>
+                        </div>
+
+                        {connectedAll.length === 0 && (
+                          <div className="flex items-center justify-between gap-2 text-[11px] text-[var(--text-muted)]">
+                            <span>{st.body.noConnectedModelsHint}</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveTab('ai')}
+                              className="text-[var(--accent-primary)] hover:underline shrink-0 cursor-pointer"
+                            >
+                              {st.body.goToAiEngine}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
           </div>
 
           {/* Footer */}
-          <div className="px-5 py-3 border-t border-white/[0.08] bg-[#121214] flex justify-between items-center shrink-0">
-            <span className="text-xs text-zinc-400 flex items-center gap-1.5">
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
+          <div className="px-5 py-3.5 border-t border-white/[0.06] bg-[var(--bg-surface)]/90 flex justify-between items-center shrink-0 gap-2">
+            <span className="hidden sm:flex text-xs text-[var(--text-muted)] items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] inline-block shrink-0" />
               <span>{st.body.footerNote}</span>
             </span>
-            <div className="flex items-center gap-2">
+            <span className="sm:hidden text-[11px] text-[var(--text-muted)] flex items-center gap-1.5 truncate mr-auto">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] inline-block shrink-0" />
+              <span className="truncate">로컬 암호화 보존</span>
+            </span>
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 rounded-md text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors cursor-pointer whitespace-nowrap"
               >
                 {st.body.cancel}
               </button>
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-[#F1F5F9] hover:bg-white text-[#0F172A] shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
               >
                 <Save className="w-3.5 h-3.5" />
                 <span>{st.body.saveApply}</span>

@@ -140,14 +140,14 @@ export const FileTreeContextMenu: React.FC<FileTreeContextMenuProps> = ({
         e.preventDefault();
         e.stopPropagation();
       }}
-      className="fixed z-50 min-w-[170px] bg-[#121214] border border-[#222226] rounded-md shadow-2xl py-1 text-xs text-zinc-200 select-none animate-in fade-in zoom-in-95 duration-75 font-sans"
+      className="fixed z-50 min-w-[170px] bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl py-1 text-xs text-[var(--text-main)] select-none animate-in fade-in zoom-in-95 duration-75 font-sans season-shell"
     >
       {/* Target Title Header */}
-      <div className="px-2.5 py-1 text-[11px] text-zinc-400 font-mono border-b border-[#222226] truncate max-w-[200px] flex items-center gap-1.5">
+      <div className="px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] font-mono border-b border-white/[0.06] truncate max-w-[200px] flex items-center gap-1.5">
         {type === 'folder' || type === 'session' ? (
-          <Folder className="w-3 h-3 text-indigo-400 shrink-0" />
+          <Folder className="w-3 h-3 text-[var(--accent-primary)] shrink-0" />
         ) : type === 'file' ? (
-          <FileText className="w-3 h-3 text-slate-400 shrink-0" />
+          <FileText className="w-3 h-3 text-[var(--text-muted)] shrink-0" />
         ) : null}
         <span className="truncate">{name || '파일 탐색기'}</span>
       </div>
@@ -158,9 +158,9 @@ export const FileTreeContextMenu: React.FC<FileTreeContextMenuProps> = ({
           type="button"
           role="menuitem"
           onClick={() => handleAction(() => onNewFile(targetFolder))}
-          className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-zinc-200 hover:text-white hover:bg-[#18181b] cursor-pointer transition-colors w-full text-left"
+          className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] cursor-pointer transition-colors w-full text-left"
         >
-          <FilePlus className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+          <FilePlus className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
           <span>새 파일</span>
         </button>
 
@@ -170,9 +170,9 @@ export const FileTreeContextMenu: React.FC<FileTreeContextMenuProps> = ({
             type="button"
             role="menuitem"
             onClick={() => handleAction(() => onNewFolder(targetFolder))}
-            className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-zinc-200 hover:text-white hover:bg-[#18181b] cursor-pointer transition-colors w-full text-left"
+            className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] cursor-pointer transition-colors w-full text-left"
           >
-            <FolderPlus className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <FolderPlus className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
             <span>새 폴더</span>
           </button>
         )}
@@ -200,9 +200,9 @@ export const FileTreeContextMenu: React.FC<FileTreeContextMenuProps> = ({
                 });
               })
             }
-            className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-zinc-200 hover:text-white hover:bg-[#18181b] cursor-pointer transition-colors w-full text-left"
+            className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] cursor-pointer transition-colors w-full text-left"
           >
-            <Pencil className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+            <Pencil className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
             <span>이름 변경</span>
           </button>
         )}
@@ -213,9 +213,9 @@ export const FileTreeContextMenu: React.FC<FileTreeContextMenuProps> = ({
             type="button"
             role="menuitem"
             onClick={() => handleAction(() => onCopyPath(path))}
-            className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-zinc-200 hover:text-white hover:bg-[#18181b] cursor-pointer transition-colors w-full text-left"
+            className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] cursor-pointer transition-colors w-full text-left"
           >
-            <Copy className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+            <Copy className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
             <span>경로 복사</span>
           </button>
         )}
@@ -226,9 +226,9 @@ export const FileTreeContextMenu: React.FC<FileTreeContextMenuProps> = ({
             type="button"
             role="menuitem"
             onClick={() => handleAction(() => onOpenSSOTGenerator(name))}
-            className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-zinc-200 hover:text-white hover:bg-[#18181b] cursor-pointer transition-colors w-full text-left"
+            className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] cursor-pointer transition-colors w-full text-left"
           >
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
             <span>통합 문서 생성</span>
           </button>
         )}
@@ -236,7 +236,7 @@ export const FileTreeContextMenu: React.FC<FileTreeContextMenuProps> = ({
         {/* Quick Action: Delete */}
         {type !== 'root' && (
           <>
-            <div className="h-px bg-[#222226] my-1" />
+            <div className="h-px bg-white/[0.06] my-1" />
             <button
               type="button"
               role="menuitem"

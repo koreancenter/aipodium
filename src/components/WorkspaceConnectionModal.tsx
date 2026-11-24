@@ -558,18 +558,18 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
       />
 
       {/* Main Dialog: Clean, Minimal, Unboxed */}
-      <div className="relative bg-[#0c0c0e] border border-[#222226] rounded-md max-w-md w-full p-5 shadow-2xl space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans">
+      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-md w-full p-5 shadow-2xl space-y-4 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans">
         
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#222226]/70">
+        <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
           <div className="flex items-center gap-2">
-            <FolderOpen className="w-4 h-4 text-indigo-400" />
-            <h2 className="text-sm font-semibold text-slate-100">{t.title}</h2>
+            <FolderOpen className="w-4 h-4 text-[var(--accent-primary)]" />
+            <h2 className="text-sm font-semibold text-[var(--text-main)]">{t.title}</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 p-1 rounded-md hover:bg-[#18181b] transition cursor-pointer"
+            className="text-[var(--text-muted)] hover:text-slate-200 p-1 rounded-md hover:bg-white/[0.06] transition cursor-pointer"
             title={t.close}
           >
             <X className="w-4 h-4" />
@@ -581,7 +581,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
           <button
             type="button"
             onClick={handleOpenFolder}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 px-4 rounded-md font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
+            className="w-full bg-[#F1F5F9] hover:bg-white text-[#0F172A] py-2.5 px-4 rounded-md font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
           >
             <FolderOpen className="w-4 h-4 shrink-0" />
             <span>{t.openLocalFolder}</span>
@@ -591,20 +591,20 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
           <button
             type="button"
             onClick={() => docInputRef.current?.click()}
-            className="w-full bg-[#202230] hover:bg-[#282a3c] text-indigo-300 hover:text-indigo-200 border border-[#222226] py-2 px-4 rounded-md font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
+            className="w-full bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-main)] border border-white/[0.06] py-2 px-4 rounded-md font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
           >
-            <FileText className="w-4 h-4 shrink-0 text-indigo-400" />
+            <FileText className="w-4 h-4 shrink-0 text-[var(--accent-primary)]" />
             <span>{t.importDocuments}</span>
           </button>
 
           {/* Current Project Info & Rescan (Single subtle row) */}
-          <div className="flex items-center justify-between text-[0.75rem] text-slate-400 px-1">
+          <div className="flex items-center justify-between text-[0.75rem] text-[var(--text-muted)] px-1">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-slate-400 shrink-0">{t.current}</span>
-              <span className="text-slate-200 font-medium truncate" title={activeWorkspace.path}>
+              <span className="text-[var(--text-tertiary)] shrink-0">{t.current}</span>
+              <span className="text-[var(--text-main)] font-medium truncate" title={activeWorkspace.path}>
                 {activeWorkspace.name}
               </span>
-              <span className="text-slate-400 font-mono text-[0.6875rem] shrink-0">
+              <span className="text-[var(--text-muted)] font-mono text-[0.6875rem] shrink-0">
                 ({t.fileCount(Object.keys(currentFiles).length)})
               </span>
             </div>
@@ -614,7 +614,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
                 type="button"
                 onClick={handleRescanCurrentDirectory}
                 disabled={isRescanning}
-                className="flex items-center gap-1 text-[0.6875rem] text-indigo-400 hover:text-indigo-300 transition cursor-pointer shrink-0 disabled:opacity-50 ml-2"
+                className="flex items-center gap-1 text-[0.6875rem] text-[var(--accent-primary)] hover:text-sky-300 transition cursor-pointer shrink-0 disabled:opacity-50 ml-2"
                 title={t.refreshFolder}
               >
                 <RefreshCw className={`w-3 h-3 ${isRescanning ? 'animate-spin' : ''}`} />
@@ -626,27 +626,27 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
 
         {/* Recent Projects List */}
         <div className="space-y-1.5 pt-1">
-          <div className="flex items-center justify-between text-xs text-slate-400 px-1">
-            <span className="flex items-center gap-1.5 font-medium text-slate-300">
-              <Clock className="w-3.5 h-3.5 text-slate-400" />
+          <div className="flex items-center justify-between text-xs text-[var(--text-muted)] px-1">
+            <span className="flex items-center gap-1.5 font-medium text-[var(--text-main)]">
+              <Clock className="w-3.5 h-3.5 text-[var(--text-muted)]" />
               {t.recentProjects}
             </span>
             {recentList.length > 0 && (
               <button
                 type="button"
                 onClick={handleClearAllRecents}
-                className="text-[0.625rem] text-slate-400 hover:text-rose-400 transition cursor-pointer"
+                className="text-[0.625rem] text-[var(--text-muted)] hover:text-rose-400 transition cursor-pointer"
               >
                 {t.clearAll}
               </button>
             )}
           </div>
 
-          <div className="max-h-52 overflow-y-auto rounded bg-[#09090b] border border-[#222226]/70 divide-y divide-[#222226]/40 custom-scrollbar">
+          <div className="max-h-52 overflow-y-auto rounded-md bg-[var(--bg-surface)] border border-white/[0.06] divide-y divide-white/[0.06] custom-scrollbar">
             {recentList.length === 0 ? (
-              <div className="py-7 text-center text-xs text-slate-400 space-y-1">
+              <div className="py-7 text-center text-xs text-[var(--text-muted)] space-y-1">
                 <p>{t.noRecents}</p>
-                <p className="text-[0.6875rem] text-slate-400">
+                <p className="text-[0.6875rem] text-[var(--text-tertiary)]">
                   {t.noRecentsHint}
                 </p>
               </div>
@@ -655,35 +655,35 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
                 <div
                   key={item.id}
                   onClick={() => handleSelectRecent(item)}
-                  className="px-3 py-2 flex items-center justify-between hover:bg-[#121214] transition cursor-pointer group select-none"
+                  className="px-3 py-2 flex items-center justify-between hover:bg-white/[0.05] transition cursor-pointer group select-none"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <Folder className="w-4 h-4 text-indigo-400 shrink-0 group-hover:scale-105 transition-transform" />
+                    <Folder className="w-4 h-4 text-[var(--accent-primary)] shrink-0 group-hover:scale-105 transition-transform" />
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-medium text-slate-200 group-hover:text-indigo-300 truncate">
+                        <span className="text-xs font-medium text-[var(--text-main)] group-hover:text-white truncate">
                           {item.name}
                         </span>
                         {item.fileCount !== undefined && (
-                          <span className="text-[0.625rem] text-slate-400 font-mono">
+                          <span className="text-[0.625rem] text-[var(--text-muted)] font-mono">
                             · {t.fileCountShort(item.fileCount)}
                           </span>
                         )}
                       </div>
-                      <div className="text-[0.6875rem] text-slate-400 font-mono truncate">
+                      <div className="text-[0.6875rem] text-[var(--text-tertiary)] font-mono truncate">
                         {item.path}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0 ml-2">
-                    <span className="text-[0.625rem] text-slate-400 font-mono">
+                    <span className="text-[0.625rem] text-[var(--text-muted)] font-mono">
                       {formatRelativeTime(item.timestamp, t)}
                     </span>
                     <button
                       type="button"
                       onClick={(e) => handleDeleteRecent(e, item.id)}
-                      className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-400 p-0.5 rounded transition cursor-pointer"
+                      className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-rose-400 p-0.5 rounded transition cursor-pointer"
                       title={t.removeRecent}
                     >
                       <Trash2 className="w-3 h-3" />
@@ -696,17 +696,17 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
         </div>
 
         {/* Remote & Other Storages (Subtle text dropdown at bottom) */}
-        <div className="pt-2 border-t border-[#222226]/60">
+        <div className="pt-2 border-t border-white/[0.06]">
           <button
             type="button"
             onClick={() => setShowRemoteOptions(!showRemoteOptions)}
-            className="flex items-center justify-between w-full text-[0.6875rem] text-slate-400 hover:text-slate-200 transition cursor-pointer px-1 py-0.5"
+            className="flex items-center justify-between w-full text-[0.6875rem] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer px-1 py-0.5"
           >
             <span>{t.connectRemote}</span>
             {showRemoteOptions ? (
-              <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronUp className="w-3.5 h-3.5 text-[var(--text-muted)]" />
             ) : (
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)]" />
             )}
           </button>
 
@@ -715,18 +715,18 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
               <button
                 type="button"
                 onClick={() => handleConnectOption('gdrive')}
-                className="py-1.5 px-2 rounded bg-[#09090b] hover:bg-[#121214] border border-[#222226]/60 flex items-center justify-center gap-1.5 text-slate-300 hover:text-white text-xs transition cursor-pointer"
+                className="py-1.5 px-2 rounded-md bg-[var(--bg-surface)] hover:bg-white/[0.06] border border-white/[0.06] flex items-center justify-center gap-1.5 text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs transition cursor-pointer"
               >
-                <Cloud className="w-3.5 h-3.5 text-emerald-400" />
+                <Cloud className="w-3.5 h-3.5 text-[var(--secondary-accent)]" />
                 <span className="text-[0.6875rem]">Google Drive</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleConnectOption('vault')}
-                className="py-1.5 px-2 rounded bg-[#09090b] hover:bg-[#121214] border border-[#222226]/60 flex items-center justify-center gap-1.5 text-slate-300 hover:text-white text-xs transition cursor-pointer"
+                className="py-1.5 px-2 rounded-md bg-[var(--bg-surface)] hover:bg-white/[0.06] border border-white/[0.06] flex items-center justify-center gap-1.5 text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs transition cursor-pointer"
               >
-                <Database className="w-3.5 h-3.5 text-indigo-400" />
+                <Database className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                 <span className="text-[0.6875rem]">{t.browserVault}</span>
               </button>
             </div>

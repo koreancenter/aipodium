@@ -29,23 +29,23 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
   const isKr = lang === 'KR';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[var(--bg-main)]/80 backdrop-blur-sm animate-in fade-in duration-150">
       <div
-        className="bg-[#121214] border border-[#222226] rounded-xl shadow-2xl flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-zinc-100 font-sans"
+        className="bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-[var(--text-main)] font-sans"
         role="dialog"
         aria-modal="true"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 bg-[#181a23] border-b border-[#222226]">
+        <div className="flex items-center justify-between px-5 py-4 bg-[var(--bg-surface)]/90 border-b border-white/[0.06]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/25 flex items-center justify-center text-[var(--accent-primary)]">
               <FileText className="w-4.5 h-4.5" />
             </div>
             <div>
-              <h2 className="text-sm sm:text-base font-semibold text-zinc-100 tracking-tight">
+              <h2 className="text-sm sm:text-base font-semibold text-[var(--text-main)] tracking-tight">
                 {isKr ? 'AI Podium 정책 및 면책 고지' : 'AI Podium Policies & Disclaimers'}
               </h2>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-[var(--text-muted)] mt-0.5">
                 {isKr ? '로컬 중심 아키텍처 및 개인정보 보호 기준' : 'Local-First Architecture and Privacy Standards'}
               </p>
             </div>
@@ -54,7 +54,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-white/10 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+            className="p-1.5 rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-slate-200 transition-colors cursor-pointer"
             title={isKr ? '닫기' : 'Close'}
             aria-label={isKr ? '닫기' : 'Close'}
           >
@@ -63,14 +63,14 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
         </div>
 
         {/* Tab Navigation (IDE Flat Tabs) */}
-        <div className="flex items-center gap-1 px-5 pt-1.5 bg-[#181a23] border-b border-[#222226]">
+        <div className="flex items-center gap-1 px-5 pt-1.5 bg-[var(--bg-surface)]/90 border-b border-white/[0.06]">
           <button
             type="button"
             onClick={() => setActiveTab('disclaimer')}
             className={`px-4 py-2.5 text-xs font-medium transition-colors border-b-2 cursor-pointer flex items-center gap-2 ${
               activeTab === 'disclaimer'
-                ? 'border-indigo-500 text-indigo-300 font-semibold'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'border-[var(--accent-primary)] text-[var(--text-main)] font-semibold'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
             }`}
           >
             <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
@@ -82,11 +82,11 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
             onClick={() => setActiveTab('privacy')}
             className={`px-4 py-2.5 text-xs font-medium transition-colors border-b-2 cursor-pointer flex items-center gap-2 ${
               activeTab === 'privacy'
-                ? 'border-indigo-500 text-indigo-300 font-semibold'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'border-[var(--accent-primary)] text-[var(--text-main)] font-semibold'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
             }`}
           >
-            <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+            <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
             <span>{isKr ? '개인정보 처리방침' : 'Privacy Policy'}</span>
           </button>
 
@@ -95,17 +95,17 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
             onClick={() => setActiveTab('terms')}
             className={`px-4 py-2.5 text-xs font-medium transition-colors border-b-2 cursor-pointer flex items-center gap-2 ${
               activeTab === 'terms'
-                ? 'border-indigo-500 text-indigo-300 font-semibold'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'border-[var(--accent-primary)] text-[var(--text-main)] font-semibold'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
             }`}
           >
-            <FileText className="w-3.5 h-3.5 text-zinc-400" />
+            <FileText className="w-3.5 h-3.5 text-[var(--text-muted)]" />
             <span>{isKr ? '이용약관' : 'Terms of Use'}</span>
           </button>
         </div>
 
         {/* Body Content - Flattened Clean Document Sections */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs text-zinc-300 leading-relaxed bg-[#121214]">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs text-[var(--text-muted)] leading-relaxed bg-[var(--bg-editor)]">
           {activeTab === 'disclaimer' && (
             <div className="space-y-5">
               <div className="p-3 rounded-md bg-amber-950/25 border border-amber-500/25 text-amber-200 text-xs leading-relaxed flex items-start gap-2.5">
@@ -123,7 +123,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
               </div>
 
               {/* Section 1 */}
-              <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
+              <section className="space-y-1.5 pb-4 border-b border-white/[0.06]">
                 <h3 className="text-sm font-medium text-zinc-200">
                   {isKr ? '1. 데이터 보관 및 백업 책임' : '1. Local Data Ownership & Backup'}
                 </h3>
@@ -135,7 +135,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
               </section>
 
               {/* Section 2 */}
-              <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
+              <section className="space-y-1.5 pb-4 border-b border-white/[0.06]">
                 <h3 className="text-sm font-medium text-zinc-200">
                   {isKr ? '2. AI 답변의 학술적 검증' : '2. Academic Verification & AI Accuracy'}
                 </h3>
@@ -147,7 +147,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
               </section>
 
               {/* Section 3 */}
-              <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
+              <section className="space-y-1.5 pb-4 border-b border-white/[0.06]">
                 <h3 className="text-sm font-medium text-zinc-200">
                   {isKr ? '3. 개인 API 키 관리 및 과금' : '3. Custom API Key & Costs'}
                 </h3>
@@ -174,13 +174,13 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
 
           {activeTab === 'privacy' && (
             <div className="space-y-5">
-              <div className="p-3 rounded-md bg-indigo-950/30 border border-indigo-500/25 text-indigo-200 text-xs leading-relaxed flex items-start gap-2.5">
-                <ShieldCheck className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+              <div className="p-3 rounded-md bg-[var(--accent-primary)]/[0.06] border border-[var(--accent-primary)]/20 text-[var(--text-muted)] text-xs leading-relaxed flex items-start gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-[var(--accent-primary)] shrink-0 mt-0.5" />
                 <div>
-                  <strong className="block text-indigo-300 font-medium mb-0.5">
+                  <strong className="block text-[var(--text-main)] font-medium mb-0.5">
                     {isKr ? '설계 단계부터 보장되는 프라이버시' : 'Privacy by Design'}
                   </strong>
-                  <span className="text-zinc-300">
+                  <span className="text-[var(--text-muted)]">
                     {isKr
                       ? '작성된 연구 노트, 문헌 매트릭스 및 원고 초안은 100% 브라우저 격리 영역에만 유지됩니다. 어떠한 개인 정보나 논문 초안도 외부 독점 서버로 동기화되지 않습니다.'
                       : "100% of your notes, literature matrices, and drafts stay within your browser's private sandbox. No personal information or research manuscripts are ever synced to external proprietary servers."}
@@ -188,7 +188,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
                 </div>
               </div>
 
-              <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
+              <section className="space-y-1.5 pb-4 border-b border-white/[0.06]">
                 <h3 className="text-sm font-medium text-zinc-200">
                   {isKr ? '1. 정보 구조' : '1. Information Architecture'}
                 </h3>
@@ -199,7 +199,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
                 </p>
               </section>
 
-              <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
+              <section className="space-y-1.5 pb-4 border-b border-white/[0.06]">
                 <h3 className="text-sm font-medium text-zinc-200">
                   {isKr ? '2. 로컬 데이터 격리' : '2. Local Data Isolation'}
                 </h3>
@@ -225,7 +225,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
 
           {activeTab === 'terms' && (
             <div className="space-y-5">
-              <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
+              <section className="space-y-1.5 pb-4 border-b border-white/[0.06]">
                 <h3 className="text-sm font-medium text-zinc-200">
                   {isKr ? '1. 교육 및 학술 연구 목적' : '1. Educational & Research Purpose'}
                 </h3>
@@ -236,7 +236,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
                 </p>
               </section>
 
-              <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
+              <section className="space-y-1.5 pb-4 border-b border-white/[0.06]">
                 <h3 className="text-sm font-medium text-zinc-200">
                   {isKr ? '2. 올바른 이용 규정' : '2. Acceptable Use'}
                 </h3>
@@ -262,8 +262,8 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3.5 bg-[#181a23] border-t border-[#222226] flex items-center justify-between">
-          <span className="text-xs text-zinc-400 font-mono">
+        <div className="px-5 py-3.5 bg-[var(--bg-surface)]/90 border-t border-white/[0.06] flex items-center justify-between">
+          <span className="text-xs text-[var(--text-tertiary)] font-mono">
             {isKr ? '최신 개정: 2026년 9월' : 'Updated: September 2026'}
           </span>
           <button
@@ -271,7 +271,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
             onClick={onClose}
             title={isKr ? '확인' : 'Confirm'}
             aria-label={isKr ? '확인' : 'Confirm'}
-            className="px-5 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-medium transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+            className="px-5 py-2 rounded-md bg-[#F1F5F9] hover:bg-white text-[#0F172A] text-xs sm:text-sm font-medium transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
           >
             <Check className="w-4 h-4" />
             <span>{isKr ? '확인' : 'Confirm'}</span>

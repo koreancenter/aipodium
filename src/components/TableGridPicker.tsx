@@ -106,25 +106,25 @@ export const TableGridPicker: React.FC<TableGridPickerProps> = ({
           top: `${coords.top}px`,
           left: `${coords.left}px`,
         }}
-        className="w-72 bg-[#121214] backdrop-blur-xl border border-[#222226] rounded-md shadow-2xl z-[100000] p-3 text-slate-200 text-xs animate-in fade-in zoom-in-95 duration-100"
+        className="w-72 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl z-[100000] p-3 text-[var(--text-main)] text-xs animate-in fade-in zoom-in-95 duration-100 season-shell"
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#222226]">
-          <div className="flex items-center gap-1.5 font-semibold text-slate-100 whitespace-nowrap">
-            <Table className="w-3.5 h-3.5 text-[#6366f1]" />
+        <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.06]">
+          <div className="flex items-center gap-1.5 font-medium text-[var(--text-main)] whitespace-nowrap">
+            <Table className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
             <span>표 삽입</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="whitespace-nowrap font-mono text-[0.6875rem] text-[#818cf8] font-bold bg-[#6366f1]/15 px-2 py-0.5 rounded-sm border border-[#6366f1]/30">
+            <span className="whitespace-nowrap font-mono text-[0.6875rem] text-[var(--accent-primary)] font-medium">
               {hoverCols}열 × {hoverRows}행
             </span>
             <button
               type="button"
               onClick={onClose}
-              className="text-slate-400 hover:text-white p-0.5 rounded-md hover:bg-[#18181b] transition cursor-pointer"
+              className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-0.5 rounded-md hover:bg-white/[0.06] transition cursor-pointer"
               title="닫기"
             >
               <X className="w-3.5 h-3.5" />
@@ -133,7 +133,7 @@ export const TableGridPicker: React.FC<TableGridPickerProps> = ({
         </div>
 
         {/* Interactive Hover Grid */}
-        <div className="flex flex-col items-center justify-center p-2 bg-[#09090b]/70 border border-[#222226]/60 rounded-md mb-2.5">
+        <div className="flex flex-col items-center justify-center p-2.5 bg-[var(--bg-surface)] border border-white/[0.06] rounded-lg mb-2.5">
           <div className="grid grid-cols-8 gap-1 select-none">
             {Array.from({ length: MAX_GRID_ROWS }).map((_, rIdx) => {
               const r = rIdx + 1;
@@ -154,10 +154,10 @@ export const TableGridPicker: React.FC<TableGridPickerProps> = ({
                           onInsertTable(r, c);
                           onClose();
                         }}
-                        className={`w-5 h-5 rounded-xs transition-colors cursor-pointer border ${
+                        className={`w-5 h-5 rounded transition-colors cursor-pointer border ${
                           isHighlighted
-                            ? 'bg-[#6366f1] border-indigo-400/80 shadow-xs'
-                            : 'bg-[#18181b]/60 border-[#383b4e] hover:bg-[#323648]'
+                            ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)]'
+                            : 'bg-[var(--bg-editor)] border-white/[0.08] hover:bg-white/[0.08]'
                         }`}
                       />
                     );
@@ -166,14 +166,14 @@ export const TableGridPicker: React.FC<TableGridPickerProps> = ({
               );
             })}
           </div>
-          <div className="mt-1.5 text-[0.625rem] text-slate-300 font-mono text-center">
-            크기: <span className="text-indigo-400 font-bold">{hoverCols}열 × {hoverRows}행</span> (클릭하여 삽입)
+          <div className="mt-1.5 text-[0.625rem] text-[var(--text-muted)] font-mono text-center">
+            크기: <span className="text-[var(--accent-primary)] font-semibold">{hoverCols}열 × {hoverRows}행</span> (클릭하여 삽입)
           </div>
         </div>
 
         {/* Quick Presets */}
         <div className="mb-2.5">
-          <div className="text-[0.625rem] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+          <div className="text-[0.625rem] font-medium text-[var(--text-tertiary)] mb-1.5">
             빠른 프리셋
           </div>
           <div className="grid grid-cols-2 gap-1.5">
@@ -185,10 +185,10 @@ export const TableGridPicker: React.FC<TableGridPickerProps> = ({
                   onInsertTable(p.rows, p.cols);
                   onClose();
                 }}
-                className="px-2.5 py-1.5 bg-[#18181b]/80 hover:bg-[#6366f1] hover:text-white text-slate-300 rounded-md text-[0.6875rem] font-medium transition flex items-center justify-between text-left cursor-pointer border border-[#222226] hover:border-indigo-400/60"
+                className="px-2.5 py-1.5 bg-[var(--bg-surface)] hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-lg text-[0.6875rem] font-medium transition flex items-center justify-between text-left cursor-pointer border border-white/[0.06] hover:border-[var(--accent-primary)]/40"
               >
                 <span>{p.name}</span>
-                <span className="font-mono text-[0.625rem] text-indigo-300/80 bg-[#121214] px-1.5 py-0.5 rounded-sm border border-[#222226]">
+                <span className="font-mono text-[0.625rem] text-[var(--accent-primary)]">
                   {p.size}
                 </span>
               </button>
@@ -197,25 +197,25 @@ export const TableGridPicker: React.FC<TableGridPickerProps> = ({
         </div>
 
         {/* Custom Rows / Cols Input */}
-        <div className="pt-2 border-t border-[#222226] flex items-center justify-between gap-2">
+        <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between gap-2">
           <div className="flex items-center gap-1 text-[0.6875rem]">
-            <span className="text-slate-400">열:</span>
+            <span className="text-[var(--text-muted)]">열:</span>
             <input
               type="number"
               min={1}
               max={12}
               value={customCols}
               onChange={(e) => setCustomCols(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-10 bg-[#09090b] border border-[#222226] rounded-md px-1 py-0.5 text-center font-mono text-xs text-white focus:outline-none focus:border-[#6366f1]"
+              className="w-10 bg-[var(--bg-surface)] border border-white/[0.08] rounded-md px-1 py-0.5 text-center font-mono text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--accent-primary)]/50"
             />
-            <span className="text-slate-400 ml-1">행:</span>
+            <span className="text-[var(--text-muted)] ml-1">행:</span>
             <input
               type="number"
               min={1}
               max={30}
               value={customRows}
               onChange={(e) => setCustomRows(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-10 bg-[#09090b] border border-[#222226] rounded-md px-1 py-0.5 text-center font-mono text-xs text-white focus:outline-none focus:border-[#6366f1]"
+              className="w-10 bg-[var(--bg-surface)] border border-white/[0.08] rounded-md px-1 py-0.5 text-center font-mono text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--accent-primary)]/50"
             />
           </div>
           <button
@@ -224,7 +224,7 @@ export const TableGridPicker: React.FC<TableGridPickerProps> = ({
               onInsertTable(customRows, customCols);
               onClose();
             }}
-            className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-[0.6875rem] font-medium transition flex items-center gap-1 cursor-pointer shadow-xs whitespace-nowrap"
+            className="px-2.5 py-1 bg-[#F1F5F9] hover:bg-white text-[#0F172A] rounded-md text-[0.6875rem] font-medium transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
           >
             <span>생성</span>
             <Plus className="w-3 h-3" />

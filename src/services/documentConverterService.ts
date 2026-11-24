@@ -76,11 +76,7 @@ export async function fetchOllamaInstalledModels(endpoint: string = 'http://loca
 
   // 2. Server Proxy fetch fallback (bypasses browser CORS & Mixed Content constraints)
   try {
-    const proxyRes = await fetch('/api/ollama/proxy-tags', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ endpoint: cleanEp })
-    });
+    const proxyRes = await fetch(`/api/tags?endpoint=${encodeURIComponent(cleanEp)}`);
     if (proxyRes.ok) {
       const proxyData = await proxyRes.json();
       if (Array.isArray(proxyData?.models)) {

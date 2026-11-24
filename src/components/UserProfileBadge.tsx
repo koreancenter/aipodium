@@ -55,7 +55,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
   // Variant 1: Sidebar compact footer chip
   if (variant === 'sidebar') {
     return (
-      <div className="flex items-center justify-between px-2 py-1 w-full bg-[#0c0c0e] border border-[#222226] rounded-sm text-xs">
+      <div className="flex items-center justify-between px-2 py-1 w-full bg-[var(--bg-editor)] border border-white/[0.06] rounded-md text-xs">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <div className="relative shrink-0">
             {user.avatar ? (
@@ -63,20 +63,20 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                 src={user.avatar}
                 alt={user.name}
                 referrerPolicy="no-referrer"
-                className="w-4.5 h-4.5 rounded-xs object-cover border border-[#222226]"
+                className="w-4.5 h-4.5 rounded object-cover border border-white/[0.08]"
               />
             ) : (
-              <div className="w-4.5 h-4.5 rounded-xs bg-[#6366f1] text-white font-bold flex items-center justify-center text-[0.5625rem]">
+              <div className="w-4.5 h-4.5 rounded bg-[var(--bg-elevated)] border border-white/[0.1] text-[var(--text-main)] font-semibold flex items-center justify-center text-[0.5625rem]">
                 {initials}
               </div>
             )}
-            <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-[#0c0c0e] ${user.provider === 'guest' ? 'bg-[#0ea5e9]' : 'bg-[#6366f1]'}`} />
+            <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-[var(--bg-editor)] ${user.provider === 'guest' ? 'bg-[var(--accent-primary)]' : 'bg-[var(--secondary-accent)]'}`} />
           </div>
           <div className="min-w-0 flex-1 leading-none">
-            <div className="text-[0.6875rem] font-semibold text-[#e2e8f0] truncate" title={user.name}>
+            <div className="text-[0.6875rem] font-medium text-[var(--text-main)] truncate" title={user.name}>
               {user.name || '게스트'}
             </div>
-            <div className="text-[0.5625rem] text-[#94a3b8] truncate mt-0.5 font-mono">
+            <div className="text-[0.5625rem] text-[var(--text-muted)] truncate mt-0.5 font-mono">
               {user.email || '게스트 세션'}
             </div>
           </div>
@@ -85,7 +85,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
         <button
           type="button"
           onClick={onSignOut}
-          className="p-1 text-[#94a3b8] hover:text-rose-400 hover:bg-[#18181b] rounded-sm transition cursor-pointer"
+          className="p-1 text-[var(--text-muted)] hover:text-rose-400 hover:bg-white/[0.05] rounded transition cursor-pointer"
           title="로그아웃"
         >
           <LogOut className="w-3.5 h-3.5" />
@@ -97,27 +97,27 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
   // Variant 2: Menu embedded card (Inside File Menu Dropdown)
   if (variant === 'menu') {
     return (
-      <div className="p-1 space-y-1 text-xs text-[#e2e8f0]">
+      <div className="p-1 space-y-1 text-xs text-[var(--text-main)]">
         {/* User Info Header Card */}
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded-xs bg-[#0c0c0e]">
+        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-[var(--bg-editor)]">
           <div className="relative shrink-0">
             {user.avatar ? (
               <img
                 src={user.avatar}
                 alt={user.name}
                 referrerPolicy="no-referrer"
-                className="w-6 h-6 rounded-xs object-cover border border-[#222226]"
+                className="w-6 h-6 rounded object-cover border border-white/[0.08]"
               />
             ) : (
-              <div className="w-6 h-6 rounded-xs bg-[#6366f1] text-white font-bold flex items-center justify-center text-[0.625rem]">
+              <div className="w-6 h-6 rounded bg-[var(--bg-elevated)] border border-white/[0.1] text-[var(--text-main)] font-semibold flex items-center justify-center text-[0.625rem]">
                 {initials}
               </div>
             )}
-            <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${user.provider === 'guest' ? 'bg-[#0ea5e9]' : 'bg-[#6366f1]'}`} />
+            <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${user.provider === 'guest' ? 'bg-[var(--accent-primary)]' : 'bg-[var(--secondary-accent)]'}`} />
           </div>
           <div className="min-w-0 flex-1 leading-tight">
-            <div className="font-semibold text-slate-100 truncate text-xs">{user.name || '게스트'}</div>
-            <div className="text-[0.625rem] text-[#94a3b8] truncate">{user.email || '게스트 세션'}</div>
+            <div className="font-medium text-[var(--text-main)] truncate text-xs">{user.name || '게스트'}</div>
+            <div className="text-[0.625rem] text-[var(--text-muted)] truncate">{user.email || '게스트 세션'}</div>
           </div>
         </div>
 
@@ -130,9 +130,9 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                 onActionComplete?.();
                 onOpenUpgrade();
               }}
-              className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#18181b] text-[#0ea5e9] hover:text-[#38bdf8] font-medium flex items-center gap-2 transition cursor-pointer text-xs"
+              className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--accent-primary)] font-medium flex items-center gap-2 transition cursor-pointer text-xs"
             >
-              <Zap className="w-3.5 h-3.5 text-[#0ea5e9] shrink-0" />
+              <Zap className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
               <span>계정 연동 및 클라우드 백업</span>
             </button>
           )}
@@ -144,9 +144,9 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                 onActionComplete?.();
                 onOpenGoogleAccount();
               }}
-              className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#18181b] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
+              className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] flex items-center gap-2 transition cursor-pointer text-xs"
             >
-              <HardDrive className="w-3.5 h-3.5 text-[#0ea5e9] shrink-0" />
+              <HardDrive className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
               <span>Google Drive 계정 관리</span>
             </button>
           )}
@@ -158,14 +158,14 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                 onActionComplete?.();
                 onOpenSettings();
               }}
-              className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#18181b] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
+              className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] flex items-center gap-2 transition cursor-pointer text-xs"
             >
               <Settings className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <span>환경설정</span>
             </button>
           )}
 
-          <div className="my-1 border-t border-[#222226]" />
+          <div className="my-1 border-t border-white/[0.06]" />
 
           <button
             type="button"
@@ -173,7 +173,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
               onActionComplete?.();
               onSignOut();
             }}
-            className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-rose-950/60 text-rose-400 hover:text-rose-300 flex items-center gap-2 transition cursor-pointer text-xs"
+            className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-rose-950/60 text-rose-400 hover:text-rose-300 flex items-center gap-2 transition cursor-pointer text-xs"
           >
             <LogOut className="w-3.5 h-3.5 shrink-0" />
             <span>{user.provider === 'guest' ? '게스트 세션 종료' : '로그아웃'}</span>
@@ -189,7 +189,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-6 h-6 flex items-center justify-center rounded-xs bg-[#121214] hover:bg-[#18181b] border border-[#222226] hover:border-[#6366f1]/50 transition cursor-pointer group select-none shrink-0"
+        className="w-6 h-6 flex items-center justify-center rounded-md bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-[var(--accent-primary)]/40 transition cursor-pointer group select-none shrink-0"
         title={`${user.name || '게스트'} - ${user.email || '게스트 세션'}`}
       >
         {/* Avatar Square */}
@@ -199,38 +199,38 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
               src={user.avatar}
               alt={user.name}
               referrerPolicy="no-referrer"
-              className="w-4.5 h-4.5 rounded-xs object-cover border border-[#222226] group-hover:border-[#6366f1] transition"
+              className="w-4.5 h-4.5 rounded object-cover"
             />
           ) : (
-            <div className="w-4.5 h-4.5 rounded-xs bg-[#6366f1] text-white font-bold flex items-center justify-center text-[0.5625rem] tracking-tight">
+            <div className="w-4.5 h-4.5 rounded bg-[var(--bg-elevated)] text-[var(--text-main)] font-semibold flex items-center justify-center text-[0.5625rem] tracking-tight">
               {initials}
             </div>
           )}
-          <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-[#121214] ${user.provider === 'guest' ? 'bg-[#0ea5e9]' : 'bg-[#6366f1]'}`} />
+          <span className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-[var(--bg-main)] ${user.provider === 'guest' ? 'bg-[var(--accent-primary)]' : 'bg-[var(--secondary-accent)]'}`} />
         </div>
       </button>
 
       {/* Profile Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-52 bg-[#121214] border border-[#222226] rounded-xs p-1 text-xs text-[#e2e8f0] z-50 animate-in fade-in duration-75 shadow-xl">
+        <div className="absolute right-0 top-full mt-1.5 w-52 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl p-1.5 text-xs text-[var(--text-muted)] z-50 shadow-2xl">
           
           {/* User Info Header */}
-          <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[#222226]">
+          <div className="flex items-center gap-2 px-2 py-1.5 border-b border-white/[0.06]">
             {user.avatar ? (
               <img
                 src={user.avatar}
                 alt={user.name}
                 referrerPolicy="no-referrer"
-                className="w-5 h-5 rounded-xs object-cover border border-[#222226] shrink-0"
+                className="w-5 h-5 rounded object-cover border border-white/[0.08] shrink-0"
               />
             ) : (
-              <div className="w-5 h-5 rounded-xs bg-[#6366f1] text-white font-bold flex items-center justify-center text-xs shrink-0">
+              <div className="w-5 h-5 rounded bg-[var(--bg-editor)] border border-white/[0.08] text-[var(--text-main)] font-semibold flex items-center justify-center text-xs shrink-0">
                 {initials}
               </div>
             )}
             <div className="min-w-0 flex-1 leading-tight">
-              <div className="font-semibold text-slate-100 truncate text-xs">{user.name || '게스트'}</div>
-              <div className="text-[0.625rem] text-[#94a3b8] truncate mt-0.5 font-mono">{user.email || '게스트 로컬 세션'}</div>
+              <div className="font-medium text-[var(--text-main)] truncate text-xs">{user.name || '게스트'}</div>
+              <div className="text-[0.625rem] text-[var(--text-muted)] truncate mt-0.5 font-mono">{user.email || '게스트 로컬 세션'}</div>
             </div>
           </div>
 
@@ -243,9 +243,9 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                   setIsOpen(false);
                   onOpenUpgrade();
                 }}
-                className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#18181b] text-[#0ea5e9] hover:text-[#38bdf8] font-medium flex items-center gap-2 transition cursor-pointer text-xs"
+                className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--accent-primary)] font-medium flex items-center gap-2 transition cursor-pointer text-xs"
               >
-                <Zap className="w-3.5 h-3.5 text-[#0ea5e9] shrink-0" />
+                <Zap className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                 <span>계정 연동 및 클라우드 백업</span>
               </button>
             )}
@@ -257,9 +257,9 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                   onOpenGoogleAccount();
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#18181b] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
+                className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] flex items-center gap-2 transition cursor-pointer text-xs"
               >
-                <HardDrive className="w-3.5 h-3.5 text-[#0ea5e9] shrink-0" />
+                <HardDrive className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                 <span>Google Drive 계정 관리</span>
               </button>
             )}
@@ -271,7 +271,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                   onOpenSettings();
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-[#18181b] text-[#e2e8f0] hover:text-white flex items-center gap-2 transition cursor-pointer text-xs"
+                className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] flex items-center gap-2 transition cursor-pointer text-xs"
               >
                 <Settings className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <span>환경설정</span>
@@ -285,26 +285,26 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                   setIsOpen(false);
                   onLockWorkspace();
                 }}
-                className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-indigo-950/50 text-indigo-300 hover:text-indigo-200 flex items-center justify-between transition cursor-pointer text-xs"
+                className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] flex items-center justify-between transition cursor-pointer text-xs"
               >
                 <div className="flex items-center gap-2">
-                  <Lock className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  <Lock className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                   <span>워크스페이스 잠금</span>
                 </div>
-                <span className="text-[0.5625rem] font-mono text-slate-500">Ctrl+L</span>
+                <span className="text-[0.5625rem] font-mono text-[var(--text-tertiary)]">Ctrl+L</span>
               </button>
             )}
           </div>
 
           {/* Sign Out Button */}
-          <div className="pt-1 border-t border-[#222226]">
+          <div className="pt-1 border-t border-white/[0.06]">
             <button
               type="button"
               onClick={() => {
                 setIsOpen(false);
                 onSignOut();
               }}
-              className="w-full text-left px-2 py-1.5 rounded-xs hover:bg-rose-950/60 text-rose-400 hover:text-rose-300 flex items-center gap-2 transition cursor-pointer text-xs"
+              className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-rose-950/60 text-rose-400 hover:text-rose-300 flex items-center gap-2 transition cursor-pointer text-xs"
             >
               <LogOut className="w-3.5 h-3.5 shrink-0" />
               <span>{user.provider === 'guest' ? '게스트 세션 종료' : '로그아웃'}</span>

@@ -343,8 +343,8 @@ export const VirtualizedMarkdownPreview = forwardRef<
           aria-live="polite"
           className="sticky top-2 right-3 z-10 flex justify-end pointer-events-none mb-1 mr-2"
         >
-          <span className="text-[0.5625rem] font-mono text-[#818cf8] bg-[#121214]/90 backdrop-blur-md px-2 py-0.5 rounded border border-[#222226] shadow-xs flex items-center gap-1 select-none pointer-events-auto">
-            <Zap className="w-2.5 h-2.5 text-[#818cf8]" />
+          <span className="text-[0.5625rem] font-mono text-[var(--text-muted)] bg-[var(--bg-elevated)]/90 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/[0.08] flex items-center gap-1 select-none pointer-events-auto">
+            <Zap className="w-2.5 h-2.5 text-[var(--accent-primary)]" />
             <span>가상화 렌더링 활성: {renderedCount} / {blockCount} 블록</span>
           </span>
         </div>
@@ -353,7 +353,7 @@ export const VirtualizedMarkdownPreview = forwardRef<
       {/* Main Preview Container */}
       <div
         className={`${
-          isSplitMode ? 'p-5' : 'max-w-3xl mx-auto px-8 py-10'
+          isSplitMode ? 'p-6' : 'max-w-3xl mx-auto px-12 py-10'
         } min-h-full markdown-preview`}
       >
         {/* Top Spacer to preserve scroll position */}

@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  GraduationCap,
-  FileText,
   ShieldCheck,
+  Cpu,
+  Layers,
   Lock,
   Unlock,
   KeyRound,
-  Rocket,
   Eye,
   EyeOff,
   CheckCircle2,
@@ -17,13 +16,11 @@ import {
   X,
   AlertTriangle,
   RotateCcw,
-  Cpu,
-  Layers,
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
 import { authService, AuthUser } from '../services/authService';
-import { PolicyModal, PolicyType } from './PolicyModal';
+import { PolicyType } from './PolicyModal';
 import { AcademicDisclaimerModal } from './AcademicDisclaimerModal';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 import { TermsOfServiceModal } from './TermsOfServiceModal';
@@ -99,7 +96,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
   const [agreeApiKey, setAgreeApiKey] = useState(isDisclaimerInitiallyAccepted);
   const [agreeLocalStorage, setAgreeLocalStorage] = useState(isDisclaimerInitiallyAccepted);
   const [agreeAiOutput, setAgreeAiOutput] = useState(isDisclaimerInitiallyAccepted);
-  const [isDetailsExpanded, setIsDetailsExpanded] = useState(() => !isDisclaimerInitiallyAccepted());
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 
   const isAllAgreed = agreeApiKey && agreeLocalStorage && agreeAiOutput;
 
@@ -459,38 +456,44 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
   };
 
   return (
-    <div className="w-full min-h-screen min-h-[100dvh] bg-[#09090b] text-zinc-200 font-sans antialiased selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] flex flex-col justify-between relative overflow-x-hidden overflow-y-auto">
-      {/* Subtle ambient lighting adhering strictly to Clean Dark rules */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(99,102,241,0.06),transparent_70%)] pointer-events-none" />
+    <div className="w-full min-h-screen min-h-[100dvh] bg-[var(--bg-main)] text-[var(--text-main)] font-sans antialiased selection:bg-[var(--selection-bg)] selection:text-[var(--selection-text)] flex flex-col justify-between relative overflow-x-hidden overflow-y-auto season-shell">
+      {/* Subtle ambient lighting adhering strictly to Season-Aware Minimalism */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(var(--accent-rgb, 56, 189, 248), 0.045), transparent 65%)'
+        }}
+      />
+      <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[320px] h-[180px] bg-[var(--accent-primary)]/10 blur-[100px] pointer-events-none rounded-full" />
 
-      {/* Main Bounded Container: Perfectly centers layout on all screen sizes (ultrawide to mobile) */}
-      <div className="relative z-10 w-full max-w-6xl xl:max-w-7xl mx-auto min-h-screen min-h-[100dvh] flex flex-col justify-between px-4 sm:px-8 lg:px-12 py-2 sm:py-5 lg:py-8">
-        {/* Top Header: Brand Identity & Language Toggle */}
-        <header className="w-full flex items-center justify-between pt-2 pb-1 sm:py-6 border-b border-white/[0.08]">
-          <div className="flex items-center gap-2.5">
-            <span className="text-base font-semibold tracking-tight text-zinc-100">
+      {/* Main Container: Original pristine max-w-5xl layout */}
+      <div className="relative z-10 w-full max-w-5xl mx-auto min-h-screen min-h-[100dvh] flex flex-col justify-between px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+        {/* Top Header: Brand Identity & Restored Top-Right Language Toggle */}
+        <header className="w-full flex items-center justify-between pb-3 sm:pb-5 border-b border-white/[0.06]">
+          <div className="flex items-center gap-2">
+            <span className="text-base font-semibold tracking-tight text-[var(--text-main)]">
               {t.brandName}
             </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-white/5">
+            <span className="text-[11px] font-mono text-[var(--text-tertiary)] tracking-wider">
               {t.betaTag}
             </span>
           </div>
 
-          {/* Clean Segmented Language Selector */}
+          {/* Clean Segmented Language Selector restored to Top Right */}
           <div
-            className="inline-flex items-center rounded-md bg-[#121214] border border-white/[0.08] p-0.5"
+            className="inline-flex items-center rounded-lg bg-[var(--bg-surface)] border border-white/[0.06] p-0.5"
             role="group"
             aria-label={t.languageSelectorAria}
           >
             <button
               type="button"
-              onClick={() => setPreference('system')}
-              className={`px-2.5 py-1 text-xs rounded-sm transition-colors cursor-pointer ${
-                preference === 'system'
-                  ? 'bg-indigo-600 text-white font-medium'
-                  : 'text-zinc-400 hover:text-zinc-200 font-normal'
+              onClick={() => setPreference('auto')}
+              className={`px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs rounded-md transition-colors cursor-pointer ${
+                preference === 'auto' || preference === 'system'
+                  ? 'bg-[#F1F5F9] text-[#0F172A] font-semibold'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)] font-normal'
               }`}
-              aria-pressed={preference === 'system'}
+              aria-pressed={preference === 'auto' || preference === 'system'}
               title={t.systemLanguageTitle}
             >
               AUTO
@@ -498,10 +501,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
             <button
               type="button"
               onClick={() => handleSetLang('KR')}
-              className={`px-2.5 py-1 text-xs rounded-sm transition-colors cursor-pointer ${
+              className={`px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs rounded-md transition-colors cursor-pointer ${
                 preference === 'ko'
-                  ? 'bg-indigo-600 text-white font-medium'
-                  : 'text-zinc-400 hover:text-zinc-200 font-normal'
+                  ? 'bg-[#F1F5F9] text-[#0F172A] font-semibold'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)] font-normal'
               }`}
               aria-pressed={preference === 'ko'}
               title={t.koreanLanguageTitle}
@@ -511,10 +514,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
             <button
               type="button"
               onClick={() => handleSetLang('ENG')}
-              className={`px-2.5 py-1 text-xs rounded-sm transition-colors cursor-pointer ${
+              className={`px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs rounded-md transition-colors cursor-pointer ${
                 preference === 'en'
-                  ? 'bg-indigo-600 text-white font-medium'
-                  : 'text-zinc-400 hover:text-zinc-200 font-normal'
+                  ? 'bg-[#F1F5F9] text-[#0F172A] font-semibold'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)] font-normal'
               }`}
               aria-pressed={preference === 'en'}
               title={t.englishLanguageTitle}
@@ -524,81 +527,153 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
           </div>
         </header>
 
-        {/* Middle: Responsive Workspace Grid */}
-        <main className="my-auto py-2 sm:py-6 lg:py-12 w-full flex flex-col lg:grid lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-10 xl:gap-16 items-center">
-          {/* Action Card (Onboarding & Security Gateway Card): Order-2 on mobile/tablet */}
-          <div className="w-full flex flex-col items-center lg:items-end order-2 lg:order-none lg:col-span-5 lg:col-start-8 lg:row-start-1">
-            <div className="w-full max-w-md bg-[#121214] border border-white/[0.08] rounded-xl p-4 sm:p-6 md:p-8 shadow-xl shadow-black/40">
-              <div>
-                {/* Status Feedback Banners */}
-                {errorMsg && (
-                  <div className="mb-5 rounded-md border border-rose-500/40 bg-rose-950/40 p-3.5 text-xs text-rose-300 flex items-start gap-2.5">
-                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                    <span className="leading-relaxed">{errorMsg}</span>
-                  </div>
-                )}
+        {/* [Structural Change 1] Responsive Grid with Balanced Vertical Spacing */}
+        <main className="my-auto py-5 sm:py-8 lg:py-12 w-full grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-10 items-stretch">
+          {/* [Structural Change 2] Left Hero Section (7 cols): Confident luxury typography */}
+          <div className="w-full lg:col-span-7 flex flex-col justify-between h-full space-y-4 sm:space-y-6 lg:space-y-0">
+            {/* Grand Hero Title & Subtitle */}
+            <div className="space-y-2.5 sm:space-y-4 lg:space-y-5 text-center lg:text-left flex flex-col items-center lg:items-start">
+              <span className="text-[11px] sm:text-xs font-medium tracking-tight text-[var(--accent-primary)] uppercase select-none">
+                {lang === 'KR' ? '프라이버시 우선 AI 워크스페이스' : 'Privacy-First AI Workspace'}
+              </span>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold tracking-tight bg-gradient-to-r from-[var(--text-main)] via-slate-200 to-[var(--text-muted)] bg-clip-text text-transparent break-keep leading-tight">
+                {t.heroTitle}
+              </h1>
+              <p className="text-xs sm:text-sm lg:text-base text-[var(--text-muted)] leading-relaxed max-w-xl mx-auto lg:mx-0 break-keep tracking-tight">
+                {t.heroDesc}
+              </p>
+            </div>
 
-                {successMsg && (
-                  <div className="mb-5 rounded-md border border-emerald-500/40 bg-emerald-950/40 p-3.5 text-xs text-emerald-300 flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                    <span className="leading-relaxed">{successMsg}</span>
-                  </div>
-                )}
+            {/* Mobile Only: Sleek Unboxed Typographic Feature Strip (< lg viewport) */}
+            <div className="flex lg:hidden items-center justify-center gap-3 text-xs text-[var(--text-muted)] my-1 sm:my-2 select-none font-normal tracking-tight">
+              <span>{lang === 'KR' ? '데이터 주권' : 'Data Sovereignty'}</span>
+              <span className="text-[var(--text-tertiary)] select-none">·</span>
+              <span>{lang === 'KR' ? '자유로운 AI' : 'Flexible AI'}</span>
+              <span className="text-[var(--text-tertiary)] select-none">·</span>
+              <span>{lang === 'KR' ? '원클릭 가공' : '1-Click Workflow'}</span>
+            </div>
 
-                {/* Rate Limit Lockout Banner */}
-                {lockoutState.isLockedOut && (
-                  <div className="mb-5 rounded-md border border-amber-500/40 bg-amber-950/40 p-3.5 text-xs text-amber-300 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>{t.cooldownActive}</span>
+            {/* Desktop Only: 3 Rich Minimalist Feature Cards (>= lg viewport) with Cool-Slate palette */}
+            <div className="hidden lg:flex flex-col gap-3.5 pt-6 lg:pt-8">
+              <div className="bg-[var(--bg-surface)] border border-white/[0.06] rounded-xl p-4 sm:p-4.5 hover:border-white/[0.12] hover:bg-[var(--bg-editor)] transition-colors flex items-center gap-4">
+                <div className="w-10 h-10 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-medium text-[var(--text-main)] tracking-tight">
+                    {t.card1Title}
+                  </h3>
+                  <p className="text-xs text-[var(--text-muted)] leading-relaxed mt-0.5 tracking-tight">
+                    {t.card1Desc}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-[var(--bg-surface)] border border-white/[0.06] rounded-xl p-4 sm:p-4.5 hover:border-white/[0.12] hover:bg-[var(--bg-editor)] transition-colors flex items-center gap-4">
+                <div className="w-10 h-10 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+                  <Cpu className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-medium text-[var(--text-main)] tracking-tight">
+                    {t.card2Title}
+                  </h3>
+                  <p className="text-xs text-[var(--text-muted)] leading-relaxed mt-0.5 tracking-tight">
+                    {t.card2Desc}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-[var(--bg-surface)] border border-white/[0.06] rounded-xl p-4 sm:p-4.5 hover:border-white/[0.12] hover:bg-[var(--bg-editor)] transition-colors flex items-center gap-4">
+                <div className="w-10 h-10 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-medium text-[var(--text-main)] tracking-tight">
+                    {t.card3Title}
+                  </h3>
+                  <p className="text-xs text-[var(--text-muted)] leading-relaxed mt-0.5 tracking-tight">
+                    {t.card3Desc}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* [Structural Change 3] Right Column (5 cols): Cool-Slate Elevated Card */}
+          <div className="w-full max-w-[330px] sm:max-w-[360px] mx-auto lg:max-w-none lg:col-span-5 flex flex-col h-full">
+            <div className="w-full h-full bg-transparent border-0 rounded-none p-0 shadow-none lg:bg-[var(--bg-editor)] lg:border lg:border-white/[0.06] lg:rounded-3xl lg:p-7 xl:p-9 lg:shadow-2xl flex flex-col justify-between relative overflow-visible lg:overflow-hidden">
+              {/* Status Feedback Banners */}
+              {errorMsg && (
+                <div className="mb-3 sm:mb-4 rounded-lg border border-rose-500/40 bg-rose-950/40 p-2.5 sm:p-3 text-xs text-rose-300 flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{errorMsg}</span>
+                </div>
+              )}
+
+              {successMsg && (
+                <div className="mb-3 sm:mb-4 rounded-lg border border-emerald-500/40 bg-emerald-950/40 p-2.5 sm:p-3 text-xs text-emerald-300 flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{successMsg}</span>
+                </div>
+              )}
+
+              {/* Rate Limit Lockout Banner */}
+              {lockoutState.isLockedOut && (
+                <div className="mb-3 sm:mb-4 rounded-lg border border-amber-500/40 bg-amber-950/40 p-2.5 sm:p-3 text-xs text-amber-300 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>{t.cooldownActive}</span>
+                  </div>
+                  <span className="font-semibold text-amber-200 font-mono">
+                    {lockoutState.remainingSeconds}s
+                  </span>
+                </div>
+              )}
+
+              {/* Emergency Master Access Key View (First-time PIN setup dialogue) */}
+              {generatedRecoveryKey && (
+                <div className="h-full flex flex-col justify-between">
+                  {/* Top Section */}
+                  <div className="flex items-center gap-3 pb-3 border-b border-white/[0.06]">
+                    <div className="w-9 h-9 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+                      <LifeBuoy className="w-4.5 h-4.5" />
                     </div>
-                    <span className="font-semibold text-amber-200">
-                      {lockoutState.remainingSeconds}s
-                    </span>
-                  </div>
-                )}
-
-                {/* Emergency Master Access Key Modal (First-time PIN setup dialogue) */}
-                {generatedRecoveryKey && (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-md bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
-                        <LifeBuoy className="w-4.5 h-4.5" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-semibold text-zinc-100">{t.recoveryKeyTitle}</h3>
-                        <p className="text-xs text-zinc-400">{t.recoveryKeySubtitle}</p>
-                      </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-[var(--text-main)]">{t.recoveryKeyTitle}</h3>
+                      <p className="text-xs text-[var(--text-muted)]">{t.recoveryKeySubtitle}</p>
                     </div>
+                  </div>
 
-                    <div className="p-3 rounded-md bg-[#18181b] border border-white/[0.08] text-xs text-zinc-300 leading-relaxed">
-                      <strong className="block font-medium text-indigo-300 mb-1">{t.recoveryKeyNoticeHeader}</strong>
+                  {/* Center Section */}
+                  <div className="py-3 sm:py-4 space-y-3 sm:space-y-3.5">
+                    <div className="p-3 rounded-lg bg-[var(--bg-surface)] border border-white/[0.06] text-xs text-[var(--text-muted)] leading-relaxed">
+                      <strong className="block font-medium text-[var(--accent-primary)] mb-1">{t.recoveryKeyNoticeHeader}</strong>
                       {t.recoveryKeyNoticeBody}
                     </div>
 
-                    <div className="flex items-center justify-between rounded-md bg-[#18181b] border border-white/[0.08] p-3 font-mono text-sm tracking-widest text-indigo-300 select-all font-medium">
+                    <div className="flex items-center justify-between rounded-lg bg-[var(--bg-surface)] border border-white/[0.06] p-3 font-mono text-sm tracking-widest text-[var(--accent-primary)] select-all font-medium">
                       <span>{generatedRecoveryKey}</span>
                       <button
                         type="button"
                         onClick={handleCopyRecoveryKey}
                         title={t.copyRecoveryKeyTitle}
                         aria-label={t.copyRecoveryKeyTitle}
-                        className="p-1.5 rounded-md bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer border border-white/10"
+                        className="p-1.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer border border-white/[0.06]"
                       >
                         {hasCopiedRecoveryKey ? (
-                          <Check className="w-4 h-4 text-emerald-400" />
+                          <Check className="w-4 h-4 text-[var(--secondary-accent)]" />
                         ) : (
                           <Copy className="w-4 h-4" />
                         )}
                       </button>
                     </div>
 
-                    <label className="flex items-start gap-2.5 text-xs text-zinc-300 cursor-pointer select-none">
+                    <label className="flex items-start gap-2.5 text-xs text-[var(--text-muted)] cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={confirmedSavedRecoveryKey}
                         onChange={(e) => setConfirmedSavedRecoveryKey(e.target.checked)}
-                        className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0"
+                        className="mt-0.5 rounded-sm border-white/20 bg-[var(--bg-surface)] text-[var(--accent-primary)] accent-[var(--accent-primary)] focus:ring-0"
                       />
                       <span className="leading-relaxed">
                         {t.recoveryKeySavedCheckbox}
@@ -610,149 +685,139 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                       onClick={handleConfirmRecoveryKeyAndEnter}
                       disabled={!confirmedSavedRecoveryKey || isLoading}
                       title={t.openWorkspaceAfterRecovery}
-                      className="h-11 sm:h-12 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md px-4 font-medium text-sm sm:text-base transition-colors cursor-pointer disabled:opacity-50"
+                      className="w-full bg-[#F1F5F9] hover:bg-white active:scale-[0.99] text-[#0F172A] font-semibold py-3.5 sm:py-4 rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 text-sm sm:text-base transition-all cursor-pointer disabled:opacity-40 tracking-tight"
                     >
-                      <Rocket className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
                       <span>{t.openWorkspaceAfterRecovery}</span>
                     </button>
                   </div>
-                )}
 
-                {/* Returning User Locked State (Scenario B) */}
-                {!generatedRecoveryKey && hasPinConfigured && !showRecoveryForm && (
-                  <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-                    <div>
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-2 sm:mb-4">
-                        <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </div>
-                      <h2 className="text-lg sm:text-xl font-semibold text-zinc-100 tracking-tight">
-                        {t.unlockTitle}
-                      </h2>
-                      <p className="mt-1 text-xs text-zinc-400 leading-relaxed">
-                        {t.unlockDesc}
-                      </p>
-                    </div>
-
-                    {/* Local Vault Status Badge */}
-                    <div className="flex items-center gap-2.5 p-2.5 rounded-md bg-[#18181b] border border-white/[0.08] text-xs text-zinc-300">
-                      <div className="w-5 h-5 rounded-sm bg-indigo-500/20 text-indigo-300 flex items-center justify-center font-bold text-xs border border-indigo-500/30 shrink-0">
-                        <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-medium text-zinc-200 text-xs truncate">
-                          {t.localEncryptedWorkspace}
-                        </span>
-                        <span className="text-[10px] text-zinc-400 truncate font-mono">
-                          {t.onDeviceStorage}
-                        </span>
-                      </div>
-                    </div>
-
-                    <form onSubmit={handleUnlockWorkspace} className="space-y-4">
-                      <div className="space-y-1.5">
-                        <label htmlFor="unlock-pin" className="block text-xs font-medium text-zinc-300">
-                          {t.pinLabel}
-                        </label>
-                        <div className="relative flex items-center rounded-md border border-white/[0.08] bg-[#18181b] px-3 py-2 transition-colors focus-within:border-indigo-500">
-                          <KeyRound className="h-4 w-4 text-zinc-400 shrink-0 mr-2.5" />
-                          <input
-                            id="unlock-pin"
-                            name="aipodium-secure-lock-input"
-                            type={showUnlockPassword ? 'text' : 'password'}
-                            value={enteredPin}
-                            onChange={(e) => setEnteredPin(e.target.value)}
-                            placeholder={t.pinPlaceholder}
-                            autoFocus
-                            disabled={isLoading || lockoutState.isLockedOut}
-                            autoComplete="off"
-                            autoCapitalize="off"
-                            autoCorrect="off"
-                            spellCheck={false}
-                            className="w-full bg-transparent text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowUnlockPassword(!showUnlockPassword)}
-                            tabIndex={-1}
-                            title={showUnlockPassword ? t.hidePassword : t.showPassword}
-                            aria-label={showUnlockPassword ? t.hidePassword : t.showPassword}
-                            className="text-zinc-400 hover:text-zinc-200 transition-colors ml-2 cursor-pointer"
-                          >
-                            {showUnlockPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={isLoading || lockoutState.isLockedOut}
-                        title={t.unlockWorkspace}
-                        className="h-11 sm:h-12 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md px-4 font-medium text-sm sm:text-base transition-colors cursor-pointer disabled:opacity-50"
-                      >
-                        <Unlock className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                        <span>{t.unlockWorkspace}</span>
-                      </button>
-                    </form>
-
-                    {/* Security Diagnostics & Recovery Options */}
-                    <div className="p-3.5 rounded-md bg-[#18181b] border border-white/[0.08] space-y-2 text-xs text-zinc-400 leading-relaxed">
-                      <div className="flex items-center gap-2 text-indigo-300 font-medium">
-                        <ShieldCheck className="w-4 h-4 text-indigo-400" />
-                        <span>{t.deviceEncryptionActive}</span>
-                      </div>
-                      <p className="text-zinc-400">
-                        {t.notesLockedInMemory}
-                      </p>
-                      <div className="pt-2 border-t border-white/[0.08] flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowRecoveryForm(true);
-                            setErrorMsg(null);
-                          }}
-                          className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
-                        >
-                          {t.forgotPinPrompt}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setShowPurgeModal(true)}
-                          className="text-xs text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
-                        >
-                          {t.resetLockPrompt}
-                        </button>
-                      </div>
+                  {/* Bottom Section */}
+                  <div className="pt-3 sm:pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs text-[var(--text-tertiary)]">
+                    <span className="whitespace-nowrap">{t.encryptedStorage}</span>
+                    <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] whitespace-nowrap">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] shrink-0" />
+                      <span>{t.offlineReady}</span>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Recovery Key Verification Form */}
-                {!generatedRecoveryKey && hasPinConfigured && showRecoveryForm && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
-                      <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2">
-                        <LifeBuoy className="w-4 h-4 text-indigo-400" />
-                        <span>{t.recoveryVerificationTitle}</span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowRecoveryForm(false);
-                          setIsRecoveryKeyVerified(false);
-                          setErrorMsg(null);
-                        }}
-                        title={t.cancel}
-                        aria-label={t.cancel}
-                        className="text-zinc-400 hover:text-zinc-200 cursor-pointer"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+              {/* Returning User Locked State (Scenario B) */}
+              {!generatedRecoveryKey && hasPinConfigured && !showRecoveryForm && (
+                <div className="h-full flex flex-col justify-between">
+                  {/* Top Section */}
+                  <div className="text-center space-y-1 sm:space-y-1.5">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] mx-auto mb-2 sm:mb-2.5">
+                      <Lock className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
+                    </div>
+                    <h2 className="text-lg sm:text-xl font-semibold text-[var(--text-main)] tracking-tight">
+                      {t.unlockTitle}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed tracking-tight break-keep">
+                      {t.unlockDesc}
+                    </p>
+                  </div>
+
+                  {/* Center Section */}
+                  <form onSubmit={handleUnlockWorkspace} className="py-3 sm:py-4 space-y-3.5 sm:space-y-4">
+                    <div className="space-y-1.5 sm:space-y-2">
+                      <label htmlFor="unlock-pin" className="block text-xs sm:text-sm font-medium text-[var(--text-muted)] tracking-tight">
+                        {t.pinLabel}
+                      </label>
+                      <div className="relative flex items-center rounded-lg sm:rounded-xl border border-white/[0.06] bg-[var(--bg-surface)] px-3 sm:px-3.5 py-2 sm:py-2.5 transition-colors focus-within:border-[var(--accent-primary)]/50">
+                        <KeyRound className="h-4 w-4 sm:h-4.5 sm:w-4.5 text-[var(--text-tertiary)] shrink-0 mr-2.5" />
+                        <input
+                          id="unlock-pin"
+                          name="aipodium-secure-lock-input"
+                          type={showUnlockPassword ? 'text' : 'password'}
+                          value={enteredPin}
+                          onChange={(e) => setEnteredPin(e.target.value)}
+                          placeholder={t.pinPlaceholder}
+                          autoFocus
+                          disabled={isLoading || lockoutState.isLockedOut}
+                          autoComplete="off"
+                          autoCapitalize="off"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          className="w-full bg-transparent text-xs sm:text-sm text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] focus:outline-none tracking-tight"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowUnlockPassword(!showUnlockPassword)}
+                          tabIndex={-1}
+                          title={showUnlockPassword ? t.hidePassword : t.showPassword}
+                          aria-label={showUnlockPassword ? t.hidePassword : t.showPassword}
+                          className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors ml-2 cursor-pointer"
+                        >
+                          {showUnlockPassword ? <EyeOff className="w-4 h-4 sm:w-4.5 sm:h-4.5" /> : <Eye className="w-4 h-4 sm:w-4.5 sm:h-4.5" />}
+                        </button>
+                      </div>
                     </div>
 
+                    <button
+                      type="submit"
+                      disabled={isLoading || lockoutState.isLockedOut}
+                      title={t.unlockWorkspace}
+                      className="w-full bg-[#F1F5F9] hover:bg-white active:scale-[0.99] text-[#0F172A] font-semibold py-3.5 sm:py-4 rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 text-sm sm:text-base transition-all cursor-pointer disabled:opacity-40 tracking-tight"
+                    >
+                      <Unlock className="h-4 w-4 shrink-0" />
+                      <span>{t.unlockWorkspace}</span>
+                    </button>
+                  </form>
+
+                  {/* Bottom Section */}
+                  <div className="pt-3 sm:pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowRecoveryForm(true);
+                        setErrorMsg(null);
+                      }}
+                      className="text-[var(--accent-primary)] hover:text-sky-300 transition-colors cursor-pointer whitespace-nowrap break-keep text-[11px] sm:text-xs"
+                    >
+                      {t.forgotPinPrompt}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPurgeModal(true)}
+                      className="text-rose-400 hover:text-rose-300 transition-colors cursor-pointer whitespace-nowrap break-keep text-[11px] sm:text-xs"
+                    >
+                      {t.resetLockPrompt}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Recovery Key Verification Form */}
+              {!generatedRecoveryKey && hasPinConfigured && showRecoveryForm && (
+                <div className="h-full flex flex-col justify-between">
+                  {/* Top Section */}
+                  <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                    <span className="text-xs font-semibold text-[var(--text-main)] flex items-center gap-2">
+                      <LifeBuoy className="w-4 h-4 text-[var(--accent-primary)]" />
+                      <span>{t.recoveryVerificationTitle}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowRecoveryForm(false);
+                        setIsRecoveryKeyVerified(false);
+                        setErrorMsg(null);
+                      }}
+                      title={t.cancel}
+                      aria-label={t.cancel}
+                      className="text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer p-1 rounded-lg hover:bg-white/[0.06]"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Center Section */}
+                  <div className="py-3 sm:py-4">
                     {!isRecoveryKeyVerified ? (
                       <form onSubmit={handleVerifyRecoveryKey} className="space-y-4">
-                        <p className="text-xs text-zinc-400 leading-relaxed">
+                        <p className="text-xs text-[var(--text-muted)] leading-relaxed break-keep">
                           {t.recoveryVerificationDesc}
                         </p>
                         <input
@@ -765,21 +830,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                           autoCorrect="off"
                           spellCheck={false}
                           disabled={isLoading}
-                          className="w-full font-mono text-center tracking-widest text-xs rounded-md border border-white/[0.08] bg-[#18181b] px-3.5 py-2.5 text-indigo-200 focus:outline-none focus:border-indigo-500"
+                          className="w-full font-mono text-center tracking-widest text-xs rounded-lg border border-white/[0.06] bg-[var(--bg-surface)] px-3.5 py-2.5 text-[var(--accent-primary)] focus:outline-none focus:border-[var(--accent-primary)]/50"
                         />
                         <button
                           type="submit"
                           disabled={isLoading}
                           title={t.verifyRecoveryKeyButton}
-                          className="h-11 sm:h-12 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md px-4 font-medium text-sm sm:text-base transition-colors cursor-pointer disabled:opacity-50"
+                          className="w-full bg-[#F1F5F9] hover:bg-white active:scale-[0.99] text-[#0F172A] font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 text-sm transition-all cursor-pointer disabled:opacity-40 tracking-tight"
                         >
-                          <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                          <Check className="w-4 h-4" />
                           <span>{t.verifyRecoveryKeyButton}</span>
                         </button>
                       </form>
                     ) : (
                       <form onSubmit={handleCompletePinResetWithRecovery} className="space-y-3.5">
-                        <p className="text-xs text-emerald-400 font-medium">
+                        <p className="text-xs text-[var(--secondary-accent)] font-medium tracking-tight">
                           {t.recoveryVerifiedSuccessPrompt}
                         </p>
                         <input
@@ -788,10 +853,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                           onChange={(e) => setNewPin(e.target.value)}
                           placeholder={t.newPinAfterRecoveryPlaceholder}
                           autoComplete="off"
-                          autoCapitalize="off"
-                          autoCorrect="off"
-                          spellCheck={false}
-                          className="w-full text-xs rounded-md border border-white/[0.08] bg-[#18181b] px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                          className="w-full text-xs rounded-lg border border-white/[0.06] bg-[var(--bg-surface)] px-3 py-2 text-[var(--text-main)] focus:outline-none focus:border-[var(--accent-primary)]/50 tracking-tight"
                         />
                         <input
                           type="password"
@@ -799,165 +861,172 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                           onChange={(e) => setConfirmNewPin(e.target.value)}
                           placeholder={t.confirmNewPinAfterRecoveryPlaceholder}
                           autoComplete="off"
-                          autoCapitalize="off"
-                          autoCorrect="off"
-                          spellCheck={false}
-                          className="w-full text-xs rounded-md border border-white/[0.08] bg-[#18181b] px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                          className="w-full text-xs rounded-lg border border-white/[0.06] bg-[var(--bg-surface)] px-3 py-2 text-[var(--text-main)] focus:outline-none focus:border-[var(--accent-primary)]/50 tracking-tight"
                         />
                         <button
                           type="submit"
                           disabled={isLoading}
                           title={t.saveNewPinButton}
-                          className="h-11 sm:h-12 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md px-4 font-medium text-sm sm:text-base transition-colors cursor-pointer"
+                          className="w-full bg-[#F1F5F9] hover:bg-white active:scale-[0.99] text-[#0F172A] font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 text-sm transition-all cursor-pointer tracking-tight"
                         >
-                          <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                          <Check className="w-4 h-4" />
                           <span>{t.saveNewPinButton}</span>
                         </button>
                       </form>
                     )}
                   </div>
-                )}
 
-                {/* First-time User / No PIN Set (Scenario A - Redesigned Clean IDE Look) */}
-                {!generatedRecoveryKey && !hasPinConfigured && (
-                  <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-                    <div>
-                      <h2 className="text-lg sm:text-xl font-semibold text-zinc-100 tracking-tight">
-                        {t.welcomeTitle}
-                      </h2>
-                      <p className="mt-1 sm:mt-1.5 text-xs text-zinc-400 leading-relaxed">
-                        {t.welcomeDesc}
-                      </p>
+                  {/* Bottom Section */}
+                  <div className="pt-3 sm:pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs text-[var(--text-tertiary)]">
+                    <span className="whitespace-nowrap">{t.deviceEncryptionActive}</span>
+                    <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] whitespace-nowrap">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] shrink-0" />
+                      <span>{t.encryptedStorage}</span>
                     </div>
+                  </div>
+                </div>
+              )}
 
-                    {!showSetPinForm ? (
-                      <div className="space-y-3 sm:space-y-4">
-                        {/* Mandatory Pre-flight Terms & Agreement Checklist */}
-                        <div className="rounded-lg bg-[#0c0c0e] border border-[#222226] p-2.5 sm:p-3 text-xs space-y-2 sm:space-y-2.5 my-3 sm:my-5">
-                          {/* Master All-in-one Toggle */}
-                          <div className="flex items-start justify-between gap-2">
-                            <label className="flex items-start gap-2.5 cursor-pointer select-none group flex-1">
+              {/* First-time User / No PIN Set (Responsive Pristine Layout) */}
+              {!generatedRecoveryKey && !hasPinConfigured && (
+                <>
+                  {!showSetPinForm ? (
+                    <div className="h-full flex flex-col justify-between">
+                      {/* Top Section: Card Header & Subtitle (Hidden on mobile only per user request) */}
+                      <div className="space-y-1 sm:space-y-1.5 hidden lg:block">
+                        <h2 className="text-xl lg:text-2xl font-semibold text-[var(--text-main)] tracking-tight">
+                          {t.welcomeTitle}
+                        </h2>
+                        <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed tracking-tight break-keep">
+                          {t.welcomeDesc}
+                        </p>
+                      </div>
+
+                      {/* Center Section: Compact borderless flat row & Primary CTA */}
+                      <div className="py-3 sm:py-4 lg:py-6 flex flex-col gap-3 sm:gap-4 lg:gap-5">
+                        {/* Borderless flat row with subtle dividers (no nested card borders) */}
+                        <div className="border-y border-white/[0.06] py-3 sm:py-3.5 lg:py-4">
+                          <div className="flex items-start justify-between gap-2.5 sm:gap-3">
+                            <label className="flex items-start gap-2.5 sm:gap-3 text-xs sm:text-sm text-[var(--text-muted)] cursor-pointer select-none flex-1">
                               <input
                                 type="checkbox"
                                 checked={isAllAgreed}
                                 onChange={handleToggleAllAgreements}
-                                className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
+                                className="mt-0.5 h-4 w-4 rounded-sm border-white/20 bg-[var(--bg-surface)] text-[var(--accent-primary)] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[var(--accent-primary)] shrink-0"
                               />
-                              <span className="text-xs font-medium text-zinc-200 group-hover:text-white transition-colors leading-snug">
+                              <span className="text-xs sm:text-sm text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors leading-snug sm:leading-relaxed font-normal tracking-tight break-keep">
                                 {t.termsAllAgree}
                               </span>
                             </label>
                             <button
                               type="button"
                               onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
-                              className="text-[11px] text-zinc-400 hover:text-zinc-200 flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded hover:bg-white/5 transition-colors cursor-pointer"
+                              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] flex items-center gap-1 shrink-0 py-0.5 px-1 transition-colors cursor-pointer tracking-tight whitespace-nowrap"
                               aria-expanded={isDetailsExpanded}
                               title={isDetailsExpanded ? t.termsHideDetails : t.termsViewDetails}
                             >
                               <span>{isDetailsExpanded ? t.termsHideDetails : t.termsViewDetails}</span>
                               {isDetailsExpanded ? (
-                                <ChevronUp className="w-3.5 h-3.5" />
+                                <ChevronUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                               ) : (
-                                <ChevronDown className="w-3.5 h-3.5" />
+                                <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                               )}
                             </button>
                           </div>
 
-                          {/* Expandable Individual Checklist */}
+                          {/* Expandable Individual Checklist with max-height scroll to prevent pushing CTA offscreen */}
                           {isDetailsExpanded && (
-                            <div className="pt-2 border-t border-[#222226] space-y-2 pl-0.5">
-                              {/* Item 1: API Key responsibility */}
-                              <label className="flex items-start gap-2.5 cursor-pointer select-none group">
+                            <div className="mt-2.5 pt-2.5 sm:mt-3.5 sm:pt-3.5 pl-6 sm:pl-7 space-y-2 sm:space-y-2.5 border-t border-white/[0.06] max-h-40 overflow-y-auto">
+                              <label className="flex items-start gap-2.5 cursor-pointer select-none text-[11px] sm:text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] tracking-tight break-keep">
                                 <input
                                   type="checkbox"
                                   checked={agreeApiKey}
                                   onChange={(e) => setAgreeApiKey(e.target.checked)}
-                                  className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
+                                  className="mt-0.5 h-3.5 w-3.5 rounded-sm border-white/20 bg-[var(--bg-surface)] text-[var(--accent-primary)] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[var(--accent-primary)] shrink-0"
                                 />
-                                <span className="text-[11px] text-zinc-400 group-hover:text-zinc-300 leading-tight">
-                                  {t.termsApiKeyAgree}
-                                </span>
+                                <span className="leading-snug sm:leading-relaxed">{t.termsApiKeyAgree}</span>
                               </label>
 
-                              {/* Item 2: Local storage risk acknowledgement */}
-                              <label className="flex items-start gap-2.5 cursor-pointer select-none group">
+                              <label className="flex items-start gap-2.5 cursor-pointer select-none text-[11px] sm:text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] tracking-tight break-keep">
                                 <input
                                   type="checkbox"
                                   checked={agreeLocalStorage}
                                   onChange={(e) => setAgreeLocalStorage(e.target.checked)}
-                                  className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
+                                  className="mt-0.5 h-3.5 w-3.5 rounded-sm border-white/20 bg-[var(--bg-surface)] text-[var(--accent-primary)] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[var(--accent-primary)] shrink-0"
                                 />
-                                <span className="text-[11px] text-zinc-400 group-hover:text-zinc-300 leading-tight">
-                                  {t.termsLocalStorageAgree}
-                                </span>
+                                <span className="leading-snug sm:leading-relaxed">{t.termsLocalStorageAgree}</span>
                               </label>
 
-                              {/* Item 3: AI output verification responsibility */}
-                              <label className="flex items-start gap-2.5 cursor-pointer select-none group">
+                              <label className="flex items-start gap-2.5 cursor-pointer select-none text-[11px] sm:text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] tracking-tight break-keep">
                                 <input
                                   type="checkbox"
                                   checked={agreeAiOutput}
                                   onChange={(e) => setAgreeAiOutput(e.target.checked)}
-                                  className="mt-0.5 rounded-sm border-white/20 bg-[#18181b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer accent-indigo-600 shrink-0"
+                                  className="mt-0.5 h-3.5 w-3.5 rounded-sm border-white/20 bg-[var(--bg-surface)] text-[var(--accent-primary)] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[var(--accent-primary)] shrink-0"
                                 />
-                                <span className="text-[11px] text-zinc-400 group-hover:text-zinc-300 leading-tight">
-                                  {t.termsAiOutputAgree}
-                                </span>
+                                <span className="leading-snug sm:leading-relaxed">{t.termsAiOutputAgree}</span>
                               </label>
                             </div>
                           )}
                         </div>
 
-                        {/* Action Buttons */}
-                        <div className="space-y-2 sm:space-y-2.5">
-                          {/* Primary Action: Open Research Workspace */}
-                          <button
-                            type="button"
-                            onClick={handleOpenWorkspaceDirectly}
-                            disabled={isLoading || !isAllAgreed}
-                            title={t.openWorkspace}
-                            className="h-11 sm:h-12 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md px-4 font-medium text-sm sm:text-base transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <Rocket className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-white" />
-                            <span>{t.openWorkspace}</span>
-                          </button>
-
-                          {/* Secondary Action: Enable Workspace PIN Lock */}
-                          <button
-                            type="button"
-                            onClick={handleOpenPinSetup}
-                            disabled={isLoading || !isAllAgreed}
-                            title={t.enablePinLock}
-                            className="h-11 sm:h-12 w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/10 rounded-md px-4 text-sm sm:text-base font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <Lock className="h-4 w-4 sm:h-5 sm:w-5 text-zinc-400 shrink-0" />
-                            <span>{t.enablePinLock}</span>
-                          </button>
-                        </div>
+                        {/* Primary Call-to-Action button */}
+                        <button
+                          type="button"
+                          onClick={handleOpenWorkspaceDirectly}
+                          disabled={isLoading || !isAllAgreed}
+                          title={t.openWorkspace}
+                          className="w-full bg-[#F1F5F9] hover:bg-white active:scale-[0.99] text-[#0F172A] font-semibold py-3 sm:py-3.5 lg:py-4 rounded-xl sm:rounded-2xl transition-all text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm tracking-tight"
+                        >
+                          <span>{t.openWorkspace}</span>
+                        </button>
                       </div>
-                    ) : (
-                      <form onSubmit={handleStageMasterPin} className="space-y-4">
-                        <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
-                          <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2">
-                            <Lock className="w-4 h-4 text-indigo-400" />
-                            <span>{t.configurePinTitle}</span>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setShowSetPinForm(false)}
-                            title={t.cancel}
-                            aria-label={t.cancel}
-                            className="text-zinc-400 hover:text-zinc-200 cursor-pointer"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
 
-                        <div className="space-y-1.5">
-                          <label htmlFor="new-pin" className="block text-xs font-medium text-zinc-300">
+                      {/* Bottom Section: Centered PIN Lock Button (Offline indicator removed per request) */}
+                      <div className="pt-3 sm:pt-4 border-t border-white/[0.06] flex items-center justify-center text-xs">
+                        <button
+                          type="button"
+                          onClick={handleOpenPinSetup}
+                          disabled={isLoading || !isAllAgreed}
+                          title={t.enablePinLock}
+                          className="inline-flex items-center gap-1.5 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed tracking-tight whitespace-nowrap break-keep text-xs"
+                        >
+                          <Lock className="w-3.5 h-3.5 text-[var(--text-tertiary)] shrink-0" />
+                          <span>{t.enablePinLock}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleStageMasterPin} className="h-full flex flex-col justify-between">
+                      {/* Top Section */}
+                      <div className="flex items-center justify-between pb-2 sm:pb-3 border-b border-white/[0.06]">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)]">
+                            <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          </div>
+                          <div>
+                            <h2 className="text-xs sm:text-base font-semibold text-[var(--text-main)] tracking-tight">{t.configurePinTitle}</h2>
+                            <p className="text-[10px] sm:text-xs text-[var(--text-muted)] tracking-tight hidden sm:block">{t.welcomeDesc}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowSetPinForm(false)}
+                          title={t.cancel}
+                          aria-label={t.cancel}
+                          className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] transition-colors cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        </button>
+                      </div>
+
+                      {/* Center Section */}
+                      <div className="py-3 sm:py-5 space-y-2.5 sm:space-y-4">
+                        <div className="space-y-1">
+                          <label htmlFor="new-pin" className="block text-[11px] sm:text-xs font-medium text-[var(--text-muted)]">
                             {t.newPinLabel}
                           </label>
-                          <div className="relative flex items-center rounded-md border border-white/[0.08] bg-[#18181b] px-3 py-2 transition-colors focus-within:border-indigo-500">
+                          <div className="relative flex items-center rounded-lg border border-white/[0.06] bg-[var(--bg-surface)] px-2.5 sm:px-3 py-1.5 sm:py-2 transition-colors focus-within:border-[var(--accent-primary)]/50">
                             <input
                               id="new-pin"
                               name="aipodium-new-pin-input"
@@ -971,7 +1040,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                               autoCapitalize="off"
                               autoCorrect="off"
                               spellCheck={false}
-                              className="w-full bg-transparent text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none"
+                              className="w-full bg-transparent text-[11px] sm:text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] focus:outline-none"
                             />
                             <button
                               type="button"
@@ -979,18 +1048,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                               tabIndex={-1}
                               title={showNewPinPassword ? t.hidePassword : t.showPassword}
                               aria-label={showNewPinPassword ? t.hidePassword : t.showPassword}
-                              className="text-zinc-400 hover:text-zinc-200 transition-colors ml-2 cursor-pointer"
+                              className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors ml-2 cursor-pointer"
                             >
-                              {showNewPinPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              {showNewPinPassword ? <EyeOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                             </button>
                           </div>
                         </div>
 
-                        <div className="space-y-1.5">
-                          <label htmlFor="confirm-new-pin" className="block text-xs font-medium text-zinc-300">
+                        <div className="space-y-1">
+                          <label htmlFor="confirm-new-pin" className="block text-[11px] sm:text-xs font-medium text-[var(--text-muted)]">
                             {t.confirmPinLabel}
                           </label>
-                          <div className="relative flex items-center rounded-md border border-white/[0.08] bg-[#18181b] px-3 py-2 transition-colors focus-within:border-indigo-500">
+                          <div className="relative flex items-center rounded-lg border border-white/[0.06] bg-[var(--bg-surface)] px-2.5 sm:px-3 py-1.5 sm:py-2 transition-colors focus-within:border-[var(--accent-primary)]/50">
                             <input
                               id="confirm-new-pin"
                               name="aipodium-confirm-pin-input"
@@ -1003,7 +1072,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                               autoCapitalize="off"
                               autoCorrect="off"
                               spellCheck={false}
-                              className="w-full bg-transparent text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none"
+                              className="w-full bg-transparent text-[11px] sm:text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] focus:outline-none"
                             />
                           </div>
                         </div>
@@ -1012,136 +1081,62 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                           type="submit"
                           disabled={isLoading}
                           title={t.savePinAndGenKey}
-                          className="h-11 sm:h-12 w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md px-4 font-medium text-sm sm:text-base transition-colors cursor-pointer disabled:opacity-60 mt-3"
+                          className="w-full bg-[#F1F5F9] hover:bg-white active:scale-[0.99] text-[#0F172A] font-semibold py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 text-xs sm:text-sm sm:text-base transition-all cursor-pointer disabled:opacity-50 tracking-tight"
                         >
-                          <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5" />
+                          <ShieldCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           <span>{t.savePinAndGenKey}</span>
                         </button>
-                      </form>
-                    )}
-                  </div>
-                )}
-              </div>
+                      </div>
 
-            </div>
-
-            {/* Under-Card System Architecture & Trust Badges (Only on desktop lg: for visual balance) */}
-            <div className="hidden lg:grid w-full max-w-md mt-3.5 grid-cols-3 gap-2 text-center select-none">
-              <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-2.5 flex flex-col items-center justify-center transition-colors hover:border-white/10">
-                <ShieldCheck className="w-4 h-4 text-emerald-400 mb-1" />
-                <span className="text-[0.6875rem] font-medium text-zinc-200">
-                  {t.badge1Title}
-                </span>
-                <span className="text-[0.625rem] text-zinc-400 mt-0.5">
-                  {t.badge1Desc}
-                </span>
-              </div>
-              <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-2.5 flex flex-col items-center justify-center transition-colors hover:border-white/10">
-                <Cpu className="w-4 h-4 text-indigo-400 mb-1" />
-                <span className="text-[0.6875rem] font-medium text-zinc-200">
-                  {t.badge2Title}
-                </span>
-                <span className="text-[0.625rem] text-zinc-400 mt-0.5">
-                  {t.badge2Desc}
-                </span>
-              </div>
-              <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-2.5 flex flex-col items-center justify-center transition-colors hover:border-white/10">
-                <Lock className="w-4 h-4 text-amber-400 mb-1" />
-                <span className="text-[0.6875rem] font-medium text-zinc-200">
-                  {t.badge3Title}
-                </span>
-                <span className="text-[0.625rem] text-zinc-400 mt-0.5">
-                  {t.badge3Desc}
-                </span>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Intro Section & Architectural Pillars (Desktop Left Column / Mobile Above/Below-Card Section) */}
-          <div className="w-full lg:col-span-7 lg:col-start-1 lg:row-start-1 order-1 lg:order-none space-y-4 lg:space-y-8">
-            {/* Desktop & Mobile Single Hero Header */}
-            <div className="space-y-2 sm:space-y-3 text-center lg:text-left">
-              <h1 className="text-2xl sm:text-3xl xl:text-4xl font-semibold tracking-tight leading-snug text-zinc-100 break-keep">
-                {t.heroTitle}
-              </h1>
-              <p className="text-xs sm:text-sm lg:text-base text-zinc-400 leading-relaxed max-w-xl break-keep mx-auto lg:mx-0">
-                {t.heroDesc}
-              </p>
-            </div>
-
-            {/* Academic Value Cards - Responsive Presentation */}
-            <div className="w-full max-w-xl grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 gap-2 md:gap-3 lg:gap-3 mx-auto lg:mx-0">
-              <div className="flex items-center lg:items-start gap-2.5 sm:gap-3 lg:gap-3.5 p-2 sm:p-2.5 lg:p-3.5 rounded-lg lg:rounded-md border border-white/[0.05] lg:border-transparent lg:hover:border-white/[0.06] bg-white/[0.02] lg:bg-transparent lg:hover:bg-white/[0.02] transition-colors">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
-                  <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs sm:text-xs lg:text-sm font-medium text-zinc-200">
-                    {t.card1Title}
-                  </div>
-                  <div className="hidden lg:block text-xs sm:text-sm text-zinc-400 leading-relaxed mt-1">
-                    {t.card1Desc}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center lg:items-start gap-2.5 sm:gap-3 lg:gap-3.5 p-2 sm:p-2.5 lg:p-3.5 rounded-lg lg:rounded-md border border-white/[0.05] lg:border-transparent lg:hover:border-white/[0.06] bg-white/[0.02] lg:bg-transparent lg:hover:bg-white/[0.02] transition-colors">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
-                  <Cpu className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs sm:text-xs lg:text-sm font-medium text-zinc-200">
-                    {t.card2Title}
-                  </div>
-                  <div className="hidden lg:block text-xs sm:text-sm text-zinc-400 leading-relaxed mt-1">
-                    {t.card2Desc}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center lg:items-start gap-2.5 sm:gap-3 lg:gap-3.5 p-2 sm:p-2.5 lg:p-3.5 rounded-lg lg:rounded-md border border-white/[0.05] lg:border-transparent lg:hover:border-white/[0.06] bg-white/[0.02] lg:bg-transparent lg:hover:bg-white/[0.02] transition-colors">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
-                  <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs sm:text-xs lg:text-sm font-medium text-zinc-200">
-                    {t.card3Title}
-                  </div>
-                  <div className="hidden lg:block text-xs sm:text-sm text-zinc-400 leading-relaxed mt-1">
-                    {t.card3Desc}
-                  </div>
-                </div>
-              </div>
+                      {/* Bottom Section */}
+                      <div className="pt-2 sm:pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setShowSetPinForm(false)}
+                          className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer whitespace-nowrap text-[10px] sm:text-xs"
+                        >
+                          {t.cancel}
+                        </button>
+                        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-[var(--text-muted)] whitespace-nowrap">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] shrink-0" />
+                          <span>{t.encryptedStorage}</span>
+                        </div>
+                      </div>
+                    </form>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </main>
 
-        {/* Global Footer: Academic Policies & Operational Status Indicators */}
-        <footer className="w-full pt-3 sm:pt-4 border-t border-white/[0.08] flex items-center justify-center text-[11px] sm:text-xs text-zinc-500">
-          <div id="auth-footer-legal" className="flex flex-wrap items-center justify-center text-center gap-2.5 sm:gap-3">
+        {/* Global Footer: Integrated Minimalist Footer */}
+        <footer className="w-full mt-4 sm:mt-8 pt-3 sm:pt-4 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-[var(--text-tertiary)] select-none">
+          <div className="text-[11px] text-[var(--text-tertiary)] order-2 sm:order-1 text-center sm:text-left">
             <span>{t.copyright}</span>
-            <span className="text-zinc-700">·</span>
+          </div>
+
+          <div id="auth-footer-legal" className="text-[11px] text-[var(--text-tertiary)] flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-center order-1 sm:order-2">
             <button
               type="button"
               onClick={() => openPolicy('privacy')}
-              className="hover:text-zinc-300 transition-colors cursor-pointer"
+              className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
             >
               {t.privacyPolicy}
             </button>
-            <span className="text-zinc-700">·</span>
+            <span className="text-[var(--text-tertiary)]">·</span>
             <button
               type="button"
               onClick={() => openPolicy('terms')}
-              className="hover:text-zinc-300 transition-colors cursor-pointer"
+              className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
             >
               {t.termsOfUse}
             </button>
-            <span className="text-zinc-700">·</span>
+            <span className="text-[var(--text-tertiary)]">·</span>
             <button
               type="button"
               onClick={() => openPolicy('disclaimer')}
-              className="text-amber-400/80 hover:text-amber-300 font-medium transition-colors cursor-pointer"
+              className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
             >
               {t.academicDisclaimer}
             </button>
@@ -1151,24 +1146,24 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
       {/* Emergency Security Reset Confirmation Modal */}
       {showPurgeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
-          <div className="w-full max-w-sm rounded-xl bg-[#121214] border border-white/[0.08] p-5 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--bg-main)]/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-xl bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] p-5 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-md bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-zinc-100">{t.purgeModalTitle}</h3>
-                <p className="text-xs text-zinc-400">{t.purgeModalSubtitle}</p>
+                <h3 className="text-sm font-semibold text-[var(--text-main)]">{t.purgeModalTitle}</h3>
+                <p className="text-xs text-[var(--text-muted)]">{t.purgeModalSubtitle}</p>
               </div>
             </div>
 
-            <p className="text-xs text-zinc-400 leading-relaxed">
+            <p className="text-xs text-[var(--text-muted)] leading-relaxed">
               {t.purgeModalDesc}
             </p>
 
             <div className="space-y-1.5">
-              <label className="text-xs text-zinc-400">
+              <label className="text-xs text-[var(--text-muted)]">
                 {t.purgeConfirmPrompt}{' '}
                 <span className="font-semibold text-rose-400 font-mono">{t.resetKeyword}</span>
               </label>
@@ -1177,7 +1172,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                 value={purgeInputText}
                 onChange={(e) => setPurgeInputText(e.target.value)}
                 placeholder={t.resetKeyword}
-                className="w-full rounded-md border border-white/[0.08] bg-[#18181b] px-3 py-2 text-xs text-center font-medium text-rose-200 focus:outline-none focus:border-rose-500 font-mono"
+                className="w-full rounded-lg border border-white/[0.06] bg-[var(--bg-surface)] px-3 py-2 text-xs text-center font-medium text-rose-200 focus:outline-none focus:border-rose-500 font-mono"
               />
             </div>
 
@@ -1188,7 +1183,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                   setShowPurgeModal(false);
                   setPurgeInputText('');
                 }}
-                className="px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/10 text-xs transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-white/[0.06] text-xs transition-colors cursor-pointer"
               >
                 {t.cancel}
               </button>
@@ -1196,7 +1191,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                 type="button"
                 onClick={handleExecuteEmergencyPurge}
                 disabled={purgeInputText.trim().toUpperCase() !== t.resetKeyword}
-                className="px-3 py-1.5 rounded-md bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-1.5"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>{t.purgeConfirmButton}</span>

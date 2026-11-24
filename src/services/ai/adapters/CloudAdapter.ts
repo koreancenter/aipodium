@@ -99,12 +99,34 @@ export class CloudAdapter implements AiProviderAdapter {
       headers['x-goog-api-key'] = resolvedApiKey;
     }
 
-    const res = await fetch(this.chatEndpoint, {
-      method: 'POST',
-      headers,
-      signal: options.signal,
-      body: JSON.stringify(payload),
-    });
+    let res: Response | null = null;
+    let fallbackToDirect = false;
+
+    try {
+      res = await fetch(this.chatEndpoint, {
+        method: 'POST',
+        headers,
+        signal: options.signal,
+        body: JSON.stringify(payload),
+      });
+
+      if (res.status === 405 || res.status === 404) {
+        fallbackToDirect = true;
+      }
+    } catch {
+      fallbackToDirect = true;
+    }
+
+    // Direct client-side provider fallback for static hosting deployments
+    if (fallbackToDirect && resolvedApiKey) {
+      return this.streamDirectProvider(options, resolvedApiKey);
+    }
+
+    if (!res) {
+      const errorMsg = '💡 **AI 통신 안내**: 로컬 서버에 연결할 수 없으며 클라우드 API 키가 설정되지 않았습니다.';
+      options.onChunk(errorMsg);
+      return { fullText: errorMsg };
+    }
 
     const isSSE = res.headers.get('content-type')?.includes('text/event-stream');
     let fullText = '';
@@ -170,6 +192,9 @@ export class CloudAdapter implements AiProviderAdapter {
     // Non-SSE or JSON fallback response
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
+      if (resolvedApiKey) {
+        return this.streamDirectProvider(options, resolvedApiKey);
+      }
       const vendor = this.inferVendorFromModel(options.model);
       const errorMsg = `💡 **AI 엔진 안내**: ${data.error || '응답을 생성할 수 없습니다.'}\n\n*설정([Ctrl+,])의 [AI 엔진 설정]에서 **${vendor.toUpperCase()} API 키**를 등록하거나, 상단 모드를 [Local PC (Ollama)]로 전환하여 사용할 수 있습니다.*`;
       options.onChunk(errorMsg);
@@ -185,11 +210,104 @@ export class CloudAdapter implements AiProviderAdapter {
     };
   }
 
+  private async streamDirectProvider(options: AiInferenceOptions, apiKey: string): Promise<AiInferenceResult> {
+    const vendor = this.inferVendorFromModel(options.model);
+    const userMsg = options.messages.filter((m) => m.role === 'user').pop();
+    const promptText = userMsg?.content || '';
+
+    if (vendor === 'gemini') {
+      try {
+        const cleanModel = options.model.startsWith('gemini-') ? options.model : 'gemini-2.5-flash';
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`;
+        const directRes = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: options.signal,
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptText }] }],
+            systemInstruction: options.systemInstruction ? { parts: [{ text: options.systemInstruction }] } : undefined,
+            generationConfig: {
+              temperature: options.temperature ?? 0.3,
+              maxOutputTokens: options.maxTokens,
+              topP: options.topP,
+            }
+          })
+        });
+
+        if (!directRes.ok) {
+          const errData = await directRes.json().catch(() => ({}));
+          const errMsg = errData?.error?.message || `Google Gemini 통신 오류 (${directRes.status})`;
+          const errText = `\n\n⚠️ ${errMsg}`;
+          options.onChunk(errText);
+          return { fullText: errText };
+        }
+
+        const dData = await directRes.json();
+        const fullText = dData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        options.onChunk(fullText);
+        return { fullText };
+      } catch (err: any) {
+        const msg = `⚠️ Google Gemini 직접 호출 실패: ${err?.message || '네트워크 오류'}`;
+        options.onChunk(msg);
+        return { fullText: msg };
+      }
+    }
+
+    if (vendor === 'openai' || vendor === 'deepseek' || vendor === 'groq') {
+      const apiUrl =
+        vendor === 'openai'
+          ? 'https://api.openai.com/v1/chat/completions'
+          : vendor === 'deepseek'
+          ? 'https://api.deepseek.com/chat/completions'
+          : 'https://api.groq.com/openai/v1/chat/completions';
+
+      try {
+        const directRes = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          signal: options.signal,
+          body: JSON.stringify({
+            model: options.model,
+            messages: options.messages,
+            temperature: options.temperature ?? 0.3,
+            max_tokens: options.maxTokens,
+          }),
+        });
+
+        if (!directRes.ok) {
+          const errData = await directRes.json().catch(() => ({}));
+          const errMsg = errData?.error?.message || `${vendor.toUpperCase()} API 통신 오류 (${directRes.status})`;
+          const errText = `\n\n⚠️ ${errMsg}`;
+          options.onChunk(errText);
+          return { fullText: errText };
+        }
+
+        const data = await directRes.json();
+        const fullText = data?.choices?.[0]?.message?.content || '';
+        options.onChunk(fullText);
+        return { fullText };
+      } catch (err: any) {
+        const msg = `⚠️ ${vendor.toUpperCase()} 직접 호출 실패: ${err?.message || '네트워크 오류'}`;
+        options.onChunk(msg);
+        return { fullText: msg };
+      }
+    }
+
+    const fallbackMsg = `💡 **AI 직접 호출 안내**: ${vendor.toUpperCase()} 직접 통신은 아직 준비 중입니다. 설정에서 Gemini API 키를 등록하거나 상단 모드를 Local PC (Ollama)로 전환하세요.`;
+    options.onChunk(fallbackMsg);
+    return { fullText: fallbackMsg };
+  }
+
   private inferVendorFromModel(model: string): string {
     const m = (model || '').toLowerCase();
     if (m.includes('gemini')) return 'gemini';
     if (m.includes('gpt') || m.includes('o1') || m.includes('o3')) return 'openai';
     if (m.includes('claude')) return 'anthropic';
+    if (m.includes('deepseek')) return 'deepseek';
+    if (m.includes('groq') || m.includes('versatile') || m.includes('instant')) return 'groq';
     return 'gemini';
   }
 }

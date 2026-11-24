@@ -101,15 +101,12 @@ export const SaveUntitledModal: React.FC<SaveUntitledModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-[#09090b]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      {/* Deep Charcoal & Electric Purple Modal */}
-      <div className="relative bg-[#121214] border border-[#222226] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-5 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans">
-        
-        {/* Top-Right Minimal Close Button */}
+    <div className="fixed inset-0 bg-[var(--bg-main)]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-5 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans">
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-1.5 rounded-md hover:bg-[#18181b] transition cursor-pointer"
+          className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-[var(--text-main)] p-1.5 rounded-lg hover:bg-white/[0.06] transition cursor-pointer"
           title="닫기"
         >
           <X className="w-4 h-4" />
@@ -117,14 +114,14 @@ export const SaveUntitledModal: React.FC<SaveUntitledModalProps> = ({
 
         {/* Section Title */}
         <div className="space-y-1 pt-1">
-          <h2 className="text-base font-bold text-white">문서 저장</h2>
-          <p className="text-xs text-[#94a3b8]">워크스페이스에 저장할 파일명과 디렉토리를 지정합니다.</p>
+          <h2 className="text-base font-semibold text-[var(--text-main)] tracking-tight">문서 저장</h2>
+          <p className="text-xs text-[var(--text-muted)]">워크스페이스에 저장할 파일명과 디렉토리를 지정합니다.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs text-slate-300 flex items-center gap-1.5 font-medium">
-              <FileText className="w-3.5 h-3.5 text-[#6366f1]" />
+            <label className="text-xs text-[var(--text-muted)] flex items-center gap-1.5 font-medium">
+              <FileText className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
               <span>문서 파일명</span>
             </label>
             <input
@@ -144,23 +141,23 @@ export const SaveUntitledModal: React.FC<SaveUntitledModalProps> = ({
                 }
               }}
               placeholder="예: project_spec.md"
-              className="w-full bg-[#09090b] border border-[#222226] rounded-md px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1]/50 transition placeholder-slate-500"
+              className="w-full bg-[var(--bg-surface)] border border-white/[0.06] rounded-lg px-3 py-2 text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--accent-primary)]/50 focus:ring-1 focus:ring-[var(--accent-primary)]/30 transition placeholder-[var(--text-tertiary)]"
               autoFocus
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs text-slate-300 flex items-center gap-1.5 font-medium">
-              <Folder className="w-3.5 h-3.5 text-amber-400" />
+            <label className="text-xs text-[var(--text-muted)] flex items-center gap-1.5 font-medium">
+              <Folder className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
               <span>대상 폴더</span>
             </label>
             <select
               value={selectedFolder}
               onChange={(e) => setSelectedFolder(e.target.value)}
-              className="w-full bg-[#09090b] border border-[#222226] rounded-md px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1]/50 transition font-sans cursor-pointer"
+              className="w-full bg-[var(--bg-surface)] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--accent-primary)]/50 focus:ring-1 focus:ring-[var(--accent-primary)]/30 transition font-sans cursor-pointer"
             >
               {availableFolders.map((folder) => (
-                <option key={folder} value={folder} className="bg-[#121214] text-slate-200">
+                <option key={folder} value={folder} className="bg-[var(--bg-elevated)] text-[var(--text-main)]">
                   📁 {folder}
                 </option>
               ))}
@@ -168,22 +165,22 @@ export const SaveUntitledModal: React.FC<SaveUntitledModalProps> = ({
           </div>
 
           {error && (
-            <div className="p-2.5 bg-rose-950/60 border border-rose-800/80 rounded-md text-rose-300 text-xs font-medium">
+            <div className="p-2.5 bg-rose-950/60 border border-rose-500/30 rounded-lg text-rose-300 text-xs font-medium">
               {error}
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#222226]">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/[0.06]">
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 rounded-md text-xs text-slate-300 hover:text-white bg-[#09090b] hover:bg-[#18181b] transition cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition cursor-pointer"
             >
               취소
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-xs cursor-pointer"
+              className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[#F1F5F9] hover:bg-white text-[#0F172A] transition cursor-pointer"
             >
               문서 저장
             </button>

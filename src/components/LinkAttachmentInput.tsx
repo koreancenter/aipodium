@@ -123,26 +123,26 @@ export const LinkAttachmentInput: React.FC<LinkAttachmentInputProps> = ({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 4, scale: 0.98 }}
           transition={{ duration: 0.12, ease: 'easeOut' }}
-          className="absolute bottom-full left-0 mb-2 w-80 sm:w-96 bg-[#121214] border border-[#222226] rounded-md shadow-2xl z-50 p-2.5 text-xs text-slate-200"
+          className="absolute bottom-full left-0 mb-2 w-80 sm:w-96 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl z-50 p-3 text-xs text-[var(--text-main)]"
         >
-          <div className="flex items-center justify-between pb-1.5 border-b border-[#222226] mb-2">
-            <div className="flex items-center gap-1.5 font-medium text-slate-200 text-xs">
-              <Link2 className="w-3.5 h-3.5 text-[#6366f1]" />
+          <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] mb-2.5">
+            <div className="flex items-center gap-1.5 font-medium text-[var(--text-main)] text-xs">
+              <Link2 className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
               <span>외부 링크 첨부</span>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="text-slate-400 hover:text-white p-0.5 rounded transition"
+              className="text-[var(--text-muted)] hover:text-slate-200 p-0.5 rounded transition cursor-pointer"
             >
               <X className="w-3 h-3" />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-2">
+          <form onSubmit={handleSubmit} className="space-y-2.5">
             <div className="relative flex items-center">
-              <div className="absolute left-2 text-slate-400 pointer-events-none">
-                {isGitHub ? <Github className="w-3.5 h-3.5 text-slate-300" /> : <Globe className="w-3.5 h-3.5 text-slate-400" />}
+              <div className="absolute left-2.5 text-slate-400 pointer-events-none">
+                {isGitHub ? <Github className="w-3.5 h-3.5 text-[var(--text-main)]" /> : <Globe className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
               </div>
               <input
                 ref={inputRef}
@@ -151,25 +151,25 @@ export const LinkAttachmentInput: React.FC<LinkAttachmentInputProps> = ({
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://github.com/... 또는 웹페이지 URL"
                 disabled={isLoading}
-                className="w-full bg-[#09090b] border border-[#222226] focus:border-[#6366f1] rounded-xs pl-7 pr-7 py-1.5 text-xs text-slate-100 placeholder:text-slate-500 outline-none transition"
+                className="w-full bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded-md pl-8 pr-7 py-1.5 text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
               />
               {url && (
                 <button
                   type="button"
                   onClick={() => setUrl('')}
-                  className="absolute right-2 text-slate-400 hover:text-white"
+                  className="absolute right-2 text-[var(--text-muted)] hover:text-slate-200"
                 >
                   <X className="w-3 h-3" />
                 </button>
               )}
             </div>
 
-            <div className="flex items-center justify-between text-[0.625rem] text-slate-400 pt-0.5">
+            <div className="flex items-center justify-between text-[0.625rem] text-[var(--text-muted)] pt-0.5">
               <span>GitHub 파일 자동 raw 변환 및 웹 마크다운 추출</span>
               <button
                 type="submit"
                 disabled={isLoading || !url.trim()}
-                className="h-6 px-2.5 rounded-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-[0.6875rem] font-medium flex items-center gap-1 transition cursor-pointer"
+                className="h-6 px-2.5 rounded-md bg-[#F1F5F9] hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed text-[#0F172A] text-[0.6875rem] font-medium flex items-center gap-1 transition cursor-pointer"
               >
                 {isLoading ? (
                   <RotateCw className="w-3 h-3 animate-spin" />

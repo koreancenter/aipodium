@@ -34,12 +34,12 @@ interface Stroke {
 }
 
 const COLOR_PALETTE = [
-  { id: 'indigo', value: '#6366f1', label: '인디고' },
+  { id: 'sky', value: '#38BDF8', label: '아이스 블루' },
   { id: 'white', value: '#f8fafc', label: '화이트' },
   { id: 'amber', value: '#fbbf24', label: '옐로우' },
-  { id: 'emerald', value: '#34d399', label: '그린' },
+  { id: 'emerald', value: '#34D399', label: '소프트 민트' },
   { id: 'rose', value: '#f43f5e', label: '레드' },
-  { id: 'sky', value: '#38bdf8', label: '블루' },
+  { id: 'violet', value: '#94A3B8', label: '슬레이트' },
 ];
 
 const SIZE_PRESETS = [
@@ -59,7 +59,7 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
 
   // Drawing tools state
   const [tool, setTool] = useState<'pen' | 'highlighter' | 'eraser'>('pen');
-  const [color, setColor] = useState<string>('#6366f1');
+  const [color, setColor] = useState<string>('#38BDF8');
   const [size, setSize] = useState<number>(3);
   const [bgMode, setBgMode] = useState<'transparent' | 'grid' | 'dark'>('transparent');
 
@@ -395,11 +395,11 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
       id="freeform-drawing-overlay"
       className="absolute inset-0 z-30 flex flex-col pointer-events-auto select-none overflow-hidden"
     >
-      {/* Floating Slim Obsidian IDE Header Toolbar */}
-      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-40 bg-[#121214]/95 backdrop-blur-md border border-[#222226] shadow-xl rounded-md px-2.5 py-1.5 flex items-center gap-2 max-w-[95%] overflow-x-auto scrollbar-none transition-all animate-in fade-in slide-in-from-top-2 duration-150">
+      {/* Floating Slim Cool-Slate Header Toolbar */}
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-40 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] shadow-xl rounded-lg px-2.5 py-1.5 flex items-center gap-2 max-w-[95%] overflow-x-auto scrollbar-none transition-all animate-in fade-in slide-in-from-top-2 duration-150">
         {/* Title & Drag indicator */}
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-200 pr-1.5 border-r border-[#222226] shrink-0">
-          <PenTool className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-main)] pr-1.5 border-r border-white/[0.08] shrink-0">
+          <PenTool className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
           <span className="whitespace-nowrap">자유 형식 메모</span>
         </div>
 
@@ -408,10 +408,10 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
           <button
             type="button"
             onClick={() => setTool('pen')}
-            className={`p-1.5 rounded-xs transition flex items-center justify-center cursor-pointer ${
+            className={`p-1.5 rounded transition flex items-center justify-center cursor-pointer ${
               tool === 'pen'
-                ? 'bg-[#6366f1] text-white shadow-xs font-medium'
-                : 'text-slate-400 hover:text-white hover:bg-[#18181b]'
+                ? 'bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border border-[var(--accent-primary)]/30 shadow-xs font-medium'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] border border-transparent'
             }`}
             title="펜"
             aria-label="펜"
@@ -421,10 +421,10 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
           <button
             type="button"
             onClick={() => setTool('highlighter')}
-            className={`p-1.5 rounded-xs transition flex items-center justify-center cursor-pointer ${
+            className={`p-1.5 rounded transition flex items-center justify-center cursor-pointer ${
               tool === 'highlighter'
-                ? 'bg-[#6366f1] text-white shadow-xs font-medium'
-                : 'text-slate-400 hover:text-white hover:bg-[#18181b]'
+                ? 'bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border border-[var(--accent-primary)]/30 shadow-xs font-medium'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] border border-transparent'
             }`}
             title="형광펜"
             aria-label="형광펜"
@@ -434,10 +434,10 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
           <button
             type="button"
             onClick={() => setTool('eraser')}
-            className={`p-1.5 rounded-xs transition flex items-center justify-center cursor-pointer ${
+            className={`p-1.5 rounded transition flex items-center justify-center cursor-pointer ${
               tool === 'eraser'
-                ? 'bg-[#6366f1] text-white shadow-xs font-medium'
-                : 'text-slate-400 hover:text-white hover:bg-[#18181b]'
+                ? 'bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border border-[var(--accent-primary)]/30 shadow-xs font-medium'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] border border-transparent'
             }`}
             title="지우개"
             aria-label="지우개"
@@ -448,7 +448,7 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
 
         {/* Color Palette (disabled in eraser mode) */}
         <div
-          className={`flex items-center gap-1 px-1.5 border-l border-r border-[#222226] shrink-0 transition-opacity ${
+          className={`flex items-center gap-1 px-1.5 border-l border-r border-white/[0.08] shrink-0 transition-opacity ${
             tool === 'eraser' ? 'opacity-30 pointer-events-none' : ''
           }`}
         >
@@ -458,7 +458,7 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
               type="button"
               onClick={() => setColor(c.value)}
               className={`w-4 h-4 rounded-full transition-transform cursor-pointer relative flex items-center justify-center ${
-                color === c.value ? 'scale-125 ring-1.5 ring-offset-1 ring-offset-[#121214] ring-white' : 'hover:scale-110'
+                color === c.value ? 'scale-125 ring-1.5 ring-offset-1 ring-offset-[var(--bg-elevated)] ring-white' : 'hover:scale-110'
               }`}
               style={{ backgroundColor: c.value }}
               title={c.label}
@@ -470,16 +470,16 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
         </div>
 
         {/* Stroke Size Presets */}
-        <div className="flex items-center gap-1 pr-1.5 border-r border-[#222226] shrink-0">
+        <div className="flex items-center gap-1 pr-1.5 border-r border-white/[0.08] shrink-0">
           {SIZE_PRESETS.map((p) => (
             <button
               key={p.id}
               type="button"
               onClick={() => setSize(p.size)}
-              className={`px-1.5 py-0.5 rounded-xs text-[0.6875rem] transition cursor-pointer font-sans ${
+              className={`px-1.5 py-0.5 rounded text-[0.6875rem] transition cursor-pointer font-sans ${
                 size === p.size
-                  ? 'bg-[#18181b] text-indigo-400 border border-[#6366f1]/40 font-semibold'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-white/[0.08] text-[var(--accent-primary)] border border-[var(--accent-primary)]/40 font-semibold'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
               }`}
               title={p.label}
             >
@@ -489,28 +489,28 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
         </div>
 
         {/* Background Overlay Mode Toggle */}
-        <div className="flex items-center gap-0.5 pr-1.5 border-r border-[#222226] shrink-0">
+        <div className="flex items-center gap-0.5 pr-1.5 border-r border-white/[0.08] shrink-0">
           <button
             type="button"
             onClick={() =>
               setBgMode((prev) => (prev === 'transparent' ? 'grid' : prev === 'grid' ? 'dark' : 'transparent'))
             }
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-[#09090b] hover:bg-[#18181b] text-slate-300 hover:text-white border border-[#222226] text-[0.6875rem] transition cursor-pointer"
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--bg-surface)] hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-white/[0.08] text-[0.6875rem] transition cursor-pointer"
             title="캔버스 배경 모드 전환"
           >
             {bgMode === 'transparent' ? (
               <>
-                <Eye className="w-3 h-3 text-indigo-400" />
+                <Eye className="w-3 h-3 text-[var(--accent-primary)]" />
                 <span>투명</span>
               </>
             ) : bgMode === 'grid' ? (
               <>
-                <Grid className="w-3 h-3 text-indigo-400" />
+                <Grid className="w-3 h-3 text-[var(--accent-primary)]" />
                 <span>모눈</span>
               </>
             ) : (
               <>
-                <div className="w-2.5 h-2.5 rounded-xs bg-slate-400" />
+                <div className="w-2.5 h-2.5 rounded-xs bg-[var(--text-muted)]" />
                 <span>칠판</span>
               </>
             )}
@@ -523,7 +523,7 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
             type="button"
             onClick={handleUndo}
             disabled={strokes.length === 0}
-            className="p-1.5 rounded-xs text-slate-300 hover:text-white hover:bg-[#18181b] transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+            className="p-1.5 rounded text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
             title="실행 취소"
             aria-label="실행 취소"
           >
@@ -533,7 +533,7 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
             type="button"
             onClick={handleRedo}
             disabled={redoStack.length === 0}
-            className="p-1.5 rounded-xs text-slate-300 hover:text-white hover:bg-[#18181b] transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+            className="p-1.5 rounded text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
             title="다시 실행"
             aria-label="다시 실행"
           >
@@ -543,7 +543,7 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
             type="button"
             onClick={handleClear}
             disabled={strokes.length === 0}
-            className="p-1.5 rounded-xs text-slate-300 hover:text-rose-400 hover:bg-[#18181b] transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+            className="p-1.5 rounded text-[var(--text-muted)] hover:text-rose-400 hover:bg-white/[0.06] transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
             title="모두 지우기"
             aria-label="모두 지우기"
           >
@@ -552,13 +552,13 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
         </div>
 
         {/* Document Insertion & Image Download */}
-        <div className="flex items-center gap-1 pl-1.5 border-l border-[#222226] shrink-0">
+        <div className="flex items-center gap-1 pl-1.5 border-l border-white/[0.08] shrink-0">
           {onInsertImageToEditor && (
             <button
               type="button"
               onClick={handleInsertToEditor}
               disabled={strokes.length === 0}
-              className="flex items-center gap-1 px-2 py-1 rounded-xs bg-[#6366f1] hover:bg-indigo-500 text-white text-[0.6875rem] font-medium transition disabled:opacity-35 disabled:pointer-events-none cursor-pointer shadow-xs"
+              className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#F1F5F9] hover:bg-white text-[#0F172A] text-[0.6875rem] font-semibold transition disabled:opacity-35 disabled:pointer-events-none cursor-pointer shadow-xs"
               title="에디터 문서에 그림 삽입"
             >
               <FileDown className="w-3.5 h-3.5" />
@@ -570,7 +570,7 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
             type="button"
             onClick={handleDownloadImage}
             disabled={strokes.length === 0}
-            className="p-1.5 rounded-xs text-slate-300 hover:text-white hover:bg-[#18181b] transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+            className="p-1.5 rounded text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] transition disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
             title="이미지 저장"
             aria-label="이미지 저장"
           >
@@ -581,7 +581,7 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xs text-slate-400 hover:text-white hover:bg-[#18181b] transition cursor-pointer ml-0.5"
+            className="p-1.5 rounded text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] transition cursor-pointer ml-0.5"
             title="닫기"
             aria-label="닫기"
           >

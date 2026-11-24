@@ -26,6 +26,57 @@ export interface ChatActionButton {
   payload?: string;
 }
 
+export interface EditorSelectionContext {
+  text: string;
+  fileName?: string;
+  mode?: 'wysiwyg' | 'edit' | 'split' | 'preview';
+  startOffset?: number;
+  endOffset?: number;
+  autoExpand?: boolean;
+  updatedAt: number;
+}
+
+export interface RewriteVersionSnapshot {
+  id: string;
+  label?: string;
+  text: string;
+  createdAt: number;
+  isOriginal?: boolean;
+}
+
+export interface RewriteHistoryMetadata {
+  originalText: string;
+  rewrittenText?: string;
+  fileName?: string;
+  startOffset?: number;
+  endOffset?: number;
+  appliedCount?: number;
+  lastAppliedText?: string;
+  revertedAt?: number;
+  versions?: RewriteVersionSnapshot[];
+}
+
+export interface SessionRewriteHistoryItem {
+  id: string;
+  sessionId?: string;
+  msgId?: string;
+  source: 'chat' | 'inline';
+  prompt?: string;
+  originalText: string;
+  rewrittenText: string;
+  lastAppliedText?: string;
+  fileName?: string;
+  startOffset?: number;
+  endOffset?: number;
+  appliedCount?: number;
+  revertedAt?: number;
+  createdAt: number;
+  timestamp: string;
+  model?: string;
+  isStreaming?: boolean;
+  versions?: RewriteVersionSnapshot[];
+}
+
 export interface ChatMessage {
   id: string;
   sender: 'user' | 'ai';
@@ -33,11 +84,20 @@ export interface ChatMessage {
   timestamp: string;
   model?: string;
   attachments?: ChatAttachment[];
+  selectionContext?: {
+    text: string;
+    fileName?: string;
+  };
+  rewriteHistory?: RewriteHistoryMetadata;
   translatedText?: string;
   originalText?: string;
   ghostWriterLevel?: string;
   isStreaming?: boolean;
+  isThinking?: boolean;
+  thinking?: string;
+  thinkingDuration?: number;
   showOnboardingChips?: boolean;
+
   actionButtons?: ChatActionButton[];
   tokens?: {
     prompt: number;
@@ -57,6 +117,7 @@ export interface ChatSession {
   createdAt: string;
   deletedAt?: string;
   messages: ChatMessage[];
+  rewriteHistory?: SessionRewriteHistoryItem[];
   fileName?: string;
   editorContent?: string;
   editorTab?: 'wysiwyg' | 'edit' | 'split' | 'preview';

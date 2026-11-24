@@ -53,7 +53,7 @@ const buildHelpCategories = (t: MarkdownHelpText): { id: string; category: strin
   {
     id: 'formatting',
     category: t.categories.formatting,
-    icon: <Bold className="w-3.5 h-3.5 text-indigo-400" />,
+    icon: <Bold className="w-3.5 h-3.5 text-[var(--accent-primary)]" />,
     items: [
       { label: t.items.bold.label, syntax: '**굵은 텍스트**', description: t.items.bold.description, exampleSnippet: '**굵은 텍스트**' },
       { label: t.items.italic.label, syntax: '*기울임 텍스트*', description: t.items.italic.description, exampleSnippet: '*기울임 텍스트*' },
@@ -75,7 +75,7 @@ const buildHelpCategories = (t: MarkdownHelpText): { id: string; category: strin
   {
     id: 'quotes',
     category: t.categories.quotes,
-    icon: <Quote className="w-3.5 h-3.5 text-purple-400" />,
+    icon: <Quote className="w-3.5 h-3.5 text-[var(--accent-primary)]" />,
     items: [
       { label: t.items.quote.label, syntax: '> 인용 내용', description: t.items.quote.description, exampleSnippet: '> 중요한 인용문입니다.\n' },
       { label: t.items.note.label, syntax: '> [!NOTE]\n> 안내 내용', description: t.items.note.description, exampleSnippet: '> [!NOTE]\n> 중요한 안내 사항을 작성하세요.\n' },
@@ -86,7 +86,7 @@ const buildHelpCategories = (t: MarkdownHelpText): { id: string; category: strin
   {
     id: 'tables',
     category: t.categories.tables,
-    icon: <TableIcon className="w-3.5 h-3.5 text-emerald-400" />,
+    icon: <TableIcon className="w-3.5 h-3.5 text-[var(--secondary-accent)]" />,
     items: [
       {
         label: t.items.table.label,
@@ -283,25 +283,25 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
           left: `${coords.left}px`,
           maxWidth: 'min(480px, calc(100vw - 24px))'
         }}
-        className="w-[480px] max-h-[520px] flex flex-col bg-[#181a24]/98 backdrop-blur-2xl border border-[#222226] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] z-[100000] text-slate-200 text-xs animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
+        className="w-[480px] max-h-[520px] flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] z-[100000] text-[var(--text-main)] text-xs animate-in fade-in zoom-in-95 duration-100 overflow-hidden season-shell"
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-[#222226] bg-[#09090b]/70 shrink-0">
-          <div className="flex items-center gap-2 font-bold text-slate-100">
-            <div className="w-6 h-6 rounded-md bg-[#6366f1]/20 border border-[#6366f1]/40 flex items-center justify-center text-[#818cf8]">
+        <div className="flex items-center justify-between p-3 border-b border-white/[0.06] bg-[var(--bg-surface)]/80 shrink-0">
+          <div className="flex items-center gap-2 font-bold text-[var(--text-main)]">
+            <div className="w-6 h-6 rounded-md bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-[var(--accent-primary)]">
               <HelpCircle className="w-3.5 h-3.5" />
             </div>
             <div>
               <div className="flex items-center gap-1.5 text-xs">
                 <span>{t.title}</span>
-                <span className="text-[0.625rem] bg-[#6366f1]/20 text-[#a5b4fc] px-1.5 py-0.2 rounded font-mono border border-[#6366f1]/30">
+                <span className="text-[0.625rem] bg-white/[0.06] text-[var(--text-muted)] px-1.5 py-0.2 rounded font-mono font-normal">
                   Cheat Sheet
                 </span>
               </div>
-              <p className="text-[0.625rem] text-slate-400 font-normal">
+              <p className="text-[0.625rem] text-[var(--text-muted)] font-normal">
                 {t.subtitle}
               </p>
             </div>
@@ -309,7 +309,7 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-[#18181b] transition cursor-pointer"
+            className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] transition cursor-pointer"
             title={t.close}
           >
             <X className="w-4 h-4" />
@@ -317,19 +317,19 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
         </div>
 
         {/* Search Input */}
-        <div className="p-2 border-b border-[#222226] bg-[#161720] shrink-0">
+        <div className="p-2 border-b border-white/[0.06] bg-[var(--bg-editor)] shrink-0">
           <input
             type="text"
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
             placeholder={t.searchPlaceholder}
-            className="w-full bg-[#121214] border border-[#222226] rounded-md px-2.5 py-1 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-[#6366f1] transition"
+            className="w-full bg-[var(--bg-surface)] border border-white/[0.06] rounded-md px-2.5 py-1 text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)]/50 transition"
           />
         </div>
 
         {/* Category Tabs (when not searching) */}
         {!filterQuery.trim() && (
-          <div className="flex items-center gap-1 px-2.5 py-1.5 border-b border-[#222226] bg-[#09090b]/50 overflow-x-auto scrollbar-none shrink-0">
+          <div className="flex items-center gap-1 px-2.5 py-1.5 border-b border-white/[0.06] bg-[var(--bg-surface)]/60 overflow-x-auto scrollbar-none shrink-0">
             {helpCategories.map((cat, idx) => {
               const isActive = idx === activeTab;
               return (
@@ -339,8 +339,8 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
                   onClick={() => setActiveTab(idx)}
                   className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[0.6875rem] font-medium whitespace-nowrap transition cursor-pointer ${
                     isActive
-                      ? 'bg-[#6366f1] text-white shadow-xs'
-                      : 'text-slate-400 hover:text-white hover:bg-[#18181b]'
+                      ? 'bg-[#F1F5F9] text-[#0F172A] shadow-xs'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06]'
                   }`}
                 >
                   <span className="shrink-0">{cat.icon}</span>
@@ -352,16 +352,16 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
         )}
 
         {/* Items List */}
-        <div className="flex-1 p-2.5 overflow-y-auto overscroll-contain space-y-2.5 custom-scrollbar max-h-[320px]">
+        <div className="flex-1 p-2.5 overflow-y-auto overscroll-contain space-y-2.5 custom-scrollbar max-h-[320px] bg-[var(--bg-editor)]">
           {filteredCategories.length === 0 ? (
-            <div className="p-6 text-center text-slate-400 text-xs">
+            <div className="p-6 text-center text-[var(--text-muted)] text-xs">
               {t.noResults}
             </div>
           ) : (
             filteredCategories.map((cat) => (
               <div key={cat.category} className="space-y-1.5">
                 {filterQuery.trim() && (
-                  <div className="flex items-center gap-1.5 text-[0.6875rem] font-semibold text-slate-400 px-1 pt-1">
+                  <div className="flex items-center gap-1.5 text-[0.6875rem] font-semibold text-[var(--text-muted)] px-1 pt-1">
                     {cat.icon}
                     <span>{cat.category}</span>
                   </div>
@@ -373,14 +373,14 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
                     return (
                       <div
                         key={item.label}
-                        className="p-2 rounded-lg bg-[#121214]/70 border border-[#222226] hover:border-[#6366f1]/50 transition group flex items-start justify-between gap-2"
+                        className="p-2 rounded-lg bg-[var(--bg-surface)]/70 border border-white/[0.06] hover:border-[var(--accent-primary)]/40 transition group flex items-start justify-between gap-2"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold text-slate-200 text-xs">{item.label}</span>
-                            <span className="text-[0.625rem] text-slate-400">{item.description}</span>
+                            <span className="font-semibold text-[var(--text-main)] text-xs">{item.label}</span>
+                            <span className="text-[0.625rem] text-[var(--text-muted)]">{item.description}</span>
                           </div>
-                          <pre className="font-mono text-[0.6875rem] bg-[#09090b] text-[#a5b4fc] p-1.5 rounded border border-[#222226]/60 overflow-x-auto whitespace-pre-wrap select-all">
+                          <pre className="font-mono text-[0.6875rem] bg-[var(--bg-main)] text-[var(--accent-primary)] p-1.5 rounded border border-white/[0.06] overflow-x-auto whitespace-pre-wrap select-all">
                             {item.syntax}
                           </pre>
                         </div>
@@ -389,7 +389,7 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
                             <button
                               type="button"
                               onClick={() => handleInsert(item.exampleSnippet)}
-                              className="p-1 px-1.5 rounded bg-[#6366f1]/20 hover:bg-[#6366f1] text-[#a5b4fc] hover:text-white text-[0.625rem] font-medium transition flex items-center gap-1 cursor-pointer border border-[#6366f1]/30"
+                              className="p-1 px-1.5 rounded bg-[#F1F5F9] hover:bg-white text-[#0F172A] text-[0.625rem] font-medium transition flex items-center gap-1 cursor-pointer"
                               title={t.insertTitle}
                             >
                               <Plus className="w-3 h-3" />
@@ -399,17 +399,17 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
                           <button
                             type="button"
                             onClick={() => handleCopy(item.exampleSnippet, itemId)}
-                            className="p-1 px-1.5 rounded bg-[#18181b] hover:bg-[#34384b] text-slate-300 hover:text-white text-[0.625rem] transition flex items-center gap-1 cursor-pointer border border-[#222226]"
+                            className="p-1 px-1.5 rounded bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] text-[0.625rem] transition flex items-center gap-1 cursor-pointer border border-white/[0.06]"
                             title={t.copyTitle}
                           >
                             {isCopied ? (
                               <>
-                                <Check className="w-3 h-3 text-emerald-400" />
-                                <span className="text-emerald-400">{t.copied}</span>
+                                <Check className="w-3 h-3 text-[var(--secondary-accent)]" />
+                                <span className="text-[var(--secondary-accent)]">{t.copied}</span>
                               </>
                             ) : (
                               <>
-                                <Copy className="w-3 h-3 text-slate-400" />
+                                <Copy className="w-3 h-3 text-[var(--text-muted)]" />
                                 <span>{t.copy}</span>
                               </>
                             )}
@@ -425,13 +425,13 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
         </div>
 
         {/* Footer Quick Shortcuts */}
-        <div className="p-2 px-3 border-t border-[#222226] bg-[#09090b]/80 text-[0.625rem] text-slate-400 flex items-center justify-between shrink-0 font-mono">
+        <div className="p-2 px-3 border-t border-white/[0.06] bg-[var(--bg-surface)]/90 text-[0.625rem] text-[var(--text-muted)] flex items-center justify-between shrink-0 font-mono">
           <div className="flex items-center gap-2">
-            <span><kbd className="px-1 py-0.5 rounded bg-[#18181b] text-slate-300 border border-[#222226]">Ctrl+B</kbd> {t.bold}</span>
-            <span><kbd className="px-1 py-0.5 rounded bg-[#18181b] text-slate-300 border border-[#222226]">Ctrl+I</kbd> {t.italic}</span>
-            <span><kbd className="px-1 py-0.5 rounded bg-[#18181b] text-slate-300 border border-[#222226]">/</kbd> {t.autocomplete}</span>
+            <span><kbd className="px-1 py-0.5 rounded bg-[var(--bg-editor)] text-[var(--text-main)] border border-white/[0.06]">Ctrl+B</kbd> {t.bold}</span>
+            <span><kbd className="px-1 py-0.5 rounded bg-[var(--bg-editor)] text-[var(--text-main)] border border-white/[0.06]">Ctrl+I</kbd> {t.italic}</span>
+            <span><kbd className="px-1 py-0.5 rounded bg-[var(--bg-editor)] text-[var(--text-main)] border border-white/[0.06]">/</kbd> {t.autocomplete}</span>
           </div>
-          <span className="text-slate-500">{t.escHint}</span>
+          <span className="text-[var(--text-tertiary)]">{t.escHint}</span>
         </div>
       </div>
     </div>

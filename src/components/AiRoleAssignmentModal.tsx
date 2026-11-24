@@ -194,16 +194,16 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs font-sans"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/65 backdrop-blur-xs font-sans"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-2xl bg-[#121214] border border-[#222226] rounded-lg shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+      <div className="relative w-full max-w-2xl bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#222226] bg-[#0c0c0e] shrink-0">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] bg-[var(--bg-surface)]/90 shrink-0">
           <div className="flex items-center gap-1.5">
-            <h2 className="text-xs font-medium text-slate-100">역할별 AI 모델 지정</h2>
+            <h2 className="text-xs font-medium text-[var(--text-main)]">역할별 AI 모델 지정</h2>
             <HelpTooltip
               side="bottom"
               align="left"
@@ -219,7 +219,7 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
                   onClose();
                   onOpenAiEngineSettings();
                 }}
-                className="hidden sm:inline-flex items-center px-2.5 py-1 text-xs text-slate-300 hover:text-white bg-[#09090b] hover:bg-[#18181b] border border-[#222226] rounded-md transition cursor-pointer font-normal"
+                className="hidden sm:inline-flex items-center px-2.5 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] rounded-md transition cursor-pointer font-normal"
                 title="공급자 API 키 및 로컬 서버 연결 관리"
               >
                 엔진 공급자 관리
@@ -228,7 +228,7 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-[#18181b] rounded-md transition cursor-pointer"
+              className="p-1 text-[var(--text-muted)] hover:text-slate-200 hover:bg-white/[0.06] rounded-md transition cursor-pointer"
               title="닫기"
             >
               <X className="w-4 h-4" />
@@ -237,37 +237,37 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
         </div>
 
         {/* Compact Preset Strip */}
-        <div className="px-5 py-2 bg-[#09090b] border-b border-white/[0.06] flex items-center justify-between gap-2 shrink-0 flex-wrap text-xs">
-          <div className="flex items-center gap-1 text-slate-400">
-            <span className="text-[11px] font-normal text-slate-300">권장 프리셋:</span>
+        <div className="px-5 py-2.5 bg-[var(--bg-surface)]/60 border-b border-white/[0.06] flex items-center justify-between gap-2 shrink-0 flex-wrap text-xs">
+          <div className="flex items-center gap-1 text-[var(--text-muted)]">
+            <span className="text-[11px] font-normal text-[var(--text-muted)]">권장 프리셋:</span>
           </div>
 
           <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => handleApplyPreset('balanced')}
-              className="px-2.5 py-1 rounded text-[11px] text-slate-300 hover:text-white bg-[#121214] hover:bg-[#18181b] border border-[#222226] transition cursor-pointer font-normal"
+              className="px-2.5 py-1 rounded text-[11px] text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition cursor-pointer font-normal"
             >
               초고속 균형형
             </button>
             <button
               type="button"
               onClick={() => handleApplyPreset('deep')}
-              className="px-2.5 py-1 rounded text-[11px] text-slate-300 hover:text-white bg-[#121214] hover:bg-[#18181b] border border-[#222226] transition cursor-pointer font-normal"
+              className="px-2.5 py-1 rounded text-[11px] text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition cursor-pointer font-normal"
             >
               심층 추론 특화형
             </button>
             <button
               type="button"
               onClick={() => handleApplyPreset('local')}
-              className="px-2.5 py-1 rounded text-[11px] text-slate-300 hover:text-white bg-[#121214] hover:bg-[#18181b] border border-[#222226] transition cursor-pointer font-normal"
+              className="px-2.5 py-1 rounded text-[11px] text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition cursor-pointer font-normal"
             >
               로컬 독립형
             </button>
             <button
               type="button"
               onClick={handleReset}
-              className="px-2 py-1 text-[11px] text-slate-400 hover:text-slate-200 hover:bg-[#18181b] rounded transition cursor-pointer font-normal"
+              className="px-2 py-1 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] rounded transition cursor-pointer font-normal"
               title="기본 설정으로 초기화"
             >
               초기화
@@ -275,45 +275,44 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
           </div>
         </div>
 
-        {/* Main Content Area: Compact IDE Row List with Obsidian Gray Custom Dropdown */}
+        {/* Main Content Area */}
         <div
           ref={dropdownRef}
-          className="flex-1 overflow-y-auto px-5 py-3 bg-[#121214] min-h-0 space-y-2 pb-16"
+          className="flex-1 overflow-y-auto px-5 py-4 bg-[var(--bg-editor)] min-h-0 divide-y divide-white/[0.06] pb-16"
         >
           {ROLE_METAS.map((meta, index) => {
             const currentModelId = localRoles[meta.key] || DEFAULT_AI_ROLE_MODELS[meta.key];
             const isDropdownOpen = openDropdownKey === meta.key;
-            // For the last two items, pop upward if needed so it stays cleanly within view
             const openUpward = index >= 3;
 
             return (
               <div
                 key={meta.key}
-                className="py-1.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition"
+                className="py-3 first:pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition"
               >
                 {/* 좌측: 역할명 + 1줄 설명 */}
                 <div className="flex items-baseline gap-3 min-w-0 flex-1">
-                  <span className="text-xs font-medium text-slate-200 shrink-0 w-28 text-left">{meta.title}</span>
-                  <span className="text-[11px] text-slate-400 truncate font-normal">{meta.shortDesc}</span>
+                  <span className="text-xs font-medium text-[var(--text-main)] shrink-0 w-28 text-left">{meta.title}</span>
+                  <span className="text-[11px] text-[var(--text-muted)] truncate font-normal">{meta.shortDesc}</span>
                 </div>
 
-                {/* 우측: 디자인 헌법 호버 하이라이트가 적용된 커스텀 드롭다운 */}
+                {/* 우측: 커스텀 드롭다운 */}
                 <div className="w-full sm:w-60 shrink-0 relative">
                   <button
                     type="button"
                     onClick={() => {
                       setOpenDropdownKey(isDropdownOpen ? null : meta.key);
                     }}
-                    className={`w-full bg-[#09090b] border border-[#222226] hover:border-zinc-700 rounded-md px-3 py-1.5 text-xs text-zinc-200 flex items-center justify-between transition-colors cursor-pointer text-left focus:outline-none ${
-                      isDropdownOpen ? 'border-zinc-700' : ''
+                    className={`w-full bg-[var(--bg-surface)] border border-white/[0.06] hover:border-white/[0.14] rounded-md px-3 py-1.5 text-xs text-[var(--text-main)] flex items-center justify-between transition-colors cursor-pointer text-left focus:outline-none ${
+                      isDropdownOpen ? 'border-[var(--accent-primary)]/50' : ''
                     }`}
                   >
                     <span className="truncate font-sans leading-none">
                       {getModelDisplayName(currentModelId)}
                     </span>
                     <ChevronDown
-                      className={`w-3.5 h-3.5 text-zinc-400 shrink-0 ml-1.5 transition-transform duration-150 ${
-                        isDropdownOpen ? 'rotate-180 text-indigo-400' : ''
+                      className={`w-3.5 h-3.5 text-[var(--text-muted)] shrink-0 ml-1.5 transition-transform duration-150 ${
+                        isDropdownOpen ? 'rotate-180 text-[var(--accent-primary)]' : ''
                       }`}
                     />
                   </button>
@@ -323,10 +322,10 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
                     <div
                       className={`absolute right-0 ${
                         openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-                      } w-full bg-[#16181d] border border-white/[0.08] rounded-lg shadow-2xl p-1 z-50 max-h-56 overflow-y-auto`}
+                      } w-full bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl p-1 z-50 max-h-56 overflow-y-auto`}
                     >
                       {/* 클라우드 모델 섹션 */}
-                      <div className="px-2.5 py-1 text-[10px] text-zinc-500 font-medium select-none">
+                      <div className="px-2.5 py-1 text-[10px] text-[var(--text-tertiary)] font-medium select-none">
                         클라우드 모델
                       </div>
                       <div className="space-y-0.5">
@@ -343,13 +342,13 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
                               }}
                               className={`w-full px-2.5 py-1.5 rounded-md text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
                                 isSelected
-                                  ? 'bg-white/[0.06] text-zinc-100 font-medium'
-                                  : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
+                                  ? 'bg-white/[0.06] text-[var(--text-main)] font-medium'
+                                  : 'text-[var(--text-muted)] hover:bg-white/[0.06] hover:text-[var(--text-main)]'
                               }`}
                             >
                               <span className="truncate">{cleanName}</span>
                               {isSelected && (
-                                <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1.5" />
+                                <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0 ml-1.5" />
                               )}
                             </button>
                           );
@@ -359,7 +358,7 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
                       {/* 로컬 모델 섹션 */}
                       {localModels.length > 0 && (
                         <div className="mt-1 pt-1 border-t border-white/[0.06]">
-                          <div className="px-2.5 py-1 text-[10px] text-zinc-500 font-medium select-none">
+                          <div className="px-2.5 py-1 text-[10px] text-[var(--text-tertiary)] font-medium select-none">
                             로컬 AI
                           </div>
                           <div className="space-y-0.5">
@@ -376,13 +375,13 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
                                   }}
                                   className={`w-full px-2.5 py-1.5 rounded-md text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
                                     isSelected
-                                      ? 'bg-white/[0.06] text-zinc-100 font-medium'
-                                      : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
+                                      ? 'bg-white/[0.06] text-[var(--text-main)] font-medium'
+                                      : 'text-[var(--text-muted)] hover:bg-white/[0.06] hover:text-[var(--text-main)]'
                                   }`}
                                 >
                                   <span className="truncate">{cleanName}</span>
                                   {isSelected && (
-                                    <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-1.5" />
+                                    <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0 ml-1.5" />
                                   )}
                                 </button>
                               );
@@ -399,8 +398,8 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-5 py-2.5 border-t border-[#222226] bg-[#0c0c0e] shrink-0">
-          <div className="text-[11px] text-slate-400 hidden sm:block font-normal">
+        <div className="flex items-center justify-between px-5 py-3 border-t border-white/[0.06] bg-[var(--bg-surface)]/90 shrink-0">
+          <div className="text-[11px] text-[var(--text-muted)] hidden sm:block font-normal">
             지정된 모델은 각 기능 실행 시 자동으로 호출됩니다.
           </div>
 
@@ -408,14 +407,14 @@ export const AiRoleAssignmentModal: React.FC<AiRoleAssignmentModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 rounded-md text-xs text-slate-300 hover:text-white hover:bg-[#18181b] border border-[#222226] transition cursor-pointer font-normal"
+              className="px-3 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition cursor-pointer font-normal"
             >
               취소
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="px-3.5 py-1.5 rounded-md text-xs font-medium text-white bg-[#6366f1] hover:bg-[#5558e6] transition cursor-pointer shadow-xs"
+              className="px-3.5 py-1.5 rounded-md text-xs font-medium text-[#0F172A] bg-[#F1F5F9] hover:bg-white transition cursor-pointer shadow-xs"
             >
               역할 모델 저장
             </button>

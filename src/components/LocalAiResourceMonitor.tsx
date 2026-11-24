@@ -50,7 +50,7 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
   const renderSegmentBar = (percent: number) => {
     const clamped = Math.max(0, Math.min(100, percent));
     const activeCount = Math.min(10, Math.floor(clamped / 10));
-    const activeColor = clamped >= 60 ? 'bg-orange-400' : 'bg-indigo-500';
+    const activeColor = clamped >= 60 ? 'bg-orange-400' : 'bg-[var(--accent-primary)]';
 
     return (
       <span className="inline-flex items-center gap-[1.5px] select-none" aria-hidden="true">
@@ -282,7 +282,7 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
             </span>
           </div>
 
-          <span className="text-zinc-600">|</span>
+          <span className="text-[var(--text-tertiary)]">|</span>
 
           {/* CPU Indicator */}
           <div className="flex items-center gap-1.5 leading-none">
@@ -316,7 +316,7 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
         </div>
 
         {/* Divider */}
-        <span className="text-zinc-600">|</span>
+        <span className="text-[var(--text-tertiary)]">|</span>
 
         {/* CPU Metric */}
         <div className="flex items-center gap-1.5 leading-none">

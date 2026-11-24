@@ -39,20 +39,30 @@ import { TiptapWysiwygEditor, TiptapWysiwygEditorRef } from './TiptapWysiwygEdit
 import { getTextareaSelectionCoordinates } from '../../utils/caretCoordinates';
 import { sanitizeHtml } from '../../utils/securitySanitizer';
 import { VirtualizedMarkdownPreview } from '../VirtualizedMarkdownPreview';
-import { getEphemeralDecryptedApiKey } from '../../services/aiPodiumIntegration';
+import { getEphemeralDecryptedApiKey, getAiEnginePreference, aiClient } from '../../services/aiPodiumIntegration';
+import { isLocalOllamaModelId } from '../../config/models.config';
+import { WEB_LLM_MODEL_ID } from '../../utils/webllmService';
+import type { EditorSelectionContext } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { useOptionalEditorEventBus } from '../../context/EditorEventBusContext';
 import { getEditorTranslations } from '../../locales/editorLocale';
 
 export interface OptimizedEditorProps {
   value: string;
   onChange: (newValue: string) => void;
   onFocus?: () => void;
+  onSelectionChange?: (selection: EditorSelectionContext | null) => void;
   editorRef?: React.RefObject<HTMLTextAreaElement | null>;
   tiptapRef?: React.Ref<TiptapWysiwygEditorRef>;
   placeholder?: string;
   editorTab: 'wysiwyg' | 'edit' | 'split' | 'preview';
   renderMarkdownToHtml: (md: string) => string;
   fontSize?: number;
+  activeProvider?: 'cloud' | 'local-pc' | 'local-server' | 'webllm';
+  localEndpoint?: string;
+  selectedModel?: string;
+  cloudApiKey?: string;
+  apiKeys?: Record<string, string>;
 }
 
 interface SlashCommandBase {
@@ -89,19 +99,19 @@ const SLASH_COMMANDS: SlashCommandBase[] = [
   },
   {
     id: 'bullet',
-    icon: <List className="w-3.5 h-3.5 text-indigo-400" />,
+    icon: <List className="w-3.5 h-3.5 text-[var(--accent-primary)]" />,
     category: 'lists',
     cursorOffset: 2
   },
   {
     id: 'numbered',
-    icon: <ListOrdered className="w-3.5 h-3.5 text-indigo-400" />,
+    icon: <ListOrdered className="w-3.5 h-3.5 text-[var(--accent-primary)]" />,
     category: 'lists',
     cursorOffset: 3
   },
   {
     id: 'task',
-    icon: <CheckSquare className="w-3.5 h-3.5 text-indigo-400" />,
+    icon: <CheckSquare className="w-3.5 h-3.5 text-[var(--secondary-accent)]" />,
     category: 'lists',
     cursorOffset: 6
   },
@@ -113,25 +123,25 @@ const SLASH_COMMANDS: SlashCommandBase[] = [
   },
   {
     id: 'table',
-    icon: <TableIcon className="w-3.5 h-3.5 text-indigo-400" />,
+    icon: <TableIcon className="w-3.5 h-3.5 text-[var(--accent-primary)]" />,
     category: 'blocks',
     cursorOffset: 2
   },
   {
     id: 'quote',
-    icon: <Quote className="w-3.5 h-3.5 text-purple-400" />,
+    icon: <Quote className="w-3.5 h-3.5 text-[var(--text-muted)]" />,
     category: 'blocks',
     cursorOffset: 2
   },
   {
     id: 'note',
-    icon: <Sparkles className="w-3.5 h-3.5 text-indigo-400" />,
+    icon: <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />,
     category: 'blocks',
     cursorOffset: 12
   },
   {
     id: 'tip',
-    icon: <Sparkles className="w-3.5 h-3.5 text-indigo-300" />,
+    icon: <Sparkles className="w-3.5 h-3.5 text-[var(--secondary-accent)]" />,
     category: 'blocks',
     cursorOffset: 11
   },
@@ -177,12 +187,18 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
   value,
   onChange,
   onFocus,
+  onSelectionChange,
   editorRef: externalRef,
   tiptapRef,
   placeholder,
   editorTab,
   renderMarkdownToHtml,
-  fontSize
+  fontSize,
+  activeProvider: propActiveProvider,
+  localEndpoint: propLocalEndpoint,
+  selectedModel: propSelectedModel,
+  cloudApiKey: propCloudApiKey,
+  apiKeys: propApiKeys
 }) => {
   const [localValue, setLocalValue] = useState(value);
   const internalRef = useRef<HTMLTextAreaElement>(null);
@@ -221,6 +237,7 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
   const [tableBubblePos, setTableBubblePos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const { language } = useLanguage();
   const et = getEditorTranslations(language);
+  const eventBus = useOptionalEditorEventBus();
   const [isAiTableLoading, setIsAiTableLoading] = useState(false);
   const [isVisualModalOpen, setIsVisualModalOpen] = useState(false);
 
@@ -232,6 +249,7 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
   const [isAiTextLoading, setIsAiTextLoading] = useState(false);
   const [isTextBubbleDismissed, setIsTextBubbleDismissed] = useState(false);
   const lastDismissedSelectionRef = useRef<{ start: number; end: number } | null>(null);
+  const activeSelectionRangeRef = useRef<{ start: number; end: number; text: string } | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleCloseTextBubble = useCallback(() => {
@@ -249,7 +267,23 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
   const updateEditorBubbleContext = useCallback((text: string, selStart: number, selEnd?: number) => {
     const end = typeof selEnd === 'number' ? selEnd : selStart;
     const hasSel = end > selStart;
+    const selText = hasSel ? text.slice(selStart, end) : '';
     const textarea = refToUse.current;
+
+    // Update shared editor selection state (preserve when focus moves outside textarea)
+    if (hasSel && selText.trim()) {
+      activeSelectionRangeRef.current = { start: selStart, end, text: selText };
+      onSelectionChange?.({
+        text: selText,
+        startOffset: selStart,
+        endOffset: end,
+        mode: editorTab,
+        updatedAt: Date.now()
+      });
+    } else if (!textarea || document.activeElement === textarea) {
+      activeSelectionRangeRef.current = null;
+      onSelectionChange?.(null);
+    }
 
     // 1. Check if cursor/selection is inside a markdown table
     const info = getTableAtCursor(text, selStart);
@@ -283,7 +317,6 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
     }
 
     // 2. Normal General Text Context
-    const selText = hasSel ? text.slice(selStart, end) : '';
     setSelectedText(selText);
     setHasSelection(hasSel);
 
@@ -318,7 +351,7 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
       }
       const clampedTop = Math.max(4, Math.min(textarea.clientHeight - 44, bubbleTop));
 
-      const toolbarEstimatedWidth = 470;
+      const toolbarEstimatedWidth = 500;
       const rightSafeMargin = 16;
       const maxLeft = Math.max(8, textarea.clientWidth - toolbarEstimatedWidth - rightSafeMargin);
       const centerLeft = coords.left - Math.floor(toolbarEstimatedWidth / 2);
@@ -330,7 +363,7 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
       // Show bubble menu if selection is currently visible in viewport and not dismissed
       setIsTextBubbleVisible(isSelectionInView && !dismissed);
     }
-  }, [refToUse, isTextBubbleDismissed]);
+  }, [refToUse, isTextBubbleDismissed, onSelectionChange, editorTab]);
 
   const updateTableContext = useCallback((text: string, cursorPos: number) => {
     updateEditorBubbleContext(text, cursorPos, cursorPos);
@@ -558,24 +591,313 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
     }, 20);
   }, [currentTableInfo, localValue, debouncedOnChange, refToUse, updateTableContext]);
 
+  const executeAiTask = useCallback(async (opts: {
+    prompt: string;
+    systemInstruction: string;
+  }): Promise<string> => {
+    // 1. Resolve local Ollama endpoint
+    const enginePref = getAiEnginePreference();
+    const cleanEndpoint = (
+      propLocalEndpoint ||
+      enginePref.ollamaEndpoint ||
+      sessionStorage.getItem('aipodium_local_endpoint') ||
+      localStorage.getItem('aipodium_local_endpoint') ||
+      'http://localhost:11434'
+    ).trim().replace(/\/+$/, '');
+
+    // 2. Resolve API key for cloud providers
+    let geminiKey = propCloudApiKey || propApiKeys?.gemini || '';
+    if (!geminiKey) {
+      try {
+        geminiKey = await getEphemeralDecryptedApiKey('gemini');
+      } catch {}
+    }
+
+    // 3. Resolve active provider
+    let activeProvider = propActiveProvider;
+    if (!activeProvider) {
+      try {
+        const saved = localStorage.getItem('aipodium_preferences');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.activeProvider) activeProvider = parsed.activeProvider;
+        }
+      } catch {}
+    }
+
+    const isWebLlm =
+      activeProvider === 'webllm' ||
+      propSelectedModel === WEB_LLM_MODEL_ID ||
+      enginePref.engineType === 'webllm';
+    const isOllamaModel = !isWebLlm && isLocalOllamaModelId(propSelectedModel || '');
+    const isExplicitLocal =
+      !isWebLlm &&
+      (activeProvider === 'local-pc' ||
+        activeProvider === 'local-server' ||
+        isOllamaModel ||
+        (!activeProvider && enginePref.engineType === 'ollama'));
+
+    // 4-A. WebLLM (Browser WebGPU) provider
+    if (isWebLlm) {
+      let streamed = '';
+      const result = await aiClient.streamCompletion('webllm', {
+        model: WEB_LLM_MODEL_ID,
+        messages: [
+          { role: 'system', content: opts.systemInstruction },
+          { role: 'user', content: opts.prompt }
+        ],
+        systemInstruction: opts.systemInstruction,
+        temperature: 0.2,
+        onChunk: (delta) => {
+          streamed += delta;
+        }
+      });
+      const reply = (result?.fullText || streamed || '').trim();
+      if (!reply || reply.startsWith('⚠️ WebLLM') || reply.startsWith('⚠️ 현재 브라우저가 WebGPU')) {
+        throw new Error(reply || et.errNoReply);
+      }
+      return reply;
+    }
+
+    // 4-B. Route local Ollama requests directly to http://localhost:11434/api/chat using POST
+    if (isExplicitLocal) {
+      try {
+        let modelToUse = (propSelectedModel || '').trim().replace(/^ollama\//i, '');
+        const looksLikeCloudModel =
+          !modelToUse ||
+          /^(gemini-|gpt-|claude-|o1-|o3-|deepseek-chat|deepseek-reasoner|groq-|llama-3\.3-70b-versatile|llama-3\.1-8b-instant)/i.test(modelToUse);
+        if (looksLikeCloudModel) {
+          try {
+            const tagsRes = await fetch(`${cleanEndpoint}/api/tags`, {
+              method: 'GET',
+              signal: AbortSignal.timeout(1500)
+            });
+            if (tagsRes.ok) {
+              const tagsData = await tagsRes.json();
+              modelToUse = tagsData?.models?.[0]?.name || 'llama3.3:latest';
+            }
+          } catch {}
+        }
+
+        const res = await fetch(`${cleanEndpoint}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: modelToUse || 'llama3.3:latest',
+            messages: [
+              { role: 'system', content: opts.systemInstruction },
+              { role: 'user', content: opts.prompt }
+            ],
+            stream: false
+          })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData?.error || `Ollama 통신 실패 (HTTP ${res.status})`);
+        }
+
+        const data = await res.json();
+        const reply = data?.message?.content || data?.response || '';
+        if (reply.trim()) return reply.trim();
+        throw new Error(et.errNoReply);
+      } catch (err: any) {
+        if (err?.name === 'TypeError' || err?.message?.includes('Failed to fetch')) {
+          throw new Error('로컬 Ollama 연결 실패: 터미널에서 OLLAMA_ORIGINS="*" ollama serve 실행 여부를 확인하세요.');
+        }
+        throw err;
+      }
+    }
+
+    // 5. Cloud provider:
+    // Try the proxy endpoint (/api/chat) for local development server support.
+    // If the proxy returns HTTP 405/404, returns the unconfigured local guidance message, or fails to fetch:
+    // Gracefully fall back to client-side direct execution (BYOK API or local Ollama auto-detection).
+    let serverStatic405 = false;
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: opts.prompt,
+          apiKey: geminiKey || undefined,
+          model: propSelectedModel || 'gemini-2.5-flash',
+          systemInstruction: opts.systemInstruction
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const reply = data.reply || data.text || '';
+        const isGuidanceFallback =
+          data?.usage?.costEstimate?.includes('로컬 안내 모드') ||
+          reply.trim().startsWith('**AI Podium 안내**');
+        if (isGuidanceFallback) {
+          serverStatic405 = true;
+        } else if (reply.trim()) {
+          return reply.trim();
+        }
+      } else if (res.status === 405 || res.status === 404) {
+        serverStatic405 = true;
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.error || `AI 통신 실패 (HTTP ${res.status})`);
+      }
+    } catch (err: any) {
+      if (err?.message?.includes('AI 통신 실패')) throw err;
+      serverStatic405 = true;
+    }
+
+    // 6. Direct Client-Side Fallback for static hosting deployments (e.g. https://aipodium.net)
+    if (serverStatic405) {
+      const modelLower = (propSelectedModel || '').toLowerCase();
+
+      // 6-A1. Direct OpenAI-compatible BYOK (OpenAI / DeepSeek / Groq) when matching model selected
+      const openaiKey = propApiKeys?.openai || '';
+      const deepseekKey = propApiKeys?.deepseek || '';
+      const groqKey = propApiKeys?.groq || '';
+
+      if ((modelLower.startsWith('gpt-') || modelLower.startsWith('o1') || modelLower.startsWith('o3')) && openaiKey) {
+        const oaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${openaiKey}` },
+          body: JSON.stringify({
+            model: propSelectedModel,
+            messages: [
+              { role: 'system', content: opts.systemInstruction },
+              { role: 'user', content: opts.prompt }
+            ],
+            temperature: 0.2
+          })
+        });
+        if (!oaiRes.ok) {
+          const errData = await oaiRes.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `OpenAI API 통신 오류 (HTTP ${oaiRes.status})`);
+        }
+        const oaiData = await oaiRes.json();
+        const reply = oaiData?.choices?.[0]?.message?.content || '';
+        if (reply.trim()) return reply.trim();
+      }
+
+      if (modelLower.startsWith('deepseek-') && deepseekKey) {
+        const dsRes = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${deepseekKey}` },
+          body: JSON.stringify({
+            model: propSelectedModel,
+            messages: [
+              { role: 'system', content: opts.systemInstruction },
+              { role: 'user', content: opts.prompt }
+            ],
+            temperature: 0.2
+          })
+        });
+        if (!dsRes.ok) {
+          const errData = await dsRes.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `DeepSeek API 통신 오류 (HTTP ${dsRes.status})`);
+        }
+        const dsData = await dsRes.json();
+        const reply = dsData?.choices?.[0]?.message?.content || '';
+        if (reply.trim()) return reply.trim();
+      }
+
+      if (modelLower.includes('llama') && groqKey) {
+        const gRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${groqKey}` },
+          body: JSON.stringify({
+            model: propSelectedModel,
+            messages: [
+              { role: 'system', content: opts.systemInstruction },
+              { role: 'user', content: opts.prompt }
+            ],
+            temperature: 0.2
+          })
+        });
+        if (!gRes.ok) {
+          const errData = await gRes.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `Groq API 통신 오류 (HTTP ${gRes.status})`);
+        }
+        const gData = await gRes.json();
+        const reply = gData?.choices?.[0]?.message?.content || '';
+        if (reply.trim()) return reply.trim();
+      }
+
+      // 6-A2. Direct Google Gemini REST API (BYOK)
+      if (geminiKey) {
+        const cleanModel = (propSelectedModel && propSelectedModel.startsWith('gemini-'))
+          ? propSelectedModel
+          : 'gemini-2.5-flash';
+        const directRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${geminiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: opts.prompt }] }],
+              systemInstruction: opts.systemInstruction
+                ? { parts: [{ text: opts.systemInstruction }] }
+                : undefined,
+              generationConfig: { temperature: 0.2 }
+            })
+          }
+        );
+
+        if (!directRes.ok) {
+          const errData = await directRes.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `Google Gemini API 통신 오류 (HTTP ${directRes.status})`);
+        }
+
+        const dData = await directRes.json();
+        const reply = dData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        if (reply.trim()) return reply.trim();
+        throw new Error(et.errNoReply);
+      }
+
+      // 6-B. Direct Local Ollama Auto-Detection (if user has Ollama running on localhost:11434)
+      try {
+        const ollamaCheck = await fetch(`${cleanEndpoint}/api/tags`, {
+          method: 'GET',
+          signal: AbortSignal.timeout(1500)
+        });
+        if (ollamaCheck.ok) {
+          const tagsData = await ollamaCheck.json();
+          const discoveredModel = tagsData?.models?.[0]?.name || 'llama3.3:latest';
+          const oRes = await fetch(`${cleanEndpoint}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: discoveredModel,
+              messages: [
+                { role: 'system', content: opts.systemInstruction },
+                { role: 'user', content: opts.prompt }
+              ],
+              stream: false
+            })
+          });
+          if (oRes.ok) {
+            const oData = await oRes.json();
+            const oReply = oData?.message?.content || oData?.response || '';
+            if (oReply.trim()) return oReply.trim();
+          }
+        }
+      } catch {}
+
+      // 6-C. Neither Gemini API key nor local Ollama reachable
+      throw new Error('AI 엔진 연결 필요: 상단 [설정]에서 Gemini API 키를 등록하거나 로컬 PC에서 Ollama를 실행해 주세요.');
+    }
+
+    throw new Error(et.errNoReply);
+  }, [propActiveProvider, propLocalEndpoint, propSelectedModel, propCloudApiKey, propApiKeys, et]);
+
   const handleAiTableEdit = useCallback(async (prompt: string) => {
     if (!currentTableInfo) return false;
     setIsAiTableLoading(true);
     try {
       const tableMarkdown = currentTableInfo.lines.join('\n');
 
-      let apiKey = '';
-      try {
-        apiKey = await getEphemeralDecryptedApiKey('gemini');
-      } catch (e) {
-        // ignore
-      }
-
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `다음 마크다운 표를 사용자의 요청에 따라 정확히 수정 또는 요약하세요.
+      let reply = await executeAiTask({
+        prompt: `다음 마크다운 표를 사용자의 요청에 따라 정확히 수정 또는 요약하세요.
 
 [사용자 요청]: ${prompt}
 
@@ -586,18 +908,9 @@ ${tableMarkdown}
 1. 오직 가공/요약된 결과 마크다운 표 문자열(| ... |)만 반환할 것.
 2. 마크다운 코드블록(\`\`\`markdown)이나 인사말, 설명 등 부연 텍스트는 절대 포함하지 말 것.
 3. 마크다운 표 헤더, 구분선, 행 파이프 문법을 온전히 유지할 것.`,
-          apiKey: apiKey || undefined,
-          model: 'gemini-2.5-flash',
-          systemInstruction: 'You are a professional Markdown Table Editor. Output ONLY the clean Markdown table syntax (| ... |). Do not output any markdown code blocks (```) or explanation text.'
-        })
+        systemInstruction: 'You are a professional Markdown Table Editor. Output ONLY the clean Markdown table syntax (| ... |). Do not output any markdown code blocks (```) or explanation text.'
       });
 
-      if (!res.ok) {
-        throw new Error(`AI 서버 통신 실패 (HTTP ${res.status})`);
-      }
-
-      const data = await res.json();
-      let reply = data.reply || data.text || '';
       if (!reply.trim()) {
         throw new Error(et.errNoTable);
       }
@@ -614,14 +927,23 @@ ${tableMarkdown}
         throw new Error(et.errBadTable);
       }
 
-      const nextVal =
-        localValue.slice(0, currentTableInfo.startOffset) +
-        trimmedReply +
-        localValue.slice(currentTableInfo.endOffset);
+      const textarea = refToUse.current;
+      const val = localValue;
+      const startPos = currentTableInfo.startOffset;
+      const endPos = currentTableInfo.endOffset;
 
+      const nextVal = val.slice(0, startPos) + trimmedReply + val.slice(endPos);
       setLocalValue(nextVal);
       debouncedOnChange(nextVal);
-      updateTableContext(nextVal, currentTableInfo.startOffset);
+
+      setTimeout(() => {
+        if (textarea) {
+          textarea.focus();
+          const newPos = startPos + trimmedReply.length;
+          textarea.setSelectionRange(newPos, newPos);
+          updateTableContext(nextVal, newPos);
+        }
+      }, 20);
       return true;
     } catch (err: any) {
       console.error('AI Table Edit error:', err);
@@ -670,7 +992,7 @@ ${tableMarkdown}
     } finally {
       setIsAiTableLoading(false);
     }
-  }, [currentTableInfo, localValue, debouncedOnChange, updateTableContext, et]);
+  }, [currentTableInfo, executeAiTask, localValue, debouncedOnChange, refToUse, updateTableContext, et]);
 
   // General Text Bubble Menu Actions
   const handleApplyTextFormat = useCallback((formatType: TextFormatAction) => {
@@ -929,35 +1251,50 @@ ${tableMarkdown}
     }, 20);
   }, [localValue, debouncedOnChange, refToUse, updateEditorBubbleContext, et]);
 
-  const handleAiTextEdit = useCallback(async (prompt: string) => {
-    const textarea = refToUse.current;
-    if (!textarea) return false;
-
+  const handleAiTextEdit = useCallback(async (prompt: string, overrideTargetText?: string): Promise<string | boolean> => {
     const val = localValue;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const hasSel = end > start;
+    const isDirectTextCall = typeof overrideTargetText === 'string';
+    const textarea = refToUse.current;
+
+    if (!isDirectTextCall && !textarea) return false;
 
     let targetText = '';
-    let replaceStart = start;
-    let replaceEnd = end;
+    let replaceStart = 0;
+    let replaceEnd = 0;
 
-    if (hasSel) {
-      targetText = val.slice(start, end);
-      replaceStart = start;
-      replaceEnd = end;
-    } else {
-      let pStart = val.lastIndexOf('\n\n', start - 1);
-      if (pStart === -1) pStart = val.lastIndexOf('\n', start - 1);
-      pStart = pStart === -1 ? 0 : pStart + 1;
+    if (isDirectTextCall) {
+      targetText = overrideTargetText.trim();
+    } else if (textarea) {
+      let start = textarea.selectionStart;
+      let end = textarea.selectionEnd;
 
-      let pEnd = val.indexOf('\n\n', end);
-      if (pEnd === -1) pEnd = val.indexOf('\n', end);
-      if (pEnd === -1) pEnd = val.length;
+      // Preserve previously captured selection if focus shifted into bubble input
+      if (end <= start && activeSelectionRangeRef.current) {
+        const saved = activeSelectionRangeRef.current;
+        if (val.slice(saved.start, saved.end) === saved.text) {
+          start = saved.start;
+          end = saved.end;
+        }
+      }
 
-      targetText = val.slice(pStart, pEnd).trim();
-      replaceStart = pStart;
-      replaceEnd = pEnd;
+      const hasSel = end > start;
+      if (hasSel) {
+        targetText = val.slice(start, end);
+        replaceStart = start;
+        replaceEnd = end;
+      } else {
+        let pStart = val.lastIndexOf('\n\n', start - 1);
+        if (pStart === -1) pStart = val.lastIndexOf('\n', start - 1);
+        pStart = pStart === -1 ? 0 : pStart + 1;
+
+        let pEnd = val.indexOf('\n\n', end);
+        if (pEnd === -1) pEnd = val.indexOf('\n', end);
+        if (pEnd === -1) pEnd = val.length;
+
+        targetText = val.slice(pStart, pEnd).trim();
+        replaceStart = pStart;
+        replaceEnd = pEnd;
+      }
     }
 
     if (!targetText) {
@@ -966,18 +1303,8 @@ ${tableMarkdown}
 
     setIsAiTextLoading(true);
     try {
-      let apiKey = '';
-      try {
-        apiKey = await getEphemeralDecryptedApiKey('gemini');
-      } catch (e) {
-        // ignore
-      }
-
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `다음 텍스트를 사용자의 요청에 따라 정확하게 수정, 교정, 요약 또는 변환하세요.
+      let reply = await executeAiTask({
+        prompt: `다음 텍스트를 사용자의 요청에 따라 정확하게 수정, 교정, 요약 또는 변환하세요.
 
 [사용자 요청]: ${prompt}
 
@@ -988,18 +1315,9 @@ ${targetText}
 1. 오직 가공/변환된 결과 텍스트만 그대로 반환할 것.
 2. 불필요한 인사말, 따옴표, 설명이나 부연 텍스트(예: "수정된 텍스트입니다:")는 절대 포함하지 말 것.
 3. 마크다운 서식이 요청된 경우 올바른 마크다운 문법을 적용할 것.`,
-          apiKey: apiKey || undefined,
-          model: 'gemini-2.5-flash',
-          systemInstruction: 'You are an expert Markdown and Text Editor assistant. Output ONLY the edited/transformed text directly. Never output conversational pleasantries, explanations, or meta commentary.'
-        })
+        systemInstruction: 'You are an expert Markdown and Text Editor assistant. Output ONLY the edited/transformed text directly. Never output conversational pleasantries, explanations, or meta commentary.'
       });
 
-      if (!res.ok) {
-        throw new Error(`AI 서버 통신 실패 (HTTP ${res.status})`);
-      }
-
-      const data = await res.json();
-      let reply = data.reply || data.text || '';
       if (!reply.trim()) {
         throw new Error(et.errNoReply);
       }
@@ -1011,9 +1329,29 @@ ${targetText}
       }
 
       const trimmedReply = reply.trim();
+      if (isDirectTextCall) {
+        return trimmedReply;
+      }
+
       const nextVal = val.slice(0, replaceStart) + trimmedReply + val.slice(replaceEnd);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
       setLocalValue(nextVal);
-      debouncedOnChange(nextVal);
+      onChange(nextVal);
+
+      if (targetText.trim() && trimmedReply && targetText.trim() !== trimmedReply) {
+        eventBus?.emit('editor:rewrite-applied', {
+          prompt,
+          originalText: targetText.trim(),
+          rewrittenText: trimmedReply,
+          mode: editorTab,
+          startOffset: replaceStart,
+          endOffset: replaceStart + trimmedReply.length,
+          createdAt: Date.now(),
+        });
+      }
 
       setTimeout(() => {
         if (textarea) {
@@ -1027,7 +1365,7 @@ ${targetText}
     } finally {
       setIsAiTextLoading(false);
     }
-  }, [localValue, debouncedOnChange, refToUse, updateEditorBubbleContext, et]);
+  }, [executeAiTask, localValue, onChange, refToUse, updateEditorBubbleContext, et, eventBus, editorTab]);
 
   const handleCleanText = useCallback(() => {
     const textarea = refToUse.current;
@@ -1202,6 +1540,9 @@ ${targetText}
     }, 200);
     // Delay closing text bubble menu if active element is outside editor/menus
     setTimeout(() => {
+      if (isAiTextLoading) {
+        return;
+      }
       const activeEl = document.activeElement;
       const textMenu = document.getElementById('text-floating-bubble-menu');
       const tableMenu = document.getElementById('table-floating-bubble-menu');
@@ -1801,19 +2142,19 @@ ${targetText}
     <div
       id="slash-autocomplete-menu"
       style={{ top: `${slashPosition.top}px`, left: `${slashPosition.left}px` }}
-      className="absolute z-50 w-72 max-h-72 flex flex-col bg-[#121214] border border-[#222226] rounded-xs p-1.5 text-xs text-[#e2e8f0] animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
+      className="absolute z-50 w-72 max-h-72 flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl p-1.5 text-xs text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
       onMouseDown={(e) => e.preventDefault()} // Prevent textarea blur on click
     >
-      <div className="shrink-0 px-2 py-1 mb-1 border-b border-[#222226] flex items-center justify-between text-[0.625rem] text-[#94a3b8] font-semibold uppercase tracking-wider">
-        <span className="flex items-center gap-1 text-[#6366f1]">
-          <Sparkles className="w-3 h-3 text-[#6366f1]" />
+      <div className="shrink-0 px-2 py-1 mb-1 border-b border-white/[0.06] flex items-center justify-between text-[0.625rem] text-[var(--text-muted)] font-medium tracking-wider">
+        <span className="flex items-center gap-1 text-[var(--accent-primary)]">
+          <Sparkles className="w-3 h-3 text-[var(--accent-primary)]" />
           {et.menuTitle}
         </span>
-        <span className="font-mono text-[0.5625rem] text-[#94a3b8]/60">{et.menuHint}</span>
+        <span className="font-mono text-[0.5625rem] text-[var(--text-tertiary)]">{et.menuHint}</span>
       </div>
 
       {filteredCommands.length === 0 ? (
-        <div className="p-3 text-center text-[#94a3b8]/60 italic text-[0.6875rem]">
+        <div className="p-3 text-center text-[var(--text-tertiary)] italic text-[0.6875rem]">
           {et.noMatch}
         </div>
       ) : (
@@ -1829,16 +2170,16 @@ ${targetText}
                 type="button"
                 onClick={() => executeSlashCommand(cmd)}
                 onMouseEnter={() => setSlashIndex(idx)}
-                className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xs text-left transition-colors cursor-pointer ${
+                className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-left transition-colors cursor-pointer ${
                   isSelected
-                    ? 'bg-[#6366f1] text-white font-medium'
-                    : 'text-[#e2e8f0] hover:bg-[#18181b] hover:text-white'
+                    ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+                    : 'text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-[var(--text-main)]'
                 }`}
               >
-                <span className="shrink-0">{cmd.icon}</span>
+                <span className={`shrink-0 ${isSelected ? 'text-[var(--accent-primary)]' : ''}`}>{cmd.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-xs leading-tight truncate">{cmd.label}</div>
-                  <div className={`text-[0.625rem] truncate ${isSelected ? 'text-indigo-100' : 'text-[#94a3b8]'}`}>
+                  <div className="font-medium text-xs leading-tight truncate">{cmd.label}</div>
+                  <div className={`text-[0.625rem] truncate ${isSelected ? 'text-[var(--text-muted)]' : 'text-[var(--text-tertiary)]'}`}>
                     {cmd.sublabel}
                   </div>
                 </div>
@@ -1866,6 +2207,28 @@ ${targetText}
           onChange(newMd);
         }}
         onFocus={onFocus}
+        onSelectionChange={(sel) => {
+          if (sel && sel.text.trim()) {
+            onSelectionChange?.({
+              text: sel.text,
+              startOffset: sel.from,
+              endOffset: sel.to,
+              mode: 'wysiwyg',
+              updatedAt: Date.now()
+            });
+          } else {
+            onSelectionChange?.(null);
+          }
+        }}
+        onAiEditText={(prompt, targetText) => handleAiTextEdit(prompt, targetText)}
+        onAiEditApplied={(info) => {
+          eventBus?.emit('editor:rewrite-applied', {
+            ...info,
+            mode: 'wysiwyg',
+            createdAt: Date.now(),
+          });
+        }}
+        isAiLoading={isAiTextLoading}
         placeholder={placeholder}
         fontSize={fontSize}
       />
@@ -1887,13 +2250,29 @@ ${targetText}
     }
 
     return (
-      <VirtualizedMarkdownPreview
-        id="markdown-preview"
-        content={localValue}
-        renderMarkdownToHtml={renderMarkdownToHtml}
-        fontSize={fontSize}
-        isSplitMode={false}
-      />
+      <div
+        className="w-full h-full"
+        onMouseUp={() => {
+          const domSel = window.getSelection()?.toString() || '';
+          if (domSel.trim()) {
+            onSelectionChange?.({
+              text: domSel,
+              mode: 'preview',
+              updatedAt: Date.now()
+            });
+          } else {
+            onSelectionChange?.(null);
+          }
+        }}
+      >
+        <VirtualizedMarkdownPreview
+          id="markdown-preview"
+          content={localValue}
+          renderMarkdownToHtml={renderMarkdownToHtml}
+          fontSize={fontSize}
+          isSplitMode={false}
+        />
+      </div>
     );
   }
 
@@ -1969,11 +2348,10 @@ ${targetText}
             <TextFloatingBubbleMenu
               position={textBubblePos}
               selectedText={selectedText}
-              hasSelection={hasSelection}
               onApplyFormat={handleApplyTextFormat}
               onCleanText={handleCleanText}
               onClose={handleCloseTextBubble}
-              onAiEditText={handleAiTextEdit}
+              onAiEditText={(prompt) => handleAiTextEdit(prompt).then((r) => r !== false)}
               isAiLoading={isAiTextLoading}
             />
           )}
@@ -1989,14 +2367,14 @@ ${targetText}
               background: 'var(--bg-panel)',
               borderColor: 'rgba(255, 255, 255, 0.06)'
             }}
-            className="px-3 py-1 backdrop-blur-md border-b text-[0.625rem] font-semibold flex items-center justify-between shrink-0 select-none"
+            className="px-3 py-1 backdrop-blur-md border-b text-[0.625rem] font-medium flex items-center justify-between shrink-0 select-none"
           >
-            <span className="flex items-center gap-1.5" style={{ color: 'var(--accent)' }}>
-              <Eye className="w-3 h-3" />
+            <span className="flex items-center gap-1.5 text-[var(--text-muted)]">
+              <Eye className="w-3 h-3 text-[var(--accent-primary)]" />
               <span>{et.livePreview}</span>
             </span>
-            <span className="text-[0.5625rem] opacity-75 font-mono flex items-center gap-1" style={{ color: 'var(--accent)' }}>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#6366f1] animate-pulse" />
+            <span className="text-[0.5625rem] text-[var(--text-muted)] font-mono flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
               <span>{et.syncScroll}</span>
             </span>
           </div>
@@ -2011,15 +2389,29 @@ ${targetText}
               sandbox="allow-scripts allow-modals"
             />
           ) : (
-            <VirtualizedMarkdownPreview
-              id="markdown-preview-split"
-              ref={previewContainerRef}
-              content={localValue}
-              renderMarkdownToHtml={renderMarkdownToHtml}
-              fontSize={fontSize}
-              isSplitMode={true}
-              className="flex-1 w-full"
-            />
+            <div
+              className="flex-1 w-full min-h-0 flex flex-col"
+              onMouseUp={() => {
+                const domSel = window.getSelection()?.toString() || '';
+                if (domSel.trim()) {
+                  onSelectionChange?.({
+                    text: domSel,
+                    mode: 'split',
+                    updatedAt: Date.now()
+                  });
+                }
+              }}
+            >
+              <VirtualizedMarkdownPreview
+                id="markdown-preview-split"
+                ref={previewContainerRef}
+                content={localValue}
+                renderMarkdownToHtml={renderMarkdownToHtml}
+                fontSize={fontSize}
+                isSplitMode={true}
+                className="flex-1 w-full"
+              />
+            </div>
           )}
         </div>
 
@@ -2040,7 +2432,7 @@ ${targetText}
       style={{ background: 'var(--bg-editor)' }}
       className="relative w-full h-full flex flex-col overflow-hidden"
     >
-      <div className="w-full h-full flex flex-col max-w-3xl mx-auto px-8 py-10 relative flex-1 min-h-0">
+      <div className="w-full h-full flex flex-col max-w-3xl mx-auto px-12 py-10 relative flex-1 min-h-0">
         <textarea
           id="markdown-editor"
           ref={refToUse}
@@ -2102,11 +2494,10 @@ ${targetText}
           <TextFloatingBubbleMenu
             position={textBubblePos}
             selectedText={selectedText}
-            hasSelection={hasSelection}
             onApplyFormat={handleApplyTextFormat}
             onCleanText={handleCleanText}
             onClose={handleCloseTextBubble}
-            onAiEditText={handleAiTextEdit}
+            onAiEditText={(prompt) => handleAiTextEdit(prompt).then((r) => r !== false)}
             isAiLoading={isAiTextLoading}
           />
         )}

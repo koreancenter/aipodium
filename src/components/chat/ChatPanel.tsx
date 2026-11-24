@@ -6,10 +6,9 @@
  * - Bottom-Flush UniversalPromptInput
  */
 
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Bot,
   User,
   ArrowDown,
   Link2,
@@ -18,14 +17,31 @@ import {
   Globe,
   Loader2,
   ChevronRight,
-  MessageSquare
+  MessageSquare,
+  Quote,
+  X,
+  History,
+  RotateCcw,
+  Check,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
-import type { ChatMessage, ChatAttachment, GhostWriterLevel, MentionItem } from '../../types';
+import type {
+  ChatMessage,
+  ChatAttachment,
+  GhostWriterLevel,
+  MentionItem,
+  EditorSelectionContext,
+  SessionRewriteHistoryItem,
+} from '../../types';
 import { AiMessageBubble } from '../AiMessageBubble';
 import { WebLlmBanner } from '../WebLlmBanner';
 import { UniversalPromptInput } from './UniversalPromptInput';
+import { AIThinkingIndicator } from './AIThinkingIndicator';
 import { WEB_LLM_MODEL_ID, WEB_LLM_MODEL_DISPLAY_NAME } from '../../utils/webllmService';
+
 import { useTranslation } from '../../context/LanguageContext';
+import { buildSessionRewriteHistoryItems } from '../../utils/rewriteHistory';
 
 export interface ChatActivityRailProps {
   onOpen: () => void;
@@ -44,7 +60,7 @@ export const ChatActivityRail: React.FC<ChatActivityRailProps> = ({
   return (
     <div
       id="chat-activity-rail"
-      className={`w-10 shrink-0 bg-[#121214] border-r border-[#222226] flex flex-col items-center py-3 justify-between z-20 select-none transition-all duration-200 h-full ${className}`}
+      className={`w-10 shrink-0 bg-[var(--bg-surface)] season-shell border-r border-white/[0.06] flex flex-col items-center py-3 justify-between z-20 select-none transition-all duration-200 h-full ${className}`}
     >
       {/* Top item: Clean ghost button with MessageSquare */}
       <div className="flex flex-col items-center gap-3">
@@ -52,11 +68,11 @@ export const ChatActivityRail: React.FC<ChatActivityRailProps> = ({
           type="button"
           id="chat-rail-open-btn"
           onClick={onOpen}
-          className="p-2 rounded-md hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
+          className="p-2 rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
           title={t.open}
           aria-label={t.open}
         >
-          <MessageSquare className="w-4 h-4 text-zinc-400 hover:text-zinc-100" />
+          <MessageSquare className="w-4 h-4" />
         </button>
       </div>
 
@@ -64,7 +80,7 @@ export const ChatActivityRail: React.FC<ChatActivityRailProps> = ({
       <div className="flex flex-col items-center gap-2 pb-1" title={t.engineActive}>
         <span
           className={`w-2 h-2 rounded-full ${
-            isEngineActive ? 'bg-emerald-400' : 'bg-zinc-600'
+            isEngineActive ? 'bg-[var(--secondary-accent)]' : 'bg-[#475569]'
           }`}
         />
       </div>
@@ -97,10 +113,16 @@ export interface ChatPanelProps {
   onAddAttachment: (att: ChatAttachment) => void;
   onAddFiles?: (files: FileList | File[]) => void;
   onSendMessage: (overrideText?: string, meta?: any) => void;
+  selectedContext?: string | null;
+  editorSelection?: EditorSelectionContext | null;
+  onClearEditorSelection?: () => void;
 
-  // Message Actions
+  // Message & Rewrite History Actions
   onSendToEditor: (text: string) => void;
   onDiff: (text: string, model?: string) => void;
+  sessionRewriteHistory?: SessionRewriteHistoryItem[];
+  onApplyRewrite?: (historyOrMsgId: string, rewrittenText: string) => void;
+  onRevertRewrite?: (historyOrMsgId: string, previousText?: string) => void;
   onActionChipClick?: (chipType: string) => void;
   onOpenSettings?: (tab?: string) => void;
   onTranslate?: (msgId: string, text: string) => Promise<string> | void;
@@ -186,8 +208,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   onAddAttachment,
   onAddFiles,
   onSendMessage,
+  selectedContext,
+  editorSelection,
+  onClearEditorSelection,
   onSendToEditor,
   onDiff,
+  sessionRewriteHistory,
+  onApplyRewrite,
+  onRevertRewrite,
   onActionChipClick,
   onOpenSettings,
   onTranslate,
@@ -234,11 +262,45 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   isCollapsed = false,
   onToggleCollapse,
 }) => {
-  const { t: dict } = useTranslation();
+  const { t: dict, language } = useTranslation();
   const t = dict.core.chat;
+  const rewriteHistoryItems = useMemo(
+    () => buildSessionRewriteHistoryItems(messages, sessionRewriteHistory, activeSessionId),
+    [messages, sessionRewriteHistory, activeSessionId]
+  );
+  const [isRewriteHistoryOpen, setIsRewriteHistoryOpen] = useState<boolean>(
+    () => rewriteHistoryItems.length > 0
+  );
+  const [expandedHistoryIds, setExpandedHistoryIds] = useState<Record<string, boolean>>({});
+  const prevHistoryMetaRef = useRef<{ sessionId: string; count: number }>({
+    sessionId: activeSessionId,
+    count: rewriteHistoryItems.length,
+  });
+
+  useEffect(() => {
+    const prev = prevHistoryMetaRef.current;
+    if (prev.sessionId !== activeSessionId) {
+      setIsRewriteHistoryOpen(rewriteHistoryItems.length > 0);
+      setExpandedHistoryIds({});
+    } else if (rewriteHistoryItems.length > prev.count) {
+      setIsRewriteHistoryOpen(true);
+    }
+    prevHistoryMetaRef.current = {
+      sessionId: activeSessionId,
+      count: rewriteHistoryItems.length,
+    };
+  }, [activeSessionId, rewriteHistoryItems.length]);
+
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const isUserScrolledUpRef = useRef<boolean>(false);
   const [isScrolledUp, setIsScrolledUp] = useState<boolean>(false);
+
+  const scrollToThreadMessage = useCallback((msgId: string) => {
+    const el = document.getElementById(`chat-msg-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
 
   // Smart Auto scroll chat: locks to bottom during generation, releases if user scrolls up
   const handleChatScroll = useCallback(() => {
@@ -285,6 +347,196 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       {/* Top Header: Rendered only when explicit header is provided */}
       {header !== undefined ? header : null}
 
+      {/* Collapsible Session-Scoped Rewrite with AI History View */}
+      {rewriteHistoryItems.length > 0 && (
+        <div
+          id="chat-rewrite-history"
+          className="shrink-0 bg-[var(--bg-editor)]/80 border-b border-white/[0.06] px-3 py-1.5 flex flex-col gap-1.5 select-none z-10"
+        >
+          <div className="flex items-center justify-between gap-2 text-[0.6875rem]">
+            <button
+              type="button"
+              id="chat-rewrite-history-toggle"
+              onClick={() => setIsRewriteHistoryOpen((prev) => !prev)}
+              className="flex items-center gap-1.5 min-w-0 flex-1 text-left hover:text-[var(--text-main)] transition-colors cursor-pointer"
+            >
+              <History className="w-3 h-3 text-[var(--accent-primary)] shrink-0" />
+              <span className="font-medium text-[var(--text-main)] truncate">{t.rewriteHistoryTitle}</span>
+              <span className="text-[0.625rem] font-mono text-[var(--text-muted)] shrink-0">
+                · {t.rewriteHistoryCount(rewriteHistoryItems.length)}
+              </span>
+              {isRewriteHistoryOpen ? (
+                <ChevronUp className="w-3 h-3 text-[var(--text-muted)] shrink-0" />
+              ) : (
+                <ChevronDown className="w-3 h-3 text-[var(--text-muted)] shrink-0" />
+              )}
+            </button>
+
+            {!isRewriteHistoryOpen && onRevertRewrite && !rewriteHistoryItems[0].isStreaming && (
+              <button
+                type="button"
+                data-revert-history-id={rewriteHistoryItems[0].id}
+                onClick={() =>
+                  onRevertRewrite(
+                    rewriteHistoryItems[0].id,
+                    rewriteHistoryItems[0].originalText
+                  )
+                }
+                title={t.revertRewriteAction}
+                aria-label={t.revertRewriteAction}
+                className="h-5 px-2 rounded-md bg-[var(--bg-elevated)] hover:bg-white/[0.08] border border-white/[0.08] text-[var(--text-muted)] hover:text-amber-200 text-[0.625rem] font-medium flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+              >
+                <RotateCcw className="w-2.5 h-2.5 text-amber-400" />
+                <span>{t.revertShortAction}</span>
+              </button>
+            )}
+          </div>
+
+          {isRewriteHistoryOpen && (
+            <div className="flex flex-col gap-1.5 max-h-44 overflow-y-auto custom-scrollbar pb-0.5">
+              {rewriteHistoryItems.map((item) => {
+                const isExpanded = Boolean(expandedHistoryIds[item.id]);
+                const isReverted = Boolean(item.revertedAt);
+                const isApplied = !isReverted && (item.appliedCount || 0) > 0;
+                return (
+                  <div
+                    key={item.id}
+                    data-history-entry-id={item.id}
+                    data-history-source={item.source}
+                    className="bg-[var(--bg-surface)] border border-white/[0.06] rounded-md px-2.5 py-1.5 flex flex-col gap-1"
+                  >
+                    <div className="flex items-center justify-between gap-2 text-[0.625rem]">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                        <span className="font-mono text-[var(--text-muted)] shrink-0">{item.timestamp}</span>
+                        <span className="text-[var(--text-tertiary)] shrink-0">·</span>
+                        <span className="text-[var(--text-muted)] shrink-0">
+                          {item.source === 'inline' ? t.rewriteSourceInline : t.rewriteSourceChat}
+                        </span>
+                        {item.fileName && (
+                          <span className="font-mono text-[var(--text-muted)] bg-[var(--bg-elevated)] px-1.5 py-0.5 rounded truncate max-w-[100px]">
+                            {item.fileName}
+                          </span>
+                        )}
+                        <span className="inline-flex items-center gap-1 font-medium shrink-0">
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isReverted
+                                ? 'bg-amber-400'
+                                : isApplied
+                                ? 'bg-[var(--secondary-accent)]'
+                                : 'bg-[#475569]'
+                            }`}
+                          />
+                          <span
+                            className={
+                              isReverted
+                                ? 'text-amber-300'
+                                : isApplied
+                                ? 'text-[var(--secondary-accent)]'
+                                : 'text-[var(--text-muted)]'
+                            }
+                          >
+                            {isReverted
+                              ? t.rewriteStatusReverted
+                              : isApplied
+                              ? t.rewriteStatusApplied
+                              : t.rewriteStatusReady}
+                          </span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {item.msgId && (
+                          <button
+                            type="button"
+                            onClick={() => scrollToThreadMessage(item.msgId!)}
+                            className="text-[var(--accent-primary)] hover:opacity-85 transition-colors cursor-pointer"
+                          >
+                            {t.jumpToMessage}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedHistoryIds((prev) => ({
+                              ...prev,
+                              [item.id]: !prev[item.id],
+                            }))
+                          }
+                          className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
+                        >
+                          {t.toggleRewriteCompare}
+                        </button>
+                      </div>
+                    </div>
+
+                    {item.prompt && (
+                      <div className="text-[0.625rem] text-[var(--accent-primary)] truncate font-sans">
+                        {item.prompt}
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedHistoryIds((prev) => ({
+                          ...prev,
+                          [item.id]: !prev[item.id],
+                        }))
+                      }
+                      className="text-left text-[0.6875rem] text-[var(--text-muted)] font-sans cursor-pointer hover:text-[var(--text-main)] transition-colors"
+                    >
+                      <div className={isExpanded ? 'whitespace-pre-wrap break-words' : 'truncate'}>
+                        <span className="text-[var(--text-tertiary)] mr-1">{t.rewriteOriginalLabel}:</span>
+                        <span className="text-[var(--text-muted)]">
+                          {isExpanded ? item.originalText : item.originalText.replace(/\s+/g, ' ')}
+                        </span>
+                      </div>
+                      {isExpanded && item.rewrittenText && (
+                        <div className="mt-1 pt-1 border-t border-white/[0.06] whitespace-pre-wrap break-words">
+                          <span className="text-[var(--accent-primary)] mr-1">{t.rewriteResultLabel}:</span>
+                          <span className="text-[var(--text-main)]">{item.rewrittenText}</span>
+                        </div>
+                      )}
+                    </button>
+
+                    {!item.isStreaming && (
+                      <div className="flex items-center justify-between gap-1.5 flex-wrap pt-0.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {onRevertRewrite && (
+                            <button
+                              type="button"
+                              data-revert-history-id={item.id}
+                              onClick={() => onRevertRewrite(item.id, item.originalText)}
+                              title={t.revertRewriteAction}
+                              aria-label={t.revertRewriteAction}
+                              className="h-5 px-2 rounded-md bg-[var(--bg-elevated)] hover:bg-white/[0.08] border border-white/[0.08] text-[var(--text-muted)] hover:text-amber-200 text-[0.625rem] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <RotateCcw className="w-2.5 h-2.5 text-amber-400" />
+                              <span>{t.revertShortAction}</span>
+                            </button>
+                          )}
+                          {onApplyRewrite && item.rewrittenText && (
+                            <button
+                              type="button"
+                              data-apply-history-id={item.id}
+                              onClick={() => onApplyRewrite(item.id, item.rewrittenText)}
+                              className="h-5 px-2 rounded-md bg-[#F1F5F9] hover:bg-white text-[#0F172A] text-[0.625rem] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <Check className="w-2.5 h-2.5" />
+                              <span>{t.applyRewriteAction}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
 
       {/* Middle Message Viewport & Confined Project Drawer Flex Container */}
       <div className="flex-1 min-h-0 relative flex flex-row overflow-hidden">
@@ -297,16 +549,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               type="button"
               id="project-drawer-edge-tab"
               onClick={onToggleProjectDrawer}
-              className={`absolute left-full top-3 w-4 h-12 flex items-center justify-center rounded-r-md border border-l-0 border-[#222226] transition-colors duration-200 cursor-pointer hover:w-5 ${
+              className={`absolute left-full top-3 w-4 h-12 flex items-center justify-center rounded-r-md border border-l-0 border-white/[0.06] transition-colors duration-200 cursor-pointer hover:w-5 ${
                 isProjectDrawerOpen
-                  ? 'bg-[#121214] text-indigo-400 hover:text-indigo-300'
-                  : 'bg-[#18181b] text-zinc-400 hover:text-indigo-400'
+                  ? 'bg-[var(--bg-editor)] text-[var(--accent-primary)]'
+                  : 'bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--accent-primary)]'
               }`}
               title={t.toggleProjectDrawer}
               aria-label={t.toggleProjectDrawer}
               aria-pressed={!!isProjectDrawerOpen}
             >
-              <ChevronRight className={`w-3 h-3 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isProjectDrawerOpen ? 'rotate-180' : 'rotate-0'}`} />
+              <ChevronRight className={`w-3 h-3 transition-transform duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${isProjectDrawerOpen ? 'rotate-180' : 'rotate-0'}`} />
             </button>
           )}
         </div>
@@ -333,42 +585,42 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                     id="webllm-chat-download-progress"
                     className="flex flex-col items-center justify-center min-h-[360px] h-full text-center px-6 py-12 select-none max-w-md mx-auto w-full animate-in fade-in duration-200"
                   >
-                    <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4 text-[#6366f1]">
-                      <Loader2 className="w-6 h-6 animate-spin text-[#6366f1]" />
+                    <div className="w-12 h-12 rounded-full bg-white/[0.05] border border-[var(--accent-primary)]/30 flex items-center justify-center mb-4 text-[var(--accent-primary)]">
+                      <Loader2 className="w-6 h-6 animate-spin text-[var(--accent-primary)]" />
                     </div>
-                    <h3 className="text-sm font-semibold text-zinc-100 mb-1">
+                    <h3 className="text-sm font-semibold text-[var(--text-main)] mb-1">
                       {t.downloadTitle}
                     </h3>
-                    <p className="text-xs text-zinc-400 mb-5 leading-relaxed break-keep">
+                    <p className="text-xs text-[var(--text-muted)] mb-5 leading-relaxed break-keep">
                       {t.downloadDescription}
                     </p>
 
                     {/* 0~100% 게이지 바 */}
-                    <div className="w-full bg-[#09090b] border border-[#222226] rounded-full h-2 overflow-hidden mb-2.5">
+                    <div className="w-full bg-[var(--bg-editor)] border border-white/[0.06] rounded-full h-2 overflow-hidden mb-2.5">
                       <div
-                        className="bg-[#6366f1] h-full w-full rounded-full origin-left transition-transform duration-200 ease-out"
+                        className="bg-[var(--accent-primary)] h-full w-full rounded-full origin-left transition-transform duration-200 ease-out"
                         style={{ transform: `scaleX(${Math.max(0.02, Math.min(1, (webllmProgress.progressPercent ?? 0) / 100))})` }}
                       />
                     </div>
 
-                    <div className="flex items-center justify-between w-full text-xs text-zinc-400 font-mono">
+                    <div className="flex items-center justify-between w-full text-xs text-[var(--text-muted)] font-mono">
                       <span className="truncate max-w-[75%] text-left text-[11px]" title={webllmProgress.progressText}>
                         {webllmProgress.progressText || t.downloadProgress}
                       </span>
-                      <span className="font-bold text-[#6366f1] text-xs shrink-0">
+                      <span className="font-bold text-[var(--accent-primary)] text-xs shrink-0">
                         {webllmProgress.progressPercent ?? 0}%
                       </span>
                     </div>
-                    <div className="mt-3 text-[10px] text-zinc-500 font-mono">
+                    <div className="mt-3 text-[10px] text-[var(--text-tertiary)] font-mono">
                       {t.memoryRecommendation}
                     </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center min-h-[360px] h-full text-center px-4 py-16 select-none">
-                    <p className="text-sm font-medium text-zinc-300">
+                    <p className="text-sm font-medium text-[var(--text-main)]">
                       {t.startConversation}
                     </p>
-                    <p className="text-xs text-zinc-500 mt-1.5 max-w-xs leading-relaxed">
+                    <p className="text-xs text-[var(--text-secondary)] mt-1.5 max-w-xs leading-relaxed">
                       {t.supportedTasks}
                     </p>
                   </div>
@@ -376,19 +628,19 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               ) : (
                 <>
                   {webllmProgress?.isLoading && (
-                    <div className="p-3 bg-[#121214] border border-[#222226] rounded-md select-none mb-3">
+                    <div className="p-3 bg-[var(--bg-editor)] border border-white/[0.06] rounded-lg select-none mb-3">
                       <div className="flex items-center justify-between text-xs mb-1.5">
-                        <span className="flex items-center gap-1.5 text-zinc-200 font-medium">
-                          <Loader2 className="w-3.5 h-3.5 text-[#6366f1] animate-spin" />
+                        <span className="flex items-center gap-1.5 text-[var(--text-main)] font-medium">
+                          <Loader2 className="w-3.5 h-3.5 text-[var(--accent-primary)] animate-spin" />
                           {t.downloading}
                         </span>
-                        <span className="font-mono font-bold text-[#6366f1]">
+                        <span className="font-mono font-bold text-[var(--accent-primary)]">
                           {webllmProgress.progressPercent ?? 0}%
                         </span>
                       </div>
-                      <div className="w-full bg-[#09090b] border border-[#222226] rounded-full h-1.5 overflow-hidden">
+                      <div className="w-full bg-[var(--bg-main)] border border-white/[0.06] rounded-full h-1.5 overflow-hidden">
                         <div
-                          className="bg-[#6366f1] h-full w-full rounded-full origin-left transition-transform duration-200 ease-out"
+                          className="bg-[var(--accent-primary)] h-full w-full rounded-full origin-left transition-transform duration-200 ease-out"
                           style={{ transform: `scaleX(${Math.max(0.02, Math.min(1, (webllmProgress.progressPercent ?? 0) / 100))})` }}
                         />
                       </div>
@@ -396,38 +648,42 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   )}
                   {messages.map((msg) =>
                   msg.sender === 'ai' ? (
-                    <AiMessageBubble
-                      key={msg.id}
-                      msg={msg}
-                      selectedModel={
-                        selectedModel === WEB_LLM_MODEL_ID
-                          ? WEB_LLM_MODEL_DISPLAY_NAME
-                          : isOnboardingMode
-                          ? t.onboardingAssistant
-                          : selectedModel
-                      }
-                      onCopy={(text) => {
-                        navigator.clipboard.writeText(text);
-                        onToast(t.copySuccess);
-                      }}
-                      onDiff={(text, model) => {
-                        onDiff(text, model);
-                      }}
-                      onSendToEditor={(text) => onSendToEditor(text)}
-                      onActionChipClick={(chipType) => onActionChipClick?.(chipType)}
-                      onOpenSettings={(tab) => onOpenSettings?.(tab)}
-                      onTranslate={onTranslate}
-                    />
+                    <div key={msg.id} id={`chat-msg-${msg.id}`}>
+                      <AiMessageBubble
+                        msg={msg}
+                        language={language}
+                        selectedModel={
+                          selectedModel === WEB_LLM_MODEL_ID
+                            ? WEB_LLM_MODEL_DISPLAY_NAME
+                            : isOnboardingMode
+                            ? t.onboardingAssistant
+                            : selectedModel
+                        }
+                        onCopy={(text) => {
+                          navigator.clipboard.writeText(text);
+                          onToast(t.copySuccess);
+                        }}
+                        onDiff={(text, model) => {
+                          onDiff(text, model);
+                        }}
+                        onSendToEditor={(text) => onSendToEditor(text)}
+                        onApplyRewrite={onApplyRewrite}
+                        onRevertRewrite={onRevertRewrite}
+                        onActionChipClick={(chipType) => onActionChipClick?.(chipType)}
+                        onOpenSettings={(tab) => onOpenSettings?.(tab)}
+                        onTranslate={onTranslate}
+                      />
+                    </div>
                   ) : (
-                    <div key={msg.id} className="flex gap-2.5 items-start select-text justify-end">
-                      <div className="rounded-md p-3 text-xs leading-relaxed space-y-2 select-text cursor-text bg-[#18181f] border border-white/[0.08] text-slate-100 max-w-[85%]">
+                    <div key={msg.id} id={`chat-msg-${msg.id}`} className="flex gap-2.5 items-start select-text justify-end">
+                      <div className="rounded-lg p-3 text-xs leading-relaxed space-y-2 select-text cursor-text bg-[var(--bg-elevated)] border border-white/[0.06] text-[var(--text-main)] max-w-[85%]">
                         {/* Attachment Rendering */}
                         {msg.attachments && msg.attachments.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 pt-0.5 border-b border-white/[0.06] pb-1.5 select-none">
                             {msg.attachments.map((att) => (
                               <div
                                 key={att.id}
-                                className="rounded overflow-hidden border border-white/[0.06] bg-black/40 p-1 flex items-center gap-1.5 max-w-full"
+                                className="rounded-md overflow-hidden border border-white/[0.06] bg-[var(--bg-surface)] p-1 flex items-center gap-1.5 max-w-full"
                               >
                                 {att.type === 'image' && att.url ? (
                                   <img
@@ -436,16 +692,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                                     className="max-h-36 rounded border border-white/[0.06] object-cover"
                                   />
                                 ) : att.type === 'link' ? (
-                                  <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-slate-300 font-mono">
-                                    <Link2 className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
+                                  <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-[var(--text-main)] font-mono">
+                                    <Link2 className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                                     <span className="truncate max-w-[150px] font-medium">{att.name}</span>
-                                    <span className="text-[0.625rem] text-slate-400">({att.size})</span>
+                                    <span className="text-[0.625rem] text-[var(--text-muted)]">({att.size})</span>
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-slate-300 font-mono">
-                                    <FileText className="w-3.5 h-3.5 text-[#6366f1] shrink-0" />
+                                  <div className="flex items-center gap-1.5 px-1 text-[0.6875rem] text-[var(--text-main)] font-mono">
+                                    <FileText className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                                     <span className="truncate max-w-[150px] font-medium">{att.name}</span>
-                                    <span className="text-[0.625rem] text-slate-400">({att.size})</span>
+                                    <span className="text-[0.625rem] text-[var(--text-muted)]">({att.size})</span>
                                   </div>
                                 )}
                               </div>
@@ -457,21 +713,38 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                         {msg.ghostWriterLevel && msg.ghostWriterLevel !== 'off' && (
                           <div className="flex flex-col gap-1 pb-1.5 mb-1.5 border-b border-white/[0.06] select-none">
                             <div className="flex items-center justify-between gap-2 text-[0.625rem]">
-                              <span className="inline-flex items-center gap-1 font-semibold text-emerald-200 bg-emerald-950/80 px-1.5 py-0.5 rounded text-[0.5625rem] border border-emerald-800/60">
-                                <Ghost className="w-3 h-3 text-emerald-300" />
+                              <span className="inline-flex items-center gap-1.5 font-medium text-[var(--secondary-accent)] text-[0.625rem]">
+                                <Ghost className="w-3 h-3 text-[var(--secondary-accent)]" />
                                 Ghost Writer {msg.ghostWriterLevel}%
                               </span>
-                              <span className="text-[0.625rem] text-[#38bdf8] font-mono flex items-center gap-1">
-                                <Globe className="w-3 h-3 text-[#0ea5e9]" />
+                              <span className="text-[0.625rem] text-[var(--accent-primary)] font-mono flex items-center gap-1">
+                                <Globe className="w-3 h-3 text-[var(--accent-primary)]" />
                                 {t.englishPrompt}
                               </span>
                             </div>
                             {msg.originalText && msg.originalText !== msg.text && (
-                              <div className="text-[0.6875rem] text-slate-300 flex items-start gap-1 font-sans pt-0.5">
-                                <span className="font-medium text-slate-400 shrink-0">{t.koreanOriginal}</span>
-                                <span className="italic text-slate-200">{msg.originalText}</span>
+                              <div className="text-[0.6875rem] text-[var(--text-muted)] flex items-start gap-1 font-sans pt-0.5">
+                                <span className="font-medium text-[var(--text-tertiary)] shrink-0">{t.koreanOriginal}</span>
+                                <span className="italic text-[var(--text-main)]">{msg.originalText}</span>
                               </div>
                             )}
+                          </div>
+                        )}
+
+                        {msg.selectionContext?.text && (
+                          <div className="bg-[var(--bg-editor)] border border-white/[0.06] rounded-md px-2.5 py-1.5 text-[0.6875rem] text-[var(--text-muted)] space-y-1">
+                            <div className="flex items-center gap-1.5 text-[0.625rem] text-[var(--text-main)] font-medium">
+                              <Quote className="w-3 h-3 text-[var(--accent-primary)] shrink-0" />
+                              <span>{t.selectionContextLabel}</span>
+                              {msg.selectionContext.fileName && (
+                                <span className="font-mono text-[var(--text-muted)] truncate max-w-[160px]">
+                                  {msg.selectionContext.fileName}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[var(--text-muted)] whitespace-pre-wrap line-clamp-3 font-sans leading-snug">
+                              {msg.selectionContext.text}
+                            </div>
                           </div>
                         )}
 
@@ -480,7 +753,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                         </div>
                       </div>
 
-                      <div className="w-6 h-6 rounded-md bg-[#121214] border border-[#222226] flex items-center justify-center text-slate-200 text-xs shrink-0 mt-0.5 select-none shadow-xs">
+                      <div className="w-6 h-6 rounded-md bg-[var(--bg-editor)] border border-white/[0.06] flex items-center justify-center text-[var(--text-muted)] text-xs shrink-0 mt-0.5 select-none">
                         <User className="w-3.5 h-3.5" />
                       </div>
                     </div>
@@ -489,24 +762,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               </>
             )}
 
-              {/* Preparation Indicator */}
+              {/* Minimalist AI Thinking State (Zero decorative icons, subtle shimmer) */}
               {isAiLoading && !messages.some((m) => m.isStreaming) && (
-                <div className="flex gap-2.5 items-center py-1 bg-transparent border-0 select-none">
-                  <div className="w-5 h-5 flex items-center justify-center text-indigo-400 text-xs shrink-0 select-none bg-transparent border-0">
-                    <Bot className="w-4 h-4 animate-pulse text-indigo-400" />
-                  </div>
-                  <div className="bg-transparent border-0 px-1 py-1 text-xs text-slate-400 flex items-center gap-2 font-sans shadow-none">
-                    <div className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                      <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></span>
-                    </div>
-                    <span className="text-slate-400 text-xs">
-                      {isOnboardingMode
-                        ? t.onboardingPreparing
-                        : t.modelPreparing}
-                    </span>
-                  </div>
+                <div className="py-1 px-1 select-none">
+                  <AIThinkingIndicator isThinking={true} />
                 </div>
               )}
             </motion.div>
@@ -522,9 +781,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               setIsScrolledUp(false);
               scrollToChatBottom(true);
             }}
-            className="absolute bottom-4 right-6 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#121214]/95 border border-[#222226] text-[0.6875rem] text-slate-300 hover:text-white shadow-lg hover:border-[#6366f1] transition-colors cursor-pointer group select-none"
+            className="absolute bottom-4 right-6 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] text-[0.6875rem] text-[var(--text-muted)] hover:text-[var(--text-main)] shadow-lg hover:border-[var(--accent-primary)]/50 transition-colors cursor-pointer group select-none"
           >
-            <ArrowDown className="w-3 h-3 text-[#6366f1] group-hover:translate-y-0.5 transition-transform" />
+            <ArrowDown className="w-3 h-3 text-[var(--accent-primary)] group-hover:translate-y-0.5 transition-transform" />
             <span>{t.scrollDown}</span>
           </button>
         )}
@@ -532,7 +791,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
       {/* Persistently Mounted Bottom UniversalPromptInput across the Full Width */}
       <UniversalPromptInput
-        className="w-full shrink-0 border-t border-[#222226]"
+        className="w-full shrink-0 border-t border-white/[0.06]"
         chatInput={chatInput}
         onChatInputChange={onChatInputChange}
         chatAttachments={chatAttachments}
@@ -541,6 +800,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         onAddFiles={onAddFiles}
         onSendMessage={onSendMessage}
         isAiLoading={isAiLoading}
+        selectedContext={selectedContext}
+        editorSelection={editorSelection}
+        onClearEditorSelection={onClearEditorSelection}
         allMentionItems={allMentionItems}
         selectedModel={selectedModel}
         onSelectModel={onSelectModel}

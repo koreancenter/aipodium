@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../context/LanguageContext';
 import { getCoreTranslations } from '../locales/coreLocale';
+import { SEASON_THEMES, resolveSeasonTheme } from '../utils/themeManager';
+import type { SeasonThemeId } from '../types/preferences';
 
 export interface TopMenuBarProps {
   handleCreateNewSession: () => void;
@@ -52,6 +54,7 @@ export interface TopMenuBarProps {
   preferences: any;
   handleQuickFontSize: (size: 'sm' | 'md' | 'lg' | 'xl') => void;
   handleQuickCompactness: (compactness: 'dense' | 'spacious') => void;
+  handleQuickSeasonTheme?: (season: SeasonThemeId) => void;
   handleOpenSSOTGeneratorModal: (title?: string) => void;
   activeSessionTitle?: string;
   setIsSsotAuditorOpen: (open: boolean) => void;
@@ -79,7 +82,7 @@ export interface TopMenuBarProps {
   onModeChange?: (mode: 'single' | 'routing' | 'multi') => void;
 }
 
-type MenuKey = 'file' | 'edit' | 'view' | 'tools' | 'ai' | 'settings' | 'help' | null;
+type MenuKey = 'file' | 'edit' | 'view' | 'tools' | 'settings' | 'help' | null;
 
 export const TopMenuBar: React.FC<TopMenuBarProps> = ({
   handleCreateNewSession,
@@ -120,6 +123,7 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
   preferences,
   handleQuickFontSize,
   handleQuickCompactness,
+  handleQuickSeasonTheme,
   handleOpenSSOTGeneratorModal,
   activeSessionTitle,
   setIsSsotAuditorOpen,
@@ -195,15 +199,15 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
 
 
 const MENU_POPOVER_CLASS =
-  'absolute left-0 top-full mt-1 min-w-[220px] bg-[#16181d] border border-white/[0.08] rounded-lg shadow-2xl p-1 z-50 text-xs text-zinc-300';
+  'absolute left-0 top-full mt-1.5 min-w-[220px] bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl p-1 z-50 text-xs text-[var(--text-secondary)]';
 const SUBMENU_POPOVER_CLASS =
-  'absolute top-0 left-full ml-1 min-w-[190px] bg-[#16181d] border border-white/[0.08] rounded-lg shadow-2xl p-1 z-50 text-xs text-zinc-300';
+  'absolute top-0 left-full ml-1.5 min-w-[190px] bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl p-1 z-50 text-xs text-[var(--text-secondary)]';
 const MENU_ITEM_CLASS =
-  'w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-md text-xs text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100 text-left transition-colors cursor-pointer';
+  'w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-lg text-xs text-[var(--text-secondary)] hover:bg-white/[0.06] hover:text-[var(--text-main)] text-left transition-colors cursor-pointer';
 const MENU_ITEM_ACTIVE_CLASS =
-  'w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-md text-xs bg-white/[0.06] text-zinc-100 font-medium text-left transition-colors cursor-pointer';
+  'w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-lg text-xs bg-white/[0.07] text-[var(--text-main)] font-medium text-left transition-colors cursor-pointer';
 const MENU_HEADER_CLASS =
-  'px-2.5 py-1 text-[10px] text-zinc-500 font-medium select-none';
+  'px-2.5 py-1 text-[10px] text-[var(--text-tertiary)] font-medium select-none';
 const MENU_DIVIDER_CLASS =
   'h-px bg-white/[0.06] my-1';
 
@@ -215,7 +219,7 @@ const MENU_DIVIDER_CLASS =
           setPreferencesInitialTab('ai-engine');
           setIsPreferencesModalOpen(true);
         }}
-        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06] transition-colors cursor-pointer"
+        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-md text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.05] transition-colors cursor-pointer"
         title={t.settings}
         aria-label={t.settings}
       >
@@ -225,7 +229,7 @@ const MENU_DIVIDER_CLASS =
   }
 
   return (
-    <div ref={containerRef} className="flex items-center select-none text-xs gap-0.5">
+    <div ref={containerRef} className="flex items-center select-none text-xs gap-1 ml-1">
       {/* 1. File */}
       <div className="relative">
         <button
@@ -234,8 +238,8 @@ const MENU_DIVIDER_CLASS =
           onMouseEnter={() => handleMenuHover('file')}
           className={`px-2.5 py-1 rounded-md transition-colors duration-150 ${
             activeMenu === 'file'
-              ? 'bg-[#222226] text-white font-medium'
-              : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06]'
+              ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.04]'
           }`}
         >
           {t.file}
@@ -255,7 +259,7 @@ const MENU_DIVIDER_CLASS =
               className={MENU_ITEM_CLASS}
             >
               <span>{t.newProject}</span>
-              <span className="text-[10px] text-zinc-500 font-mono shrink-0">Ctrl+Shift+N</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] font-mono shrink-0">Ctrl+Shift+N</span>
             </button>
 
             <button
@@ -267,7 +271,7 @@ const MENU_DIVIDER_CLASS =
               className={MENU_ITEM_CLASS}
             >
               <span>{t.newMarkdown}</span>
-              <span className="text-[10px] text-zinc-500 font-mono shrink-0">Ctrl+N</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] font-mono shrink-0">Ctrl+N</span>
             </button>
 
             <div className={MENU_DIVIDER_CLASS} />
@@ -281,7 +285,7 @@ const MENU_DIVIDER_CLASS =
               className={MENU_ITEM_CLASS}
             >
               <span>{t.openLocalFile}</span>
-              <span className="text-[10px] text-zinc-500 font-mono shrink-0">Ctrl+O</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] font-mono shrink-0">Ctrl+O</span>
             </button>
 
             <button
@@ -304,7 +308,7 @@ const MENU_DIVIDER_CLASS =
               className={MENU_ITEM_CLASS}
             >
               <span>{t.saveDocument}</span>
-              <span className="text-[10px] text-zinc-500 font-mono shrink-0">Ctrl+S</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] font-mono shrink-0">Ctrl+S</span>
             </button>
 
             {/* Export submenu */}
@@ -315,7 +319,7 @@ const MENU_DIVIDER_CLASS =
             >
               <div className="w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-md text-xs text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100 text-left cursor-pointer transition-colors">
                 <span>{t.exportOther}</span>
-                <ChevronRight className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                <ChevronRight className="w-3.5 h-3.5 text-[var(--text-tertiary)] shrink-0" />
               </div>
 
               {activeSubmenu === 'export' && (
@@ -416,7 +420,7 @@ const MENU_DIVIDER_CLASS =
               className={MENU_ITEM_CLASS}
             >
               <span>{t.workspaceIntegration}</span>
-              <span className="text-[10px] text-zinc-500 shrink-0">{activeWorkspace?.type || t.local}</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] shrink-0">{activeWorkspace?.type || t.local}</span>
             </button>
 
             <button
@@ -441,7 +445,7 @@ const MENU_DIVIDER_CLASS =
             >
               <span>{t.openTrash}</span>
               {trashSessionsCount > 0 && (
-                <span className="text-[10px] text-zinc-500 shrink-0">{t.count(trashSessionsCount)}</span>
+                <span className="text-[10px] text-[var(--text-tertiary)] shrink-0">{t.count(trashSessionsCount)}</span>
               )}
             </button>
 
@@ -469,8 +473,8 @@ const MENU_DIVIDER_CLASS =
           onMouseEnter={() => handleMenuHover('edit')}
           className={`px-2.5 py-1 rounded-md transition-colors duration-150 ${
             activeMenu === 'edit'
-              ? 'bg-[#222226] text-white font-medium'
-              : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06]'
+              ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.04]'
           }`}
         >
           {t.edit}
@@ -490,7 +494,7 @@ const MENU_DIVIDER_CLASS =
               className={MENU_ITEM_CLASS}
             >
               <span>{t.copyBody}</span>
-              <span className="text-[10px] text-zinc-500 font-mono shrink-0">Ctrl+A, Ctrl+C</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] font-mono shrink-0">Ctrl+A, Ctrl+C</span>
             </button>
 
             <button
@@ -502,7 +506,7 @@ const MENU_DIVIDER_CLASS =
               className={MENU_ITEM_CLASS}
             >
               <span>{t.formatMarkdown}</span>
-              <span className="text-[10px] text-zinc-500 font-mono shrink-0">Alt+Shift+F</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] font-mono shrink-0">Alt+Shift+F</span>
             </button>
 
             <div className={MENU_DIVIDER_CLASS} />
@@ -516,7 +520,7 @@ const MENU_DIVIDER_CLASS =
               className={MENU_ITEM_CLASS}
             >
               <span>{t.promptLibrary}</span>
-              <span className="text-[10px] text-zinc-500 font-mono shrink-0">Alt+P</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] font-mono shrink-0">Alt+P</span>
             </button>
 
             <button
@@ -529,7 +533,7 @@ const MENU_DIVIDER_CLASS =
             >
               <span>{t.clearChat}</span>
               {messagesCount > 0 && (
-                <span className="text-[10px] text-zinc-500 shrink-0">{t.count(messagesCount)}</span>
+                <span className="text-[10px] text-[var(--text-tertiary)] shrink-0">{t.count(messagesCount)}</span>
               )}
             </button>
           </div>
@@ -544,8 +548,8 @@ const MENU_DIVIDER_CLASS =
           onMouseEnter={() => handleMenuHover('view')}
           className={`px-2.5 py-1 rounded-md transition-colors duration-150 ${
             activeMenu === 'view'
-              ? 'bg-[#222226] text-white font-medium'
-              : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06]'
+              ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.04]'
           }`}
         >
           {t.view}
@@ -565,7 +569,7 @@ const MENU_DIVIDER_CLASS =
               className={MENU_ITEM_CLASS}
             >
               <span>{t.leftChatPanel}</span>
-              <span className="text-[10px] text-zinc-500 shrink-0">{isSection1Collapsed ? t.hide : t.show}</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] shrink-0">{isSection1Collapsed ? t.hide : t.show}</span>
             </button>
 
             <button
@@ -577,7 +581,7 @@ const MENU_DIVIDER_CLASS =
               className={MENU_ITEM_CLASS}
             >
               <span>{t.rightExplorerPanel}</span>
-              <span className="text-[10px] text-zinc-500 shrink-0">{isSection3Collapsed ? t.hide : t.show}</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] shrink-0">{isSection3Collapsed ? t.hide : t.show}</span>
             </button>
 
             <button
@@ -589,7 +593,7 @@ const MENU_DIVIDER_CLASS =
               className={MENU_ITEM_CLASS}
             >
               <span>{t.documentToc}</span>
-              <span className="text-[10px] text-zinc-500 shrink-0">{isTocOpen ? t.open : t.closed}</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] shrink-0">{isTocOpen ? t.open : t.closed}</span>
             </button>
 
             <button
@@ -625,7 +629,7 @@ const MENU_DIVIDER_CLASS =
                 className={editorTab === tab.id ? MENU_ITEM_ACTIVE_CLASS : MENU_ITEM_CLASS}
               >
                 <span>{tab.label}</span>
-                {editorTab === tab.id && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
+                {editorTab === tab.id && <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />}
               </button>
             ))}
 
@@ -639,18 +643,18 @@ const MENU_DIVIDER_CLASS =
               <button
                 type="button"
                 onClick={handleEditorZoomOut}
-                className="p-1 hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-100 rounded-md transition-colors cursor-pointer"
+                className="p-1 hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-md transition-colors cursor-pointer"
                 title={t.decreaseFont}
               >
                 <ZoomOut className="w-3.5 h-3.5" />
               </button>
-              <span className="text-zinc-300 font-mono text-[11px]">
+              <span className="text-[var(--text-secondary)] font-mono text-[11px]">
                 {editorFontSize === 'sm' ? '14px' : editorFontSize === 'md' ? '16px' : editorFontSize === 'lg' ? '18px' : '20px'}
               </span>
               <button
                 type="button"
                 onClick={handleEditorZoomIn}
-                className="p-1 hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-100 rounded-md transition-colors cursor-pointer"
+                className="p-1 hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-md transition-colors cursor-pointer"
                 title={t.increaseFont}
               >
                 <ZoomIn className="w-3.5 h-3.5" />
@@ -670,7 +674,7 @@ const MENU_DIVIDER_CLASS =
                 <span>
                   {size === 'sm' ? t.small : size === 'md' ? t.normal : size === 'lg' ? t.large : t.extraLarge}
                 </span>
-                {editorFontSize === size && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
+                  {editorFontSize === size && <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />}
               </button>
             ))}
 
@@ -685,10 +689,63 @@ const MENU_DIVIDER_CLASS =
               className={MENU_ITEM_CLASS}
             >
               <span>{t.layoutDensity}</span>
-              <span className="text-[10px] text-zinc-500 shrink-0">
+              <span className="text-[10px] text-[var(--text-tertiary)] shrink-0">
                 {preferences?.compactness === 'dense' ? t.compact : t.spacious}
               </span>
             </button>
+
+            {handleQuickSeasonTheme && (
+              <div
+                className="relative"
+                onMouseEnter={() => setActiveSubmenu('season-theme')}
+                onMouseLeave={() => setActiveSubmenu(null)}
+              >
+                <div className={MENU_ITEM_CLASS}>
+                  <span>{t.seasonTheme}</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{
+                        backgroundColor:
+                          SEASON_THEMES[resolveSeasonTheme(preferences?.seasonTheme || 'default')].accentPrimary,
+                      }}
+                    />
+                    <ChevronRight className="w-3.5 h-3.5 text-[var(--text-tertiary)] shrink-0" />
+                  </div>
+                </div>
+
+                {activeSubmenu === 'season-theme' && (
+                  <div className={SUBMENU_POPOVER_CLASS}>
+                    {(['default', 'spring', 'summer', 'autumn', 'winter', 'auto'] as SeasonThemeId[]).map((seasonId) => {
+                      const activeSeasonSetting = preferences?.seasonTheme || 'default';
+                      const isSelected = activeSeasonSetting === seasonId;
+                      const swatchColor = SEASON_THEMES[resolveSeasonTheme(seasonId)].accentPrimary;
+                      const label = t.seasons[seasonId];
+                      return (
+                        <button
+                          key={seasonId}
+                          type="button"
+                          onClick={() => {
+                            closeMenu();
+                            handleQuickSeasonTheme(seasonId);
+                          }}
+                          className={isSelected ? MENU_ITEM_ACTIVE_CLASS : MENU_ITEM_CLASS}
+                        >
+                          <span className="flex items-center gap-2 min-w-0">
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: swatchColor }}
+                            />
+                            <span className="truncate">{label}</span>
+                          </span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -701,8 +758,8 @@ const MENU_DIVIDER_CLASS =
           onMouseEnter={() => handleMenuHover('tools')}
           className={`px-2.5 py-1 rounded-md transition-colors duration-150 ${
             activeMenu === 'tools'
-              ? 'bg-[#222226] text-white font-medium'
-              : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06]'
+              ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.04]'
           }`}
         >
           {t.tools}
@@ -722,7 +779,7 @@ const MENU_DIVIDER_CLASS =
               className={MENU_ITEM_CLASS}
             >
               <span>{t.ssotGenerator}</span>
-              <span className="text-[10px] text-zinc-500 font-mono shrink-0">Alt+C</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] font-mono shrink-0">Alt+C</span>
             </button>
 
             <button
@@ -749,69 +806,6 @@ const MENU_DIVIDER_CLASS =
 
             <div className={MENU_DIVIDER_CLASS} />
 
-            <button
-              type="button"
-              onClick={() => {
-                closeMenu();
-                if (pdfViewerRef?.current?.triggerOptimize) {
-                  pdfViewerRef.current.triggerOptimize();
-                } else {
-                  showToast(t.pdfViewerRequired, 'info');
-                }
-              }}
-              className={MENU_ITEM_CLASS}
-            >
-              <span>{t.pdfOptimize}</span>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* 5. AI */}
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => handleMenuClick('ai')}
-          onMouseEnter={() => handleMenuHover('ai')}
-          className={`px-2.5 py-1 rounded-md transition-colors duration-150 ${
-            activeMenu === 'ai'
-              ? 'bg-[#222226] text-white font-medium'
-              : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06]'
-          }`}
-        >
-          AI
-        </button>
-
-        {activeMenu === 'ai' && (
-          <div
-            className={MENU_POPOVER_CLASS}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                closeMenu();
-                setIsAiRoleModalOpen(true);
-              }}
-              className={MENU_ITEM_CLASS}
-            >
-              <span>{t.aiRoles}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                closeMenu();
-                setPreferencesInitialTab('ai');
-                setIsPreferencesModalOpen(true);
-              }}
-              className={MENU_ITEM_CLASS}
-            >
-              <span>{t.aiEngine}</span>
-            </button>
-
-            <div className="border-t border-white/5 my-1" />
-
             {/* Ghostwriter submenu and toggle */}
             <div
               className="relative"
@@ -833,11 +827,11 @@ const MENU_DIVIDER_CLASS =
               >
                 <div className="flex items-center gap-2">
                   <span>{t.ghostWriter}</span>
-                  <span className="text-[10px] text-zinc-500 font-mono">
+                  <span className="text-[10px] text-[var(--text-tertiary)] font-mono">
                     {ghostWriterLevel && ghostWriterLevel !== 'off' ? t.enabled : t.disabled}
                   </span>
                 </div>
-                <ChevronRight className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                <ChevronRight className="w-3.5 h-3.5 text-[var(--text-tertiary)] shrink-0" />
               </div>
 
               {activeSubmenu === 'ghost-writer' && (
@@ -853,7 +847,7 @@ const MENU_DIVIDER_CLASS =
                   >
                     <span>{t.turnOff}</span>
                     {(!ghostWriterLevel || ghostWriterLevel === 'off') && (
-                      <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                     )}
                   </button>
                   <button
@@ -867,17 +861,34 @@ const MENU_DIVIDER_CLASS =
                   >
                     <span>{t.turnOn}</span>
                     {ghostWriterLevel && ghostWriterLevel !== 'off' && (
-                      <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                     )}
                   </button>
                 </div>
               )}
             </div>
+
+            <div className={MENU_DIVIDER_CLASS} />
+
+            <button
+              type="button"
+              onClick={() => {
+                closeMenu();
+                if (pdfViewerRef?.current?.triggerOptimize) {
+                  pdfViewerRef.current.triggerOptimize();
+                } else {
+                  showToast(t.pdfViewerRequired, 'info');
+                }
+              }}
+              className={MENU_ITEM_CLASS}
+            >
+              <span>{t.pdfOptimize}</span>
+            </button>
           </div>
         )}
       </div>
 
-      {/* 6. Settings */}
+      {/* 5. Settings */}
       <div className="relative">
         <button
           type="button"
@@ -885,8 +896,8 @@ const MENU_DIVIDER_CLASS =
           onMouseEnter={() => handleMenuHover('settings')}
           className={`px-2.5 py-1 rounded-md transition-colors duration-150 ${
             activeMenu === 'settings'
-              ? 'bg-[#222226] text-white font-medium'
-              : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06]'
+              ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.04]'
           }`}
         >
           {t.settings}
@@ -907,19 +918,7 @@ const MENU_DIVIDER_CLASS =
               className={MENU_ITEM_CLASS}
             >
               <span>{t.preferences}</span>
-              <span className="text-[10px] text-zinc-500 font-mono shrink-0">Ctrl+,</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                closeMenu();
-                setPreferencesInitialTab('language');
-                setIsPreferencesModalOpen(true);
-              }}
-              className={MENU_ITEM_CLASS}
-            >
-              <span>{t.languagePreference}</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] font-mono shrink-0">Ctrl+,</span>
             </button>
 
             <button
@@ -974,7 +973,7 @@ const MENU_DIVIDER_CLASS =
         )}
       </div>
 
-      {/* 7. Help */}
+      {/* 6. Help */}
       <div className="relative">
         <button
           type="button"
@@ -982,8 +981,8 @@ const MENU_DIVIDER_CLASS =
           onMouseEnter={() => handleMenuHover('help')}
           className={`px-2.5 py-1 rounded-md transition-colors duration-150 ${
             activeMenu === 'help'
-              ? 'bg-[#222226] text-white font-medium'
-              : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06]'
+              ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.04]'
           }`}
         >
           {t.help}
@@ -1003,7 +1002,7 @@ const MENU_DIVIDER_CLASS =
               className={MENU_ITEM_CLASS}
             >
               <span>{t.shortcuts}</span>
-              <span className="text-[10px] text-zinc-500 font-mono shrink-0">Ctrl+/</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] font-mono shrink-0">Ctrl+/</span>
             </button>
 
             <button
@@ -1039,7 +1038,7 @@ const MENU_DIVIDER_CLASS =
               className={MENU_ITEM_CLASS}
             >
               <span>{t.about}</span>
-              <span className="text-[10px] text-zinc-500 font-mono shrink-0">v0.1.0</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] font-mono shrink-0">v0.1.0</span>
             </button>
           </div>
         )}

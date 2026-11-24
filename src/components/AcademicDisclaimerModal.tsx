@@ -18,23 +18,23 @@ export const AcademicDisclaimerModal: React.FC<AcademicDisclaimerModalProps> = (
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[var(--bg-main)]/80 backdrop-blur-sm animate-in fade-in duration-150"
       role="dialog"
       aria-modal="true"
       aria-labelledby="disclaimer-title"
     >
-      <div className="bg-[#121214] border border-[#222226] rounded-xl shadow-2xl flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-zinc-100 font-sans">
+      <div className="bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-[var(--text-main)] font-sans">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 bg-[#181a23] border-b border-[#222226]">
+        <div className="flex items-center justify-between px-5 py-4 bg-[var(--bg-surface)]/90 border-b border-white/[0.06]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 shrink-0">
               <ShieldAlert className="w-4.5 h-4.5" />
             </div>
             <div>
-              <h2 id="disclaimer-title" className="text-sm sm:text-base font-semibold text-zinc-100 tracking-tight">
+              <h2 id="disclaimer-title" className="text-sm sm:text-base font-semibold text-[var(--text-main)] tracking-tight">
                 {isKr ? 'AI Podium 서비스 이용 및 법적 면책 고지' : 'Service & Legal Disclaimer'}
               </h2>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-[var(--text-muted)] mt-0.5">
                 aipodium.net · {isKr ? '로컬 우선 통합 지식 플랫폼' : 'Local-First Unified Knowledge Platform'}
               </p>
             </div>
@@ -43,7 +43,7 @@ export const AcademicDisclaimerModal: React.FC<AcademicDisclaimerModalProps> = (
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-white/10 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+            className="p-1.5 rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-slate-200 transition-colors cursor-pointer"
             title={isKr ? '닫기' : 'Close'}
             aria-label={isKr ? '닫기' : 'Close'}
           >
@@ -52,7 +52,7 @@ export const AcademicDisclaimerModal: React.FC<AcademicDisclaimerModalProps> = (
         </div>
 
         {/* Scrollable Content - Flattened Clean Document Layout */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs text-zinc-300 leading-relaxed bg-[#121214]">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs text-[var(--text-muted)] leading-relaxed bg-[var(--bg-editor)]">
           {/* Top Legal Notice Compact Banner */}
           <div className="p-3 rounded-md bg-amber-950/25 border border-amber-500/25 text-amber-200 text-xs leading-relaxed flex items-start gap-2.5">
             <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
@@ -71,7 +71,7 @@ export const AcademicDisclaimerModal: React.FC<AcademicDisclaimerModalProps> = (
           {/* Core Clauses: Pure Flattened Document Sections */}
           <div className="space-y-5 pt-1">
             {/* Core Section 1: Local Data Loss Policy */}
-            <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
+            <section className="space-y-1.5 pb-4 border-b border-white/[0.06]">
               <h3 className="text-sm font-medium text-zinc-200">
                 {isKr ? '1. 데이터 보관 및 백업 책임' : '1. Local Data Ownership & Backup'}
               </h3>
@@ -83,7 +83,7 @@ export const AcademicDisclaimerModal: React.FC<AcademicDisclaimerModalProps> = (
             </section>
 
             {/* Core Section 2: AI Accuracy & Hallucination Disclaimer */}
-            <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
+            <section className="space-y-1.5 pb-4 border-b border-white/[0.06]">
               <h3 className="text-sm font-medium text-zinc-200">
                 {isKr ? '2. AI 답변의 학술적 검증' : '2. Academic Verification & AI Accuracy'}
               </h3>
@@ -95,7 +95,7 @@ export const AcademicDisclaimerModal: React.FC<AcademicDisclaimerModalProps> = (
             </section>
 
             {/* Core Section 3: BYOK & API Billing Responsibility */}
-            <section className="space-y-1.5 pb-4 border-b border-[#222226]/60">
+            <section className="space-y-1.5 pb-4 border-b border-white/[0.06]">
               <h3 className="text-sm font-medium text-zinc-200">
                 {isKr ? '3. 개인 API 키 관리 및 과금' : '3. Custom API Key & Costs'}
               </h3>
@@ -121,8 +121,8 @@ export const AcademicDisclaimerModal: React.FC<AcademicDisclaimerModalProps> = (
         </div>
 
         {/* Footer with Explicit Agreement Button */}
-        <div className="px-5 py-3.5 bg-[#181a23] border-t border-[#222226] flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="text-xs text-zinc-400 font-mono">
+        <div className="px-5 py-3.5 bg-[var(--bg-surface)]/90 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-xs text-[var(--text-tertiary)] font-mono">
             {isKr ? '최신 개정일: 2026년 9월 · 베타 v1.0' : 'Last Updated: September 2026 · Beta v1.0'}
           </div>
 
@@ -131,7 +131,7 @@ export const AcademicDisclaimerModal: React.FC<AcademicDisclaimerModalProps> = (
             onClick={onClose}
             title={isKr ? '동의하고 닫기' : 'I Understand & Agree'}
             aria-label={isKr ? '동의하고 닫기' : 'I Understand & Agree'}
-            className="w-full sm:w-auto px-5 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs sm:text-sm font-medium transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+            className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F1F5F9] hover:bg-white text-[#0F172A] text-xs sm:text-sm font-medium transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
           >
             <Check className="w-4 h-4" />
             <span>{isKr ? '동의하고 닫기' : 'I Understand & Agree'}</span>

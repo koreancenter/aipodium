@@ -190,20 +190,20 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs">
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 6 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 6 }}
           transition={{ duration: 0.15, ease: 'easeOut' }}
-          className="max-w-md w-full bg-[#121214] border border-[#222226] rounded-xl p-5 shadow-2xl flex flex-col justify-between text-left"
+          className="max-w-md w-full bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl p-5 shadow-2xl flex flex-col justify-between text-left"
         >
           <div>
             {/* Header */}
             <div className="mb-4">
               <div className="flex items-center gap-2">
-                <Cpu className="w-4 h-4 text-indigo-400 shrink-0" />
-                <h2 className="text-sm font-semibold text-zinc-100 tracking-tight">
+                <Cpu className="w-4 h-4 text-[var(--accent-primary)] shrink-0" />
+                <h2 className="text-sm font-semibold text-[var(--text-main)] tracking-tight">
                   AI 엔진 선택
                 </h2>
               </div>
@@ -216,20 +216,20 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                 onClick={() => handleSelectOption('cloud')}
                 className={`px-3 py-2.5 rounded-lg border cursor-pointer transition flex items-center justify-between ${
                   selectedOption === 'cloud'
-                    ? 'border-indigo-500/50 bg-indigo-500/10'
-                    : 'border-white/5 hover:border-white/20 hover:bg-white/[0.03]'
+                    ? 'border-[var(--accent-primary)]/40 bg-white/[0.06]'
+                    : 'border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.03]'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <Sparkles className={`w-4 h-4 shrink-0 ${selectedOption === 'cloud' ? 'text-indigo-400' : 'text-zinc-500'}`} />
-                  <div className="text-xs font-medium text-zinc-200 truncate">
+                  <Sparkles className={`w-4 h-4 shrink-0 ${selectedOption === 'cloud' ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'}`} />
+                  <div className="text-xs font-medium text-[var(--text-main)] truncate">
                     클라우드 API · Gemini / OpenAI
                   </div>
                 </div>
                 <div
                   className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ml-2 transition-colors ${
                     selectedOption === 'cloud'
-                      ? 'border-indigo-500 bg-indigo-600 text-white'
+                      ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-[#0F172A]'
                       : 'border-white/20 bg-transparent'
                   }`}
                 >
@@ -242,20 +242,20 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                 onClick={() => handleSelectOption('ollama')}
                 className={`px-3 py-2.5 rounded-lg border cursor-pointer transition flex items-center justify-between ${
                   selectedOption === 'ollama'
-                    ? 'border-indigo-500/50 bg-indigo-500/10'
-                    : 'border-white/5 hover:border-white/20 hover:bg-white/[0.03]'
+                    ? 'border-[var(--accent-primary)]/40 bg-white/[0.06]'
+                    : 'border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.03]'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <Server className={`w-4 h-4 shrink-0 ${selectedOption === 'ollama' ? 'text-indigo-400' : 'text-zinc-500'}`} />
-                  <div className="text-xs font-medium text-zinc-200 truncate">
+                  <Server className={`w-4 h-4 shrink-0 ${selectedOption === 'ollama' ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'}`} />
+                  <div className="text-xs font-medium text-[var(--text-main)] truncate">
                     로컬 AI · Ollama
                   </div>
                 </div>
                 <div
                   className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ml-2 transition-colors ${
                     selectedOption === 'ollama'
-                      ? 'border-indigo-500 bg-indigo-600 text-white'
+                      ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-[#0F172A]'
                       : 'border-white/20 bg-transparent'
                   }`}
                 >
@@ -268,20 +268,20 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                 onClick={() => handleSelectOption('webllm')}
                 className={`px-3 py-2.5 rounded-lg border cursor-pointer transition flex items-center justify-between ${
                   selectedOption === 'webllm'
-                    ? 'border-indigo-500/50 bg-indigo-500/10'
-                    : 'border-white/5 hover:border-white/20 hover:bg-white/[0.03]'
+                    ? 'border-[var(--accent-primary)]/40 bg-white/[0.06]'
+                    : 'border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.03]'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <Cpu className={`w-4 h-4 shrink-0 ${selectedOption === 'webllm' ? 'text-indigo-400' : 'text-zinc-500'}`} />
-                  <div className="text-xs font-medium text-zinc-200 truncate">
+                  <Cpu className={`w-4 h-4 shrink-0 ${selectedOption === 'webllm' ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'}`} />
+                  <div className="text-xs font-medium text-[var(--text-main)] truncate">
                     브라우저 내장 WebLLM
                   </div>
                 </div>
                 <div
                   className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ml-2 transition-colors ${
                     selectedOption === 'webllm'
-                      ? 'border-indigo-500 bg-indigo-600 text-white'
+                      ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-[#0F172A]'
                       : 'border-white/20 bg-transparent'
                   }`}
                 >
@@ -305,14 +305,14 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                       }
                     }}
                     placeholder="Google Gemini API 키 입력"
-                    className="w-full bg-[#18181b] border border-[#222226] rounded-md px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 outline-none focus:border-indigo-500/60"
+                    className="w-full bg-[var(--bg-surface)] border border-white/[0.06] rounded-md px-3 py-2 text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none focus:border-[var(--accent-primary)]/50"
                   />
                   {apiKey.trim() && (
                     <button
                       type="button"
                       onClick={handleVerifyCloudKey}
                       disabled={isVerifyingCloudKey}
-                      className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-zinc-300 transition shrink-0 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                      className="px-3 py-1.5 text-xs bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] rounded-md text-[var(--text-muted)] hover:text-[var(--text-main)] transition shrink-0 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                       title={cloudKeyError || undefined}
                     >
                       {isVerifyingCloudKey ? (
@@ -322,8 +322,8 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                         </>
                       ) : cloudKeyResult === 'success' ? (
                         <>
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          <span className="text-emerald-400">연결 성공</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)]" />
+                          <span className="text-[var(--secondary-accent)]">연결 성공</span>
                         </>
                       ) : cloudKeyResult === 'failed' ? (
                         <>
@@ -343,13 +343,13 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                   <input
                     defaultValue="http://localhost:11434"
                     readOnly
-                    className="flex-1 bg-[#18181b] border border-[#222226] rounded-md px-3 py-2 text-xs text-zinc-100 font-mono outline-none"
+                    className="flex-1 bg-[var(--bg-surface)] border border-white/[0.06] rounded-md px-3 py-2 text-xs text-[var(--text-main)] font-mono outline-none"
                   />
                   <button
                     type="button"
                     onClick={handlePingOllama}
                     disabled={isPingingOllama}
-                    className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-zinc-300 transition shrink-0 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                    className="px-3 py-1.5 text-xs bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] rounded-md text-[var(--text-muted)] hover:text-[var(--text-main)] transition shrink-0 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                   >
                     {isPingingOllama ? (
                       <>
@@ -358,8 +358,8 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                       </>
                     ) : pingResult === 'success' ? (
                       <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                        <span className="text-emerald-400">연결 성공</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)]" />
+                        <span className="text-[var(--secondary-accent)]">연결 성공</span>
                       </>
                     ) : pingResult === 'failed' ? (
                       <>
@@ -375,21 +375,21 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
 
               {selectedOption === 'webllm' && (
                 webllmProgress?.isLoading ? (
-                  <div className="text-xs text-zinc-400 bg-white/[0.02] border border-[#222226] rounded-md px-3 py-2 w-full space-y-1">
+                  <div className="text-xs text-[var(--text-muted)] bg-[var(--bg-surface)]/70 border border-white/[0.06] rounded-md px-3 py-2 w-full space-y-1">
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="truncate">{webllmProgress.progressText || '가중치 다운로드 중...'}</span>
-                      <span className="font-mono text-zinc-300 shrink-0">{webllmProgress.progressPercent}%</span>
+                      <span className="font-mono text-[var(--text-main)] shrink-0">{webllmProgress.progressPercent}%</span>
                     </div>
-                    <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-1 bg-white/[0.08] rounded-full overflow-hidden">
                       <div
-                        className="h-full w-full bg-indigo-500 origin-left transition-transform duration-200 ease-out"
+                        className="h-full w-full bg-[var(--accent-primary)] origin-left transition-transform duration-200 ease-out"
                         style={{ transform: `scaleX(${Math.max(0.01, (webllmProgress.progressPercent || 0) / 100)})` }}
                       />
                     </div>
                   </div>
                 ) : (
-                  <div className="text-xs text-zinc-400 bg-white/[0.02] border border-[#222226] rounded-md px-3 py-2 w-full flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  <div className="text-xs text-[var(--text-muted)] bg-[var(--bg-surface)]/70 border border-white/[0.06] rounded-md px-3 py-2 w-full flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                     <span className="truncate">별도 설정 없이 브라우저 WebGPU를 통해 기기에서 즉시 실행됩니다.</span>
                   </div>
                 )
@@ -398,15 +398,15 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
           </div>
 
           {/* Footer */}
-          <div className="pt-3 border-t border-[#222226] flex items-center justify-between gap-3">
+          <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between gap-3">
             <label className="flex items-center gap-1.5 cursor-pointer select-none group">
               <input
                 type="checkbox"
                 checked={dontShowAgain}
                 onChange={(e) => setDontShowAgain(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border border-white/20 bg-[#09090b] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                className="w-3.5 h-3.5 rounded border border-white/20 bg-[var(--bg-surface)] accent-[var(--accent-primary)] focus:ring-0 focus:ring-offset-0 cursor-pointer"
               />
-              <span className="text-[11px] text-zinc-400 group-hover:text-zinc-300 transition-colors">
+              <span className="text-[11px] text-[var(--text-muted)] group-hover:text-[var(--text-main)] transition-colors">
                 다시 표시하지 않음
               </span>
             </label>
@@ -415,14 +415,14 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
               <button
                 type="button"
                 onClick={handleSkip}
-                className="px-2.5 py-1.5 text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer rounded-md font-medium"
+                className="px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer rounded-md font-medium"
               >
                 건너뛰기
               </button>
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-md text-xs font-medium transition cursor-pointer flex items-center gap-1 shadow-sm"
+                className="bg-[#F1F5F9] hover:bg-white text-[#0F172A] px-3.5 py-1.5 rounded-md text-xs font-medium transition cursor-pointer flex items-center gap-1 shadow-xs"
               >
                 저장 후 시작
               </button>

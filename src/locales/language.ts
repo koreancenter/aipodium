@@ -1,39 +1,66 @@
 export type AppLanguage = 'ko' | 'en';
-export type LanguagePreference = 'system' | AppLanguage;
+export type LanguagePreference = 'auto' | 'system' | AppLanguage;
 
 export const LANGUAGE_PREFERENCE_KEY = 'aipodium_language';
 export const LEGACY_AUTH_LANGUAGE_KEY = 'aipodium_auth_lang';
 
+/**
+ * Inspects navigator.languages (or navigator.language).
+ * If any preferred language starts with 'ko', returns 'ko'.
+ * If it starts with 'en', returns 'en'.
+ * Default fallback: 'ko'.
+ */
+export function detectBrowserLanguage(languages?: readonly string[]): AppLanguage {
+  const preferredLanguages: readonly string[] =
+    languages !== undefined
+      ? languages
+      : typeof navigator !== 'undefined'
+        ? navigator.languages && navigator.languages.length > 0
+          ? navigator.languages
+          : navigator.language
+            ? [navigator.language]
+            : []
+        : [];
+
+  for (const lang of preferredLanguages) {
+    if (!lang) continue;
+    const normalized = lang.toLowerCase().trim();
+    if (normalized.startsWith('ko')) return 'ko';
+    if (normalized.startsWith('en')) return 'en';
+  }
+
+  return 'ko';
+}
+
 export function normalizeLanguagePreference(value: string | null | undefined): LanguagePreference {
   if (value === 'ko' || value === 'en') return value;
-  return 'system';
+  if (value === 'auto' || value === 'system') return 'auto';
+  return 'auto';
 }
 
 export function resolveInitialLanguagePreference(
   savedPreference: string | null | undefined,
   legacyAuthLanguage: string | null | undefined
 ): LanguagePreference {
-  if (savedPreference === 'system' || savedPreference === 'ko' || savedPreference === 'en') {
+  if (savedPreference === 'ko' || savedPreference === 'en') {
     return savedPreference;
+  }
+  if (savedPreference === 'auto' || savedPreference === 'system') {
+    return 'auto';
   }
   if (legacyAuthLanguage === 'KR') return 'ko';
   if (legacyAuthLanguage === 'ENG') return 'en';
-  return 'system';
+  return 'auto';
 }
 
 export function resolveAppLanguage(
   preference: LanguagePreference,
-  browserLanguages: readonly string[]
+  browserLanguages?: readonly string[]
 ): AppLanguage {
-  if (preference !== 'system') return preference;
-
-  for (const browserLanguage of browserLanguages) {
-    const normalized = browserLanguage.toLowerCase();
-    if (normalized.startsWith('ko')) return 'ko';
-    if (normalized.startsWith('en')) return 'en';
+  if (preference === 'ko' || preference === 'en') {
+    return preference;
   }
-
-  return 'ko';
+  return detectBrowserLanguage(browserLanguages);
 }
 
 let activeLanguage: AppLanguage = 'ko';

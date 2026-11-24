@@ -68,7 +68,8 @@ export class OllamaAdapter implements AiProviderAdapter {
   }
 
   async stream(options: AiInferenceOptions): Promise<AiInferenceResult> {
-    const cleanEndpoint = this.getCleanEndpoint(options.endpoint);
+    const cleanEndpoint = this.getCleanEndpoint(options.endpoint || options.ollamaEndpoint);
+    const cleanModel = (options.model || 'llama3.3:latest').trim().replace(/^ollama\//i, '');
 
     // Prepare system and user messages
     const sysMsgs = options.messages.filter((m) => m.role === 'system');
@@ -101,21 +102,22 @@ export class OllamaAdapter implements AiProviderAdapter {
       timeoutId = setTimeout(() => controller?.abort(), 60000);
     }
 
+    const ollamaParams: Record<string, number> = {};
+    if (typeof options.temperature === 'number') ollamaParams.temperature = options.temperature;
+    if (typeof options.topP === 'number') ollamaParams.top_p = options.topP;
+    if (typeof options.maxTokens === 'number') ollamaParams.num_predict = options.maxTokens;
+
     try {
       const res = await fetch(`${cleanEndpoint}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal,
         body: JSON.stringify({
-          model: options.model,
+          model: cleanModel,
           messages: formattedMessages,
           stream: true,
           ...(options.responseFormat === 'json' ? { format: 'json' } : {}),
-          options: {
-            temperature: options.temperature,
-            top_p: options.topP,
-            num_predict: options.maxTokens,
-          },
+          ...(Object.keys(ollamaParams).length > 0 ? { options: ollamaParams } : {}),
         }),
       });
 
