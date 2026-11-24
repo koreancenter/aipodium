@@ -193,32 +193,32 @@ test('External Link Ingestion Pipeline & Model Selector', async (t) => {
       'utf-8'
     );
 
-    // Verify fixed dimensions on outer popover with ultra-luxury cyber-luxury glassmorphism surface
+    // Verify fixed dimensions on outer popover with matte precision command palette surface
     assert.match(
       selectorFile,
-      /w-\[340px\]\s+min-w-\[340px\]\s+max-w-\[340px\]\s+h-\[400px\]\s+flex\s+flex-col\s+bg-\[var\(--bg-elevated\)\]\/95\s+border\s+border-\[rgba\(var\(--accent-rgb\),0\.28\)\]\s+shadow-\[var\(--rim-glow\)\]\s+cyber-rim-top\s+backdrop-blur-md\s+rounded-xl\s+overflow-hidden/,
-      'Outer popover container must enforce ultra-luxury glassmorphism surface'
+      /w-\[340px\]\s+min-w-\[340px\]\s+max-w-\[340px\]\s+h-\[400px\]\s+max-h-\[420px\]\s+flex\s+flex-col\s+bg-\[var\(--bg-elevated\)\]\/95\s+backdrop-blur-xl\s+border\s+border-white\/\[0\.09\]\s+shadow-\[0_24px_48px_-12px_rgba\(0,0,0,0\.85\)\]\s+rounded-xl\s+overflow-hidden/,
+      'Outer popover container must enforce matte precision command palette glass surface'
     );
 
-    // Verify compact header slot
+    // Verify borderless command search header slot
     assert.match(
       selectorFile,
-      /shrink-0\s+border-b\s+border-\[var\(--border-structural\)\]\s+bg-\[var\(--bg-surface\)\]\/70/,
-      'Header slot must have compact border-b border-[var(--border-structural)] bg-[var(--bg-surface)]/70'
+      /shrink-0\s+px-3\.5\s+py-2\.5\s+border-b\s+border-white\/\[0\.06\]/,
+      'Header slot must have borderless command search row with hairline divider'
     );
 
     // Verify scrollable body viewport
     assert.match(
       selectorFile,
-      /flex-1\s+min-h-0\s+overflow-y-auto\s+p-2\s+space-y-1/,
-      'Body flex child must have flex-1 min-h-0 overflow-y-auto p-2 space-y-1'
+      /flex-1\s+min-h-0\s+overflow-y-auto\s+p-2\s+space-y-0\.5/,
+      'Body flex child must have flex-1 min-h-0 overflow-y-auto p-2 space-y-0.5'
     );
 
-    // Verify footer slot (clean 1-line status footer)
+    // Verify de-duplicated minimal utility footer slot
     assert.match(
       selectorFile,
-      /shrink-0\s+text-\[11px\]\s+text-\[var\(--text-secondary\)\]\s+py-2\s+px-3\s+border-t\s+border-\[var\(--border-structural\)\]\s+flex/,
-      'Footer slot must have clean 1-line status footer'
+      /shrink-0\s+px-3\.5\s+py-2\s+border-t\s+border-white\/\[0\.06\]\s+flex/,
+      'Footer slot must have minimal utility bar'
     );
 
     // Verify AI Model trigger button shows only model name without left Sparkles icon
