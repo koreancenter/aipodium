@@ -131,9 +131,9 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
   return (
     <div className="space-y-0 divide-y divide-white/[0.06] text-xs animate-in fade-in duration-150">
       {/* Row 1: 로컬 스토리지 사용량 */}
-      <div className="py-3.5 flex flex-col gap-2.5 first:pt-0">
+      <div className="py-4 flex flex-col gap-2.5 first:pt-0">
         <div className="flex items-center justify-between gap-4">
-          <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
+          <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5">
             <span>로컬 스토리지 사용량</span>
             <HelpTooltip
               side="bottom"
@@ -141,41 +141,42 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
             />
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs font-mono text-zinc-300">
+            <span className="text-xs font-mono text-[var(--text-muted)]">
               {estimate ? `${estimate.usageFormatted} / ${estimate.quotaFormatted}` : '용량 조회 중...'}
             </span>
             <button
               type="button"
               onClick={fetchStorageInfo}
               disabled={isLoading}
-              className="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors disabled:opacity-50 cursor-pointer"
+              className="p-1 rounded text-[var(--text-muted)] hover:text-slate-200 hover:bg-white/[0.06] transition-colors disabled:opacity-50 cursor-pointer"
               title="새로고침"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-zinc-300' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[var(--accent-primary)]' : ''}`} />
             </button>
           </div>
         </div>
 
         {/* Minimal 4px track progress bar */}
-        <div className="w-full bg-white/10 rounded-full h-1 overflow-hidden">
+        <div className="w-full bg-white/[0.08] rounded-full h-1 overflow-hidden">
           <div
-            className="h-full bg-indigo-500 rounded-full transition-all duration-300"
+            className="h-full bg-[var(--accent-primary)] rounded-full transition-all duration-300"
             style={{ width: `${Math.max(1, Math.min(100, estimate?.usagePercent || 1))}%` }}
           />
         </div>
       </div>
 
       {/* Row 2: 영구 저장 모드 */}
-      <div className="py-3.5 flex items-center justify-between gap-4">
-        <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
+      <div className="py-4 flex items-center justify-between gap-4">
+        <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-2">
           <span>영구 저장 모드</span>
           <HelpTooltip
             side="bottom"
             content="디스크 공간 부족 시 브라우저가 캐시와 로컬 데이터를 임의 삭제하지 않도록 영구 보관 권한을 요청합니다."
           />
           {estimate?.isPersisted && (
-            <span className="text-[10px] font-mono text-zinc-400 bg-white/[0.06] border border-white/[0.08] px-1.5 py-0.5 rounded ml-1">
-              영구 보호됨
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-normal text-[var(--text-muted)] ml-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] shadow-[0_0_6px_rgba(52,211,153,0.45)]" />
+              <span>영구 보호됨</span>
             </span>
           )}
         </div>
@@ -185,8 +186,8 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
           disabled={isRequestingPersist || estimate?.isPersisted}
           className={
             estimate?.isPersisted
-              ? 'px-3 py-1.5 rounded-md text-xs text-zinc-400 bg-white/5 border border-white/10 opacity-60 cursor-default shrink-0'
-              : 'px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer shrink-0'
+              ? 'px-3 py-1.5 rounded-md text-xs text-[var(--text-tertiary)] bg-white/[0.03] border border-white/[0.06] cursor-default shrink-0'
+              : 'px-3 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors cursor-pointer shrink-0'
           }
         >
           {isRequestingPersist
@@ -198,8 +199,8 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
       </div>
 
       {/* Row 3: 전체 데이터 백업 및 복원 */}
-      <div className="py-3.5 flex items-center justify-between gap-4">
-        <div className="text-xs font-medium text-zinc-200 flex items-center gap-1.5">
+      <div className="py-4 flex items-center justify-between gap-4">
+        <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5">
           <span>전체 데이터 백업 및 복원</span>
           <HelpTooltip
             side="bottom"
@@ -211,7 +212,7 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
             type="button"
             onClick={handleExportBackup}
             disabled={isExporting}
-            className="px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
+            className="px-3 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
           >
             <span>{isExporting ? '내보내는 중...' : '내보내기'}</span>
           </button>
@@ -219,7 +220,7 @@ export const StorageSettings: React.FC<StorageSettingsProps> = ({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
-            className="px-3 py-1.5 rounded-md text-xs text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
+            className="px-3 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
           >
             <span>{isImporting ? '가져오는 중...' : '가져오기'}</span>
           </button>

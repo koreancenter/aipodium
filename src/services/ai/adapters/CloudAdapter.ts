@@ -253,6 +253,49 @@ export class CloudAdapter implements AiProviderAdapter {
       }
     }
 
+    if (vendor === 'openai' || vendor === 'deepseek' || vendor === 'groq') {
+      const apiUrl =
+        vendor === 'openai'
+          ? 'https://api.openai.com/v1/chat/completions'
+          : vendor === 'deepseek'
+          ? 'https://api.deepseek.com/chat/completions'
+          : 'https://api.groq.com/openai/v1/chat/completions';
+
+      try {
+        const directRes = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          signal: options.signal,
+          body: JSON.stringify({
+            model: options.model,
+            messages: options.messages,
+            temperature: options.temperature ?? 0.3,
+            max_tokens: options.maxTokens,
+          }),
+        });
+
+        if (!directRes.ok) {
+          const errData = await directRes.json().catch(() => ({}));
+          const errMsg = errData?.error?.message || `${vendor.toUpperCase()} API 통신 오류 (${directRes.status})`;
+          const errText = `\n\n⚠️ ${errMsg}`;
+          options.onChunk(errText);
+          return { fullText: errText };
+        }
+
+        const data = await directRes.json();
+        const fullText = data?.choices?.[0]?.message?.content || '';
+        options.onChunk(fullText);
+        return { fullText };
+      } catch (err: any) {
+        const msg = `⚠️ ${vendor.toUpperCase()} 직접 호출 실패: ${err?.message || '네트워크 오류'}`;
+        options.onChunk(msg);
+        return { fullText: msg };
+      }
+    }
+
     const fallbackMsg = `💡 **AI 직접 호출 안내**: ${vendor.toUpperCase()} 직접 통신은 아직 준비 중입니다. 설정에서 Gemini API 키를 등록하거나 상단 모드를 Local PC (Ollama)로 전환하세요.`;
     options.onChunk(fallbackMsg);
     return { fullText: fallbackMsg };
@@ -263,6 +306,8 @@ export class CloudAdapter implements AiProviderAdapter {
     if (m.includes('gemini')) return 'gemini';
     if (m.includes('gpt') || m.includes('o1') || m.includes('o3')) return 'openai';
     if (m.includes('claude')) return 'anthropic';
+    if (m.includes('deepseek')) return 'deepseek';
+    if (m.includes('groq') || m.includes('versatile') || m.includes('instant')) return 'groq';
     return 'gemini';
   }
 }

@@ -85,7 +85,7 @@ export function cleanAiContentText(rawText: string): string {
 
 export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean }): string {
   if (!md || !md.trim()) {
-    return '<div class="text-slate-500 italic py-6 text-center text-xs">No preview content available.</div>';
+    return '<div class="text-[var(--text-muted)] italic py-6 text-center text-xs">No preview content available.</div>';
   }
 
   // Storage for protected placeholders
@@ -109,13 +109,13 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
   text = text.replace(/\$\$([\s\S]*?)\$\$/g, (_match, formula) => {
     const rendered = renderMath(formula, true);
     return storeProtected(
-      `<div class="my-3 px-3 py-2.5 bg-[#0c0c0e] border border-[#222226] rounded-lg overflow-x-auto text-center font-sans text-slate-100 flex items-center justify-center shadow-xs">${rendered}</div>`
+      `<div class="my-3 px-3 py-2.5 bg-[var(--bg-surface)] border border-white/[0.08] rounded-lg overflow-x-auto text-center font-sans text-[var(--text-main)] flex items-center justify-center shadow-xs">${rendered}</div>`
     );
   });
   text = text.replace(/\\\[([\s\S]*?)\\\]/g, (_match, formula) => {
     const rendered = renderMath(formula, true);
     return storeProtected(
-      `<div class="my-3 px-3 py-2.5 bg-[#0c0c0e] border border-[#222226] rounded-lg overflow-x-auto text-center font-sans text-slate-100 flex items-center justify-center shadow-xs">${rendered}</div>`
+      `<div class="my-3 px-3 py-2.5 bg-[var(--bg-surface)] border border-white/[0.08] rounded-lg overflow-x-auto text-center font-sans text-[var(--text-main)] flex items-center justify-center shadow-xs">${rendered}</div>`
     );
   });
 
@@ -128,12 +128,12 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       .replace(/\n$/, '');
     const languageLabel = lang ? lang.trim().toLowerCase() : 'code';
     return storeProtected(
-      `<div class="my-2.5 rounded-lg border border-[#222226] bg-[#0c0c0e] shadow-sm overflow-hidden group">
-        <div class="px-3 py-1 bg-[#121214] border-b border-[#222226] flex items-center justify-between text-[0.625rem] text-slate-400 font-mono select-none">
-          <span class="font-semibold text-[#818cf8] uppercase tracking-wider">${languageLabel}</span>
-          <span class="text-[0.5625rem] text-slate-500">code block</span>
+      `<div class="my-2.5 rounded-lg border border-white/[0.08] bg-[var(--bg-surface)] shadow-sm overflow-hidden group">
+        <div class="px-3 py-1 bg-[var(--bg-editor)] border-b border-white/[0.06] flex items-center justify-between text-[0.625rem] text-[var(--text-muted)] font-mono select-none">
+          <span class="font-semibold text-[var(--accent-primary)] uppercase tracking-wider">${languageLabel}</span>
+          <span class="text-[0.5625rem] text-[var(--text-tertiary)]">code block</span>
         </div>
-        <pre class="p-3 overflow-x-auto font-mono text-[0.6875rem] text-emerald-300 leading-normal bg-transparent"><code>${cleanCode}</code></pre>
+        <pre class="p-3 overflow-x-auto font-mono text-[0.6875rem] text-[var(--secondary-accent)] leading-normal bg-transparent"><code>${cleanCode}</code></pre>
       </div>`
     );
   });
@@ -141,24 +141,24 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
   // 3. Extract & Protect Inline Math: $ ... $ or \( ... \)
   text = text.replace(/(^|[^\\])\$([^\$\n\r]+?)\$/g, (_match, prefix, formula) => {
     const rendered = renderMath(formula, false);
-    return `${prefix}${storeProtected(`<span class="inline-block px-0.5 text-slate-100 align-middle">${rendered}</span>`)}`;
+    return `${prefix}${storeProtected(`<span class="inline-block px-0.5 text-[var(--text-main)] align-middle">${rendered}</span>`)}`;
   });
   text = text.replace(/\\\(([\s\S]*?)\\\)/g, (_match, formula) => {
     const rendered = renderMath(formula, false);
-    return storeProtected(`<span class="inline-block px-0.5 text-slate-100 align-middle">${rendered}</span>`);
+    return storeProtected(`<span class="inline-block px-0.5 text-[var(--text-main)] align-middle">${rendered}</span>`);
   });
 
   // 4. Extract & Protect Multi-backtick and Single-backtick Inline Code: `...` or ``...``
   text = text.replace(/``([^`\n]+)``/g, (_match, code) => {
     const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return storeProtected(
-      `<code class="bg-[#121214] text-emerald-300 px-1 py-0.2 rounded font-mono text-[0.6875rem] border border-[#222226]">${escaped}</code>`
+      `<code class="bg-[var(--bg-surface)] text-[var(--secondary-accent)] px-1 py-0.2 rounded font-mono text-[0.6875rem] border border-white/[0.08]">${escaped}</code>`
     );
   });
   text = text.replace(/`([^`\n]+)`/g, (_match, code) => {
     const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return storeProtected(
-      `<code class="bg-[#121214] text-emerald-300 px-1 py-0.2 rounded font-mono text-[0.6875rem] border border-[#222226]">${escaped}</code>`
+      `<code class="bg-[var(--bg-surface)] text-[var(--secondary-accent)] px-1 py-0.2 rounded font-mono text-[0.6875rem] border border-white/[0.08]">${escaped}</code>`
     );
   });
 
@@ -241,7 +241,7 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       const altText = alt ? escapeAttr(alt) : 'Image';
       return `<figure class="my-2 text-center inline-block max-w-full">
         <img src="${escapeAttr(safeUrl)}" alt="${altText}"${titleAttr} class="max-h-80 max-w-full rounded border border-slate-800 mx-auto shadow-sm object-contain" loading="lazy" referrerPolicy="no-referrer" />
-        ${alt ? `<figcaption class="text-[0.625rem] text-slate-500 mt-1">${altText}</figcaption>` : ''}
+        ${alt ? `<figcaption class="text-[0.625rem] text-[var(--text-muted)] mt-1">${altText}</figcaption>` : ''}
       </figure>`;
     });
 
@@ -252,7 +252,7 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
         return label;
       }
       const titleAttr = title ? ` title="${escapeAttr(title)}"` : '';
-      return `<a href="${escapeAttr(safeUrl)}"${titleAttr} target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:text-indigo-300 underline font-medium cursor-pointer transition-colors">${label}</a>`;
+      return `<a href="${escapeAttr(safeUrl)}"${titleAttr} target="_blank" rel="noopener noreferrer" class="text-[var(--accent-primary)] hover:opacity-80 underline font-medium cursor-pointer transition-opacity">${label}</a>`;
     });
 
     // Reference-Style Links: [text][ref_id] or [ref_id]
@@ -261,29 +261,29 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       const target = referenceLinks[key];
       if (target) {
         const titleAttr = target.title ? ` title="${escapeAttr(target.title)}"` : '';
-        return `<a href="${escapeAttr(target.url.trim())}"${titleAttr} target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:text-indigo-300 underline font-medium cursor-pointer transition-colors">${label}</a>`;
+        return `<a href="${escapeAttr(target.url.trim())}"${titleAttr} target="_blank" rel="noopener noreferrer" class="text-[var(--accent-primary)] hover:opacity-80 underline font-medium cursor-pointer transition-opacity">${label}</a>`;
       }
       return match;
     });
 
     // Autolinks: <https://...> or <http://...>
     s = s.replace(/<(https?:\/\/[^\s>]+)>/g, (_match, url) => {
-      return `<a href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:text-indigo-300 underline font-medium">${escapeAttr(url)}</a>`;
+      return `<a href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer" class="text-[var(--accent-primary)] hover:opacity-80 underline font-medium">${escapeAttr(url)}</a>`;
     });
 
     // Email Autolinks: <name@domain.com>
     s = s.replace(/<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>/g, (_match, email) => {
-      return `<a href="mailto:${escapeAttr(email)}" class="text-indigo-400 hover:text-indigo-300 underline font-medium">${escapeAttr(email)}</a>`;
+      return `<a href="mailto:${escapeAttr(email)}" class="text-[var(--accent-primary)] hover:opacity-80 underline font-medium">${escapeAttr(email)}</a>`;
     });
 
     // Footnote In-text References: [^1]
     s = s.replace(/\[\^([a-zA-Z0-9_\-]+)\]/g, (_match, id) => {
-      return `<sup><a href="#fn-${id}" id="fnref-${id}" class="text-indigo-400 hover:text-indigo-300 font-mono text-[0.625rem] px-0.5 hover:underline font-semibold">[${id}]</a></sup>`;
+      return `<sup><a href="#fn-${id}" id="fnref-${id}" class="text-[var(--accent-primary)] hover:opacity-80 font-mono text-[0.625rem] px-0.5 hover:underline font-semibold">[${id}]</a></sup>`;
     });
 
     // Inline Task Checkboxes: [x] or [ ] inside text
-    s = s.replace(/\[([xXvVoO\u2713\u2714\u2611\u25A0\u25CF])\](?!\()/g, '<input type="checkbox" checked disabled class="inline-block align-middle w-3.5 h-3.5 mr-1.5 rounded accent-indigo-600 bg-slate-900 border-slate-700 pointer-events-none" />');
-    s = s.replace(/\[\s?\](?!\()/g, '<input type="checkbox" disabled class="inline-block align-middle w-3.5 h-3.5 mr-1.5 rounded accent-indigo-600 bg-slate-900 border-slate-700 pointer-events-none" />');
+    s = s.replace(/\[([xXvVoO\u2713\u2714\u2611\u25A0\u25CF])\](?!\()/g, '<input type="checkbox" checked disabled class="inline-block align-middle w-3.5 h-3.5 mr-1.5 rounded accent-[var(--accent-primary)] bg-[var(--bg-surface)] border-white/[0.12] pointer-events-none" />');
+    s = s.replace(/\[\s?\](?!\()/g, '<input type="checkbox" disabled class="inline-block align-middle w-3.5 h-3.5 mr-1.5 rounded accent-[var(--accent-primary)] bg-[var(--bg-surface)] border-white/[0.12] pointer-events-none" />');
 
     // Keyboard keys: <kbd>Key</kbd>
     s = s.replace(/<kbd>([\s\S]*?)<\/kbd>/gi, (_match, key) => {
@@ -371,9 +371,9 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
           const alignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
           const isDitto = txt === '"' || txt === '〃' || txt === '^';
           const content = isDitto
-            ? `<span class="text-indigo-400 font-bold opacity-80 cursor-help" title="상단 항목과 동일">${txt}</span>`
+            ? `<span class="text-[var(--accent-primary)] font-bold opacity-80 cursor-help" title="상단 항목과 동일">${txt}</span>`
             : formatInline(txt);
-          return `<td class="px-3.5 py-2 border-b border-white/[0.05] text-slate-200 text-xs leading-[1.65] ${alignClass}">${content}</td>`;
+          return `<td class="px-3.5 py-2 border-b border-white/[0.05] text-[var(--text-muted)] text-xs leading-[1.65] ${alignClass}">${content}</td>`;
         }).join('');
         return `<tr class="hover:bg-white/[0.025] transition-colors last:border-b-0">${colsHtml}</tr>`;
       }).join('');
@@ -392,26 +392,26 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
         const trimmed = line.trim();
         if (trimmed.startsWith('>')) {
           const innerContent = trimmed.replace(/^>+\s?/, '');
-          return `<blockquote class="border-l-2 border-[#222226] bg-[#0c0c0e] pl-2.5 py-1 my-1 text-slate-300 text-xs italic">${formatInline(innerContent)}</blockquote>`;
+          return `<blockquote class="border-l-2 border-white/[0.1] bg-[var(--bg-surface)] pl-2.5 py-1 my-1 text-[var(--text-muted)] text-xs italic">${formatInline(innerContent)}</blockquote>`;
         }
         return formatInline(line);
       }).join('<br/>');
       
       if (options?.isChat) {
         // Chat mode: no emoji badges, flat borderless quote styling
-        result.push(`<blockquote class="border-l-2 border-indigo-500/70 pl-2.5 py-1 my-2 text-slate-300 text-xs">${processedHtml}</blockquote>`);
+        result.push(`<blockquote class="border-l-2 border-[var(--accent-primary)]/70 pl-2.5 py-1 my-2 text-[var(--text-muted)] text-xs">${processedHtml}</blockquote>`);
       } else if (blockquoteType === 'note') {
-        result.push(`<div class="my-3 border-l-2 border-blue-500 bg-[#0c0c0e] text-blue-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[#222226] border-l-blue-500"><div class="font-semibold text-blue-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">ℹ️ NOTE</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-3 border-l-2 border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--text-secondary)] px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-white/[0.06] border-l-[var(--accent-primary)]"><div class="font-semibold text-[var(--accent-primary)] text-[0.6875rem] mb-1 flex items-center gap-1.5">NOTE</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'tip') {
-        result.push(`<div class="my-3 border-l-2 border-emerald-500 bg-[#0c0c0e] text-emerald-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[#222226] border-l-emerald-500"><div class="font-semibold text-emerald-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">💡 TIP</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-3 border-l-2 border-[var(--secondary-accent)] bg-[var(--bg-surface)] text-[var(--text-secondary)] px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-white/[0.06] border-l-[var(--secondary-accent)]"><div class="font-semibold text-[var(--secondary-accent)] text-[0.6875rem] mb-1 flex items-center gap-1.5">TIP</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'important') {
-        result.push(`<div class="my-3 border-l-2 border-indigo-500 bg-[#0c0c0e] text-indigo-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[#222226] border-l-indigo-500"><div class="font-semibold text-indigo-300 text-[0.6875rem] mb-1 flex items-center gap-1.5">📌 IMPORTANT</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-3 border-l-2 border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--text-main)] px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-white/[0.06] border-l-[var(--accent-primary)]"><div class="font-semibold text-[var(--accent-primary)] text-[0.6875rem] mb-1 flex items-center gap-1.5">IMPORTANT</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'warning') {
-        result.push(`<div class="my-3 border-l-2 border-amber-500 bg-[#0c0c0e] text-amber-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[#222226] border-l-amber-500"><div class="font-semibold text-amber-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">⚠️ WARNING</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-3 border-l-2 border-amber-500 bg-[var(--bg-surface)] text-amber-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-white/[0.06] border-l-amber-500"><div class="font-semibold text-amber-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">WARNING</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'caution') {
-        result.push(`<div class="my-3 border-l-2 border-rose-500 bg-[#0c0c0e] text-rose-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[#222226] border-l-rose-500"><div class="font-semibold text-rose-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">🛑 CAUTION</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-3 border-l-2 border-rose-500 bg-[var(--bg-surface)] text-rose-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-white/[0.06] border-l-rose-500"><div class="font-semibold text-rose-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">CAUTION</div><div>${processedHtml}</div></div>`);
       } else {
-        result.push(`<blockquote class="border-l-2 border-indigo-500/80 bg-[#121214] text-slate-200 pl-3.5 py-2 my-2.5 text-xs rounded-r-md leading-[1.65] shadow-xs border border-[#222226] border-l-indigo-500/80">${processedHtml}</blockquote>`);
+        result.push(`<blockquote class="border-l-2 border-[var(--accent-primary)]/80 bg-[var(--bg-surface)] text-[var(--text-main)] pl-3.5 py-2 my-2.5 text-xs rounded-r-md leading-[1.65] shadow-xs border border-white/[0.06] border-l-[var(--accent-primary)]/80">${processedHtml}</blockquote>`);
       }
 
       inBlockquote = false;
@@ -480,7 +480,7 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       closeList();
       closeTable();
       closeBlockquote();
-      result.push('<hr class="border-[#222226] my-4" />');
+      result.push('<hr class="border-white/[0.06] my-4" />');
       continue;
     }
 
@@ -558,8 +558,8 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       const isChecked = char === 'x' || char === 'v' || char === 'o' || char === '\u2713' || char === '\u2714' || char === '\u2611' || char === '\u25a0' || char === '\u25cf';
       const taskText = taskMatch[2];
       result.push(
-        `<li class="flex items-start gap-2 my-0.5 leading-normal select-text ${isChecked ? 'text-slate-400 line-through opacity-85' : 'text-slate-200'}">
-          <input type="checkbox" ${isChecked ? 'checked' : ''} disabled class="w-3.5 h-3.5 mt-0.5 rounded border-slate-700 bg-slate-900 text-indigo-500 focus:ring-0 cursor-default shrink-0 accent-indigo-600" />
+        `<li class="flex items-start gap-2 my-0.5 leading-normal select-text ${isChecked ? 'text-[var(--text-muted)] line-through opacity-85' : 'text-[var(--text-main)]'}">
+          <input type="checkbox" ${isChecked ? 'checked' : ''} disabled class="w-3.5 h-3.5 mt-0.5 rounded border-white/[0.12] bg-[var(--bg-surface)] text-[var(--accent-primary)] focus:ring-0 cursor-default shrink-0 accent-[var(--accent-primary)]" />
           <span class="flex-1">${formatInline(taskText)}</span>
         </li>`
       );
@@ -617,8 +617,8 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       const def = filteredLines[i + 1].trim().replace(/^:\s*/, '');
       result.push(
         `<dl class="my-2">
-          <dt class="font-semibold text-indigo-300 text-xs">${formatInline(term)}</dt>
-          <dd class="pl-4 text-slate-300 text-xs mt-0.5 mb-1.5 leading-relaxed">${formatInline(def)}</dd>
+          <dt class="font-semibold text-[var(--accent-primary)] text-xs">${formatInline(term)}</dt>
+          <dd class="pl-4 text-[var(--text-muted)] text-xs mt-0.5 mb-1.5 leading-relaxed">${formatInline(def)}</dd>
         </dl>`
       );
       i++; // Skip the definition line
@@ -653,16 +653,16 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
   const fnKeys = Object.keys(footnotes);
   if (fnKeys.length > 0) {
     const fnListHtml = fnKeys.map((id) => {
-      return `<li id="fn-${id}" class="text-[0.6875rem] text-slate-400 my-1 leading-normal flex items-start gap-1">
-        <span class="font-mono text-indigo-400 font-semibold">[${id}]</span>
+      return `<li id="fn-${id}" class="text-[0.6875rem] text-[var(--text-muted)] my-1 leading-normal flex items-start gap-1">
+        <span class="font-mono text-[var(--accent-primary)] font-semibold">[${id}]</span>
         <span>${formatInline(footnotes[id])}</span>
-        <a href="#fnref-${id}" class="text-indigo-400 hover:text-indigo-300 font-semibold ml-1" title="Back to reference">↩</a>
+        <a href="#fnref-${id}" class="text-[var(--accent-primary)] hover:opacity-80 font-semibold ml-1" title="Back to reference">↩</a>
       </li>`;
     }).join('');
 
     result.push(
-      `<div class="footnotes border-t border-slate-800/80 pt-2.5 mt-4">
-        <div class="text-[0.625rem] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Footnotes</div>
+      `<div class="footnotes border-t border-white/[0.06] pt-2.5 mt-4">
+        <div class="text-[0.625rem] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5">Footnotes</div>
         <ol class="list-none pl-0 space-y-1">${fnListHtml}</ol>
       </div>`
     );

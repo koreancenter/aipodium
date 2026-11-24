@@ -57,7 +57,42 @@
   <title>AI Podium - 내가 지휘하는 AI 오케스트라</title>
   <meta name="description" content="외부 유출 걱정 없는 안전한 환경에서 흩어진 자료를 하나의 명확한 기준 문서로 통합하세요." />
   <meta name="robots" content="index, follow" />
-  <meta name="theme-color" content="#121214" />
+  <meta name="theme-color" content="#0D0F14" />
+  <script>
+    (function() {
+      try {
+        var palettes = {
+          default: { main: '#0D0F14', surface: '#11141B', editor: '#151922', elevated: '#1A1F2B', accent: '#38BDF8', text: '#F8FAFC', muted: '#94A3B8' },
+          spring: { main: '#100E13', surface: '#15121B', editor: '#1A1622', elevated: '#211C2B', accent: '#F48FB1', text: '#FAF6FA', muted: '#AA9EB8' },
+          summer: { main: '#0A1015', surface: '#0E161D', editor: '#131E27', elevated: '#192632', accent: '#2DD4BF', text: '#F5FAFC', muted: '#91B0BD' },
+          autumn: { main: '#120F0D', surface: '#181412', editor: '#1F1A17', elevated: '#27211D', accent: '#F5B041', text: '#FAF7F4', muted: '#B0A396' },
+          winter: { main: '#0C0E14', surface: '#10141D', editor: '#151A25', elevated: '#1B2230', accent: '#7DD3FC', text: '#F8FAFC', muted: '#94A4BE' }
+        };
+        var raw = localStorage.getItem('aipodium_preferences');
+        var pref = raw ? JSON.parse(raw) : null;
+        var setting = (pref && pref.seasonTheme) ? pref.seasonTheme : 'default';
+        var resolved = setting;
+        if (setting === 'auto') {
+          var month = new Date().getMonth() + 1;
+          resolved = (month >= 3 && month <= 5) ? 'spring' : (month >= 6 && month <= 8) ? 'summer' : (month >= 9 && month <= 11) ? 'autumn' : 'winter';
+        }
+        if (!palettes[resolved]) resolved = 'default';
+        var p = palettes[resolved];
+        var root = document.documentElement;
+        root.dataset.season = resolved;
+        root.dataset.seasonSetting = setting;
+        root.style.setProperty('--bg-main', p.main);
+        root.style.setProperty('--bg-surface', p.surface);
+        root.style.setProperty('--bg-editor', p.editor);
+        root.style.setProperty('--bg-elevated', p.elevated);
+        root.style.setProperty('--accent-primary', p.accent);
+        root.style.setProperty('--text-main', p.text);
+        root.style.setProperty('--text-muted', p.muted);
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', p.main);
+      } catch (e) {}
+    })();
+  </script>
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -101,43 +136,46 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet">
   </noscript>
 </head>
-<body class="bg-[#0f172a] text-[#e2e8f0] antialiased h-screen overflow-hidden select-none">
+<body class="bg-[var(--bg-main,#0D0F14)] text-[var(--text-main,#F8FAFC)] antialiased h-screen overflow-hidden select-none">
   <div id="root">
-    <div style="height:100vh;display:flex;flex-direction:column;background:#09090b;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased;">
-      <header style="height:38px;background:#0f0f12;border-bottom:1px solid #222226;display:flex;align-items:center;justify-content:space-between;padding:0 12px;user-select:none;flex-shrink:0;">
+    <div style="height:100vh;display:flex;flex-direction:column;background:var(--bg-main,#0D0F14);color:var(--text-main,#F8FAFC);font-family:'Inter','Pretendard Variable','Pretendard',system-ui,-apple-system,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased;">
+      <header style="height:38px;background:var(--bg-main,#0D0F14);border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 12px;user-select:none;flex-shrink:0;">
         <div style="display:flex;align-items:center;gap:8px;">
-          <div style="width:20px;height:20px;border-radius:4px;background:#6366f1;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(99,102,241,0.3);">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <div style="width:20px;height:20px;border-radius:5px;background:var(--bg-elevated,#1A1F2B);border:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary,#38BDF8)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
             </svg>
           </div>
-          <span style="font-weight:700;font-size:13px;letter-spacing:-0.02em;color:#f8fafc;">AI Podium</span>
-          <span style="font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(99,102,241,0.12);color:#818cf8;border:1px solid rgba(99,102,241,0.25);font-family:monospace;font-weight:600;">v0.1.0</span>
+          <span style="font-weight:600;font-size:13px;letter-spacing:-0.02em;color:var(--text-main,#F8FAFC);">AI Podium</span>
+          <span style="font-size:10px;color:var(--text-tertiary,#8594AA);font-family:'JetBrains Mono',monospace;font-weight:500;">v0.1.0</span>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
-          <div style="width:60px;height:22px;border-radius:4px;background:#18181b;border:1px solid #222226;"></div>
-          <div style="width:24px;height:24px;border-radius:50%;background:#18181b;border:1px solid #222226;"></div>
+          <div style="width:60px;height:20px;border-radius:5px;background:var(--bg-surface,#11141B);"></div>
+          <div style="width:22px;height:22px;border-radius:50%;background:var(--bg-surface,#11141B);"></div>
         </div>
       </header>
-      <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:radial-gradient(ellipse at top, #141418 0%, #09090b 70%);">
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:var(--bg-editor,#151922);">
         <div style="max-width:540px;margin:0 auto;display:flex;flex-direction:column;align-items:center;">
-          <div style="width:48px;height:48px;border-radius:12px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;margin-bottom:18px;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <div style="width:44px;height:44px;border-radius:12px;background:var(--bg-elevated,#1A1F2B);border:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;margin-bottom:18px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary,#38BDF8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
             </svg>
           </div>
-          <h1 style="font-size:22px;font-weight:700;color:#f8fafc;margin:0 0 10px 0;letter-spacing:-0.02em;">내가 지휘하는 AI 오케스트라</h1>
-          <p style="font-size:13px;line-height:1.6;color:#94a3b8;margin:0 0 24px 0;word-break:keep-all;">
+          <h1 style="font-size:20px;font-weight:600;color:var(--text-main,#F8FAFC);margin:0 0 8px 0;letter-spacing:-0.02em;">내가 지휘하는 AI 오케스트라</h1>
+          <p style="font-size:13px;line-height:1.6;color:var(--text-muted,#94A3B8);margin:0 0 24px 0;word-break:keep-all;">
             외부 유출 걱정 없는 안전한 환경에서 흩어진 자료를 하나의 명확한 기준 문서로 통합하세요.
           </p>
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 16px;background:rgba(255,255,255,0.03);border:1px solid #222226;border-radius:6px;font-size:11px;color:#64748b;">
-            <div style="width:8px;height:8px;border-radius:50%;background:#6366f1;"></div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-muted,#94A3B8);">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--accent-primary,#38BDF8);"></div>
             <span>로컬 워크스페이스를 초기화하는 중입니다...</span>
           </div>
         </div>

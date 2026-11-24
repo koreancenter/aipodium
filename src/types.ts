@@ -33,18 +33,7 @@ export interface EditorSelectionContext {
   startOffset?: number;
   endOffset?: number;
   autoExpand?: boolean;
-  intent?: 'selection' | 'rewrite';
   updatedAt: number;
-}
-
-export interface PinnedReferenceAnchor {
-  id: string;
-  text: string;
-  fileName?: string;
-  mode?: 'wysiwyg' | 'edit' | 'split' | 'preview';
-  startOffset?: number;
-  endOffset?: number;
-  pinnedAt: number;
 }
 
 export interface RewriteVersionSnapshot {

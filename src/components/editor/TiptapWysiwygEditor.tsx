@@ -102,6 +102,8 @@ export const TiptapWysiwygEditor = memo(
       const [bubblePos, setBubblePos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
       const [isBubbleVisible, setIsBubbleVisible] = useState(false);
       const [isLocalAiLoading, setIsLocalAiLoading] = useState(false);
+      const isLoadingRef = useRef(false);
+      isLoadingRef.current = Boolean(isAiLoading || isLocalAiLoading);
 
       const updateSelectionContext = useCallback((currentEditor: any) => {
         if (!currentEditor) return;
@@ -150,7 +152,7 @@ export const TiptapWysiwygEditor = memo(
             const rawTop = startCoords.top - containerRect.top - 44;
             const top = rawTop < 6 ? Math.max(6, endCoords.bottom - containerRect.top + 8) : rawTop;
             const midX = (startCoords.left + endCoords.right) / 2 - containerRect.left;
-            const left = Math.max(8, midX - 230);
+            const left = Math.max(8, midX - 250);
             setBubblePos({ top, left });
             setIsBubbleVisible(true);
           } catch {
@@ -238,6 +240,9 @@ export const TiptapWysiwygEditor = memo(
         },
         onBlur: () => {
           setTimeout(() => {
+            if (isLoadingRef.current) {
+              return;
+            }
             const activeEl = document.activeElement;
             const textMenu = document.getElementById('text-floating-bubble-menu');
             if (textMenu?.contains(activeEl)) {
@@ -488,13 +493,21 @@ export const TiptapWysiwygEditor = memo(
             const result = await onAiEditTextRef.current(prompt, targetText);
             if (typeof result === 'string' && result.trim()) {
               const edited = result.trim();
-              const isRichMarkdown =
+              const isBlockMarkdown =
                 /\n|^#{1,6}\s|^[-*+]\s|^\d+\.\s|^>\s|```|\|.+\|/m.test(edited);
-              const contentToInsert = isRichMarkdown
-                ? sanitizeHtml(renderMarkdownToHtml(edited))
-                : edited;
+              const isInlineMarkdown =
+                !isBlockMarkdown && /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/.test(edited);
 
-              const beforeMd = (editor.storage as any).markdown?.getMarkdown() ?? value ?? '';
+              let contentToInsert: string = edited;
+              if (isBlockMarkdown) {
+                contentToInsert = sanitizeHtml(renderMarkdownToHtml(edited));
+              } else if (isInlineMarkdown) {
+                const rawHtml = renderMarkdownToHtml(edited).trim();
+                const unwrapped = rawHtml.replace(/^<p>([\s\S]*)<\/p>$/i, '$1');
+                contentToInsert = sanitizeHtml(unwrapped);
+              }
+
+              const beforeMd = (editor.storage as any).markdown?.getMarkdown() ?? '';
 
               isInternalUpdateRef.current = true;
               editor
@@ -523,7 +536,11 @@ export const TiptapWysiwygEditor = memo(
                 isInternalUpdateRef.current = false;
               }, 60);
 
+              selectionRangeRef.current = null;
               setIsBubbleVisible(false);
+              setHasSelection(false);
+              setSelectedText('');
+              onSelectionChangeRef.current?.(null);
               return true;
             }
             return result !== false;
@@ -547,7 +564,7 @@ export const TiptapWysiwygEditor = memo(
 
       if (!editor) {
         return (
-          <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">
+          <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)] text-xs">
             {tt.loading}
           </div>
         );
@@ -559,45 +576,41 @@ export const TiptapWysiwygEditor = memo(
         <div
           ref={containerRef}
           style={{ background: 'var(--bg-editor)' }}
-          className={`relative w-full h-full flex flex-col ${className || ''}`}
+          className={`relative w-full h-full flex flex-col season-shell ${className || ''}`}
         >
           {/* Contextual Table Floating Helper (only shown when user cursor is inside a table) */}
           {isTableActive && (
             <div
-              style={{
-                background: '#121216',
-                borderColor: 'rgba(255, 255, 255, 0.08)'
-              }}
-              className="sticky top-2 z-20 mx-auto px-3 py-1 rounded-md border shadow-xl flex items-center gap-1.5 select-none shrink-0 text-xs animate-in fade-in"
+              className="sticky top-2 z-20 mx-auto px-3 py-1 rounded-xl bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] shadow-2xl flex items-center gap-1.5 select-none shrink-0 text-xs animate-in fade-in"
             >
-              <span className="text-[0.6875rem] text-indigo-400 font-medium mr-1 flex items-center gap-1">
+              <span className="text-[0.6875rem] text-[var(--accent-primary)] font-medium mr-1 flex items-center gap-1">
                 <TableIcon className="w-3.5 h-3.5" /> {tt.tableEdit}
               </span>
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor.chain().focus().addRowAfter().run()}
-                className="text-slate-300 hover:text-white px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer flex items-center gap-1"
+                className="text-[var(--text-muted)] hover:text-[var(--text-main)] px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded-md transition cursor-pointer flex items-center gap-1"
                 title={tt.addRowTitle}
               >
-                <Rows className="w-3.5 h-3.5 text-emerald-400" />
+                <Rows className="w-3.5 h-3.5 text-[var(--secondary-accent)]" />
                 <span>{tt.addRow}</span>
               </button>
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor.chain().focus().addColumnAfter().run()}
-                className="text-slate-300 hover:text-white px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer flex items-center gap-1"
+                className="text-[var(--text-muted)] hover:text-[var(--text-main)] px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded-md transition cursor-pointer flex items-center gap-1"
                 title={tt.addColTitle}
               >
-                <Columns className="w-3.5 h-3.5 text-sky-400" />
+                <Columns className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                 <span>{tt.addCol}</span>
               </button>
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor.chain().focus().deleteRow().run()}
-                className="text-slate-400 hover:text-rose-400 px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer"
+                className="text-[var(--text-muted)] hover:text-rose-400 px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded-md transition cursor-pointer"
                 title={tt.delRowTitle}
               >
                 {tt.delRow}
@@ -606,7 +619,7 @@ export const TiptapWysiwygEditor = memo(
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor.chain().focus().deleteColumn().run()}
-                className="text-slate-400 hover:text-rose-400 px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer"
+                className="text-[var(--text-muted)] hover:text-rose-400 px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded-md transition cursor-pointer"
                 title={tt.delColTitle}
               >
                 {tt.delCol}
@@ -616,7 +629,7 @@ export const TiptapWysiwygEditor = memo(
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => editor.chain().focus().deleteTable().run()}
-                className="text-rose-400 hover:text-rose-300 px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded transition cursor-pointer flex items-center gap-1"
+                className="text-rose-400 hover:text-rose-300 px-1.5 py-0.5 text-xs hover:bg-white/[0.06] rounded-md transition cursor-pointer flex items-center gap-1"
                 title={tt.delTableTitle}
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -630,7 +643,6 @@ export const TiptapWysiwygEditor = memo(
             <TextFloatingBubbleMenu
               position={bubblePos}
               selectedText={selectedText}
-              hasSelection={hasSelection}
               onApplyFormat={handleBubbleApplyFormat}
               onClose={handleCloseBubble}
               onAiEditText={handleBubbleAiEdit}
@@ -638,15 +650,15 @@ export const TiptapWysiwygEditor = memo(
             />
           )}
 
-          {/* Main Document Body (Clean, Full Viewport) */}
+          {/* Main Document Body (Clean, Open Canvas) */}
           <div
             ref={scrollContainerRef}
             onScroll={handleEditorScroll}
             className="flex-1 w-full overflow-y-auto custom-scrollbar"
           >
             <div
-              className="max-w-3xl mx-auto px-8 py-10 min-h-full"
-              style={{ fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 12px)' }}
+              className="max-w-3xl mx-auto px-12 py-10 min-h-full"
+              style={{ fontSize: fontSize ? `${fontSize}px` : 'var(--editor-font-size, 13px)' }}
             >
               <EditorContent editor={editor} />
             </div>

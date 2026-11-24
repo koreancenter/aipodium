@@ -31,10 +31,14 @@ export const DEFAULT_AI_PARAMETERS: AiInferenceParameters = {
   reasoningEffort: 'medium'
 };
 
+export type ResolvedSeasonId = 'default' | 'spring' | 'summer' | 'autumn' | 'winter';
+export type SeasonThemeId = ResolvedSeasonId | 'auto';
+
 export interface UserPreferences {
   baseTheme?: string;
   themeAccent?: string;
   themeMode?: string;
+  seasonTheme?: SeasonThemeId;
   fontSize: 'sm' | 'md' | 'lg' | 'xl';
   compactness: 'dense' | 'spacious';
   defaultModel: string;
@@ -67,6 +71,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   baseTheme: 'emerald',
   themeAccent: 'emerald',
   themeMode: 'standard',
+  seasonTheme: 'default',
   fontSize: 'md',
   compactness: 'dense',
   defaultModel: 'gemini-2.5-flash',
@@ -108,4 +113,4 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   security: DEFAULT_SECURITY_CONFIG
 };
 
-export type PreferencesTab = 'ai' | 'ai-engine' | 'persona' | 'integrations' | 'storage' | 'security' | 'ghost-writer' | 'language';
+export type PreferencesTab = 'ai' | 'ai-engine' | 'appearance' | 'persona' | 'integrations' | 'storage' | 'security' | 'ghost-writer' | 'language';

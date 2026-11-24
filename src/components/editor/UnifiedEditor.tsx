@@ -22,9 +22,7 @@ import {
   Table as TableIcon,
   PenTool,
   Maximize2,
-  Minimize2,
-  Sparkles,
-  Pin
+  Minimize2
 } from 'lucide-react';
 import { OptimizedEditor } from './OptimizedEditor';
 import { useLanguage } from '../../context/LanguageContext';
@@ -34,7 +32,6 @@ import { FreeformDrawingOverlay } from './FreeformDrawingOverlay';
 import { TableGridPicker } from './TableGridPicker';
 import { TiptapWysiwygEditorRef } from './TiptapWysiwygEditor';
 import { renderMarkdownToHtml as defaultRenderMarkdownToHtml } from '../../utils/markdownParser';
-import { getTextareaSelectionCoordinates } from '../../utils/caretCoordinates';
 import type { EditorSelectionContext } from '../../types';
 
 export interface UnifiedEditorRef {
@@ -60,10 +57,6 @@ export interface UnifiedEditorProps {
   renderMarkdownToHtml?: (md: string) => string;
   onFocus?: () => void;
   onSelectionChange?: (selection: EditorSelectionContext | null) => void;
-  editorSelection?: EditorSelectionContext | null;
-  onRewriteWithAi?: (selection: EditorSelectionContext) => void;
-  onPinToChat?: (selection: EditorSelectionContext) => void;
-  isAiLoading?: boolean;
   editorRef?: React.RefObject<HTMLTextAreaElement | null>;
   tiptapRef?: React.Ref<TiptapWysiwygEditorRef>;
   ref?: React.Ref<UnifiedEditorRef>;
@@ -106,10 +99,6 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
     renderMarkdownToHtml = defaultRenderMarkdownToHtml,
     onFocus,
     onSelectionChange,
-    editorSelection,
-    onRewriteWithAi,
-    onPinToChat,
-    isAiLoading = false,
     editorRef,
     tiptapRef,
     ref,
@@ -137,117 +126,16 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
   const internalEditorRef = useRef<HTMLTextAreaElement | null>(null);
   const internalTiptapRef = useRef<TiptapWysiwygEditorRef | null>(null);
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
-  const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
-
-  const [localSelection, setLocalSelection] = useState<EditorSelectionContext | null>(null);
-  const [rewriteBtnPos, setRewriteBtnPos] = useState<{ top: number; left: number } | null>(null);
-  const [isRewriteDismissed, setIsRewriteDismissed] = useState(false);
 
   const activeEditorRef = editorRef || internalEditorRef;
-  const activeSelection = editorSelection !== undefined ? editorSelection : localSelection;
-
-  const computeRewriteButtonPosition = useCallback(
-    (sel: EditorSelectionContext | null, pointerX?: number, pointerY?: number) => {
-      const container = editorContainerRef.current;
-      if (!container || !sel || !sel.text.trim()) {
-        setRewriteBtnPos(null);
-        return;
-      }
-
-      const containerRect = container.getBoundingClientRect();
-      const maxLeft = Math.max(12, container.clientWidth - 240);
-      const minTop = 40;
-      const maxTop = Math.max(44, container.clientHeight - 36);
-
-      // 1. Markdown / Split textarea selection coordinates
-      const textarea = activeEditorRef.current;
-      const isTextareaSelection =
-        (internalMode === 'markdown' || internalMode === 'edit' || internalMode === 'split') &&
-        sel.mode !== 'wysiwyg' &&
-        sel.mode !== 'preview' &&
-        (sel.mode !== 'split' || typeof sel.startOffset === 'number');
-      if (
-        textarea &&
-        isTextareaSelection &&
-        (textarea.selectionEnd > textarea.selectionStart || typeof sel.startOffset === 'number')
-      ) {
-        const start = textarea.selectionEnd > textarea.selectionStart ? textarea.selectionStart : (sel.startOffset ?? 0);
-        const end = textarea.selectionEnd > textarea.selectionStart ? textarea.selectionEnd : (sel.endOffset ?? start);
-        if (end > start) {
-          const textareaRect = textarea.getBoundingClientRect();
-          const coords = getTextareaSelectionCoordinates(textarea, start, end);
-          const relBottom = textareaRect.top - containerRect.top + coords.bottom;
-          const relTop = textareaRect.top - containerRect.top + coords.top;
-          const relLeft = textareaRect.left - containerRect.left + coords.left;
-          // Offset below bubble menu if selection is at the top edge and bubble flips below
-          const verticalOffset = relTop - 36 < 44 ? 46 : 8;
-          setRewriteBtnPos({
-            top: Math.max(minTop, Math.min(maxTop, relBottom + verticalOffset)),
-            left: Math.max(12, Math.min(maxLeft, relLeft))
-          });
-          return;
-        }
-      }
-
-      // 2. TipTap WYSIWYG / Preview / Split Preview DOM Range coordinates
-      if (typeof window !== 'undefined') {
-        const domSel = window.getSelection();
-        if (domSel && domSel.rangeCount > 0 && !domSel.getRangeAt(0).collapsed) {
-          const range = domSel.getRangeAt(0);
-          if (container.contains(range.commonAncestorContainer)) {
-            const clientRects = range.getClientRects();
-            const targetRect = clientRects.length > 0 ? clientRects[clientRects.length - 1] : range.getBoundingClientRect();
-            if (targetRect && (targetRect.width > 0 || targetRect.height > 0)) {
-              const relBottom = targetRect.bottom - containerRect.top;
-              const relTop = targetRect.top - containerRect.top;
-              const relRight = targetRect.right - containerRect.left;
-              const verticalOffset = relTop - 36 < 44 && internalMode === 'wysiwyg' ? 46 : 8;
-              setRewriteBtnPos({
-                top: Math.max(minTop, Math.min(maxTop, relBottom + verticalOffset)),
-                left: Math.max(12, Math.min(maxLeft, relRight - 24))
-              });
-              return;
-            }
-          }
-        }
-      }
-
-      // 3. Fallback to recorded mouse pointer coordinates near the cursor
-      const px = pointerX ?? lastPointerRef.current?.x;
-      const py = pointerY ?? lastPointerRef.current?.y;
-      if (typeof px === 'number' && typeof py === 'number') {
-        setRewriteBtnPos({
-          top: Math.max(minTop, Math.min(maxTop, py - containerRect.top + 12)),
-          left: Math.max(12, Math.min(maxLeft, px - containerRect.left))
-        });
-      }
-    },
-    [activeEditorRef, internalMode]
-  );
 
   const handleSelectionUpdate = useCallback(
     (sel: EditorSelectionContext | null) => {
-      setLocalSelection(sel);
-      setIsRewriteDismissed(false);
       eventBus?.publishSelection(sel);
       onSelectionChange?.(sel);
-      if (sel && sel.text.trim()) {
-        computeRewriteButtonPosition(sel);
-      } else {
-        setRewriteBtnPos(null);
-      }
     },
-    [onSelectionChange, computeRewriteButtonPosition, eventBus]
+    [onSelectionChange, eventBus]
   );
-
-  useEffect(() => {
-    setIsRewriteDismissed(false);
-    if (activeSelection?.text?.trim()) {
-      computeRewriteButtonPosition(activeSelection);
-    } else {
-      setRewriteBtnPos(null);
-    }
-  }, [activeSelection?.text, activeSelection?.updatedAt, computeRewriteButtonPosition]);
 
   // Sync internal drawing state with incoming props
   useEffect(() => {
@@ -665,14 +553,12 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
     [value, onChange, onToast, onCloseDrawing, et]
   );
 
-  // Global Ctrl+S and Escape handler when inside editor
+  // Global Ctrl+S handler when inside editor
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         onSave?.(value);
-      } else if (e.key === 'Escape') {
-        setIsRewriteDismissed(true);
       }
     },
     [onSave, value]
@@ -683,29 +569,18 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
       ref={editorContainerRef}
       className={`${
         activeFullscreen
-          ? 'fixed inset-0 z-50 bg-[#09090b] flex flex-col'
+          ? 'fixed inset-0 z-50 bg-[var(--bg-editor)] season-shell flex flex-col'
           : 'relative w-full h-full flex flex-col flex-1 overflow-hidden'
       } ${className}`}
       style={{ '--editor-font-size': `${fontSize}px` } as React.CSSProperties}
       onKeyDown={handleKeyDown}
-      onKeyUp={() => {
-        handleCursorActivity();
-        if (activeSelection?.text?.trim()) {
-          computeRewriteButtonPosition(activeSelection);
-        }
-      }}
-      onMouseUp={(e) => {
-        lastPointerRef.current = { x: e.clientX, y: e.clientY };
-        if (activeSelection?.text?.trim()) {
-          computeRewriteButtonPosition(activeSelection, e.clientX, e.clientY);
-        }
-      }}
+      onKeyUp={handleCursorActivity}
       onClick={handleCursorActivity}
     >
-      {/* Top Toolbar: Clean single-row horizontal toolbar above editor canvas */}
+      {/* Top Toolbar: Muted single-row horizontal toolbar receding when idle */}
       <div
         id="unified-editor-top-toolbar"
-        className="shrink-0 h-8 px-2 bg-[#121214] border-b border-[#222226] flex items-center justify-between select-none z-10 text-xs gap-2"
+        className="shrink-0 h-8 px-3 bg-[var(--bg-editor)] season-shell border-b border-white/[0.06] flex items-center justify-between select-none z-10 text-xs gap-2"
       >
         {/* Left Section: Mode Switcher (Icon-only) */}
         <div className="flex items-center gap-1 shrink-0">
@@ -713,10 +588,10 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleModeSelect('wysiwyg')}
-            className={`h-6 w-6 rounded-xs text-xs flex items-center justify-center transition cursor-pointer select-none shrink-0 ${
+            className={`h-6 w-6 rounded-md text-xs flex items-center justify-center transition cursor-pointer select-none shrink-0 ${
               internalMode === 'wysiwyg'
-                ? 'bg-[#18181b] text-indigo-400 border border-[#6366f1]/50 font-medium'
-                : 'text-slate-400 hover:text-white hover:bg-[#18181b] border border-transparent'
+                ? 'bg-white/[0.08] text-[var(--accent-primary)] font-medium'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.05]'
             }`}
             title={et.wysiwyg}
             aria-label={et.wysiwyg}
@@ -728,10 +603,10 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleModeSelect('markdown')}
-            className={`h-6 w-6 rounded-xs text-xs flex items-center justify-center transition cursor-pointer select-none shrink-0 ${
+            className={`h-6 w-6 rounded-md text-xs flex items-center justify-center transition cursor-pointer select-none shrink-0 ${
               internalMode === 'markdown' || internalMode === 'edit'
-                ? 'bg-[#18181b] text-white border border-[#6366f1]/50 font-medium'
-                : 'text-slate-400 hover:text-white hover:bg-[#18181b] border border-transparent'
+                ? 'bg-white/[0.08] text-[var(--accent-primary)] font-medium'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.05]'
             }`}
             title={et.markdown}
             aria-label={et.markdown}
@@ -743,10 +618,10 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleModeSelect('split')}
-            className={`h-6 w-6 rounded-xs text-xs flex items-center justify-center transition cursor-pointer select-none shrink-0 ${
+            className={`h-6 w-6 rounded-md text-xs flex items-center justify-center transition cursor-pointer select-none shrink-0 ${
               internalMode === 'split'
-                ? 'bg-[#18181b] text-white border border-[#6366f1]/50 font-medium'
-                : 'text-slate-400 hover:text-white hover:bg-[#18181b] border border-transparent'
+                ? 'bg-white/[0.08] text-[var(--accent-primary)] font-medium'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.05]'
             }`}
             title={et.split}
             aria-label={et.split}
@@ -755,14 +630,14 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
           </button>
         </div>
 
-        {/* Right Section: Grouped Formatting Actions (Icon-only) */}
+        {/* Right Section: Muted Formatting Actions (Icon-only) */}
         <div className="flex items-center gap-0.5 min-w-0 overflow-x-auto whitespace-nowrap scrollbar-none">
           {/* Headings: Heading1, Heading2, Heading3 */}
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('h1')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.h1}
             aria-label="Heading 1"
           >
@@ -772,7 +647,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('h2')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.h2}
             aria-label="Heading 2"
           >
@@ -782,21 +657,21 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('h3')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.h3}
             aria-label="Heading 3"
           >
             <Heading3 className="w-3.5 h-3.5" />
           </button>
 
-          <div className="h-3.5 w-px bg-[#222226] mx-0.5 shrink-0" />
+          <div className="h-3.5 w-px bg-white/[0.06] mx-1 shrink-0" />
 
           {/* Inline Styles: B (Bold), I (Italic), <> (Code) */}
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('bold')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.boldTitle}
             aria-label="Bold"
           >
@@ -806,7 +681,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('italic')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white italic transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] italic transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.italicTitle}
             aria-label="Italic"
           >
@@ -816,21 +691,21 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('code')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white font-mono text-xs transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] font-mono text-xs transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.codeTitle}
             aria-label="Code"
           >
             <Code className="w-3.5 h-3.5" />
           </button>
 
-          <div className="h-3.5 w-px bg-[#222226] mx-0.5 shrink-0" />
+          <div className="h-3.5 w-px bg-white/[0.06] mx-1 shrink-0" />
 
           {/* Block Formats: Bullet List, Numbered List, Task List, Blockquote, Table */}
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('bullet')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.bullet}
             aria-label="Bullet list"
           >
@@ -840,7 +715,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('number')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.numbered}
             aria-label="Numbered list"
           >
@@ -850,7 +725,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('task')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.task}
             aria-label="Task list"
           >
@@ -860,7 +735,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('quote')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.quoteTitle}
             aria-label="Blockquote"
           >
@@ -870,14 +745,14 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('table')}
-            className="h-6 w-6 rounded-xs hover:bg-[#18181b] hover:text-white transition flex items-center justify-center cursor-pointer select-none text-slate-300 shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.table}
             aria-label="Table"
           >
             <TableIcon className="w-3.5 h-3.5" />
           </button>
 
-          <div className="h-3.5 w-px bg-[#222226] mx-0.5 shrink-0" />
+          <div className="h-3.5 w-px bg-white/[0.06] mx-1 shrink-0" />
 
           {/* Drawing Canvas Toggle (PenTool icon) */}
           <button
@@ -885,15 +760,15 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={handleToggleDrawing}
-            className={`h-6 w-6 rounded-xs transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
+            className={`h-6 w-6 rounded-md transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
               activeDrawing
-                ? 'bg-indigo-600 text-white font-medium'
-                : 'text-slate-300 hover:bg-[#18181b] hover:text-white'
+                ? 'bg-white/[0.08] text-[var(--accent-primary)] font-medium'
+                : 'text-[var(--text-muted)] hover:bg-white/[0.05] hover:text-[var(--text-main)]'
             }`}
             title={activeDrawing ? et.drawingClose : et.drawingOpen}
             aria-label="Drawing canvas"
           >
-            <PenTool className="w-3.5 h-3.5 text-indigo-400" />
+            <PenTool className="w-3.5 h-3.5" />
           </button>
 
           {/* Fullscreen Toggle (Icon button) */}
@@ -901,10 +776,10 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={handleToggleFullscreen}
-            className={`h-6 w-6 rounded-xs transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
+            className={`h-6 w-6 rounded-md transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
               activeFullscreen
-                ? 'bg-indigo-600 text-white font-medium'
-                : 'text-slate-300 hover:bg-[#18181b] hover:text-white'
+                ? 'bg-white/[0.08] text-[var(--accent-primary)] font-medium'
+                : 'text-[var(--text-muted)] hover:bg-white/[0.05] hover:text-[var(--text-main)]'
             }`}
             title={activeFullscreen ? et.fullscreenExit : et.fullscreen}
             aria-label="Fullscreen toggle"
@@ -942,67 +817,6 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
         cloudApiKey={cloudApiKey}
         apiKeys={apiKeys}
       />
-
-      {/* Floating Cursor-Near Selection Quick Actions ('Rewrite with AI' + 'Pin to Chat') */}
-      {activeSelection?.text?.trim() && rewriteBtnPos && !isRewriteDismissed && (
-        <div
-          id="unified-editor-selection-actions"
-          style={{
-            top: `${rewriteBtnPos.top}px`,
-            left: `${rewriteBtnPos.left}px`
-          }}
-          className="absolute z-40 flex items-center gap-1 select-none"
-        >
-          <button
-            id="unified-editor-rewrite-ai-btn"
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-            onClick={() => {
-              if (!activeSelection?.text?.trim()) return;
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(
-                  new CustomEvent('aipodium:rewrite_with_ai', {
-                    detail: activeSelection,
-                  })
-                );
-              }
-              eventBus?.triggerRewriteWithAi(activeSelection);
-              onRewriteWithAi?.(activeSelection);
-              setIsRewriteDismissed(true);
-            }}
-            title={et.rewriteWithAiTitle}
-            aria-label={et.rewriteWithAi}
-            className="h-7 px-2.5 rounded-xs bg-[#121214] hover:bg-[#18181b] border border-[#6366f1]/70 hover:border-[#6366f1] text-indigo-200 hover:text-white text-[0.6875rem] font-medium flex items-center gap-1.5 shadow-lg transition-colors cursor-pointer select-none whitespace-nowrap"
-          >
-            <Sparkles className="w-3 h-3 text-[#6366f1] shrink-0" />
-            <span>{et.rewriteWithAi}</span>
-          </button>
-
-          <button
-            id="unified-editor-pin-anchor-btn"
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-            onClick={() => {
-              if (!activeSelection?.text?.trim()) return;
-              eventBus?.pinSelection(activeSelection);
-              onPinToChat?.(activeSelection);
-              setIsRewriteDismissed(true);
-            }}
-            title={et.pinToChatTitle}
-            aria-label={et.pinToChat}
-            className="h-7 px-2.5 rounded-xs bg-[#121214] hover:bg-[#18181b] border border-[#222226] hover:border-[#6366f1]/70 text-zinc-200 hover:text-white text-[0.6875rem] font-medium flex items-center gap-1.5 shadow-lg transition-colors cursor-pointer select-none whitespace-nowrap"
-          >
-            <Pin className="w-3 h-3 text-[#6366f1] shrink-0" />
-            <span>{et.pinToChat}</span>
-          </button>
-        </div>
-      )}
 
       {/* Freeform Drawing Canvas Overlay encapsulated within editor layer */}
       {activeDrawing && (

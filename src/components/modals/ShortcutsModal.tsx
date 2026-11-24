@@ -28,17 +28,17 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose 
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-[#09090b]/80 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-[var(--bg-main)]/80 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        className="relative bg-[#121214] border border-[#222226] rounded-xs max-w-md w-full p-6 shadow-2xl space-y-5 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans"
+        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-5 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-1.5 rounded-xs hover:bg-[#18181b] transition cursor-pointer"
+          className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-[var(--text-main)] p-1.5 rounded-lg hover:bg-white/[0.06] transition cursor-pointer"
           title="닫기"
         >
           <X className="w-4 h-4" />
@@ -46,31 +46,31 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose 
 
         <div className="space-y-1 pt-1">
           <div className="flex items-center gap-2">
-            <Keyboard className="w-4 h-4 text-indigo-400" />
-            <h2 className="text-base font-semibold text-indigo-300">단축키 안내</h2>
+            <Keyboard className="w-4 h-4 text-[var(--accent-primary)]" />
+            <h2 className="text-base font-semibold text-[var(--text-main)] tracking-tight">단축키 안내</h2>
           </div>
-          <p className="text-xs text-slate-400">워크스페이스 작업 효율을 높이는 단축키 목록입니다.</p>
+          <p className="text-xs text-[var(--text-muted)]">워크스페이스 작업 효율을 높이는 단축키 목록입니다.</p>
         </div>
 
-        <div className="space-y-1.5 text-xs text-slate-300 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
+        <div className="divide-y divide-white/[0.06] text-xs text-[var(--text-muted)] max-h-80 overflow-y-auto pr-1 custom-scrollbar">
           {SHORTCUTS_LIST.map((item) => (
             <div
               key={item.label}
-              className="flex items-center justify-between py-1.5 border-b border-[#222226]"
+              className="flex items-center justify-between py-2"
             >
-              <span className="text-slate-300">{item.label}</span>
-              <kbd className="bg-[#09090b] text-[#6366f1] font-mono px-2 py-0.5 rounded-xs text-[0.6875rem] border border-[#222226]">
+              <span className="text-[var(--text-muted)]">{item.label}</span>
+              <kbd className="bg-[var(--bg-surface)] text-[var(--accent-primary)] font-mono px-2 py-0.5 rounded-md text-[0.6875rem] border border-white/[0.06]">
                 {item.keys}
               </kbd>
             </div>
           ))}
         </div>
 
-        <div className="flex justify-end pt-2 border-t border-[#222226]">
+        <div className="flex justify-end pt-3 border-t border-white/[0.06]">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xs text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition cursor-pointer"
+            className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[#F1F5F9] hover:bg-white text-[#0F172A] transition cursor-pointer"
           >
             닫기
           </button>

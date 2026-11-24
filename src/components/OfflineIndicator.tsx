@@ -28,9 +28,9 @@ export const OfflineIndicator: React.FC = () => {
     return (
       <aside
         aria-live="polite"
-        className="fixed bottom-4 left-4 z-50 flex items-center gap-2 rounded-xs bg-[#121214] border border-emerald-500/60 px-3 py-1.5 text-xs font-medium text-emerald-200 shadow-xl transition-all duration-300 font-sans"
+        className="fixed bottom-4 left-4 z-50 flex items-center gap-2 rounded-lg bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--secondary-accent)]/40 px-3 py-1.5 text-xs font-medium text-[var(--secondary-accent)] shadow-xl transition-all duration-300 font-sans"
       >
-        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+        <CheckCircle2 className="w-3.5 h-3.5 text-[var(--secondary-accent)] shrink-0" />
         <span>네트워크 연결이 복구되었습니다. 최신 상태로 유지됩니다.</span>
       </aside>
     );
@@ -40,7 +40,7 @@ export const OfflineIndicator: React.FC = () => {
   return (
     <aside
       aria-live="polite"
-      className="fixed bottom-4 left-4 z-50 flex items-center gap-2.5 rounded-xs bg-[#121214] border border-amber-500/60 px-3 py-1.5 text-xs font-medium text-amber-200 shadow-xl transition-all duration-300 font-sans"
+      className="fixed bottom-4 left-4 z-50 flex items-center gap-2.5 rounded-lg bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-amber-500/40 px-3 py-1.5 text-xs font-medium text-amber-200 shadow-xl transition-all duration-300 font-sans"
     >
       {isSyncing ? (
         <RefreshCw className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-spin" />
@@ -50,8 +50,8 @@ export const OfflineIndicator: React.FC = () => {
       <div className="flex items-center gap-1.5">
         <span>오프라인 모드 · 로컬 저장소에 안전하게 보관 중입니다.</span>
         {pendingCount > 0 && (
-          <span className="px-1.5 py-0.5 rounded-xs bg-amber-500/20 text-amber-300 text-[11px] font-mono border border-amber-500/40">
-            대기 {pendingCount}건
+          <span className="text-amber-300 text-[11px] font-mono">
+            · 대기 {pendingCount}건
           </span>
         )}
       </div>

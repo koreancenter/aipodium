@@ -510,7 +510,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
       <p className="text-[11px] text-zinc-400 leading-relaxed">
         감지된 로컬 모델이 없습니다.
         <br />
-        <span className="text-zinc-500">Ollama 실행 상태 또는 기본 태그를 확인하세요.</span>
+        <span className="text-[var(--text-tertiary)]">Ollama 실행 상태 또는 기본 태그를 확인하세요.</span>
       </p>
 
       <div className="flex flex-wrap gap-1.5 pt-1">
@@ -523,13 +523,13 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
               onClick={() => handleSelectDefaultTag(tag)}
               className={`px-2 py-0.5 rounded text-[11px] font-mono transition-all cursor-pointer flex items-center gap-1 ${
                 checked
-                  ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-200 font-medium'
-                  : 'hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/30 text-[var(--accent-primary)] font-medium'
+                  : 'hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)]'
               }`}
               title={`'${tag}' 모델 선택`}
             >
               <span>{tag}</span>
-              {checked && <Check className="w-2.5 h-2.5 text-indigo-400" />}
+              {checked && <Check className="w-2.5 h-2.5 text-[var(--accent-primary)]" />}
             </button>
           );
         })}
@@ -539,7 +539,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
 
   const renderEmptyState = (message: string = '사용 가능한 AI 모델이 없습니다.') => (
     <div className="py-7 px-3 text-center flex flex-col items-center justify-center space-y-2.5">
-      <p className="text-xs text-zinc-400 leading-relaxed">{message}</p>
+      <p className="text-xs text-[var(--text-muted)] leading-relaxed">{message}</p>
       <button
         type="button"
         onClick={() => {
@@ -547,7 +547,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
           if (onOpenSettings) onOpenSettings('ai-engine');
           else if (onOpenRoleModal) onOpenRoleModal();
         }}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/25 hover:text-indigo-200 text-xs transition-colors cursor-pointer"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#F1F5F9] text-[#0F172A] hover:bg-white text-xs font-medium transition-colors cursor-pointer"
       >
         <span>API 키 설정하기</span>
       </button>
@@ -588,10 +588,10 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
         }}
         className={`group py-2 px-3 hover:bg-white/[0.05] rounded-lg flex items-center justify-between cursor-pointer transition-colors duration-150 select-none ${
           checked
-            ? 'bg-white/[0.08] text-zinc-100'
+            ? 'bg-white/[0.06] text-[var(--text-main)]'
             : !isConfigured
-              ? 'text-zinc-500 hover:text-zinc-300'
-              : 'text-zinc-300 hover:text-zinc-100'
+              ? 'text-[var(--text-tertiary)] hover:text-[var(--text-muted)]'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
         }`}
       >
         {/* Left: Checkmark / Checkbox + Model name + micro tag */}
@@ -601,24 +601,24 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
               <div
                 className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${
                   checked
-                    ? 'border-indigo-500 bg-indigo-500 text-white'
-                    : 'border-zinc-700 group-hover:border-zinc-500 bg-transparent'
+                    ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-[#0F172A]'
+                    : 'border-white/[0.15] group-hover:border-white/[0.3] bg-transparent'
                 }`}
               >
                 {checked && <Check className="w-2.5 h-2.5 stroke-[2.5]" />}
               </div>
             ) : checked ? (
-              <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
             ) : null}
           </div>
 
           <span
             className={`text-xs font-medium truncate ${
               checked
-                ? 'text-white'
+                ? 'text-[var(--text-main)]'
                 : !isConfigured
-                  ? 'text-zinc-500'
-                  : 'text-zinc-200 group-hover:text-white'
+                  ? 'text-[var(--text-tertiary)]'
+                  : 'text-[var(--text-muted)] group-hover:text-[var(--text-main)]'
             }`}
             title={m.name}
           >
@@ -626,7 +626,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
           </span>
 
           {tierBadge && (
-            <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/[0.04] text-zinc-400 font-mono tracking-tight shrink-0">
+            <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/[0.04] text-[var(--text-muted)] font-mono tracking-tight shrink-0">
               {tierBadge}
             </span>
           )}
@@ -640,7 +640,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
             className={`p-1 transition-opacity cursor-pointer flex items-center justify-center shrink-0 ${
               isPinned
                 ? 'text-zinc-300 opacity-100'
-                : 'text-zinc-600 hover:text-zinc-300 opacity-0 group-hover:opacity-100'
+                : 'text-[var(--text-tertiary)] hover:text-zinc-300 opacity-0 group-hover:opacity-100'
             }`}
             title={isPinned ? '즐겨찾기 고정 해제' : '즐겨찾기 고정'}
           >
@@ -659,7 +659,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
         <button
           type="button"
           onClick={() => setShowUnconfigured((prev) => !prev)}
-          className="w-full flex items-center justify-between px-2.5 py-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer select-none rounded hover:bg-white/[0.02]"
+          className="w-full flex items-center justify-between px-2.5 py-1 text-[11px] text-[var(--text-tertiary)] hover:text-zinc-300 transition-colors cursor-pointer select-none rounded hover:bg-white/[0.02]"
         >
           <span>키 설정 필요 모델 ({tabUnconfiguredList.length}개)</span>
           <ChevronDown
@@ -686,17 +686,17 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
         onClick={() => setIsOpen((prev) => !prev)}
         className={`h-6 max-w-[220px] px-2 rounded-md text-[0.6875rem] font-normal flex items-center gap-1.5 transition-colors cursor-pointer ${
           isOpen
-            ? 'bg-white/[0.08] text-indigo-300'
+            ? 'bg-white/[0.08] text-[var(--accent-primary)]'
             : hasMultipleModels
-            ? 'text-indigo-300 hover:text-indigo-200 hover:bg-white/[0.06]'
-            : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06]'
+            ? 'text-[var(--accent-primary)] hover:text-sky-300 hover:bg-white/[0.06]'
+            : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06]'
         }`}
         title={`AI 모델 선택: ${chipLabel} (클릭하여 열기)`}
       >
         <span className="truncate text-left font-normal">{chipLabel}</span>
         <ChevronDown
-          className={`w-3 h-3 text-zinc-400 shrink-0 transition-transform duration-150 ${
-            isOpen ? 'rotate-180 text-indigo-400' : ''
+          className={`w-3 h-3 text-[var(--text-muted)] shrink-0 transition-transform duration-150 ${
+            isOpen ? 'rotate-180 text-[var(--accent-primary)]' : ''
           }`}
         />
       </button>
@@ -712,26 +712,26 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
             transition={{ duration: 0.12, ease: 'easeOut' }}
             style={{ left: `${popoverShift}px` }}
             onWheel={(e) => e.stopPropagation()}
-            className="absolute bottom-full mb-2 z-50 w-[340px] min-w-[340px] max-w-[340px] h-[400px] flex flex-col bg-[#0f1015]/95 border border-white/[0.07] backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden text-xs font-normal"
+            className="absolute bottom-full mb-2 z-50 w-[340px] min-w-[340px] max-w-[340px] h-[400px] flex flex-col bg-[var(--bg-elevated)]/95 border border-white/[0.08] backdrop-blur-md rounded-xl shadow-2xl overflow-hidden text-xs font-normal"
           >
             {/* Header: Slim search bar + Simple text filter tabs & Mode switcher */}
-            <div className="shrink-0 border-b border-white/[0.07] bg-[#09090b]/60 p-2 space-y-1.5">
+            <div className="shrink-0 border-b border-white/[0.06] bg-[var(--bg-surface)]/70 p-2 space-y-1.5">
               {/* Search input: py-1.5 px-3 bg-white/[0.03] rounded-lg text-xs */}
-              <div className="flex items-center gap-2 py-1.5 px-3 bg-white/[0.03] rounded-lg text-xs border border-white/[0.04]">
-                <Search className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+              <div className="flex items-center gap-2 py-1.5 px-3 bg-white/[0.04] rounded-lg text-xs border border-white/[0.06]">
+                <Search className="w-3.5 h-3.5 text-[var(--text-tertiary)] shrink-0" />
                 <input
                   type="text"
                   autoFocus
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="모델 검색..."
-                  className="w-full bg-transparent text-xs font-normal text-zinc-100 placeholder:text-zinc-600 outline-none"
+                  className="w-full bg-transparent text-xs font-normal text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="text-zinc-500 hover:text-zinc-300 text-[10px] font-normal px-1 cursor-pointer transition-colors"
+                    className="text-[var(--text-muted)] hover:text-[var(--text-main)] text-[10px] font-normal px-1 cursor-pointer transition-colors"
                   >
                     지우기
                   </button>
@@ -747,7 +747,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                         onOpenRoleModal();
                       }
                     }}
-                    className="p-0.5 text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] rounded transition-colors shrink-0 cursor-pointer"
+                    className="p-0.5 text-[var(--text-muted)] hover:text-slate-200 hover:bg-white/[0.06] rounded transition-colors shrink-0 cursor-pointer"
                     title="AI 엔진 및 설정 열기"
                   >
                     <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -764,8 +764,8 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                     onClick={() => setSelectedTab('all')}
                     className={`text-[11px] whitespace-nowrap transition-colors cursor-pointer ${
                       selectedTab === 'all'
-                        ? 'text-zinc-100 font-medium'
-                        : 'text-zinc-500 hover:text-zinc-300'
+                        ? 'text-[var(--text-main)] font-medium'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                     }`}
                   >
                     전체
@@ -775,8 +775,8 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                     onClick={() => setSelectedTab('cloud')}
                     className={`text-[11px] whitespace-nowrap transition-colors cursor-pointer ${
                       selectedTab === 'cloud'
-                        ? 'text-zinc-100 font-medium'
-                        : 'text-zinc-500 hover:text-zinc-300'
+                        ? 'text-[var(--text-main)] font-medium'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                     }`}
                   >
                     클라우드
@@ -786,18 +786,18 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                     onClick={handleSelectLocalAiTab}
                     className={`text-[11px] whitespace-nowrap transition-colors cursor-pointer flex items-center gap-1 ${
                       selectedTab === 'local'
-                        ? 'text-zinc-100 font-medium'
-                        : 'text-zinc-500 hover:text-zinc-300'
+                        ? 'text-[var(--text-main)] font-medium'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                     }`}
                     title="로컬 AI 선택 및 새로고침"
                   >
                     <span>로컬 AI</span>
-                    {isRefetching && <RefreshCw className="w-2.5 h-2.5 text-indigo-400 animate-spin" />}
+                    {isRefetching && <RefreshCw className="w-2.5 h-2.5 text-[var(--accent-primary)] animate-spin" />}
                   </button>
                 </div>
 
                 {/* Mode switcher */}
-                <div className="flex items-center gap-1 text-[10px] text-zinc-500 shrink-0">
+                <div className="flex items-center gap-1 text-[10px] text-[var(--text-muted)] shrink-0">
                   {([
                     ['single', '단일'],
                     ['multi', '비교'],
@@ -810,8 +810,8 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                       aria-pressed={mode === value}
                       className={`px-1.5 py-0.5 rounded transition-all cursor-pointer whitespace-nowrap ${
                         mode === value
-                          ? 'bg-white/[0.08] text-zinc-100 font-medium'
-                          : 'hover:text-zinc-300'
+                          ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+                          : 'hover:text-[var(--text-main)]'
                       }`}
                     >
                       {label}
@@ -831,7 +831,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                   {detectedOllamaModels.length === 0 && renderFallbackLocalAiPrompt()}
                   {detectedOllamaModels.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-white/[0.04] flex items-center justify-between px-3">
-                      <span className="text-[10px] text-zinc-500 font-mono">
+                      <span className="text-[10px] text-[var(--text-tertiary)] font-mono">
                         {detectedOllamaModels.length}개 로컬 모델 감지됨
                       </span>
                     </div>
@@ -860,7 +860,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
 
                   {remainingLocalList.some((m) => m.id === 'Qwen2.5-0.5B-Instruct') && (
                     <div className="mt-1">
-                      <div className="px-3 pt-2 pb-1 text-[10px] text-zinc-500 font-medium select-none">
+                      <div className="px-3 pt-2 pb-1 text-[10px] text-[var(--text-tertiary)] font-medium select-none">
                         브라우저 내장 AI · WebGPU
                       </div>
                       {remainingLocalList
@@ -872,7 +872,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                   {(remainingLocalList.some((m) => m.id !== 'Qwen2.5-0.5B-Instruct') ||
                     detectedOllamaModels.length === 0) && (
                     <div className="mt-1">
-                      <div className="px-3 pt-2 pb-1 text-[10px] text-zinc-500 font-medium select-none">
+                      <div className="px-3 pt-2 pb-1 text-[10px] text-[var(--text-tertiary)] font-medium select-none">
                         로컬 AI · Ollama
                       </div>
                       {remainingLocalList
@@ -892,10 +892,10 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
             </div>
 
             {/* Bottom Bar: Clean 1-line status footer */}
-            <div className="shrink-0 text-[11px] text-zinc-400 py-2 px-3 border-t border-white/[0.06] flex items-center justify-between select-none">
+            <div className="shrink-0 text-[11px] text-[var(--text-muted)] py-2 px-3 border-t border-white/[0.06] flex items-center justify-between select-none">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 shrink-0" />
-                <span className="font-normal text-[11px] text-zinc-300 truncate">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] shrink-0" />
+                <span className="font-normal text-[11px] text-[var(--text-main)] truncate">
                   {mode === 'single'
                     ? `단일 추론 · ${primaryModelName}`
                     : mode === 'multi'

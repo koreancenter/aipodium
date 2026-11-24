@@ -1,5 +1,6 @@
 import { DEFAULT_AI_ROLE_MODELS, AiRoleModels } from '../types';
 import { SecurityConfig } from '../components/SecuritySettings';
+import type { SeasonThemeId } from '../types/preferences';
 
 export interface PromptTemplate {
   id: string;
@@ -36,6 +37,7 @@ export interface UserPreferences {
   baseTheme?: string;
   themeAccent?: string;
   themeMode?: string;
+  seasonTheme?: SeasonThemeId;
   fontSize: 'sm' | 'md' | 'lg' | 'xl';
   compactness: 'dense' | 'spacious';
   defaultModel: string;
@@ -71,6 +73,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   baseTheme: 'emerald',
   themeAccent: 'emerald',
   themeMode: 'standard',
+  seasonTheme: 'default',
   fontSize: 'md',
   compactness: 'dense',
   defaultModel: 'gemini-2.5-flash',

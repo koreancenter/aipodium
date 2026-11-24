@@ -581,3 +581,55 @@ export const getModelSpec = (modelId: string): ModelSpec => {
     description: '설치된 로컬 실행 모델'
   };
 };
+
+/**
+ * Resolves whether a given model ID targets a local Ollama runtime rather than cloud APIs or WebLLM.
+ */
+export function isLocalOllamaModelId(
+  modelId: string,
+  catalogModels?: Array<{ id: string; group?: string; vendor?: string }>
+): boolean {
+  const raw = (modelId || '').trim();
+  if (!raw) return false;
+  const lower = raw.toLowerCase();
+
+  if (lower.includes('qwen2.5-0.5b-instruct') || lower.includes('webllm') || lower.includes('-mlc')) {
+    return false;
+  }
+
+  if (lower.startsWith('ollama/')) {
+    return true;
+  }
+
+  const matched = catalogModels?.find((m) => m.id === raw || m.id.toLowerCase() === lower);
+  if (matched) {
+    if (matched.vendor === 'ollama') return true;
+    if (matched.group === 'local' && matched.vendor !== 'webllm') return true;
+    if (matched.group === 'cloud') return false;
+  }
+
+  const isKnownCloud =
+    /^(gemini-|gpt-|o1-|o3-|claude-|deepseek-chat|deepseek-reasoner|groq-)/i.test(lower) ||
+    lower === 'llama-3.3-70b-versatile' ||
+    lower === 'llama-3.1-8b-instant';
+  if (isKnownCloud) {
+    return false;
+  }
+
+  if (lower.includes(':') || lower.startsWith('local-')) {
+    return true;
+  }
+
+  try {
+    const savedDiscovered = JSON.parse(localStorage.getItem('aipodium_discovered_models') || '[]');
+    if (
+      Array.isArray(savedDiscovered) &&
+      savedDiscovered.some((m: any) => typeof m?.id === 'string' && m.id.toLowerCase() === lower)
+    ) {
+      return true;
+    }
+  } catch {}
+
+  return false;
+}
+

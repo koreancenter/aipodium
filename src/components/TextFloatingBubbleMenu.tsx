@@ -16,7 +16,9 @@ import {
   Sparkles,
   Wand2,
   X,
-  Loader2
+  Loader2,
+  Languages,
+  FileText
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { getEditorTranslations } from '../locales/editorLocale';
@@ -39,7 +41,6 @@ export type TextFormatAction =
 export interface TextFloatingBubbleMenuProps {
   position: { top: number; left: number };
   selectedText: string;
-  hasSelection: boolean;
   onApplyFormat: (formatType: TextFormatAction) => void;
   onCleanText?: () => void;
   onClose?: () => void;
@@ -50,7 +51,6 @@ export interface TextFloatingBubbleMenuProps {
 export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
   position,
   selectedText: _selectedText,
-  hasSelection,
   onApplyFormat,
   onCleanText,
   onClose,
@@ -59,10 +59,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
 }) => {
   const { language } = useLanguage();
   const bt = getEditorTranslations(language).bubble;
-  const [isAiOpen, setIsAiOpen] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState('');
   const [aiError, setAiError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Dynamically adjusted coordinate ensuring menu never bleeds outside boundary
@@ -78,7 +75,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
 
     const parentWidth = parent.clientWidth;
     const parentHeight = parent.clientHeight;
-    const menuWidth = menuRef.current.offsetWidth || 480;
+    const menuWidth = menuRef.current.offsetWidth || 440;
     const menuHeight = menuRef.current.offsetHeight || 38;
 
     const safeRightMargin = 16;
@@ -106,7 +103,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
       if (prev.left === finalLeft && prev.top === finalTop) return prev;
       return { top: finalTop, left: finalLeft };
     });
-  }, [position.left, position.top, isAiOpen]);
+  }, [position.left, position.top]);
 
   // Window/container resize observer for real-time safety
   useEffect(() => {
@@ -117,7 +114,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
     const handleResize = () => {
       if (!menuRef.current || !parent) return;
       const parentWidth = parent.clientWidth;
-      const menuWidth = menuRef.current.offsetWidth || 480;
+      const menuWidth = menuRef.current.offsetWidth || 440;
       const safeRightMargin = 16;
       const safeLeftMargin = 8;
       const maxAllowedLeft = Math.max(safeLeftMargin, parentWidth - menuWidth - safeRightMargin);
@@ -141,32 +138,21 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
     };
   }, [position.left]);
 
-  useEffect(() => {
-    if (isAiOpen && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isAiOpen]);
-
-  const handleAiSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!aiPrompt.trim() || isAiLoading) return;
+  const executeAiPrompt = async (promptText: string) => {
+    const cleanPrompt = promptText.trim();
+    if (!cleanPrompt || isAiLoading) return;
     setAiError(null);
     try {
-      const success = await onAiEditText(aiPrompt.trim());
-      if (success !== false) {
-        setAiPrompt('');
-        setIsAiOpen(false);
-      }
+      await onAiEditText(cleanPrompt);
     } catch (err: any) {
       setAiError(err?.message || bt.aiError);
     }
   };
 
-  const handlePresetClick = (presetPrompt: string) => {
-    setAiPrompt(presetPrompt);
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
+  const handleQuickTranslate = async () => {
+    const hasHangul = /[가-힣]/.test(_selectedText || '');
+    const prompt = hasHangul ? bt.quickTranslateToEnPrompt : bt.quickTranslateToKoPrompt;
+    await executeAiPrompt(prompt);
   };
 
   return (
@@ -184,7 +170,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           e.preventDefault();
         }
       }}
-      className="absolute z-50 flex flex-col bg-[#121214] border border-[#222226] rounded-xs p-1 text-xs text-slate-200 select-none shadow-xl animate-in fade-in duration-100 max-w-[calc(100%-16px)]"
+      className="absolute z-50 flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl p-1.5 text-xs text-[var(--text-main)] select-none shadow-2xl animate-in fade-in duration-100 max-w-[calc(100%-16px)] season-shell"
     >
       {/* 1. Primary Formatting Toolbar Row */}
       <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
@@ -193,7 +179,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('h1')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
             title={bt.h1}
             aria-label={bt.h1}
           >
@@ -202,7 +188,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('h2')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
             title={bt.h2}
             aria-label={bt.h2}
           >
@@ -211,7 +197,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('h3')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
             title={bt.h3}
             aria-label={bt.h3}
           >
@@ -220,14 +206,14 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-[#222226] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-white/[0.08] shrink-0" />
 
         {/* Text Style: Bold, Italic, Strikethrough, Inline Code */}
         <div className="flex items-center gap-0.5 shrink-0">
           <button
             type="button"
             onClick={() => onApplyFormat('bold')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
             title={bt.bold}
             aria-label={bt.bold}
           >
@@ -236,7 +222,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('italic')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
             title={bt.italic}
             aria-label={bt.italic}
           >
@@ -245,7 +231,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('strikethrough')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
             title={bt.strike}
             aria-label={bt.strike}
           >
@@ -254,7 +240,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('code')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
             title={bt.inlineCode}
             aria-label={bt.inlineCode}
           >
@@ -263,14 +249,14 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-[#222226] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-white/[0.08] shrink-0" />
 
         {/* Link & Code Block */}
         <div className="flex items-center gap-0.5 shrink-0">
           <button
             type="button"
             onClick={() => onApplyFormat('link')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
             title={bt.link}
             aria-label={bt.link}
           >
@@ -279,77 +265,100 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           <button
             type="button"
             onClick={() => onApplyFormat('codeblock')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
             title={bt.codeBlock}
             aria-label={bt.codeBlock}
           >
-            <SquareCode className="w-3.5 h-3.5 text-amber-400/80" />
+            <SquareCode className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-[#222226] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-white/[0.08] shrink-0" />
 
         {/* Lists & Quote */}
         <div className="flex items-center gap-0.5 shrink-0">
           <button
             type="button"
             onClick={() => onApplyFormat('bullet')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
             title={bt.bullet}
             aria-label={bt.bullet}
           >
-            <List className="w-3.5 h-3.5 text-indigo-400" />
+            <List className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
             onClick={() => onApplyFormat('number')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
             title={bt.numbered}
             aria-label={bt.numbered}
           >
-            <ListOrdered className="w-3.5 h-3.5 text-indigo-400" />
+            <ListOrdered className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
             onClick={() => onApplyFormat('task')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
             title={bt.task}
             aria-label={bt.task}
           >
-            <CheckSquare className="w-3.5 h-3.5 text-indigo-400" />
+            <CheckSquare className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
             onClick={() => onApplyFormat('quote')}
-            className="w-6 h-6 flex items-center justify-center rounded-xs hover:bg-[#18181b] text-slate-300 hover:text-white transition cursor-pointer"
+            className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
             title={bt.quote}
             aria-label={bt.quote}
           >
-            <Quote className="w-3.5 h-3.5 text-purple-400" />
+            <Quote className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-[#222226] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-white/[0.08] shrink-0" />
 
-        {/* AI Text Assistant Trigger (Sparkles) */}
-        <div className="flex items-center shrink-0">
+        {/* AI Text Processing Quick Actions */}
+        <div className="flex items-center gap-0.5 shrink-0">
           <button
             type="button"
-            onClick={() => {
-              setIsAiOpen(!isAiOpen);
-              setAiError(null);
-            }}
-            className={`w-6 h-6 flex items-center justify-center rounded-xs transition cursor-pointer border ${
-              isAiOpen
-                ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
-                : 'bg-indigo-600/15 hover:bg-indigo-600/30 text-amber-400 hover:text-amber-300 border-indigo-500/30'
-            }`}
-            title={bt.aiTitle}
-            aria-label={bt.aiLabel}
+            disabled={isAiLoading}
+            onClick={() => executeAiPrompt(bt.quickRefinePrompt)}
+            className="h-6 px-1.5 flex items-center gap-1 rounded-md bg-white/[0.04] hover:bg-white/[0.09] disabled:opacity-50 text-[var(--text-main)] hover:text-[var(--accent-primary)] border border-white/[0.08] text-[11px] font-medium transition cursor-pointer whitespace-nowrap"
+            title={bt.quickRefineTitle}
+            aria-label={bt.quickRefine}
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            {isAiLoading ? (
+              <Loader2 className="w-3 h-3 text-[var(--accent-primary)] animate-spin" />
+            ) : (
+              <Sparkles className="w-3 h-3 text-[var(--accent-primary)]" />
+            )}
+            <span>{bt.quickRefine}</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={isAiLoading}
+            onClick={() => executeAiPrompt(bt.quickSummarizePrompt)}
+            className="h-6 px-1.5 flex items-center gap-1 rounded-md hover:bg-white/[0.08] disabled:opacity-50 text-[var(--text-muted)] hover:text-[var(--text-main)] text-[11px] font-medium transition cursor-pointer whitespace-nowrap"
+            title={bt.quickSummarizeTitle}
+            aria-label={bt.quickSummarize}
+          >
+            <FileText className="w-3 h-3 text-[var(--accent-primary)]" />
+            <span>{bt.quickSummarize}</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={isAiLoading}
+            onClick={handleQuickTranslate}
+            className="h-6 px-1.5 flex items-center gap-1 rounded-md hover:bg-white/[0.08] disabled:opacity-50 text-[var(--text-muted)] hover:text-[var(--text-main)] text-[11px] font-medium transition cursor-pointer whitespace-nowrap"
+            title={bt.quickTranslateTitle}
+            aria-label={bt.quickTranslate}
+          >
+            <Languages className="w-3 h-3 text-[var(--accent-primary)]" />
+            <span>{bt.quickTranslate}</span>
           </button>
         </div>
 
@@ -359,11 +368,11 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             <button
               type="button"
               onClick={onCleanText}
-              className="w-6 h-6 flex items-center justify-center hover:bg-[#18181b] text-slate-400 hover:text-white rounded-xs transition cursor-pointer"
+              className="w-6 h-6 flex items-center justify-center hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-md transition cursor-pointer"
               title={bt.tidyTitle}
               aria-label={bt.tidyLabel}
             >
-              <Wand2 className="w-3.5 h-3.5 hover:text-amber-300" />
+              <Wand2 className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
@@ -374,7 +383,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-6 h-6 flex items-center justify-center hover:bg-[#18181b] text-slate-400 hover:text-white rounded-xs transition cursor-pointer"
+              className="w-6 h-6 flex items-center justify-center hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-md transition cursor-pointer"
               title={bt.close}
               aria-label={bt.close}
             >
@@ -384,70 +393,17 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
         )}
       </div>
 
-      {/* 2. Inline Expandable AI Prompt Input Tray */}
-      {isAiOpen && (
-        <div className="mt-1.5 pt-1.5 border-t border-[#222226] flex flex-col gap-1.5 w-80 text-xs animate-in fade-in slide-in-from-top-1 duration-100">
-          <div className="flex items-center justify-between text-[11px] font-semibold text-indigo-300 px-0.5">
-            <span className="flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3 text-amber-400" />
-              <span>{bt.aiHeader}</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => setIsAiOpen(false)}
-              className="text-slate-400 hover:text-white p-0.5 rounded-xs hover:bg-[#18181b] cursor-pointer"
-              title={bt.close}
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-
-          {/* Quick Preset Chips */}
-          <div className="flex flex-wrap gap-1">
-            {bt.chips.map((chip) => (
-              <button
-                key={chip.label}
-                type="button"
-                onClick={() => handlePresetClick(chip.prompt)}
-                className="px-1.5 py-0.5 rounded-xs bg-[#09090b] hover:bg-[#18181b] text-[10px] text-slate-300 border border-[#222226] transition cursor-pointer whitespace-nowrap"
-              >
-                {chip.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Input Form */}
-          <form onSubmit={handleAiSubmit} className="flex items-center gap-1">
-            <input
-              ref={inputRef}
-              type="text"
-              value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              placeholder={
-                hasSelection
-                  ? bt.placeholderSelected
-                  : bt.placeholderEmpty
-              }
-              disabled={isAiLoading}
-              className="flex-1 bg-[#09090b] border border-[#222226] focus:border-[#6366f1] rounded-xs px-2 py-1 text-xs text-slate-200 outline-none placeholder:text-slate-500 disabled:opacity-50"
-            />
-            <button
-              type="submit"
-              disabled={isAiLoading || !aiPrompt.trim()}
-              className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xs text-xs font-medium flex items-center gap-1 transition shrink-0 cursor-pointer"
-            >
-              {isAiLoading ? (
-                <Loader2 className="w-3 h-3 animate-spin text-white" />
-              ) : (
-                <Sparkles className="w-3 h-3 text-amber-300" />
-              )}
-              <span>{isAiLoading ? bt.running : bt.run}</span>
-            </button>
-          </form>
-
-          {aiError && (
-            <div className="text-[10px] text-rose-400 px-0.5">{aiError}</div>
-          )}
+      {aiError && (
+        <div className="mt-1.5 pt-1 border-t border-white/[0.06] flex items-center justify-between gap-2 text-[10px] text-rose-400 px-1">
+          <span className="truncate">{aiError}</span>
+          <button
+            type="button"
+            onClick={() => setAiError(null)}
+            className="text-[var(--text-muted)] hover:text-rose-300 shrink-0 cursor-pointer"
+            aria-label={bt.close}
+          >
+            <X className="w-2.5 h-2.5" />
+          </button>
         </div>
       )}
     </div>

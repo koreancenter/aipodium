@@ -20,7 +20,7 @@ export interface AIThinkingProps {
  * - Single micro-sized chevron arrow (14px max) for accordion expand/collapse
  * - Active state: Subtle, calm text shimmer ("Thinking...") passing soft white light over text-zinc-400
  * - Completed state: Clean neutral status ("Thought for X seconds" or "Reasoning complete") in text-zinc-400
- * - Expanded view: border-l border-zinc-800, text-[0.8125rem], leading-relaxed, text-zinc-500
+ * - Expanded view: border-l border-zinc-800, text-[0.8125rem], leading-relaxed, text-[#8594AA]
  */
 export const AIThinkingIndicator: React.FC<AIThinkingProps> = ({
   isThinking,
@@ -82,7 +82,7 @@ export const AIThinkingIndicator: React.FC<AIThinkingProps> = ({
           id={contentId}
           role="region"
           aria-label="Reasoning details"
-          className="mt-1 pl-3.5 ml-1.5 border-l border-zinc-800 text-[0.8125rem] leading-relaxed text-zinc-500 whitespace-pre-wrap select-text cursor-text"
+          className="mt-1 pl-3.5 ml-1.5 border-l border-zinc-800 text-[0.8125rem] leading-relaxed text-[var(--text-tertiary)] whitespace-pre-wrap select-text cursor-text"
         >
           {thinkingContent || (isThinking ? 'Analyzing query context and evaluating response strategy...' : 'No detailed reasoning recorded.')}
         </div>

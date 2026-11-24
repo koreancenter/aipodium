@@ -20,6 +20,7 @@ export interface CustomSelectDropdownProps {
   options?: DropdownOption[];
   groups?: DropdownOptionGroup[];
   placeholder?: string;
+  emptyText?: string;
   className?: string;
   buttonClassName?: string;
   menuClassName?: string;
@@ -32,6 +33,7 @@ export const CustomSelectDropdown: React.FC<CustomSelectDropdownProps> = ({
   options,
   groups,
   placeholder,
+  emptyText,
   className = '',
   buttonClassName = '',
   menuClassName = '',
@@ -89,12 +91,12 @@ export const CustomSelectDropdown: React.FC<CustomSelectDropdownProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`bg-[#09090b] border border-[#222226] hover:border-zinc-700 rounded-md px-3 py-1.5 text-xs text-zinc-200 flex items-center justify-between transition-colors cursor-pointer w-full focus:outline-none ${buttonClassName}`}
+        className={`bg-[var(--bg-surface)] border border-white/[0.06] hover:border-white/[0.14] rounded-md px-3 py-1.5 text-xs text-[var(--text-main)] flex items-center justify-between transition-colors cursor-pointer w-full focus:outline-none ${buttonClassName}`}
       >
         <span className="truncate font-normal leading-normal">{selectedLabel}</span>
         <ChevronDown
-          className={`w-3.5 h-3.5 text-zinc-400 shrink-0 ml-2 transition-transform duration-150 ${
-            isOpen ? 'rotate-180 text-indigo-400' : ''
+          className={`w-3.5 h-3.5 text-[var(--text-muted)] shrink-0 ml-2 transition-transform duration-150 ${
+            isOpen ? 'rotate-180 text-[var(--accent-primary)]' : ''
           }`}
         />
       </button>
@@ -104,13 +106,13 @@ export const CustomSelectDropdown: React.FC<CustomSelectDropdownProps> = ({
         <div
           className={`absolute ${
             openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-          } left-0 w-full min-w-[200px] max-h-60 bg-[#16181d] border border-white/[0.08] rounded-lg shadow-2xl p-1 z-50 overflow-y-auto ${menuClassName}`}
+          } left-0 w-full min-w-[200px] max-h-60 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl p-1 z-50 overflow-y-auto ${menuClassName}`}
         >
           {groups && groups.length > 0 ? (
             groups.map((group, gIdx) => (
               <div key={gIdx} className={gIdx > 0 ? 'mt-1 pt-1 border-t border-white/[0.06]' : ''}>
                 {group.label && (
-                  <div className="px-2.5 py-1 text-[10px] text-zinc-500 font-medium select-none">
+                  <div className="px-2.5 py-1 text-[10px] text-[var(--text-tertiary)] font-medium select-none">
                     {group.label}
                   </div>
                 )}
@@ -127,13 +129,13 @@ export const CustomSelectDropdown: React.FC<CustomSelectDropdownProps> = ({
                         }}
                         className={`w-full px-2.5 py-1.5 rounded-md text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
                           isSelected
-                            ? 'bg-white/[0.06] text-zinc-100 font-medium'
-                            : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
+                            ? 'bg-white/[0.06] text-[var(--text-main)] font-medium'
+                            : 'text-[var(--text-muted)] hover:bg-white/[0.06] hover:text-[var(--text-main)]'
                         }`}
                       >
                         <span className="truncate">{opt.name}</span>
                         {isSelected && (
-                          <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-2" />
+                          <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0 ml-2" />
                         )}
                       </button>
                     );
@@ -155,19 +157,23 @@ export const CustomSelectDropdown: React.FC<CustomSelectDropdownProps> = ({
                     }}
                     className={`w-full px-2.5 py-1.5 rounded-md text-xs flex items-center justify-between transition-colors text-left cursor-pointer ${
                       isSelected
-                        ? 'bg-white/[0.06] text-zinc-100 font-medium'
-                        : 'text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100'
+                        ? 'bg-white/[0.06] text-[var(--text-main)] font-medium'
+                        : 'text-[var(--text-muted)] hover:bg-white/[0.06] hover:text-[var(--text-main)]'
                     }`}
                   >
                     <span className="truncate">{opt.name}</span>
                     {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-2" />
+                      <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0 ml-2" />
                     )}
                   </button>
                 );
               })}
             </div>
-          ) : null}
+          ) : (
+            <div className="px-2.5 py-2 text-xs text-[var(--text-tertiary)] text-center select-none">
+              {emptyText || resolvedPlaceholder}
+            </div>
+          )}
         </div>
       )}
     </div>

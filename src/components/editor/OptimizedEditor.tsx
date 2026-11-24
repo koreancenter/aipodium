@@ -39,7 +39,8 @@ import { TiptapWysiwygEditor, TiptapWysiwygEditorRef } from './TiptapWysiwygEdit
 import { getTextareaSelectionCoordinates } from '../../utils/caretCoordinates';
 import { sanitizeHtml } from '../../utils/securitySanitizer';
 import { VirtualizedMarkdownPreview } from '../VirtualizedMarkdownPreview';
-import { getEphemeralDecryptedApiKey, aiClient } from '../../services/aiPodiumIntegration';
+import { getEphemeralDecryptedApiKey, getAiEnginePreference, aiClient } from '../../services/aiPodiumIntegration';
+import { isLocalOllamaModelId } from '../../config/models.config';
 import { WEB_LLM_MODEL_ID } from '../../utils/webllmService';
 import type { EditorSelectionContext } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
@@ -98,19 +99,19 @@ const SLASH_COMMANDS: SlashCommandBase[] = [
   },
   {
     id: 'bullet',
-    icon: <List className="w-3.5 h-3.5 text-indigo-400" />,
+    icon: <List className="w-3.5 h-3.5 text-[var(--accent-primary)]" />,
     category: 'lists',
     cursorOffset: 2
   },
   {
     id: 'numbered',
-    icon: <ListOrdered className="w-3.5 h-3.5 text-indigo-400" />,
+    icon: <ListOrdered className="w-3.5 h-3.5 text-[var(--accent-primary)]" />,
     category: 'lists',
     cursorOffset: 3
   },
   {
     id: 'task',
-    icon: <CheckSquare className="w-3.5 h-3.5 text-indigo-400" />,
+    icon: <CheckSquare className="w-3.5 h-3.5 text-[var(--secondary-accent)]" />,
     category: 'lists',
     cursorOffset: 6
   },
@@ -122,25 +123,25 @@ const SLASH_COMMANDS: SlashCommandBase[] = [
   },
   {
     id: 'table',
-    icon: <TableIcon className="w-3.5 h-3.5 text-indigo-400" />,
+    icon: <TableIcon className="w-3.5 h-3.5 text-[var(--accent-primary)]" />,
     category: 'blocks',
     cursorOffset: 2
   },
   {
     id: 'quote',
-    icon: <Quote className="w-3.5 h-3.5 text-purple-400" />,
+    icon: <Quote className="w-3.5 h-3.5 text-[var(--text-muted)]" />,
     category: 'blocks',
     cursorOffset: 2
   },
   {
     id: 'note',
-    icon: <Sparkles className="w-3.5 h-3.5 text-indigo-400" />,
+    icon: <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />,
     category: 'blocks',
     cursorOffset: 12
   },
   {
     id: 'tip',
-    icon: <Sparkles className="w-3.5 h-3.5 text-indigo-300" />,
+    icon: <Sparkles className="w-3.5 h-3.5 text-[var(--secondary-accent)]" />,
     category: 'blocks',
     cursorOffset: 11
   },
@@ -350,7 +351,7 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
       }
       const clampedTop = Math.max(4, Math.min(textarea.clientHeight - 44, bubbleTop));
 
-      const toolbarEstimatedWidth = 470;
+      const toolbarEstimatedWidth = 500;
       const rightSafeMargin = 16;
       const maxLeft = Math.max(8, textarea.clientWidth - toolbarEstimatedWidth - rightSafeMargin);
       const centerLeft = coords.left - Math.floor(toolbarEstimatedWidth / 2);
@@ -595,8 +596,10 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
     systemInstruction: string;
   }): Promise<string> => {
     // 1. Resolve local Ollama endpoint
+    const enginePref = getAiEnginePreference();
     const cleanEndpoint = (
       propLocalEndpoint ||
+      enginePref.ollamaEndpoint ||
       sessionStorage.getItem('aipodium_local_endpoint') ||
       localStorage.getItem('aipodium_local_endpoint') ||
       'http://localhost:11434'
@@ -622,8 +625,17 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
       } catch {}
     }
 
-    const isWebLlm = activeProvider === 'webllm' || propSelectedModel === WEB_LLM_MODEL_ID;
-    const isExplicitLocal = !isWebLlm && (activeProvider === 'local-pc' || activeProvider === 'local-server');
+    const isWebLlm =
+      activeProvider === 'webllm' ||
+      propSelectedModel === WEB_LLM_MODEL_ID ||
+      enginePref.engineType === 'webllm';
+    const isOllamaModel = !isWebLlm && isLocalOllamaModelId(propSelectedModel || '');
+    const isExplicitLocal =
+      !isWebLlm &&
+      (activeProvider === 'local-pc' ||
+        activeProvider === 'local-server' ||
+        isOllamaModel ||
+        (!activeProvider && enginePref.engineType === 'ollama'));
 
     // 4-A. WebLLM (Browser WebGPU) provider
     if (isWebLlm) {
@@ -647,11 +659,13 @@ export const OptimizedEditor: React.FC<OptimizedEditorProps> = memo(({
       return reply;
     }
 
-    // 4-B. If explicit local provider, call Ollama endpoint directly from browser
+    // 4-B. Route local Ollama requests directly to http://localhost:11434/api/chat using POST
     if (isExplicitLocal) {
       try {
-        let modelToUse = propSelectedModel || '';
-        const looksLikeCloudModel = !modelToUse || /^(gemini-|gpt-|claude-|o1|o3|deepseek-)/i.test(modelToUse);
+        let modelToUse = (propSelectedModel || '').trim().replace(/^ollama\//i, '');
+        const looksLikeCloudModel =
+          !modelToUse ||
+          /^(gemini-|gpt-|claude-|o1-|o3-|deepseek-chat|deepseek-reasoner|groq-|llama-3\.3-70b-versatile|llama-3\.1-8b-instant)/i.test(modelToUse);
         if (looksLikeCloudModel) {
           try {
             const tagsRes = await fetch(`${cleanEndpoint}/api/tags`, {
@@ -1526,6 +1540,9 @@ ${targetText}
     }, 200);
     // Delay closing text bubble menu if active element is outside editor/menus
     setTimeout(() => {
+      if (isAiTextLoading) {
+        return;
+      }
       const activeEl = document.activeElement;
       const textMenu = document.getElementById('text-floating-bubble-menu');
       const tableMenu = document.getElementById('table-floating-bubble-menu');
@@ -2125,19 +2142,19 @@ ${targetText}
     <div
       id="slash-autocomplete-menu"
       style={{ top: `${slashPosition.top}px`, left: `${slashPosition.left}px` }}
-      className="absolute z-50 w-72 max-h-72 flex flex-col bg-[#121214] border border-[#222226] rounded-xs p-1.5 text-xs text-[#e2e8f0] animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
+      className="absolute z-50 w-72 max-h-72 flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl p-1.5 text-xs text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
       onMouseDown={(e) => e.preventDefault()} // Prevent textarea blur on click
     >
-      <div className="shrink-0 px-2 py-1 mb-1 border-b border-[#222226] flex items-center justify-between text-[0.625rem] text-[#94a3b8] font-semibold uppercase tracking-wider">
-        <span className="flex items-center gap-1 text-[#6366f1]">
-          <Sparkles className="w-3 h-3 text-[#6366f1]" />
+      <div className="shrink-0 px-2 py-1 mb-1 border-b border-white/[0.06] flex items-center justify-between text-[0.625rem] text-[var(--text-muted)] font-medium tracking-wider">
+        <span className="flex items-center gap-1 text-[var(--accent-primary)]">
+          <Sparkles className="w-3 h-3 text-[var(--accent-primary)]" />
           {et.menuTitle}
         </span>
-        <span className="font-mono text-[0.5625rem] text-[#94a3b8]/60">{et.menuHint}</span>
+        <span className="font-mono text-[0.5625rem] text-[var(--text-tertiary)]">{et.menuHint}</span>
       </div>
 
       {filteredCommands.length === 0 ? (
-        <div className="p-3 text-center text-[#94a3b8]/60 italic text-[0.6875rem]">
+        <div className="p-3 text-center text-[var(--text-tertiary)] italic text-[0.6875rem]">
           {et.noMatch}
         </div>
       ) : (
@@ -2153,16 +2170,16 @@ ${targetText}
                 type="button"
                 onClick={() => executeSlashCommand(cmd)}
                 onMouseEnter={() => setSlashIndex(idx)}
-                className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xs text-left transition-colors cursor-pointer ${
+                className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-left transition-colors cursor-pointer ${
                   isSelected
-                    ? 'bg-[#6366f1] text-white font-medium'
-                    : 'text-[#e2e8f0] hover:bg-[#18181b] hover:text-white'
+                    ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
+                    : 'text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-[var(--text-main)]'
                 }`}
               >
-                <span className="shrink-0">{cmd.icon}</span>
+                <span className={`shrink-0 ${isSelected ? 'text-[var(--accent-primary)]' : ''}`}>{cmd.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-xs leading-tight truncate">{cmd.label}</div>
-                  <div className={`text-[0.625rem] truncate ${isSelected ? 'text-indigo-100' : 'text-[#94a3b8]'}`}>
+                  <div className="font-medium text-xs leading-tight truncate">{cmd.label}</div>
+                  <div className={`text-[0.625rem] truncate ${isSelected ? 'text-[var(--text-muted)]' : 'text-[var(--text-tertiary)]'}`}>
                     {cmd.sublabel}
                   </div>
                 </div>
@@ -2331,7 +2348,6 @@ ${targetText}
             <TextFloatingBubbleMenu
               position={textBubblePos}
               selectedText={selectedText}
-              hasSelection={hasSelection}
               onApplyFormat={handleApplyTextFormat}
               onCleanText={handleCleanText}
               onClose={handleCloseTextBubble}
@@ -2351,14 +2367,14 @@ ${targetText}
               background: 'var(--bg-panel)',
               borderColor: 'rgba(255, 255, 255, 0.06)'
             }}
-            className="px-3 py-1 backdrop-blur-md border-b text-[0.625rem] font-semibold flex items-center justify-between shrink-0 select-none"
+            className="px-3 py-1 backdrop-blur-md border-b text-[0.625rem] font-medium flex items-center justify-between shrink-0 select-none"
           >
-            <span className="flex items-center gap-1.5" style={{ color: 'var(--accent)' }}>
-              <Eye className="w-3 h-3" />
+            <span className="flex items-center gap-1.5 text-[var(--text-muted)]">
+              <Eye className="w-3 h-3 text-[var(--accent-primary)]" />
               <span>{et.livePreview}</span>
             </span>
-            <span className="text-[0.5625rem] opacity-75 font-mono flex items-center gap-1" style={{ color: 'var(--accent)' }}>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#6366f1] animate-pulse" />
+            <span className="text-[0.5625rem] text-[var(--text-muted)] font-mono flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
               <span>{et.syncScroll}</span>
             </span>
           </div>
@@ -2416,7 +2432,7 @@ ${targetText}
       style={{ background: 'var(--bg-editor)' }}
       className="relative w-full h-full flex flex-col overflow-hidden"
     >
-      <div className="w-full h-full flex flex-col max-w-3xl mx-auto px-8 py-10 relative flex-1 min-h-0">
+      <div className="w-full h-full flex flex-col max-w-3xl mx-auto px-12 py-10 relative flex-1 min-h-0">
         <textarea
           id="markdown-editor"
           ref={refToUse}
@@ -2478,7 +2494,6 @@ ${targetText}
           <TextFloatingBubbleMenu
             position={textBubblePos}
             selectedText={selectedText}
-            hasSelection={hasSelection}
             onApplyFormat={handleApplyTextFormat}
             onCleanText={handleCleanText}
             onClose={handleCloseTextBubble}

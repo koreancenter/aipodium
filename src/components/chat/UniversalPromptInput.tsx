@@ -40,6 +40,7 @@ export interface UniversalPromptInputProps {
   onAddFiles?: (files: FileList | File[]) => void;
   onSendMessage: (overrideText?: string, meta?: any) => void;
   isAiLoading: boolean;
+  selectedContext?: string | null;
   editorSelection?: EditorSelectionContext | null;
   onClearEditorSelection?: () => void;
 
@@ -95,6 +96,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
   onAddFiles,
   onSendMessage,
   isAiLoading,
+  selectedContext,
   editorSelection,
   onClearEditorSelection,
   allMentionItems = [],
@@ -377,7 +379,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
   };
 
   return (
-    <div className={`bg-[#09090b] border-t border-[#222226] flex flex-col relative shrink-0 overflow-visible ${className}`}>
+    <div className={`bg-[var(--bg-surface)] season-shell border-t border-white/[0.06] flex flex-col relative shrink-0 overflow-visible ${className}`}>
       {/* Hidden File Input */}
       <input
         ref={fileInputRef}
@@ -394,25 +396,25 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
 
       {/* Attached Files List Pills */}
       {chatAttachments.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 px-3 pt-2 pb-1 border-b border-[#222226]/60 bg-[#0c0c0e]">
+        <div className="flex flex-wrap gap-1.5 px-3 pt-2 pb-1 border-b border-white/[0.06] bg-[var(--bg-editor)]/60">
           {chatAttachments.map((att) => (
             <div
               key={att.id}
-              className="group flex items-center gap-1.5 bg-[#18181b] border border-[#27272a] rounded px-2 py-0.5 text-[0.6875rem] text-slate-200 select-none shadow-xs"
+              className="group flex items-center gap-1.5 bg-[var(--bg-elevated)] border border-white/[0.06] rounded-md px-2 py-0.5 text-[0.6875rem] text-[var(--text-main)] select-none"
             >
               {att.isParsing ? (
-                <RotateCw className="w-3 h-3 text-indigo-400 animate-spin shrink-0" />
+                <RotateCw className="w-3 h-3 text-[var(--accent-primary)] animate-spin shrink-0" />
               ) : att.type === 'link' ? (
-                <Link2 className="w-3 h-3 text-[#6366f1] shrink-0" />
+                <Link2 className="w-3 h-3 text-[var(--accent-primary)] shrink-0" />
               ) : (
-                <Paperclip className="w-3 h-3 text-indigo-400 shrink-0" />
+                <Paperclip className="w-3 h-3 text-[var(--accent-primary)] shrink-0" />
               )}
               <span className="truncate max-w-[140px] font-mono">{att.name}</span>
-              <span className="text-[0.625rem] text-slate-400 font-mono">({att.size})</span>
+              <span className="text-[0.625rem] text-[var(--text-muted)] font-mono">({att.size})</span>
               <button
                 type="button"
                 onClick={() => onRemoveAttachment(att.id)}
-                className="text-slate-400 hover:text-rose-400 p-0.5 rounded transition cursor-pointer ml-0.5"
+                className="text-[var(--text-muted)] hover:text-rose-400 p-0.5 rounded transition cursor-pointer ml-0.5"
                 title={t.attachmentRemoved}
               >
                 <X className="w-3 h-3" />
@@ -423,57 +425,65 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
       )}
 
       {/* Active Editor Selection Context Bar */}
-      {editorSelection?.text?.trim() && (
-        <div
-          id="editor-selection-context-bar"
-          className="flex flex-col gap-1 px-3 py-1.5 bg-[#0c0c0e] border-b border-[#222226] border-l-2 border-l-[#6366f1] text-[0.6875rem] select-none"
-        >
-          <div className="flex items-center justify-between gap-2 min-w-0">
-            <button
-              type="button"
-              onClick={() => setIsSelectionExpanded((prev) => !prev)}
-              className="flex items-center gap-1.5 min-w-0 flex-1 text-left hover:text-white transition-colors cursor-pointer"
-            >
-              <Quote className="w-3 h-3 text-[#6366f1] shrink-0" />
-              <span className="font-medium text-indigo-300 shrink-0">{t.selectionContextLabel}</span>
-              {editorSelection.fileName && (
-                <span className="text-[0.625rem] font-mono text-slate-400 truncate max-w-[120px] bg-[#121214] border border-[#222226] px-1.5 py-0.2 rounded-xs shrink-0">
-                  {editorSelection.fileName}
+      {(() => {
+        const rawSelectionText = (selectedContext ?? editorSelection?.text ?? '').trim();
+        if (!rawSelectionText) return null;
+        const normalizedExcerpt = rawSelectionText.replace(/\s+/g, ' ');
+        const truncatedExcerpt =
+          normalizedExcerpt.length > 35
+            ? `${normalizedExcerpt.slice(0, 35)}...`
+            : normalizedExcerpt;
+        return (
+          <div
+            id="editor-selection-context-bar"
+            className="mx-2.5 mt-2 flex flex-col gap-1.5 rounded-lg bg-[var(--bg-editor)] border border-white/[0.1] px-2.5 py-1.5 text-[0.6875rem] select-none"
+          >
+            <div className="flex items-center justify-between gap-2 min-w-0">
+              <button
+                type="button"
+                onClick={() => setIsSelectionExpanded((prev) => !prev)}
+                className="flex items-center gap-1.5 min-w-0 flex-1 text-left hover:text-[var(--text-main)] transition-colors cursor-pointer"
+                title={rawSelectionText}
+              >
+                <Quote className="w-3 h-3 text-[var(--accent-primary)] shrink-0" />
+                <span className="font-medium text-[var(--text-main)] truncate">
+                  {t.selectionExcerpt(truncatedExcerpt)}
                 </span>
-              )}
-              <span className="text-[0.625rem] font-mono text-slate-500 shrink-0">
-                {t.selectionChars(editorSelection.text.trim().length)}
-              </span>
-              {!isSelectionExpanded && (
-                <span className="text-slate-400 truncate flex-1 font-sans">
-                  {editorSelection.text.trim().replace(/\s+/g, ' ')}
+                {editorSelection?.fileName && (
+                  <span className="text-[0.625rem] font-mono text-[var(--text-muted)] truncate max-w-[110px] bg-[var(--bg-elevated)] border border-white/[0.06] px-1.5 py-0.5 rounded shrink-0">
+                    {editorSelection.fileName}
+                  </span>
+                )}
+                <span className="text-[0.625rem] font-mono text-[var(--text-tertiary)] shrink-0">
+                  {t.selectionChars(rawSelectionText.length)}
                 </span>
-              )}
-            </button>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-[0.625rem] text-slate-500 hidden sm:inline">
-                {t.selectionIncluded}
-              </span>
-              {onClearEditorSelection && (
-                <button
-                  type="button"
-                  onClick={onClearEditorSelection}
-                  className="text-slate-400 hover:text-rose-400 p-0.5 rounded-xs hover:bg-[#18181b] transition cursor-pointer"
-                  title={t.clearSelectionContext}
-                  aria-label={t.clearSelectionContext}
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
+              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[0.625rem] text-[var(--text-tertiary)] hidden sm:inline">
+                  {t.selectionIncluded}
+                </span>
+                {onClearEditorSelection && (
+                  <button
+                    type="button"
+                    id="editor-selection-clear-btn"
+                    onClick={onClearEditorSelection}
+                    className="text-[var(--text-muted)] hover:text-rose-400 p-0.5 rounded hover:bg-white/[0.06] transition cursor-pointer"
+                    title={t.clearSelectionContext}
+                    aria-label={t.clearSelectionContext}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             </div>
+            {isSelectionExpanded && (
+              <div className="max-h-24 overflow-y-auto custom-scrollbar bg-[var(--bg-surface)] border border-white/[0.06] rounded-md px-2.5 py-1.5 text-[0.6875rem] text-[var(--text-main)] whitespace-pre-wrap break-words font-sans leading-relaxed select-text">
+                {rawSelectionText}
+              </div>
+            )}
           </div>
-          {isSelectionExpanded && (
-            <div className="max-h-24 overflow-y-auto custom-scrollbar bg-[#121214] border border-[#222226] rounded-xs px-2 py-1 text-[0.6875rem] text-slate-300 whitespace-pre-wrap break-words font-sans leading-relaxed select-text">
-              {editorSelection.text.trim()}
-            </div>
-          )}
-        </div>
-      )}
+        );
+      })()}
 
       {/* Mention Autocomplete Dropdown Popover */}
       <AnimatePresence>
@@ -484,12 +494,12 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 6 }}
             transition={{ duration: 0.12 }}
-            className="absolute bottom-full left-3 mb-2 w-80 max-h-72 bg-[#121214] border border-[#222226] rounded-md shadow-2xl z-50 flex flex-col overflow-hidden"
+            className="absolute bottom-full left-3 mb-2 w-80 max-h-72 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden"
           >
             {/* Header / Filter Chips */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-[#222226] bg-[#0c0c0e]">
-              <span className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-                <AtSign className="w-3.5 h-3.5 text-[#6366f1]" />
+            <div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.06] bg-[var(--bg-surface)]/60">
+              <span className="text-xs font-semibold text-[var(--text-main)] flex items-center gap-1.5">
+                <AtSign className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                 <span>{t.addReference}</span>
               </span>
               <div className="flex items-center gap-1">
@@ -500,8 +510,8 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                     onClick={() => setMentionFilterType(filterType)}
                     className={`px-1.5 py-0.5 text-[0.625rem] rounded transition cursor-pointer ${
                       mentionFilterType === filterType
-                        ? 'bg-[#6366f1] text-white font-medium'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        ? 'bg-[#F1F5F9] text-[#0F172A] font-medium'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06]'
                     }`}
                   >
                     {filterType === 'all'
@@ -517,8 +527,8 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
             {/* List */}
             <div className="flex-1 overflow-y-auto p-1 space-y-0.5 custom-scrollbar text-xs">
               {filteredMentionItems.length === 0 ? (
-                <div className="py-6 text-center text-zinc-500 text-xs flex flex-col items-center gap-2">
-                  <Info className="w-4 h-4 text-zinc-500" />
+                <div className="py-6 text-center text-[var(--text-tertiary)] text-xs flex flex-col items-center gap-2">
+                  <Info className="w-4 h-4 text-[var(--text-tertiary)]" />
                   <span>{t.noMatchingReferences(mentionQuery)}</span>
                 </div>
               ) : (
@@ -533,18 +543,18 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                       onClick={() => handleSelectMention(item)}
                       onMouseEnter={() => setMentionSelectedIndex(index)}
                       className={`group flex items-center justify-between px-3 py-1.5 h-8 rounded-md cursor-pointer transition-colors ${
-                        isSelected ? 'bg-white/10 text-zinc-100' : 'text-zinc-300 hover:bg-white/5'
+                        isSelected ? 'bg-white/[0.08] text-[var(--text-main)]' : 'text-[var(--text-muted)] hover:bg-white/[0.05] hover:text-[var(--text-main)]'
                       }`}
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1 mr-3">
                         {item.type === 'folder' ? (
-                          <Folder className="w-4 h-4 text-zinc-400 shrink-0" />
+                          <Folder className="w-4 h-4 text-slate-400 shrink-0" />
                         ) : (
-                          <FileText className="w-4 h-4 text-zinc-400 shrink-0" />
+                          <FileText className="w-4 h-4 text-slate-400 shrink-0" />
                         )}
                         <span className="text-xs truncate font-medium">{item.name}</span>
                       </div>
-                      <span className="text-[0.6875rem] font-mono text-zinc-500">{item.detail}</span>
+                      <span className="text-[0.6875rem] font-mono text-[var(--text-tertiary)]">{item.detail}</span>
                     </div>
                   );
                 })
@@ -590,7 +600,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                   handleChatInputKeyDown(e);
                 }}
                 placeholder={t.koreanPromptPlaceholder}
-                className="w-full bg-transparent p-0 text-[0.625rem] text-slate-100 placeholder:text-slate-400 border-0 focus:ring-0 focus:outline-none resize-none min-h-[72px] max-h-[260px] overflow-y-auto outline-none font-sans leading-relaxed transition"
+                className="w-full bg-transparent p-0 text-[0.625rem] text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] border-0 focus:ring-0 focus:outline-none resize-none min-h-[72px] max-h-[260px] overflow-y-auto outline-none font-sans leading-relaxed transition"
               />
             </div>
 
@@ -602,38 +612,38 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
               >
                 <div className="absolute inset-0 p-0 text-[0.625rem] font-mono leading-relaxed select-none pointer-events-none whitespace-pre-wrap break-words overflow-y-auto">
                   {isGhostLoading ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-slate-400 gap-2">
-                      <Sparkles className="w-4 h-4 text-[#6366f1] animate-spin" />
-                      <span className="text-[0.625rem] text-emerald-300 font-medium animate-pulse">{t.ghostGenerating}</span>
+                    <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-[var(--text-muted)] gap-2">
+                      <Sparkles className="w-4 h-4 text-[var(--accent-primary)] animate-spin" />
+                      <span className="text-[0.625rem] text-[var(--secondary-accent)] font-medium animate-pulse">{t.ghostGenerating}</span>
                     </div>
                   ) : ghostTargetEnglish ? (
                     <div>
                       {ghostShowFullAnswer || ghostWriterLevel === '100' ? (
-                        <span className="text-[#6366f1] font-medium">{ghostTargetEnglish}</span>
+                        <span className="text-[var(--accent-primary)] font-medium">{ghostTargetEnglish}</span>
                       ) : (
                         <span className="text-teal-200/70">{ghostTemplateText}</span>
                       )}
                     </div>
                   ) : chatInput.trim() ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-slate-400 gap-1.5 pointer-events-auto">
-                      <div className="flex items-center gap-1.5 text-emerald-300 text-[0.625rem] font-medium">
-                        <Sparkles className="w-3.5 h-3.5 text-[#6366f1] animate-pulse" />
+                    <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-[var(--text-muted)] gap-1.5 pointer-events-auto">
+                      <div className="flex items-center gap-1.5 text-[var(--secondary-accent)] text-[0.625rem] font-medium">
+                        <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                         <span>{t.waitingForKorean}</span>
                       </div>
                       <button
                         type="button"
                         onClick={onGenerateGhostText}
                         disabled={isGhostLoading}
-                        className="mt-0.5 px-2 py-0.5 rounded-xs bg-indigo-600 hover:bg-indigo-500 text-white text-[0.625rem] font-medium flex items-center gap-1 transition cursor-pointer"
+                        className="mt-0.5 px-2.5 py-0.5 rounded bg-[#F1F5F9] hover:bg-white text-[#0F172A] text-[0.625rem] font-medium flex items-center gap-1 transition cursor-pointer"
                       >
                         <Ghost className="w-2.5 h-2.5" />
                         <span>{t.generateGhostNow}</span>
                       </button>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-slate-400 gap-1">
-                      <Ghost className="w-4 h-4 text-slate-500 mb-0.5" />
-                      <p className="text-[0.625rem] text-slate-400 font-sans">
+                    <div className="flex flex-col items-center justify-center h-full text-center px-4 py-2 select-none text-[var(--text-muted)] gap-1">
+                      <Ghost className="w-4 h-4 text-[var(--text-tertiary)] mb-0.5" />
+                      <p className="text-[0.625rem] text-[var(--text-tertiary)] font-sans">
                         {t.ghostWriterHint}
                       </p>
                     </div>
@@ -668,7 +678,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
           onPaste={handlePaste}
           onKeyDown={handleChatInputKeyDown}
           placeholder={t.promptPlaceholder}
-          className="w-full bg-transparent px-3 py-2.5 text-xs text-slate-100 placeholder:text-slate-400 resize-none min-h-[72px] max-h-[260px] overflow-y-auto outline-none font-sans leading-relaxed border-0 focus:ring-0"
+          className="w-full bg-transparent px-3 py-2.5 text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] resize-none min-h-[72px] max-h-[260px] overflow-y-auto outline-none font-sans leading-relaxed border-0 focus:ring-0"
         />
       )}
 
@@ -679,7 +689,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-1 hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 rounded transition flex items-center justify-center cursor-pointer"
+            className="p-1 hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded transition flex items-center justify-center cursor-pointer"
             title={t.attachFile}
           >
             <Paperclip className="w-3.5 h-3.5" />
@@ -690,7 +700,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
             type="button"
             onClick={() => setIsLinkInputOpen((prev) => !prev)}
             className={`p-1 hover:bg-white/[0.06] rounded transition flex items-center justify-center cursor-pointer ${
-              isLinkInputOpen ? 'bg-white/[0.1] text-indigo-400' : 'text-slate-400 hover:text-slate-200'
+              isLinkInputOpen ? 'bg-white/[0.08] text-[var(--accent-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
             }`}
             title={t.attachLink}
           >
@@ -701,14 +711,14 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
           <button
             type="button"
             onClick={handleTriggerMention}
-            className="p-1 hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 rounded transition flex items-center justify-center cursor-pointer"
+            className="p-1 hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded transition flex items-center justify-center cursor-pointer"
             title={t.referenceWorkspace}
           >
             <AtSign className="w-3.5 h-3.5" />
           </button>
 
           {/* Divider */}
-          <div className="h-3.5 w-[1px] bg-white/[0.1] mx-0.5" />
+          <div className="h-3.5 w-[1px] bg-white/[0.08] mx-0.5" />
 
           {/* Inline Model Selector */}
           <InlineModelSelector
@@ -746,10 +756,10 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                 onSetGhostUserInput?.(ghostTargetEnglish);
                 onToast(`✨ ${t.ghostWriterComplete}`);
               }}
-              className="px-1.5 py-0.5 rounded hover:bg-white/[0.06] text-indigo-400 hover:text-indigo-300 text-[0.625rem] font-mono flex items-center gap-1 transition cursor-pointer border border-white/[0.08]"
+              className="px-1.5 py-0.5 rounded hover:bg-white/[0.06] text-[var(--accent-primary)] text-[0.625rem] font-mono flex items-center gap-1 transition cursor-pointer border border-white/[0.08]"
               title={t.completeAnswer}
             >
-              <Sparkles className="w-2.5 h-2.5 text-indigo-400" />
+              <Sparkles className="w-2.5 h-2.5 text-[var(--accent-primary)]" />
               <span>{t.tabComplete}</span>
             </button>
           )}
@@ -769,7 +779,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                   });
                 }
               }}
-              className="hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed text-slate-400 hover:text-slate-200 h-6 w-6 flex items-center justify-center rounded transition cursor-pointer"
+              className="hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed text-[var(--text-muted)] hover:text-slate-200 h-6 w-6 flex items-center justify-center rounded transition cursor-pointer"
               title={t.sendKoreanOriginal}
             >
               <Languages className="w-3.5 h-3.5" />
@@ -786,10 +796,10 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                 onSendMessage();
               }
             }}
-            className={`h-6 px-2.5 rounded transition flex items-center justify-center ${
+            className={`h-6 px-2.5 rounded-md transition flex items-center justify-center ${
               isAiLoading || chatAttachments.some((a) => a.isParsing) || (!chatInput.trim() && chatAttachments.length === 0)
-                ? 'bg-zinc-800 text-zinc-500 border border-zinc-700/40 cursor-not-allowed'
-                : 'bg-indigo-600/80 hover:bg-indigo-600 active:bg-indigo-700 text-white border border-indigo-500/40 cursor-pointer'
+                ? 'bg-white/[0.04] text-[var(--text-tertiary)] border border-white/[0.04] cursor-not-allowed'
+                : 'bg-[#F1F5F9] hover:bg-white active:bg-slate-200 text-[#0F172A] cursor-pointer shadow-xs'
             }`}
             title={
               chatAttachments.some((a) => a.isParsing)

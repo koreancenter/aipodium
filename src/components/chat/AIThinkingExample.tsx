@@ -122,7 +122,7 @@ When designing storage engines for **write-heavy workloads**, Log-Structured Mer
           <h2 className="text-sm font-semibold text-zinc-100 tracking-tight">
             AI Thinking State Component Showcase
           </h2>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
             Minimalist reasoning indicator inspired by Claude, Gemini & OpenAI o1/o3
           </p>
         </div>
@@ -142,7 +142,7 @@ When designing storage engines for **write-heavy workloads**, Log-Structured Mer
         {messages.map((msg) => (
           <div key={msg.id} className="space-y-2">
             {/* Sender Label */}
-            <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+            <div className="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
               {msg.sender === 'user' ? 'User' : 'Assistant'}
             </div>
 

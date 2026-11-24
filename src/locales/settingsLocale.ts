@@ -6,6 +6,7 @@ const SETTINGS_TRANSLATIONS = {
     close: '닫기',
     tabs: {
       ai: 'AI 엔진 설정',
+      appearance: '화면 및 테마',
       persona: '페르소나',
       ghostWriter: '고스트 라이터',
       integrations: '계정 연동',
@@ -24,6 +25,49 @@ const SETTINGS_TRANSLATIONS = {
       build: '빌드 환경',
       retention: '데이터 보존',
       encrypted: '로컬 암호화'
+    },
+    themePanel: {
+      title: '사계절 컬러 테마',
+      description: '한국의 사계절 색감에서 영감을 얻은 어두운 톤의 작업 공간입니다. 선택한 테마는 즉시 미리보기로 반영됩니다.',
+      densityTitle: '레이아웃 밀도',
+      densityDescription: '여백과 목록 간격의 조밀함을 조절합니다.',
+      compactLabel: '조밀하게',
+      spaciousLabel: '여유롭게',
+      fontSizeTitle: '인터페이스 글꼴 크기',
+      fontSizeDescription: '워크스페이스 전반의 기본 문자 크기를 조절합니다.',
+      fontSizes: {
+        sm: '작게',
+        md: '보통',
+        lg: '크게',
+        xl: '아주 크게',
+      },
+      activeSeasonPrefix: '현재 계절',
+      options: {
+        default: {
+          title: '기본 · 먹빛',
+          subtitle: '차분한 서늘한 청회색과 하늘빛 포인트',
+        },
+        spring: {
+          title: '봄 · 매화',
+          subtitle: '밤 매화의 연분홍과 여린 새싹빛 포인트',
+        },
+        summer: {
+          title: '여름 · 비취',
+          subtitle: '깊은 바다와 청자 비취빛 포인트',
+        },
+        autumn: {
+          title: '가을 · 단풍',
+          subtitle: '따스한 먹돌과 은행·단풍빛 포인트',
+        },
+        winter: {
+          title: '겨울 · 설백',
+          subtitle: '맑은 겨울밤과 빙설빛 포인트',
+        },
+        auto: {
+          title: '계절 자동 맞춤',
+          subtitle: '현재 달력 계절에 맞춰 자동으로 전환됩니다',
+        },
+      },
     },
     languagePanel: {
       title: '표시 언어',
@@ -151,6 +195,9 @@ const SETTINGS_TRANSLATIONS = {
       ghostModelHelp: "실시간 문장 생성 및 다국어 번역을 전담할 경량 고속 모델을 선택합니다.",
       cloudModels: "클라우드 모델",
       localModels: "로컬 모델",
+      noConnectedModels: "연동된 모델 없음",
+      noConnectedModelsHint: "AI 엔진 설정에서 API 키를 등록하거나 로컬 AI · 브라우저 AI를 연결하세요.",
+      goToAiEngine: "AI 엔진 설정으로 이동",
       footerNote: "설정은 브라우저 로컬 저장소에 안전하게 보존됩니다",
       cancel: "취소",
       saveApply: "저장 및 적용",
@@ -179,6 +226,7 @@ const SETTINGS_TRANSLATIONS = {
     close: 'Close',
     tabs: {
       ai: 'AI engine',
+      appearance: 'Appearance & Theme',
       persona: 'Persona',
       ghostWriter: 'Ghost writer',
       integrations: 'Accounts',
@@ -197,6 +245,49 @@ const SETTINGS_TRANSLATIONS = {
       build: 'Build',
       retention: 'Data retention',
       encrypted: 'Local, encrypted'
+    },
+    themePanel: {
+      title: 'Four Seasons Themes',
+      description: 'Low-glare dark workspace palettes inspired by Korea’s four seasons. Selections preview live across the workspace.',
+      densityTitle: 'Layout density',
+      densityDescription: 'Adjust spacing and compactness across sidebars and lists.',
+      compactLabel: 'Compact',
+      spaciousLabel: 'Comfortable',
+      fontSizeTitle: 'Interface font size',
+      fontSizeDescription: 'Adjust the base UI text scale across the workspace.',
+      fontSizes: {
+        sm: 'Small',
+        md: 'Medium',
+        lg: 'Large',
+        xl: 'Extra large',
+      },
+      activeSeasonPrefix: 'Current season',
+      options: {
+        default: {
+          title: 'Ink Slate (Default)',
+          subtitle: 'Cool dark slate with crisp sky-blue accents',
+        },
+        spring: {
+          title: 'Spring Plum',
+          subtitle: 'Night plum ink with blossom rose and sprout accents',
+        },
+        summer: {
+          title: 'Summer Jade',
+          subtitle: 'Deep sea ink with celadon jade and clear sky accents',
+        },
+        autumn: {
+          title: 'Autumn Maple',
+          subtitle: 'Warm inkstone with ginkgo amber and maple accents',
+        },
+        winter: {
+          title: 'Winter Snow',
+          subtitle: 'Crisp winter night slate with frost-blue highlights',
+        },
+        auto: {
+          title: 'Auto by season',
+          subtitle: 'Automatically follows the current calendar season',
+        },
+      },
     },
     languagePanel: {
       title: 'Display language',
@@ -324,6 +415,9 @@ const SETTINGS_TRANSLATIONS = {
       ghostModelHelp: "Choose a fast, lightweight model for live sentence generation and translation.",
       cloudModels: "Cloud models",
       localModels: "Local models",
+      noConnectedModels: "No connected models",
+      noConnectedModelsHint: "Add an API key or connect Local AI / WebLLM in AI engine settings.",
+      goToAiEngine: "Go to AI engine",
       footerNote: "Settings are kept safely in this browser's local storage.",
       cancel: "Cancel",
       saveApply: "Save and apply",

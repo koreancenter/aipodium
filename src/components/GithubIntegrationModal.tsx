@@ -305,29 +305,31 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
   return (
     <div
       id="github-integration-modal-overlay"
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-100"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--bg-main)]/80 backdrop-blur-sm p-4 animate-in fade-in duration-100"
       onClick={onClose}
     >
       <div
         id="github-integration-modal-content"
-        className="relative bg-[#121214] border border-[#222226] rounded-lg max-w-lg w-full p-5 space-y-4 text-slate-200 animate-in fade-in zoom-in-95 duration-100 font-sans max-h-[90vh] overflow-y-auto"
+        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-lg w-full p-5 space-y-4 text-[var(--text-muted)] shadow-2xl animate-in fade-in zoom-in-95 duration-100 font-sans max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between pb-3 border-b border-[#222226]">
+        <div className="flex items-start justify-between pb-3 border-b border-white/[0.06]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[#18181b] border border-[#222226] flex items-center justify-center text-zinc-100 shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-[var(--bg-surface)] border border-white/[0.08] flex items-center justify-center text-[var(--text-main)] shrink-0">
               <Github className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-medium text-zinc-100">{t.title}</h2>
+                <h2 className="text-sm font-medium text-[var(--text-main)]">{t.title}</h2>
                 {isGithubConnected ? (
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--secondary-accent)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] shadow-[0_0_6px_rgba(52,211,153,0.6)]" />
                     {t.connected}
                   </span>
                 ) : (
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-white/5 text-zinc-400 border border-white/10">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-tertiary)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#475569]" />
                     {t.notConnected}
                   </span>
                 )}
@@ -342,7 +344,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-200 p-1.5 rounded hover:bg-white/5 transition cursor-pointer shrink-0"
+            className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-1.5 rounded-md hover:bg-white/[0.06] transition cursor-pointer shrink-0"
             title={t.close}
             aria-label={t.close}
           >
@@ -356,7 +358,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <label className="font-medium text-zinc-300">{t.repoLabel}</label>
+                <label className="font-medium text-[var(--text-muted)]">{t.repoLabel}</label>
                 <HelpTooltip
                   title={t.repoHelpTitle}
                   content={t.repoHelpContent}
@@ -369,11 +371,11 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
               )}
             </div>
             <div
-              className={`flex items-center rounded bg-[#09090b] border ${
-                repoError ? 'border-rose-500/50' : 'border-white/10 focus-within:border-indigo-500'
+              className={`flex items-center rounded-md bg-[var(--bg-surface)] border ${
+                repoError ? 'border-rose-500/50' : 'border-white/[0.08] focus-within:border-[var(--accent-primary)]/60'
               } transition-colors overflow-hidden`}
             >
-              <span className="pl-3 pr-1 text-xs font-mono text-zinc-500 select-none shrink-0">
+              <span className="pl-3 pr-1 text-xs font-mono text-[var(--text-tertiary)] select-none shrink-0">
                 https://github.com/
               </span>
               <input
@@ -383,7 +385,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 onPaste={handleRepoPaste}
                 placeholder="owner/repo"
                 required
-                className="w-full bg-transparent py-2 pr-3 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none"
+                className="w-full bg-transparent py-2 pr-3 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none"
               />
             </div>
           </div>
@@ -393,7 +395,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             {/* Branch */}
             <div className="space-y-1.5 sm:col-span-1">
               <div className="flex items-center gap-1.5">
-                <label className="font-medium text-zinc-300">{t.branchLabel}</label>
+                <label className="font-medium text-[var(--text-muted)]">{t.branchLabel}</label>
               </div>
               <input
                 type="text"
@@ -401,7 +403,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 onChange={(e) => setBranch(e.target.value.trim())}
                 placeholder="main"
                 required
-                className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded px-3 py-2 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none transition"
+                className="w-full bg-[var(--bg-surface)] border border-white/[0.08] focus:border-[var(--accent-primary)]/60 rounded-md px-3 py-2 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
               />
             </div>
 
@@ -409,7 +411,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             <div className="space-y-1.5 sm:col-span-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <label className="font-medium text-zinc-300">{t.tokenLabel}</label>
+                  <label className="font-medium text-[var(--text-muted)]">{t.tokenLabel}</label>
                   <HelpTooltip
                     title={t.tokenHelpTitle}
                     content={t.tokenHelpContent}
@@ -419,7 +421,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                   href="https://github.com/settings/tokens"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 hover:underline shrink-0"
+                  className="text-[11px] text-[var(--accent-primary)] hover:text-[var(--accent-primary)]/80 flex items-center gap-1 hover:underline shrink-0"
                 >
                   <span>{t.getToken}</span>
                   <ExternalLink className="w-3 h-3" />
@@ -433,12 +435,12 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                   onChange={(e) => setToken(e.target.value)}
                   placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
                   required
-                  className="w-full bg-[#09090b] border border-white/10 focus:border-indigo-500 rounded px-3 py-2 pr-9 text-xs font-mono text-zinc-200 placeholder:text-zinc-600 outline-none transition"
+                  className="w-full bg-[var(--bg-surface)] border border-white/[0.08] focus:border-[var(--accent-primary)]/60 rounded-md px-3 py-2 pr-9 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
                 />
                 <button
                   type="button"
                   onClick={() => setShowToken(!showToken)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 p-1 cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-main)] p-1 cursor-pointer"
                   title={showToken ? t.hideToken : t.showToken}
                 >
                   {showToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -452,7 +454,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-medium text-zinc-200">{t.autoCommit}</span>
+                  <span className="text-xs font-medium text-[var(--text-main)]">{t.autoCommit}</span>
                   <HelpTooltip
                     title={t.autoCommit}
                     content={t.autoCommitHelp}
@@ -472,7 +474,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                   }}
                   className="sr-only peer"
                 />
-                <div className="w-8 h-4 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                <div className="w-8 h-4 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
               </label>
             </div>
             {!autoCommit && (
@@ -481,7 +483,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 value={customCommitMessage}
                 onChange={(e) => setCustomCommitMessage(e.target.value)}
                 placeholder="docs: update ${filename} (via AI Podium)"
-                className="w-full bg-white/[0.03] border border-white/10 rounded-md px-3 py-1.5 text-xs text-zinc-200 mt-2 outline-none focus:border-indigo-500 font-mono transition"
+                className="w-full bg-[var(--bg-surface)] border border-white/[0.08] rounded-md px-3 py-1.5 text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] mt-2 outline-none focus:border-[var(--accent-primary)]/60 font-mono transition"
               />
             )}
           </div>
@@ -491,12 +493,12 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             <div className="flex items-center justify-between py-2 border-b border-white/[0.06]">
               <div className="min-w-0 pr-2">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-medium text-zinc-200">{t.pushActive}</span>
+                  <span className="text-xs font-medium text-[var(--text-main)]">{t.pushActive}</span>
                   <HelpTooltip
                     title={t.pushActive}
                     content={t.pushActiveHelp}
                   />
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-zinc-400 font-mono truncate max-w-[140px]">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.04] text-[var(--text-muted)] font-mono truncate max-w-[140px]">
                     {currentActiveFile}
                   </span>
                 </div>
@@ -505,7 +507,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 type="button"
                 onClick={handlePushActiveDocument}
                 disabled={isPushing || isTesting || isPulling}
-                className="px-2.5 py-1.5 rounded text-xs font-medium bg-white/5 hover:bg-white/10 text-zinc-200 border border-white/10 transition-colors inline-flex items-center justify-center shrink-0 cursor-pointer"
+                className="px-2.5 py-1.5 rounded text-xs font-medium bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-main)] border border-white/[0.08] transition-colors inline-flex items-center justify-center shrink-0 cursor-pointer"
               >
                 <span>{isPushing ? t.pushing : t.pushNow}</span>
               </button>
@@ -516,7 +518,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
           <div className="flex items-center justify-between py-2 border-b border-white/[0.06]">
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-medium text-zinc-200">{t.pullOnConnect}</span>
+                <span className="text-xs font-medium text-[var(--text-main)]">{t.pullOnConnect}</span>
                 <HelpTooltip
                   title={t.pullOnConnect}
                   content={t.pullOnConnectHelp}
@@ -530,7 +532,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 onChange={(e) => setPullOnConnect(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-8 h-4 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div className="w-8 h-4 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
             </label>
           </div>
 
@@ -539,12 +541,12 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             <div
               className={`p-2.5 rounded-md border text-xs flex items-center gap-2 ${
                 testResult.success
-                  ? 'bg-white/[0.03] border-white/10 text-zinc-300'
+                  ? 'bg-white/[0.03] border-white/[0.08] text-[var(--text-main)]'
                   : 'bg-rose-950/30 border-rose-500/30 text-rose-300'
               }`}
             >
               {testResult.success ? (
-                <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-[var(--secondary-accent)] shrink-0" />
               ) : (
                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
               )}
@@ -559,7 +561,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 type="button"
                 onClick={handleTestConnection}
                 disabled={isTesting || isPulling || isPushing}
-                className="px-3 py-1.5 rounded-md text-xs font-medium text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer inline-flex items-center justify-center"
+                className="px-3 py-1.5 rounded-md text-xs font-medium text-[var(--text-main)] bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] transition-colors cursor-pointer inline-flex items-center justify-center"
               >
                 <span>{isTesting ? t.testing : t.testConnection}</span>
               </button>
@@ -582,14 +584,14 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 type="button"
                 onClick={onClose}
                 disabled={isPulling || isPushing}
-                className="px-3.5 py-1.5 rounded-md text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 rounded-md text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.05] transition-colors cursor-pointer"
               >
                 {t.cancel}
               </button>
               <button
                 type="submit"
                 disabled={isPulling || isTesting || isPushing}
-                className="px-3.5 py-1.5 rounded-md text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors inline-flex items-center justify-center cursor-pointer"
+                className="px-3.5 py-1.5 rounded-md text-xs font-semibold bg-[#F1F5F9] hover:bg-white text-[#0F172A] shadow-sm transition-colors inline-flex items-center justify-center cursor-pointer"
               >
                 {isPulling ? (
                   <span>{t.syncing}</span>

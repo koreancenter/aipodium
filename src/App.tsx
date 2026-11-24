@@ -5,7 +5,7 @@ import type { PdfViewerHandle, PdfViewerState } from './components/PdfViewer';
 import { SAMPLE_PDF_DATA_URL } from './data/samplePdfData';
 import { motion, AnimatePresence } from 'motion/react';
 import { googleDriveService, GoogleUserProfile, DriveFolderInfo } from './services/googleDriveService';
-import type { PreferencesTab, UserPreferences, AiInferenceParameters, PromptTemplate } from './types/preferences';
+import type { PreferencesTab, UserPreferences, AiInferenceParameters, PromptTemplate, SeasonThemeId } from './types/preferences';
 import { DEFAULT_PREFERENCES, DEFAULT_AI_PARAMETERS } from './types/preferences';
 import { applyThemeToDocument } from './utils/themeManager';
 import { DEFAULT_SYSTEM_PROMPTS } from './data/defaultPrompts';
@@ -94,7 +94,8 @@ import {
   RECOMMENDED_QUICK_MODELS,
   getModelDisplayName,
   fetchProviderActiveModels,
-  fetchOllamaTags
+  fetchOllamaTags,
+  isLocalOllamaModelId
 } from './config/models.config';
 import {
   WEB_LLM_MODEL_ID,
@@ -125,10 +126,9 @@ import { useProjectEvents } from './hooks/useProjectEvents';
 import { useAutoLock } from './hooks/useAutoLock';
 import { useAuth } from './context/AuthContext';
 import { useLanguage, useTranslation } from './context/LanguageContext';
-import { useOptionalEditorEventBus, useEditorEventSubscription } from './context/EditorEventBusContext';
+import { useEditorEventSubscription } from './context/EditorEventBusContext';
 import { detectBrowserLanguage, LanguagePreference, AppLanguage } from './locales/language';
 import { getCoreTranslations } from './locales/coreLocale';
-import { getEditorTranslations } from './locales/editorLocale';
 import { translateMessage } from './locales/appMessages';
 import { replaceTextSegment, finalizeRewriteHistory } from './utils/rewriteHistory';
 import {
@@ -626,7 +626,8 @@ export default function App() {
       saveSafePreferences(preferences);
       applyThemeToDocument(
         preferences.compactness || 'dense',
-        preferences.fontSize || 'md'
+        preferences.fontSize || 'md',
+        preferences.seasonTheme || 'default'
       );
     } catch {}
   }, [preferences]);
@@ -754,7 +755,7 @@ export default function App() {
       }
     });
 
-    const localModels: { id: string; name: string; desc: string; group: 'cloud' | 'local'; vendor?: any }[] = [];
+    const localModels: { id: string; name: string; desc: string; group: 'cloud' | 'local'; vendor?: any; hasApiKey?: boolean }[] = [];
 
     if (discoveredLocalModels.length > 0) {
       discoveredLocalModels.forEach((dm) => {
@@ -765,18 +766,6 @@ export default function App() {
           group: 'local',
           vendor: 'ollama'
         });
-      });
-    } else {
-      DEFAULT_FALLBACK_MODELS.filter((m) => m.group === 'local').forEach((dl) => {
-        if (!localModels.some((lm) => lm.id === dl.id)) {
-          localModels.push({
-            id: dl.id,
-            name: dl.name,
-            desc: dl.desc || '',
-            group: 'local',
-            vendor: dl.vendor || 'ollama'
-          });
-        }
       });
     }
 
@@ -790,30 +779,46 @@ export default function App() {
       });
     }
 
-    const all = [...cloudModels, ...localModels];
+    const all: { id: string; name: string; desc: string; group: 'cloud' | 'local'; vendor?: any; hasApiKey?: boolean }[] = [
+      ...cloudModels,
+      ...localModels
+    ];
     if (selectedModel && !all.some((m) => m.id === selectedModel)) {
       all.push({
         id: selectedModel,
         name: selectedModel,
         desc: provider === 'cloud' ? translateMessage('mCustomCloud') : translateMessage('mCustomLocal'),
         group: provider === 'cloud' ? 'cloud' : 'local',
-        vendor: provider === 'cloud' ? getVendorForModel(selectedModel) : 'ollama'
+        vendor: provider === 'cloud' ? getVendorForModel(selectedModel) : 'ollama',
+        hasApiKey: provider === 'cloud' ? Boolean(apiKeys[getVendorForModel(selectedModel)]?.trim()) : undefined,
       });
     }
 
     return all;
   }, [dynamicProviderModels, discoveredLocalModels, selectedModel, provider, webllmProgress.isReady, apiKeys]);
 
-  // Dynamic model options for Ghost Writer synchronized with available models
+  // Dynamic model options for Ghost Writer synchronized strictly with connected models (API Key, Local AI, WebLLM)
   const ghostWriterModelOptions = useMemo(() => {
-    return availableChatModels.map((m) => ({
-      id: m.id,
-      name: m.name,
-      tier: m.desc || (m.group === 'local' ? translateMessage('mLocal') : translateMessage('mCloud')),
-      desc: m.desc || '',
-      group: m.group
-    }));
-  }, [availableChatModels]);
+    return availableChatModels
+      .filter((m) => {
+        if (m.group === 'cloud') {
+          return Boolean(m.hasApiKey);
+        }
+        if (m.vendor === 'webllm') {
+          return webllmProgress.isReady;
+        }
+        return m.id !== 'Qwen2.5-0.5B-Instruct';
+      })
+      .map((m) => ({
+        id: m.id,
+        name: m.name,
+        tier: m.desc || (m.group === 'local' ? translateMessage('mLocal') : translateMessage('mCloud')),
+        desc: m.desc || '',
+        group: m.group,
+        vendor: m.vendor,
+        hasApiKey: m.hasApiKey,
+      }));
+  }, [availableChatModels, webllmProgress.isReady]);
 
   const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState<boolean>(false);
   const [preferencesInitialTab, setPreferencesInitialTab] = useState<PreferencesTab>('ai');
@@ -2141,7 +2146,7 @@ export default function App() {
     let targetEn = translateToEnglishPrompt(raw); // Fallback string
 
     try {
-      if (ghostWriterModel === WEB_LLM_MODEL_ID) {
+      if (ghostWriterModel === WEB_LLM_MODEL_ID || ghostWriterModel === 'Qwen2.5-0.5B-Instruct') {
         let fullText = '';
         await streamWebLLMCompletion(
           [
@@ -2163,14 +2168,18 @@ export default function App() {
           targetEn = fullText.trim().replace(/^["'](.*)["']$/s, '$1');
         }
       } else {
+        const isExplicitCloudGhost =
+          availableChatModels.find((m) => m.id === ghostWriterModel)?.group === 'cloud' ||
+          /^(gemini-|gpt-|o1-|o3-|claude-|deepseek-chat|deepseek-reasoner|groq-)/i.test(ghostWriterModel) ||
+          ghostWriterModel === 'llama-3.3-70b-versatile' ||
+          ghostWriterModel === 'llama-3.1-8b-instant';
         const isLocalModel =
-          availableChatModels.find((m) => m.id === ghostWriterModel)?.group === 'local' ||
-          provider === 'local-pc' ||
-          provider === 'local-server' ||
-          ghostWriterModel.includes(':');
+          isLocalOllamaModelId(ghostWriterModel, availableChatModels) ||
+          (!isExplicitCloudGhost && (provider === 'local-pc' || provider === 'local-server'));
 
         if (isLocalModel) {
           const cleanEndpoint = (localEndpointAddress || 'http://localhost:11434').trim().replace(/\/+$/, '');
+          const cleanOllamaModel = ghostWriterModel.trim().replace(/^ollama\//i, '');
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 15000);
           const res = await fetch(`${cleanEndpoint}/api/chat`, {
@@ -2178,7 +2187,7 @@ export default function App() {
             headers: { 'Content-Type': 'application/json' },
             signal: controller.signal,
             body: JSON.stringify({
-              model: ghostWriterModel,
+              model: cleanOllamaModel,
               messages: [
                 {
                   role: 'system',
@@ -2201,25 +2210,30 @@ export default function App() {
             }
           }
         } else {
-          // Cloud model (Gemini or Server API)
+          // Cloud model (Gemini, OpenAI, DeepSeek, Groq via CloudAdapter with direct BYOK fallback)
           const targetApiKey = getApiKeyForModel(ghostWriterModel) || cloudApiKey;
-          const res = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              message: `Translate the following Korean query into a professional, concise, and highly effective English prompt for an AI assistant. Output ONLY the translated English prompt text, with no introductory words, quotes, or markdown wrappers.\n\nQuery: ${raw}`,
-              editorContent: '',
-              model: ghostWriterModel,
-              apiKey: targetApiKey || undefined,
-              systemInstruction: 'You are an expert technical translator and prompt engineer. Your sole task is to translate Korean queries into professional English prompts. Provide ONLY the translated English text. Do not provide explanations, markdown code blocks, or conversational filler.'
-            })
+          let ghostTranslated = '';
+          await aiClient.streamCompletion('cloud', {
+            model: ghostWriterModel,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert technical translator and prompt engineer. Your sole task is to translate Korean queries into professional English prompts. Provide ONLY the translated English text. Do not provide explanations, markdown code blocks, or conversational filler.'
+              },
+              {
+                role: 'user',
+                content: `Translate the following Korean query into a professional, concise, and highly effective English prompt for an AI assistant. Output ONLY the translated English prompt text, with no introductory words, quotes, or markdown wrappers.\n\nQuery: ${raw}`
+              }
+            ],
+            temperature: 0.3,
+            apiKey: targetApiKey || undefined,
+            systemInstruction: 'You are an expert technical translator and prompt engineer. Your sole task is to translate Korean queries into professional English prompts. Provide ONLY the translated English text. Do not provide explanations, markdown code blocks, or conversational filler.',
+            onChunk: (delta: string) => {
+              ghostTranslated += delta;
+            }
           });
-          const data = await res.json();
-          if (res.ok && data.text) {
-            targetEn = data.text.trim();
-            targetEn = targetEn.replace(/^["'](.*)["']$/s, '$1');
-          } else if (data?.error) {
-            showToast(translateMessage('m024', data.error));
+          if (ghostTranslated.trim()) {
+            targetEn = ghostTranslated.trim().replace(/^["'](.*)["']$/s, '$1');
           }
         }
       }
@@ -2583,8 +2597,6 @@ export default function App() {
     setEditorSelection(null);
   }, [currentActiveFile, activeSessionId]);
 
-  const editorEventBus = useOptionalEditorEventBus();
-
   const handleEditorSelectionChange = useCallback(
     (sel: EditorSelectionContext | null) => {
       const normalized = sel ? { ...sel, fileName: currentActiveFile || fileName } : null;
@@ -2592,91 +2604,6 @@ export default function App() {
     },
     [currentActiveFile, fileName]
   );
-
-  const lastRewriteEventRef = useRef<number>(0);
-  const handleRewriteWithAi = useCallback(
-    (selection?: EditorSelectionContext | null) => {
-      const now = Date.now();
-      if (now - lastRewriteEventRef.current < 80) return;
-      lastRewriteEventRef.current = now;
-
-      const activeSel = selection?.text?.trim() ? selection : editorSelection;
-      if (!activeSel?.text?.trim()) return;
-
-      if (!isLeftPanelVisible) {
-        toggleLeftPanel(true);
-      }
-      if (isMobile) {
-        setMobileTab('chat');
-      }
-
-      const populatedSelection: EditorSelectionContext = {
-        ...activeSel,
-        text: activeSel.text.trim(),
-        fileName: activeSel.fileName || currentActiveFile || fileName,
-        autoExpand: true,
-        intent: 'rewrite',
-        updatedAt: now,
-      };
-      setEditorSelection(populatedSelection);
-
-      const rewritePrompt = getEditorTranslations(language).rewritePrompt;
-      setChatInput((prev) => {
-        const trimmedPrev = prev.trim();
-        if (!trimmedPrev || trimmedPrev === rewritePrompt) {
-          return rewritePrompt;
-        }
-        return `${rewritePrompt}\n\n${prev}`;
-      });
-
-      lastActiveTextTargetRef.current = 'chat';
-      setTimeout(() => {
-        if (chatInputRef.current) {
-          chatInputRef.current.focus();
-          const len = chatInputRef.current.value.length;
-          chatInputRef.current.setSelectionRange(len, len);
-        }
-      }, 100);
-    },
-    [
-      editorSelection,
-      isLeftPanelVisible,
-      toggleLeftPanel,
-      isMobile,
-      currentActiveFile,
-      fileName,
-      language,
-    ]
-  );
-
-  useEditorEventSubscription('editor:rewrite-with-ai', (sel) => {
-    handleRewriteWithAi(sel);
-  });
-
-  useEditorEventSubscription('chat:open-panel', (opts) => {
-    if (!isLeftPanelVisible) {
-      toggleLeftPanel(true);
-    }
-    if (isMobile) {
-      setMobileTab('chat');
-    }
-    if (opts?.focusInput) {
-      lastActiveTextTargetRef.current = 'chat';
-      setTimeout(() => {
-        chatInputRef.current?.focus();
-      }, 100);
-    }
-  });
-
-  useEditorEventSubscription('editor:pin-anchor', () => {
-    if (!isLeftPanelVisible) {
-      toggleLeftPanel(true);
-    }
-    if (isMobile) {
-      setMobileTab('chat');
-    }
-    showToast(getCoreTranslations(language).chat.pinnedAnchorAdded, 'success');
-  });
 
   useEditorEventSubscription('editor:rewrite-applied', (payload) => {
     if (!payload?.originalText?.trim() || !payload?.rewrittenText?.trim()) return;
@@ -2717,15 +2644,6 @@ export default function App() {
       )
     );
   });
-
-  useEffect(() => {
-    const onRewriteEvent = (e: Event) => {
-      const customEvent = e as CustomEvent<EditorSelectionContext | undefined>;
-      handleRewriteWithAi(customEvent.detail);
-    };
-    window.addEventListener('aipodium:rewrite_with_ai', onRewriteEvent);
-    return () => window.removeEventListener('aipodium:rewrite_with_ai', onRewriteEvent);
-  }, [handleRewriteWithAi]);
 
   // Resolved list of prompt templates for top menu instant injection
   const effectivePrompts: PromptTemplate[] = useMemo(() => {
@@ -3972,7 +3890,7 @@ export default function App() {
               word-break: break-word;
             }
             blockquote {
-              border-left: 4px solid #6366f1;
+              border-left: 4px solid #38BDF8;
               margin: 12px 0;
               padding-left: 12px;
               color: #475569;
@@ -6936,7 +6854,17 @@ ${sourceTextsCombined}
 위 소스 자료를 빠짐없이 종합하여, 누락 없이 완결성 있는 고품질 마크다운 SSOT 문서를 작성해 주세요.`;
 
         const ssotModel = config.model || selectedModel || roleModels.ssot || roleModels.architect || DEFAULT_FALLBACK_MODELS[0]?.id || 'gemini-2.5-flash';
-        const targetProvider = config.provider || (availableChatModels.find(m => m.id === ssotModel)?.group === 'local' ? (provider.startsWith('local') ? provider : 'local-pc') : 'cloud');
+        const isExplicitCloudSsot =
+          availableChatModels.find((m) => m.id === ssotModel)?.group === 'cloud' ||
+          /^(gemini-|gpt-|o1-|o3-|claude-|deepseek-chat|deepseek-reasoner|groq-)/i.test(ssotModel) ||
+          ssotModel === 'llama-3.3-70b-versatile' ||
+          ssotModel === 'llama-3.1-8b-instant';
+        const isSsotLocal =
+          config.provider === 'local-pc' ||
+          config.provider === 'local-server' ||
+          isLocalOllamaModelId(ssotModel, availableChatModels) ||
+          (!config.provider && !isExplicitCloudSsot && (provider === 'local-pc' || provider === 'local-server'));
+        const targetProvider = config.provider || (ssotModel === WEB_LLM_MODEL_ID ? 'webllm' : isSsotLocal ? 'local-pc' : 'cloud');
 
         let finalContent = getFallbackDoc();
 
@@ -6955,33 +6883,65 @@ ${sourceTextsCombined}
           if (accumulated.trim()) {
             finalContent = accumulated;
           }
-        } else {
-          const endpointToUse = config.ollamaEndpoint || ((targetProvider === 'local-pc' || targetProvider === 'local-server') ? localEndpointAddress : undefined);
-          const apiKeyToUse = targetProvider === 'cloud'
-            ? (config.apiKey || (config.apiKeys ? config.apiKeys[ssotModel] || config.apiKeys.gemini : undefined) || getApiKeyForModel(ssotModel) || cloudApiKey)
-            : undefined;
-
-          const res = await fetch('/api/chat', {
+        } else if (isSsotLocal || targetProvider === 'local-pc' || targetProvider === 'local-server') {
+          const cleanEndpoint = (config.ollamaEndpoint || localEndpointAddress || 'http://localhost:11434')
+            .trim()
+            .replace(/\/+$/, '');
+          const cleanOllamaModel = ssotModel.trim().replace(/^ollama\//i, '');
+          const res = await fetch(`${cleanEndpoint}/api/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              message: prompt,
-              model: ssotModel,
-              provider: targetProvider,
-              apiKey: apiKeyToUse,
-              endpoint: endpointToUse,
-              parameters: aiParameters,
-              googleSearchGrounding: preferences.googleSearchGrounding ?? false,
-              history: []
+              model: cleanOllamaModel,
+              messages: [
+                { role: 'system', content: '당신은 단일 진실 공급원(SSOT) 기준 문서를 작성하는 전문 수석 테크니컬 라이터입니다.' },
+                { role: 'user', content: prompt }
+              ],
+              stream: false,
+              options: aiParameters
+                ? {
+                    temperature: aiParameters.temperature,
+                    num_predict: aiParameters.maxTokens,
+                    top_p: aiParameters.topP,
+                  }
+                : undefined,
             })
           });
 
           if (res.ok) {
             const data = await res.json();
-            const generatedMarkdown = data.reply || data.text || '';
+            const generatedMarkdown = data?.message?.content || data?.response || '';
             if (generatedMarkdown.trim()) {
               finalContent = generatedMarkdown;
             }
+          }
+        } else {
+          const apiKeyToUse =
+            config.apiKey ||
+            (config.apiKeys ? config.apiKeys[ssotModel] || config.apiKeys.gemini : undefined) ||
+            getApiKeyForModel(ssotModel) ||
+            cloudApiKey;
+
+          let accumulated = '';
+          await aiClient.streamCompletion('cloud', {
+            model: ssotModel,
+            messages: [
+              { role: 'system', content: '당신은 단일 진실 공급원(SSOT) 기준 문서를 작성하는 전문 수석 테크니컬 라이터입니다.' },
+              { role: 'user', content: prompt }
+            ],
+            temperature: aiParameters?.temperature,
+            maxTokens: aiParameters?.maxTokens,
+            topP: aiParameters?.topP,
+            apiKey: apiKeyToUse || undefined,
+            systemInstruction: '당신은 단일 진실 공급원(SSOT) 기준 문서를 작성하는 전문 수석 테크니컬 라이터입니다.',
+            googleSearchGrounding: preferences.googleSearchGrounding ?? false,
+            onChunk: (delta: string) => {
+              accumulated += delta;
+            },
+          });
+
+          if (accumulated.trim()) {
+            finalContent = accumulated;
           }
         }
 
@@ -7977,7 +7937,7 @@ ${projectEvents
           }}
           className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[0.6875rem] font-mono cursor-pointer transition mx-0.5 shadow-xs border ${
             isFile
-              ? 'bg-indigo-950/80 text-indigo-300 border-indigo-700/60 hover:bg-indigo-900 hover:text-white'
+              ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border-[var(--accent-primary)]/25 hover:bg-[var(--accent-primary)]/20 hover:text-[var(--text-main)]'
               : 'bg-amber-950/80 text-amber-300 border-amber-700/60 hover:bg-amber-900 hover:text-white'
           }`}
           title={isFile ? `클릭하여 '${refName}' 파일 열기` : `클릭하여 '[${refName}]' 폴더 열기`}
@@ -8237,14 +8197,19 @@ ${projectEvents
   // Inline AI Message Translation Handler (Phase 4.1)
   const handleTranslateMessage = useCallback(
     async (messageId: string, content: string): Promise<string> => {
-      // DO NOT default or hardcode to 'local-pc'
+      const model = selectedModel;
+      const isExplicitCloud =
+        availableChatModels.find((m) => m.id === model)?.group === 'cloud' ||
+        /^(gemini-|gpt-|o1-|o3-|claude-|deepseek-chat|deepseek-reasoner|groq-)/i.test(model) ||
+        model === 'llama-3.3-70b-versatile' ||
+        model === 'llama-3.1-8b-instant';
       const activeProvider: 'webllm' | 'cloud' | 'local-pc' =
-        selectedModel === WEB_LLM_MODEL_ID
+        model === WEB_LLM_MODEL_ID
           ? 'webllm'
-          : provider === 'local-pc' || provider === 'local-server'
+          : isLocalOllamaModelId(model, availableChatModels) ||
+            (!isExplicitCloud && (provider === 'local-pc' || provider === 'local-server'))
           ? 'local-pc'
           : 'cloud';
-      const model = selectedModel;
 
       try {
         let resultText = '';
@@ -8263,6 +8228,7 @@ ${projectEvents
           ],
           temperature: 0.3,
           apiKey: cloudApiKey || undefined,
+          endpoint: activeProvider === 'local-pc' ? (localEndpointAddress || 'http://localhost:11434') : undefined,
           ollamaEndpoint: activeProvider === 'local-pc' ? (localEndpointAddress || 'http://localhost:11434') : undefined,
           onChunk: (deltaText) => {
             resultText += deltaText;
@@ -8295,7 +8261,7 @@ ${projectEvents
         return '';
       }
     },
-    [selectedModel, provider, cloudApiKey, localEndpointAddress, showToast]
+    [selectedModel, provider, availableChatModels, cloudApiKey, localEndpointAddress, showToast]
   );
 
   // Handle send message logic
@@ -8322,23 +8288,16 @@ ${projectEvents
       (meta?.selectionContext?.text?.trim() ? meta.selectionContext : null) ||
       (editorSelection?.text?.trim() ? editorSelection : null);
 
-    // Inject Attached File Content, Pinned Reference Anchors, & Selected Editor Text into the Outgoing AI Prompt
-    let finalPrompt = userMessageText;
-    const pinnedList = (editorEventBus?.pinnedAnchors || []).filter(
-      (anchor) => anchor.text.trim() && anchor.text.trim() !== activeEditorSelection?.text?.trim()
-    );
-    if (pinnedList.length > 0) {
-      const anchorBlock = pinnedList
-        .map(
-          (anchor, idx) =>
-            `[Pinned Reference #${idx + 1}${anchor.fileName ? ` (${anchor.fileName})` : ''}]:\n"""\n${anchor.text.trim()}\n"""`
-        )
-        .join('\n\n');
-      finalPrompt = `${finalPrompt}\n\n${anchorBlock}`;
-    }
-    if (activeEditorSelection) {
-      finalPrompt = `${finalPrompt}\n\n[Selected Editor Text${activeEditorSelection.fileName ? ` (${activeEditorSelection.fileName})` : ''}]:\n"""\n${activeEditorSelection.text.trim()}\n"""`;
-    }
+    // Inject Attached File Content & Selected Editor Text into the Outgoing AI Prompt
+    const selectedExcerpt = activeEditorSelection?.text?.trim() || '';
+    const requestText =
+      userMessageText ||
+      (attachedFiles.length > 0 ? `[첨부 파일: ${attachedFiles.map((a) => a.name).join(', ')}]` : '');
+
+    let finalPrompt = selectedExcerpt
+      ? `[Selected Context]\n"""\n${selectedExcerpt}\n"""\n\n[User Request]\n${requestText}`
+      : requestText;
+
     if (attachedFiles.length > 0) {
       const contextBlock = attachedFiles
         .map((file) => {
@@ -8352,31 +8311,6 @@ ${projectEvents
     }
 
     const userTimestamp = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-    const isRewriteFlow = Boolean(
-      activeEditorSelection?.text?.trim() &&
-        (activeEditorSelection.intent === 'rewrite' ||
-          userMessageText === getEditorTranslations(language).rewritePrompt)
-    );
-    const initialRewriteHistory: RewriteHistoryMetadata | undefined =
-      isRewriteFlow && activeEditorSelection
-        ? {
-            originalText: activeEditorSelection.text.trim(),
-            fileName: activeEditorSelection.fileName || currentActiveFile || fileName,
-            startOffset: activeEditorSelection.startOffset,
-            endOffset: activeEditorSelection.endOffset,
-            appliedCount: 0,
-            versions: [
-              {
-                id: `ver-orig-${Date.now()}`,
-                label: getCoreTranslations(language).chat.rewriteOriginalLabel,
-                text: activeEditorSelection.text.trim(),
-                createdAt: Date.now(),
-                isOriginal: true,
-              },
-            ],
-          }
-        : undefined;
-
     const userMsg: ChatMessage = {
       id: `msg-user-${Date.now()}`,
       sender: 'user',
@@ -8386,7 +8320,6 @@ ${projectEvents
       selectionContext: activeEditorSelection
         ? { text: activeEditorSelection.text.trim(), fileName: activeEditorSelection.fileName }
         : undefined,
-      rewriteHistory: initialRewriteHistory,
       originalText: meta?.originalText,
       translatedText: meta?.translatedText,
       ghostWriterLevel: meta?.ghostWriterLevel,
@@ -8520,7 +8453,6 @@ ${projectEvents
         {
           ...meta,
           selectionContext: activeEditorSelection || meta?.selectionContext,
-          rewriteHistory: initialRewriteHistory,
         },
         attachedFiles,
         targetSessionId
@@ -8592,7 +8524,6 @@ ${projectEvents
           text: '',
           timestamp: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
           isStreaming: true,
-          rewriteHistory: initialRewriteHistory,
         }
       };
     });
@@ -8757,13 +8688,20 @@ ${projectEvents
         isDone = true;
       };
 
-      try {
-        const effectiveProvider = (modelKey === WEB_LLM_MODEL_ID)
+      const isExplicitCloudModel =
+        availableChatModels.find((m) => m.id === modelKey)?.group === 'cloud' ||
+        /^(gemini-|gpt-|o1-|o3-|claude-|deepseek-chat|deepseek-reasoner|groq-)/i.test(modelKey) ||
+        modelKey === 'llama-3.3-70b-versatile' ||
+        modelKey === 'llama-3.1-8b-instant';
+      const effectiveProvider: 'webllm' | 'cloud' | 'local-pc' =
+        modelKey === WEB_LLM_MODEL_ID
           ? 'webllm'
-          : (provider === 'local-pc' || provider === 'local-server')
+          : isLocalOllamaModelId(modelKey, availableChatModels) ||
+            (!isExplicitCloudModel && (provider === 'local-pc' || provider === 'local-server'))
           ? 'local-pc'
           : 'cloud';
 
+      try {
         // Pre-initialization check for WebLLM engine
         if (effectiveProvider === 'webllm' && !getLoadedWebLLMEngine()) {
           if (webllmProgress.isLoading) {
@@ -8783,6 +8721,7 @@ ${projectEvents
           ? `${sysInstruction}\n\n[Editor Context]\n${editorContent || ''}`
           : (editorContent ? `[Editor Context]\n${editorContent}` : undefined);
 
+        const resolvedEndpoint = localEndpointAddress || 'http://localhost:11434';
         const result = await aiClient.streamCompletion(effectiveProvider, {
           model: modelKey,
           messages: [
@@ -8793,7 +8732,8 @@ ${projectEvents
           maxTokens: aiParameters?.maxTokens,
           topP: aiParameters?.topP,
           apiKey: targetApiKey || undefined,
-          endpoint: localEndpointAddress,
+          endpoint: resolvedEndpoint,
+          ollamaEndpoint: resolvedEndpoint,
           systemInstruction: sysInstruction,
           editorContent: editorContent || undefined,
           googleSearchGrounding: preferences.googleSearchGrounding ?? false,
@@ -8821,7 +8761,7 @@ ${projectEvents
         const isAbort = e?.name === 'AbortError';
         const isCors = e?.message?.includes('Failed to fetch') || e?.name === 'TypeError';
         let errorText = '';
-        if (provider !== 'cloud') {
+        if (effectiveProvider === 'local-pc') {
           if (isCors) {
             errorText = `⚠️ **로컬 Ollama 연결 차단 (브라우저 CORS 제한)**\n\n브라우저 보안 정책으로 인해 로컬 Ollama(\`${localEndpointAddress || 'http://localhost:11434'}\`) 호출이 차단되었습니다.\n\n### 🛠️ 즉시 해결 방법 (CORS 허용 실행):\n**Windows (PowerShell):**\n\`\`\`powershell\n$env:OLLAMA_ORIGINS="*" ; ollama serve\n\`\`\`\n\n**macOS / Linux:**\n\`\`\`bash\nOLLAMA_ORIGINS="*" ollama serve\n\`\`\`\n\n💡 *Tip: 상단 톱니바퀴 [설정] -> [AI 엔진 설정]에서 **[CORS 자가진단]**을 실행하여 정상 연결 여부를 확인할 수 있습니다.*`;
           } else if (isAbort) {
@@ -8981,7 +8921,7 @@ ${projectEvents
     const updated = { ...preferences, fontSize: size };
     setPreferences(updated);
     saveSafePreferences(updated);
-    applyThemeToDocument(preferences.compactness || 'spacious', size);
+    applyThemeToDocument(preferences.compactness || 'dense', size, preferences.seasonTheme || 'default');
     showToast(translateMessage('m110', sizeLabels[size]), 'success');
   }, [preferences, showToast]);
 
@@ -8989,9 +8929,23 @@ ${projectEvents
     const updated = { ...preferences, compactness };
     setPreferences(updated);
     saveSafePreferences(updated);
-    applyThemeToDocument(compactness, preferences.fontSize || 'md');
+    applyThemeToDocument(compactness, preferences.fontSize || 'md', preferences.seasonTheme || 'default');
     showToast(translateMessage('m111', translateMessage(compactness === 'dense' ? 'wDense' : 'wRelaxed')), 'success');
   }, [preferences, showToast]);
+
+  const handleQuickSeasonTheme = useCallback((seasonTheme: SeasonThemeId) => {
+    const updated = { ...preferences, seasonTheme };
+    setPreferences(updated);
+    saveSafePreferences(updated);
+    applyThemeToDocument(
+      preferences.compactness || 'dense',
+      preferences.fontSize || 'md',
+      seasonTheme
+    );
+    const coreMenu = getCoreTranslations(language).menu;
+    const seasonLabel = coreMenu.seasons[seasonTheme];
+    showToast(coreMenu.seasonChanged(seasonLabel), 'success');
+  }, [preferences, language, showToast]);
 
   const handleQuickDefaultModel = useCallback((modelId: string, modelName: string) => {
     const updatedRoles = { ...roleModels, chat: modelId };
@@ -9176,25 +9130,23 @@ ${projectEvents
   return (
     <div
       style={{
-        background: 'var(--bg-app-gradient, var(--bg-app))',
-        color: 'var(--text-primary)'
+        background: 'var(--bg-main)',
+        color: 'var(--text-main)'
       }}
-      className="h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col font-sans select-none"
+      className="h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col font-sans select-none season-shell"
     >
       {/* Top Navigation Bar / Header */}
       <header
-        className={`${isMobile ? 'h-[38px] relative whitespace-nowrap overflow-hidden' : 'h-11'} bg-[#111114] border-b border-white/[0.08] px-3 flex items-center justify-between z-50 shrink-0`}
+        className={`${isMobile ? 'h-[38px] relative whitespace-nowrap overflow-hidden' : 'h-11'} bg-[var(--bg-main)] season-shell border-b border-white/[0.06] px-3 flex items-center justify-between z-50 shrink-0`}
       >
         <div className="flex items-center gap-2">
-          {/* Logo / App Name & Semantic Version Badge */}
+          {/* Logo / App Name & Semantic Version Label */}
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => showToast('AI Podium v0.1.0')}>
-
-            <span className="text-xs font-bold text-slate-100 font-mono tracking-normal">
+            <span className="text-xs font-semibold text-[var(--text-main)] tracking-tight">
               AI Podium
             </span>
-            <span className={`${isMobile ? 'hidden' : ''} text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-white/5`}>
+            <span className={`${isMobile ? 'hidden' : ''} text-[10px] font-mono text-[var(--text-tertiary)]`}>
               v0.1.0
-
             </span>
           </div>
 
@@ -9247,6 +9199,7 @@ ${projectEvents
             preferences={preferences}
             handleQuickFontSize={handleQuickFontSize}
             handleQuickCompactness={handleQuickCompactness}
+            handleQuickSeasonTheme={handleQuickSeasonTheme}
             handleOpenSSOTGeneratorModal={handleOpenSSOTGeneratorModal}
             activeSessionTitle={activeSession?.title}
             setIsSsotAuditorOpen={setIsSsotAuditorOpen}
@@ -9409,7 +9362,7 @@ ${projectEvents
         {/* ==================== LEFT PANE: AI Chat Area ==================== */}
         <section
           style={{ width: isMobile ? '100%' : isLeftPanelVisible ? `${panelWidths.chat}px` : '40px', minWidth: (!isMobile && isLeftPanelVisible) ? `${CHAT_PANEL_MIN_WIDTH}px` : undefined }}
-          className={`h-full min-h-0 flex flex-col bg-[#121214] shrink-0 max-w-[calc(100vw-32px)] sm:max-w-none ${
+          className={`h-full min-h-0 flex flex-col bg-[var(--bg-surface)] season-shell shrink-0 max-w-[calc(100vw-32px)] sm:max-w-none ${
             isMobile ? `!relative !w-full !max-w-none !flex-1 !shrink !inset-auto !shadow-none !border-r-0 ${mobileTab === 'chat' ? '' : '!hidden'} ` : ''
           }${
             activeResizer === 'chat'
@@ -9417,56 +9370,56 @@ ${projectEvents
               : 'transition-[width] duration-200 ease-out'
           } z-40 lg:z-10 ${
             (isLeftPanelVisible || isMobile)
-              ? 'opacity-100 pointer-events-auto border-r border-[#222226] fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/80 lg:shadow-none'
-              : 'w-10 shrink-0 bg-[#121214] border-r border-[#222226] flex flex-col z-20 select-none transition-all duration-200'
+              ? 'opacity-100 pointer-events-auto border-r border-white/[0.06] lg:border-r-0 fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/70 lg:shadow-none'
+              : 'w-10 shrink-0 bg-[var(--bg-surface)] flex flex-col z-20 select-none transition-all duration-200'
           }`}
         >
           {!isLeftPanelVisible && !isMobile ? (
             <div
               id="chat-activity-rail"
-              className="w-10 h-full flex flex-col items-center pt-1 pb-3 justify-between select-none"
+              className="w-10 h-full flex flex-col items-center pt-1.5 pb-3 justify-between select-none"
             >
               <div className="flex flex-col items-start gap-3 self-start pl-2">
                 <button
                   type="button"
                   id="chat-rail-open-btn"
                   onClick={() => toggleLeftPanel(true)}
-                  className="p-1 rounded-xs hover:bg-[#18181b] transition-colors duration-150 flex items-center justify-center cursor-pointer"
+                  className="p-1 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors duration-150 flex items-center justify-center cursor-pointer"
                   title="대화창 펼치기"
                   aria-label="대화창 펼치기"
                 >
-                  <PanelLeftOpen className="w-4 h-4 text-zinc-400 hover:text-indigo-400" />
+                  <PanelLeftOpen className="w-4 h-4" />
                 </button>
               </div>
               <div className="flex flex-col items-center gap-2 pb-1" title="AI 엔진 활성">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span className="w-2 h-2 rounded-full bg-[var(--secondary-accent)]" />
               </div>
             </div>
           ) : (
             <div
               id="chat-panel-container"
               style={{ width: `${panelWidths.chat}px`, minWidth: isMobile ? undefined : `${CHAT_PANEL_MIN_WIDTH}px` }}
-              className="max-w-full h-full flex flex-col min-h-0 overflow-hidden border-r border-[#222226]"
+              className="max-w-full h-full flex flex-col min-h-0 overflow-hidden"
             >
             {/* Header: Anchored strictly at top-left at all times */}
-            <div className="bg-[#0f0f12] border-b border-white/5 px-2 h-8 flex items-center justify-between shrink-0 select-none">
-              <div className={`flex items-center gap-1.5 text-xs font-semibold text-slate-200 min-w-0 transition-all duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${isProjectListOpen ? 'w-48 sm:w-56 -ml-0.5 pr-1' : ''}`}>
+            <div className="bg-[var(--bg-surface)] season-shell border-b border-white/[0.06] px-2 h-8 flex items-center justify-between shrink-0 select-none">
+              <div className={`flex items-center gap-1.5 text-xs font-medium text-[var(--text-main)] min-w-0 transition-all duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${isProjectListOpen ? 'w-48 sm:w-56 -ml-0.5 pr-1' : ''}`}>
                 <button
                   type="button"
                   id="left-drawer-collapse-btn"
                   onClick={() => toggleLeftPanel(false)}
-                  className="p-1 rounded-xs hover:bg-[#18181b] transition-colors duration-150 flex items-center justify-center shrink-0 cursor-pointer"
+                  className="p-1 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors duration-150 flex items-center justify-center shrink-0 cursor-pointer"
                   title="대화창 접기"
                   aria-label="대화창 접기"
                 >
-                  <PanelLeftClose className="w-4 h-4 text-zinc-400 hover:text-zinc-100" />
+                  <PanelLeftClose className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
                   id="project-drawer-header-toggle-btn"
                   onClick={() => setIsProjectListOpen((prev) => !prev)}
-                  className={`p-1 rounded-xs hover:bg-[#18181b] transition-colors duration-150 flex items-center justify-center shrink-0 cursor-pointer ${
-                    isProjectListOpen ? 'text-indigo-400' : 'text-zinc-400 hover:text-zinc-100'
+                  className={`p-1 rounded-md hover:bg-white/[0.05] transition-colors duration-150 flex items-center justify-center shrink-0 cursor-pointer ${
+                    isProjectListOpen ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                   }`}
                   title={isProjectListOpen ? '프로젝트 목록 닫기' : '프로젝트 목록 열기'}
                   aria-label={isProjectListOpen ? '프로젝트 목록 닫기' : '프로젝트 목록 열기'}
@@ -9475,11 +9428,11 @@ ${projectEvents
                 </button>
                 {isProjectListOpen && (
                   <>
-                    <span className="font-semibold tracking-wider text-[0.6875rem] uppercase text-indigo-300 truncate">프로젝트 목록</span>
+                    <span className="font-semibold tracking-tight text-[0.6875rem] text-[var(--text-main)] truncate">프로젝트 목록</span>
                     <button
                       type="button"
                       onClick={() => handleCreateNewSession()}
-                      className="ml-auto p-1 rounded-xs hover:bg-[#18181b] text-slate-400 hover:text-white transition cursor-pointer shrink-0"
+                      className="ml-auto p-1 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer shrink-0"
                       title="새 프로젝트 생성"
                       aria-label="새 프로젝트 생성"
                     >
@@ -9497,12 +9450,12 @@ ${projectEvents
                     onClick={() => {
                       if (editorRef.current) editorRef.current.focus();
                     }}
-                    className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded-xs text-[0.625rem] font-semibold flex items-center gap-1 transition shrink-0 cursor-pointer"
+                    className="bg-[var(--bg-elevated)] hover:bg-white/[0.08] text-[var(--text-main)] border border-white/[0.08] px-2 py-0.5 rounded-md text-[0.625rem] font-medium flex items-center gap-1.5 transition shrink-0 cursor-pointer"
                     title="AI가 에디터 내용을 수정했습니다. 에디터로 이동하여 확인하세요."
                   >
-                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
                     <span className="hidden md:inline">최근 AI 변경</span>
-                    <ArrowRight className="w-3 h-3 text-amber-400" />
+                    <ArrowRight className="w-3 h-3 text-[var(--accent-primary)]" />
                   </button>
                 )}
               </div>
@@ -9511,13 +9464,13 @@ ${projectEvents
           {/* Left Pane Body: Chat Area with Confined Project Drawer (Phase 3.1) */}
           <div className="flex-1 flex flex-col overflow-hidden relative min-h-0">
             {/* Active Conversation Chat Area via ChatPanel (Phase 3.1) */}
-            <React.Suspense fallback={<div className="flex-1 min-h-0 bg-[#09090b]" aria-busy="true" />}>
+            <React.Suspense fallback={<div className="flex-1 min-h-0 bg-[var(--bg-surface)]" aria-busy="true" />}>
               <ChatPanel
               projectDrawer={
                 <aside
                   id="project-list-panel"
                   aria-label="프로젝트 목록"
-                  className={`bg-[#121214] border-r border-white/5 flex flex-col shrink-0 overflow-hidden transition-[width,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] z-10 h-full [&>*]:min-w-52 sm:[&>*]:min-w-60 ${
+                  className={`bg-[var(--bg-surface)] season-shell border-r border-white/[0.06] flex flex-col shrink-0 overflow-hidden transition-[width,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] z-10 h-full [&>*]:min-w-52 sm:[&>*]:min-w-60 ${
                     isProjectListOpen
                       ? 'w-52 sm:w-60 opacity-100'
                       : 'w-0 opacity-0 pointer-events-none border-r-0'
@@ -9527,22 +9480,22 @@ ${projectEvents
                   }}
                 >
                   {/* Sidebar Header */}
-                  <div className="p-2 border-b border-[#222226] space-y-1.5 bg-[#0c0c0e] shrink-0">
+                  <div className="p-2 border-b border-white/[0.06] space-y-1.5 bg-[var(--bg-surface)] season-shell shrink-0">
                     {/* Search Input Box in Project Sidebar */}
                     <div className="relative">
-                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <Search className="w-3.5 h-3.5 text-[var(--text-tertiary)] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <input
                         type="text"
                         value={sessionSearchQuery}
                         onChange={(e) => setSessionSearchQuery(e.target.value)}
                         placeholder="프로젝트 검색..."
-                        className="w-full bg-[#121214] border border-[#222226] focus:border-[#6366f1] rounded-md pl-7 pr-6 py-1 text-[0.6875rem] text-slate-200 placeholder:text-slate-400 outline-none transition"
+                        className="w-full bg-[var(--bg-editor)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded-md pl-7 pr-6 py-1 text-[0.6875rem] text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
                       />
                       {sessionSearchQuery && (
                         <button
                           type="button"
                           onClick={() => setSessionSearchQuery('')}
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 cursor-pointer"
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-main)] p-0.5 cursor-pointer"
                           title="검색어 초기화"
                         >
                           <X className="w-3 h-3" />
@@ -9568,16 +9521,16 @@ ${projectEvents
 
                       if (filteredSessions.length === 0) {
                         return (
-                          <div className="text-center py-6 px-3 text-slate-400 space-y-2">
-                            <Search className="w-5 h-5 mx-auto text-slate-500 opacity-60" />
-                            <p className="text-[0.6875rem] font-medium text-slate-300">
+                          <div className="text-center py-6 px-3 text-[var(--text-muted)] space-y-2">
+                            <Search className="w-5 h-5 mx-auto text-[var(--text-muted)] opacity-60" />
+                            <p className="text-[0.6875rem] font-medium text-[var(--text-secondary)]">
                               {sessionSearchQuery ? `'${sessionSearchQuery}' 검색 결과 없음` : '프로젝트가 없습니다.'}
                             </p>
                             {sessionSearchQuery && (
                               <button
                                 type="button"
                                 onClick={() => setSessionSearchQuery('')}
-                                className="text-[0.625rem] text-[#6366f1] hover:underline font-mono cursor-pointer"
+                                className="text-[0.625rem] text-[var(--accent-primary)] hover:underline font-mono cursor-pointer"
                               >
                                 검색어 초기화
                               </button>
@@ -9611,31 +9564,34 @@ ${projectEvents
                             onDrop={(e) => handleFolderDrop(e, session.id)}
                             onDragEnd={handleDragEnd}
                             onClick={() => handleSelectSession(session.id)}
-                            className={`group relative flex flex-col px-2.5 py-1.5 rounded-xs transition cursor-pointer ${
+                            className={`group relative flex flex-col px-2.5 py-1.5 rounded-md transition cursor-pointer ${
                               isDraggingThis
-                                ? 'opacity-40 border border-dashed border-[#6366f1] bg-[#18181b]/50'
+                                ? 'opacity-40 border border-dashed border-[var(--accent-primary)] bg-white/[0.04]'
                                 : isActive
-                                ? 'bg-[#18181b] text-white border-l-2 border-[#6366f1] pl-2 font-medium border-t border-r border-b border-[#222226]'
-                                : 'text-slate-300 hover:bg-[#09090b]/60 hover:text-slate-100'
+                                ? 'bg-white/[0.06] text-[var(--text-main)] font-medium'
+                                : 'text-[var(--text-secondary)] hover:bg-white/[0.04] hover:text-[var(--text-main)]'
                             }`}
                           >
                             {/* Visual Drop Insertion Indicators */}
                             {isDroppingBefore && (
-                              <div className="absolute -top-1 left-0 right-0 h-0.5 bg-[#6366f1] z-30 pointer-events-none" />
+                              <div className="absolute -top-1 left-0 right-0 h-0.5 bg-[var(--accent-primary)] z-30 pointer-events-none" />
                             )}
                             {isDroppingAfter && (
-                              <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#6366f1] z-30 pointer-events-none" />
+                              <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[var(--accent-primary)] z-30 pointer-events-none" />
                             )}
 
                             <div className="flex items-center justify-between gap-1">
-                              <span className="font-medium truncate flex-1 text-xs flex items-center gap-1 min-w-0">
+                              <span className="font-medium truncate flex-1 text-xs flex items-center gap-1.5 min-w-0">
                                 <span
-                                  className="cursor-grab active:cursor-grabbing text-slate-500 group-hover:text-slate-300 hover:text-slate-100 p-0.5 -ml-0.5 rounded transition shrink-0"
+                                  className="cursor-grab active:cursor-grabbing text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)] hover:text-[var(--text-main)] p-0.5 -ml-0.5 rounded transition shrink-0"
                                   title="드래그하여 프로젝트 순서 변경"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <GripVertical className="w-3 h-3" />
                                 </span>
+                                {isActive && (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0" />
+                                )}
                                 {editingTreeTarget?.id === `project:${session.id}` ? (
                                   <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
                                     <InlineRenameInput
@@ -9663,14 +9619,14 @@ ${projectEvents
                                   </span>
                                 )}
                                 {matchedMsgCount > 0 && query && (
-                                  <span className="text-[0.5625rem] bg-[#6366f1]/15 text-[#6366f1] px-1 py-0.2 rounded border border-[#6366f1]/30 shrink-0 font-mono">
+                                  <span className="text-[0.5625rem] text-[var(--accent-primary)] shrink-0 font-mono">
                                     {matchedMsgCount}
                                   </span>
                                 )}
                               </span>
 
                               <div className="flex items-center gap-1 shrink-0">
-                                <span className="text-[0.625rem] font-mono text-slate-400 group-hover:hidden">
+                                <span className="text-[0.625rem] font-mono text-[var(--text-tertiary)] group-hover:hidden">
                                   {session.messages.length}
                                 </span>
                                 <div className="hidden group-hover:flex items-center gap-0.5 transition">
@@ -9686,7 +9642,7 @@ ${projectEvents
                                         sessionId: session.id,
                                       });
                                     }}
-                                    className="p-0.5 text-slate-400 hover:text-amber-300 transition rounded hover:bg-[#18181b]"
+                                    className="p-0.5 text-[var(--text-muted)] hover:text-[var(--text-main)] transition rounded hover:bg-white/[0.06]"
                                     title="프로젝트 이름 변경"
                                   >
                                     <Pencil className="w-3 h-3" />
@@ -9697,7 +9653,7 @@ ${projectEvents
                                       e.stopPropagation();
                                       handleExportChatSession('json', session.id);
                                     }}
-                                    className="p-0.5 text-slate-400 hover:text-[#6366f1] transition rounded hover:bg-[#18181b]"
+                                    className="p-0.5 text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition rounded hover:bg-white/[0.06]"
                                     title="JSON으로 내보내기"
                                   >
                                     <Download className="w-3 h-3" />
@@ -9705,7 +9661,7 @@ ${projectEvents
                                   <button
                                     type="button"
                                     onClick={(e) => requestDeleteSession(session.id, e)}
-                                    className="p-0.5 text-slate-400 hover:text-rose-400 transition rounded hover:bg-[#18181b]"
+                                    className="p-0.5 text-[var(--text-muted)] hover:text-rose-400 transition rounded hover:bg-white/[0.06]"
                                     title="프로젝트 삭제"
                                   >
                                     <Trash2 className="w-3 h-3" />
@@ -9714,7 +9670,7 @@ ${projectEvents
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-between text-[0.5625rem] text-slate-400 font-mono mt-0.5">
+                            <div className="flex items-center justify-between text-[0.5625rem] text-[var(--text-tertiary)] font-mono mt-0.5 pl-4">
                               <span>
                                 {session.createdAt}
                               </span>
@@ -9737,11 +9693,9 @@ ${projectEvents
               onAddAttachment={(att) => setChatAttachments((prev) => [...prev, att])}
               onAddFiles={(files) => processFiles(files)}
               onSendMessage={handleSendMessage}
+              selectedContext={editorSelection?.text || null}
               editorSelection={editorSelection}
               onClearEditorSelection={() => setEditorSelection(null)}
-              pinnedAnchors={editorEventBus?.pinnedAnchors}
-              onUnpinAnchor={editorEventBus?.unpinAnchor}
-              onClearPinnedAnchors={editorEventBus?.clearPinnedAnchors}
               onSendToEditor={(text: string) => {
                 handleSendToEditor(text);
                 if (isMobile) setMobileTab('editor');
@@ -9773,7 +9727,15 @@ ${projectEvents
               mode={mode}
               onModeChange={setMode}
               availableChatModels={availableChatModels}
-              activeProvider={selectedModel === WEB_LLM_MODEL_ID ? 'webllm' : (provider === 'local-pc' || provider === 'local-server' ? 'local-pc' : 'cloud')}
+              activeProvider={
+                selectedModel === WEB_LLM_MODEL_ID
+                  ? 'webllm'
+                  : isLocalOllamaModelId(selectedModel, availableChatModels) ||
+                    ((provider === 'local-pc' || provider === 'local-server') &&
+                      availableChatModels.find((m) => m.id === selectedModel)?.group !== 'cloud')
+                  ? 'local-pc'
+                  : 'cloud'
+              }
               provider={selectedModel === WEB_LLM_MODEL_ID ? 'webllm' : provider}
               onSelectProvider={setProvider}
               onRefreshOllama={async () => {
@@ -9828,41 +9790,31 @@ ${projectEvents
           <div
             id="chat-resizer-handle"
             onMouseDown={handleLeftResizeStart}
-            className={`hidden lg:flex relative w-3 -mx-1.5 z-30 cursor-col-resize items-center justify-center select-none group transition-colors ${
-              activeResizer === 'chat' ? 'bg-[#6366f1]/20' : 'hover:bg-white/[0.04]'
+            className={`hidden lg:flex relative w-2 -mx-1 z-30 cursor-col-resize items-center justify-center select-none group transition-colors ${
+              activeResizer === 'chat' ? 'bg-[var(--accent-primary)]/10' : 'hover:bg-white/[0.02]'
             }`}
             title={`드래그하여 대화 패널 너비 조절 (${CHAT_PANEL_MIN_WIDTH}px ~ 520px)`}
           >
-            {/* Continuous vertical dividing line */}
+            {/* Ultra-subtle hairline divider, highlights on hover/drag */}
             <div
               className={`w-[1px] h-full transition-colors duration-150 ${
                 activeResizer === 'chat'
-                  ? 'bg-[#6366f1] shadow-[0_0_8px_rgba(99,102,241,0.6)]'
-                  : 'bg-[#222226] group-hover:bg-[#6366f1]/80'
+                  ? 'bg-[var(--accent-primary)]'
+                  : 'bg-white/[0.04] group-hover:bg-[var(--accent-primary)]/60'
               }`}
             />
 
-            {/* Centered visual grip affordance (시각적 구분자) */}
+            {/* Hover-reveal grip affordance */}
             <div
-              className={`absolute top-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-1 w-2.5 h-8 rounded-full border shadow-md transition-all duration-150 pointer-events-none z-30 ${
+              className={`absolute top-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-1 w-2 h-7 rounded-full border transition-all duration-150 pointer-events-none z-30 ${
                 activeResizer === 'chat'
-                  ? 'bg-[#6366f1] border-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.5)] scale-110'
-                  : 'bg-[#18181b] border-[#27272a] group-hover:border-[#6366f1]/80 group-hover:bg-[#1f1f28]'
+                  ? 'opacity-100 bg-[var(--accent-primary)] border-[var(--accent-primary)] scale-110'
+                  : 'opacity-0 group-hover:opacity-100 bg-[var(--bg-elevated)] border-white/[0.1]'
               }`}
             >
               <div
-                className={`w-0.5 h-1 rounded-full transition-colors ${
-                  activeResizer === 'chat' ? 'bg-white' : 'bg-zinc-500 group-hover:bg-[#6366f1]'
-                }`}
-              />
-              <div
-                className={`w-0.5 h-2.5 rounded-full transition-colors ${
-                  activeResizer === 'chat' ? 'bg-white' : 'bg-zinc-400 group-hover:bg-indigo-300'
-                }`}
-              />
-              <div
-                className={`w-0.5 h-1 rounded-full transition-colors ${
-                  activeResizer === 'chat' ? 'bg-white' : 'bg-zinc-500 group-hover:bg-[#6366f1]'
+                className={`w-0.5 h-2 rounded-full transition-colors ${
+                  activeResizer === 'chat' ? 'bg-[var(--bg-main)]' : 'bg-[var(--text-muted)] group-hover:bg-[var(--accent-primary)]'
                 }`}
               />
             </div>
@@ -9871,7 +9823,7 @@ ${projectEvents
 
         {/* ==================== CENTER PANE: Markdown Editor (Flex-1 Canvas) ==================== */}
         <section
-          className={`h-full min-h-0 flex-1 min-w-0 flex flex-col bg-[#09090b] backdrop-blur-md overflow-hidden z-10 relative ${
+          className={`h-full min-h-0 flex-1 min-w-0 flex flex-col bg-[var(--bg-editor)] season-shell overflow-hidden z-10 relative ${
             isInitialAnimating
               ? `transition-[opacity,transform] duration-200 ease-out delay-[40ms] ${
                   hasInitialMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
@@ -9892,12 +9844,11 @@ ${projectEvents
           }}
         >
           {/* Multi-Tab Document Bar */}
-              <div className="bg-[#0c0c0e] border-b border-white/[0.06] flex items-center justify-between px-1.5 pt-1 select-none min-h-[34px] z-20 w-full min-w-0 relative">
-                <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-2">
+              <div className="bg-[var(--bg-main)] season-shell border-b border-white/[0.06] flex items-center justify-between px-1.5 pt-1 select-none min-h-[34px] z-20 w-full min-w-0 relative">
+                <div className="flex items-center gap-1 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-2">
                   {openTabs.map((tabFileName) => {
                     const isActive = tabFileName === currentActiveFile;
                     const isTabDirty = tabFileName === currentActiveFile ? isCurrentFileDirty : false;
-                    const isHtml = tabFileName.endsWith('.html');
                     return (
                       <div
                         key={tabFileName}
@@ -9906,10 +9857,10 @@ ${projectEvents
                             handleOpenFile(tabFileName);
                           }
                         }}
-                        className={`group relative flex items-center gap-1.5 px-3 py-1 text-xs font-mono transition cursor-pointer shrink-0 max-w-[200px] border-r border-white/[0.06] ${
+                        className={`group relative flex items-center gap-1.5 px-3 py-1 text-xs font-mono transition cursor-pointer shrink-0 max-w-[200px] rounded-t-md ${
                           isActive
-                            ? 'bg-[#121216] border-b-2 border-b-[#6366f1] text-slate-100 font-medium'
-                            : 'bg-transparent border-b-2 border-b-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.03]'
+                            ? 'bg-[var(--bg-editor)] border-b-2 border-b-[var(--accent-primary)] text-[var(--text-main)] font-medium'
+                            : 'bg-transparent border-b-2 border-b-transparent text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.03]'
                         }`}
                         title={tabFileName}
                       >
@@ -9918,7 +9869,7 @@ ${projectEvents
                         {/* Unsaved indicator */}
                         {isTabDirty && (
                           <span
-                            className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0 group-hover:hidden"
+                            className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0 group-hover:hidden"
                             title="저장되지 않은 변경사항 있음"
                           />
                         )}
@@ -9926,7 +9877,7 @@ ${projectEvents
                         <button
                           type="button"
                           onClick={(e) => handleCloseTab(tabFileName, e)}
-                          className={`p-0.5 rounded-xs hover:bg-white/[0.08] text-slate-400 hover:text-white shrink-0 transition cursor-pointer ${
+                          className={`p-0.5 rounded hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] shrink-0 transition cursor-pointer ${
                             isTabDirty ? 'hidden group-hover:flex' : 'opacity-0 group-hover:opacity-100'
                           }`}
                           title="탭 닫기"
@@ -9941,62 +9892,61 @@ ${projectEvents
                   <button
                     type="button"
                     onClick={handleAddNewNoteTab}
-                    className="p-1 px-1.5 rounded-xs hover:bg-white/[0.06] text-slate-400 hover:text-white text-xs transition flex items-center justify-center shrink-0 ml-0.5 cursor-pointer border border-transparent hover:border-white/[0.08]"
+                    className="p-1 px-1.5 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs transition flex items-center justify-center shrink-0 ml-0.5 cursor-pointer"
                     title="새로운 메모 탭 추가"
                   >
-                    <Plus className="w-3.5 h-3.5 text-slate-400" />
+                    <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
-                {/* Right: Unread Changes alert & Top-Right Drawer Button */}
+                {/* Right: Unread Changes alert */}
                 {!currentActiveFile?.toLowerCase().endsWith('.pdf') && (
                   <div className="shrink-0 flex items-center gap-1.5 pl-1.5 pr-0.5 relative z-40">
-                    {/* Right: Recent Changes Alert (rendered only when present) */}
                     {hasUnreadAiChanges && recentAiChanges && (
                       <button
                         type="button"
                         onClick={() => setHasUnreadAiChanges(false)}
-                        className="flex items-center gap-1 bg-[#121214] border border-[#6366f1]/50 px-1.5 py-0.5 rounded-xs text-[0.625rem] text-indigo-300 font-medium shrink-0 hover:border-[#6366f1] transition cursor-pointer"
+                        className="flex items-center gap-1.5 bg-[var(--bg-elevated)] border border-white/[0.08] px-2 py-0.5 rounded-md text-[0.625rem] text-[var(--text-main)] font-medium shrink-0 hover:bg-white/[0.08] transition cursor-pointer"
                         title="AI가 최근 내용을 수정했습니다. 클릭 시 확인 완료."
                       >
-                        <Sparkles className="w-3 h-3 text-[#6366f1] shrink-0" />
-                        <span className="font-bold text-indigo-200 hidden sm:inline">최근 AI 변경</span>
-                        <X className="w-3 h-3 text-[#6366f1] hover:text-white shrink-0 ml-0.5" />
+                        <Sparkles className="w-3 h-3 text-[var(--accent-primary)] shrink-0" />
+                        <span className="hidden sm:inline">최근 AI 변경</span>
+                        <X className="w-3 h-3 text-[var(--text-muted)] hover:text-[var(--text-main)] shrink-0 ml-0.5" />
                       </button>
                     )}
                   </div>
                 )}
 
-                {/* Right: PDF Active Mode Controls [ ✨ 마크다운 추출 ] [ ⚙️ ] */}
+                {/* Right: PDF Active Mode Controls */}
                 {currentActiveFile?.toLowerCase().endsWith('.pdf') && (
                   <div className="shrink-0 flex items-center gap-1.5 pl-1.5 pr-1 relative z-40">
-                    {/* Primary Markdown Extraction Button: [ ✨ 마크다운 추출 ] */}
+                    {/* Primary Markdown Extraction Button */}
                     <button
                       type="button"
                       disabled={pdfViewerState?.isExtracting}
                       onClick={() => pdfViewerRef.current?.extractToMarkdown()}
-                      className="h-7 px-3 rounded-md bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-50"
+                      className="h-7 px-3 rounded-md bg-[#F1F5F9] hover:bg-white text-[#0F172A] text-xs font-medium flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                       title="마크다운 추출 실행"
                     >
                       {pdfViewerState?.isExtracting ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-300 shrink-0" />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0F172A] shrink-0" />
                       ) : (
-                        <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                        <Sparkles className="w-3.5 h-3.5 text-[#0F172A] shrink-0" />
                       )}
                       <span className="text-xs font-medium whitespace-nowrap">
                         {pdfViewerState?.isExtracting ? '추출 중...' : '마크다운 추출'}
                       </span>
                     </button>
 
-                    {/* Settings Popover Button: [ ⚙️ ] */}
+                    {/* Settings Popover Button */}
                     <div className="relative" ref={pdfSettingsMenuRef}>
                       <button
                         type="button"
                         onClick={() => setIsPdfSettingsOpen((prev) => !prev)}
                         className={`w-7 h-7 rounded-md border flex items-center justify-center transition cursor-pointer ${
                           isPdfSettingsOpen
-                            ? 'bg-white/[0.08] text-white border-indigo-500/50'
-                            : 'bg-[#09090b] text-zinc-300 border-white/[0.08] hover:text-white hover:bg-white/[0.06]'
+                            ? 'bg-white/[0.08] text-[var(--text-main)] border-[var(--accent-primary)]/50'
+                            : 'bg-transparent text-[var(--text-muted)] border-white/[0.06] hover:text-[var(--text-main)] hover:bg-white/[0.05]'
                         }`}
                         title="PDF 및 추출 설정"
                         aria-label="PDF 및 추출 설정"
@@ -10006,22 +9956,22 @@ ${projectEvents
 
                       {/* Settings Popover Dropdown */}
                       {isPdfSettingsOpen && (
-                        <div className="absolute right-0 top-full mt-1.5 w-64 bg-[#16181d]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl p-2 z-50 text-xs text-zinc-300 select-none">
-                          <div className="text-[11px] font-medium text-zinc-400 mb-2 px-1">
+                        <div className="absolute right-0 top-full mt-1.5 w-64 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl p-2.5 z-50 text-xs text-[var(--text-muted)] select-none">
+                          <div className="text-[11px] font-medium text-[var(--text-main)] mb-2 px-1">
                             추출 설정
                           </div>
 
                           {/* Scope Selection */}
                           <div className="flex items-center justify-between gap-2 p-1.5 rounded-md hover:bg-white/[0.04]">
-                            <span className="text-zinc-300">추출 범위</span>
-                            <div className="flex bg-[#09090b] border border-white/[0.08] rounded-md p-0.5">
+                            <span className="text-[var(--text-muted)]">추출 범위</span>
+                            <div className="flex bg-[var(--bg-surface)] border border-white/[0.06] rounded-md p-0.5">
                               <button
                                 type="button"
                                 onClick={() => pdfViewerRef.current?.setScope('current')}
                                 className={`px-2 py-0.5 rounded text-[11px] font-medium transition cursor-pointer ${
                                   pdfViewerState?.extractScope === 'current'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'text-zinc-400 hover:text-white'
+                                    ? 'bg-[#F1F5F9] text-[#0F172A]'
+                                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                                 }`}
                               >
                                 현재 쪽
@@ -10031,8 +9981,8 @@ ${projectEvents
                                 onClick={() => pdfViewerRef.current?.setScope('all')}
                                 className={`px-2 py-0.5 rounded text-[11px] font-medium transition cursor-pointer ${
                                   pdfViewerState?.extractScope === 'all'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'text-zinc-400 hover:text-white'
+                                    ? 'bg-[#F1F5F9] text-[#0F172A]'
+                                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                                 }`}
                               >
                                 전체
@@ -10042,7 +9992,7 @@ ${projectEvents
 
                           {/* Engine Selection */}
                           <div className="mt-2 px-1">
-                            <span className="text-zinc-300 block mb-1">파서 엔진</span>
+                            <span className="text-[var(--text-muted)] block mb-1.5">파서 엔진</span>
                             <div className="grid grid-cols-2 gap-1">
                               {[
                                 { id: 'fast', name: '고속 텍스트' },
@@ -10056,8 +10006,8 @@ ${projectEvents
                                   onClick={() => pdfViewerRef.current?.setEngine(engine.id as any)}
                                   className={`px-2 py-1.5 rounded-md text-[11px] text-left transition cursor-pointer border ${
                                     pdfViewerState?.extractEngine === engine.id
-                                      ? 'bg-white/[0.08] text-indigo-300 border-indigo-500/50 font-medium'
-                                      : 'bg-[#09090b] text-zinc-400 border-white/[0.08] hover:text-white hover:bg-white/[0.06]'
+                                      ? 'bg-white/[0.08] text-[var(--accent-primary)] border-[var(--accent-primary)]/40 font-medium'
+                                      : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border-white/[0.06] hover:text-[var(--text-main)] hover:bg-white/[0.04]'
                                   }`}
                                 >
                                   {engine.name}
@@ -10066,7 +10016,7 @@ ${projectEvents
                             </div>
                           </div>
 
-                          <div className="my-2 border-t border-white/[0.08]" />
+                          <div className="my-2 border-t border-white/[0.06]" />
 
                           {/* View & Tool Actions */}
                           <button
@@ -10074,10 +10024,10 @@ ${projectEvents
                             onClick={() => {
                               pdfViewerRef.current?.toggleSplitView();
                             }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] flex items-center justify-between text-zinc-300 hover:text-white transition cursor-pointer"
+                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] flex items-center justify-between text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
                           >
                             <span>분할 편집 화면 전환</span>
-                            <span className="text-[10px] text-zinc-500">{pdfViewerState?.isSplitView ? '분할 모드' : '단일 뷰'}</span>
+                            <span className="text-[10px] text-[var(--text-tertiary)]">{pdfViewerState?.isSplitView ? '분할 모드' : '단일 뷰'}</span>
                           </button>
 
                           <button
@@ -10086,7 +10036,7 @@ ${projectEvents
                               setIsPdfSettingsOpen(false);
                               pdfViewerRef.current?.clearCacheAndReparse();
                             }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] text-zinc-300 hover:text-white transition cursor-pointer"
+                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
                           >
                             캐시 초기화 및 재파싱
                           </button>
@@ -10097,7 +10047,7 @@ ${projectEvents
                               setIsPdfSettingsOpen(false);
                               pdfViewerRef.current?.openReducerModal();
                             }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] text-zinc-300 hover:text-white transition cursor-pointer"
+                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
                           >
                             PDF 최적화 및 용량 줄이기...
                           </button>
@@ -10108,7 +10058,7 @@ ${projectEvents
                               setIsPdfSettingsOpen(false);
                               pdfViewerRef.current?.openFilePicker();
                             }}
-                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] text-zinc-300 hover:text-white transition cursor-pointer"
+                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
                           >
                             다른 PDF 파일 열기...
                           </button>
@@ -10119,7 +10069,7 @@ ${projectEvents
                               setIsPdfSettingsOpen(false);
                               pdfViewerRef.current?.downloadPdf();
                             }}
-                            className="w-full text-left px-2 py-1.5 rounded-md hover:bg-white/[0.06] text-zinc-300 hover:text-white transition cursor-pointer"
+                            className="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer"
                           >
                             현재 PDF 다운로드
                           </button>
@@ -10132,21 +10082,19 @@ ${projectEvents
 
             {/* Recent AI Changes Notification Banner */}
             {hasUnreadAiChanges && recentAiChanges && (
-              <div className="bg-[#121214] border-b border-[#222226] p-2 px-3 flex items-center justify-between text-xs text-indigo-200 shrink-0 z-20">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-5 h-5 rounded-xs bg-[#6366f1]/20 border border-[#6366f1]/40 flex items-center justify-center shrink-0">
-                    <Sparkles className="w-3 h-3 text-[#6366f1]" />
-                  </div>
+              <div className="bg-[var(--bg-elevated)]/90 backdrop-blur-md border-b border-white/[0.06] p-2 px-4 flex items-center justify-between text-xs text-[var(--text-muted)] shrink-0 z-20">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                   <div className="min-w-0 flex items-center gap-2 flex-wrap text-[0.6875rem]">
-                    <span className="font-bold text-indigo-300">최근 AI 변경 알림</span>
-                    <span className="bg-[#6366f1]/20 text-indigo-300 text-[0.625rem] px-1.5 py-0.2 rounded-xs font-mono border border-[#6366f1]/30">
+                    <span className="font-medium text-[var(--text-main)]">최근 AI 변경 알림</span>
+                    <span className="text-[var(--accent-primary)] text-[0.625rem] font-mono">
                       {recentAiChanges.source}
                     </span>
-                    <span className="text-[0.625rem] text-slate-400 font-mono">
-                      <Clock className="w-3 h-3 inline mr-0.5 text-slate-400" />
+                    <span className="text-[0.625rem] text-[var(--text-tertiary)] font-mono">
+                      <Clock className="w-3 h-3 inline mr-0.5" />
                       {recentAiChanges.timestamp}
                     </span>
-                    <span className="text-slate-300 truncate max-w-xs font-mono text-[0.625rem]">
+                    <span className="text-[var(--text-muted)] truncate max-w-xs font-mono text-[0.625rem]">
                       [{recentAiChanges.file}] {recentAiChanges.preview}
                     </span>
                   </div>
@@ -10157,7 +10105,7 @@ ${projectEvents
                     setHasUnreadAiChanges(false);
                     if (editorRef.current) editorRef.current.focus();
                   }}
-                  className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-[0.625rem] font-medium px-2.5 py-0.5 rounded-xs transition flex items-center gap-1 shrink-0 ml-2 cursor-pointer"
+                  className="bg-[#F1F5F9] hover:bg-white text-[#0F172A] text-[0.6875rem] font-medium px-2.5 py-0.5 rounded-md transition flex items-center gap-1 shrink-0 ml-2 cursor-pointer"
                 >
                   <span>확인</span>
                   <Check className="w-3 h-3" />
@@ -10169,11 +10117,11 @@ ${projectEvents
               <div
                 ref={editorContainerRef}
                 style={{ '--editor-font-size': `${editorFontSize}px` } as React.CSSProperties}
-                className="flex-1 relative overflow-hidden flex flex-row min-h-0 bg-[#0c0c0e]"
+                className="flex-1 relative overflow-hidden flex flex-row min-h-0 bg-[var(--bg-editor)] season-shell"
               >
                 <div className="h-full relative overflow-hidden flex flex-col min-w-0 w-full">
                   <div className="flex-1 relative overflow-hidden flex flex-col min-h-0">
-                    <React.Suspense fallback={<div className="flex-1 min-h-0 bg-[#0c0c0e]" aria-busy="true" />}>
+                    <React.Suspense fallback={<div className="flex-1 min-h-0 bg-[var(--bg-editor)]" aria-busy="true" />}>
                       {currentActiveFile.toLowerCase().endsWith('.pdf') ? (
                         <PdfViewer
                           ref={pdfViewerRef}
@@ -10214,9 +10162,6 @@ ${projectEvents
                             if (hasUnreadAiChanges) setHasUnreadAiChanges(false);
                           }}
                           onSelectionChange={handleEditorSelectionChange}
-                          editorSelection={editorSelection}
-                          onRewriteWithAi={handleRewriteWithAi}
-                          isAiLoading={isAiLoading}
                           editorRef={editorRef}
                           tiptapRef={tiptapEditorRef}
                           placeholder="# 마크다운 노트&#10;&#10;AI 답변의 [에디터로 내용 전송] 또는 직접 작성..."
@@ -10239,7 +10184,15 @@ ${projectEvents
                             }
                           }}
                           onToast={showToast}
-                          activeProvider={selectedModel === WEB_LLM_MODEL_ID ? 'webllm' : (provider === 'local-pc' || provider === 'local-server' ? 'local-pc' : 'cloud')}
+                          activeProvider={
+                            selectedModel === WEB_LLM_MODEL_ID
+                              ? 'webllm'
+                              : isLocalOllamaModelId(selectedModel, availableChatModels) ||
+                                ((provider === 'local-pc' || provider === 'local-server') &&
+                                  availableChatModels.find((m) => m.id === selectedModel)?.group !== 'cloud')
+                              ? 'local-pc'
+                              : 'cloud'
+                          }
                           localEndpoint={localEndpointAddress}
                           selectedModel={selectedModel}
                           cloudApiKey={cloudApiKey}
@@ -10252,15 +10205,15 @@ ${projectEvents
                     {isTocOpen && (
                       <div
                         id="table-of-contents-drawer"
-                        className="absolute top-0 right-0 bottom-0 w-72 bg-[#121214] border-l border-[#222226] z-20 flex flex-col shadow-2xl transition-[transform,opacity] duration-200 select-none text-zinc-200 font-sans"
+                        className="absolute top-0 right-0 bottom-0 w-72 bg-[var(--bg-elevated)]/95 backdrop-blur-md border-l border-white/[0.08] z-20 flex flex-col shadow-2xl transition-[transform,opacity] duration-200 select-none text-[var(--text-main)] font-sans"
                       >
                         {/* TOC Header */}
-                        <div className="px-4 py-3 bg-[#121214] border-b border-[#222226] flex items-center justify-between shrink-0">
+                        <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between shrink-0">
                           <div className="flex items-center gap-2">
-                            <ListTree className="w-3.5 h-3.5 text-indigo-400" />
-                            <span className="text-xs font-medium text-zinc-100">문서 목차</span>
+                            <ListTree className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                            <span className="text-xs font-medium text-[var(--text-main)]">문서 목차</span>
                             {tocItems.length > 0 && (
-                              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/[0.04] text-zinc-400 border border-[#222226]">
+                              <span className="text-[10px] font-mono text-[var(--text-muted)]">
                                 {tocItems.length}개
                               </span>
                             )}
@@ -10268,7 +10221,7 @@ ${projectEvents
                           <button
                             type="button"
                             onClick={() => setIsTocOpen(false)}
-                            className="p-1 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] rounded-md transition-colors cursor-pointer"
+                            className="p-1 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] rounded-md transition-colors cursor-pointer"
                             title="목차 닫기"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -10278,10 +10231,10 @@ ${projectEvents
                         {/* TOC Content List */}
                         <div className="flex-1 overflow-y-auto p-2 space-y-0.5 text-xs custom-scrollbar">
                           {tocItems.length === 0 ? (
-                            <div className="p-6 text-center text-zinc-500 space-y-1 my-auto">
-                              <ListTree className="w-7 h-7 mx-auto mb-2 text-zinc-600 opacity-60" />
-                              <p className="text-xs font-medium text-zinc-400">문서에 제목 서식이 없습니다</p>
-                              <p className="text-[11px] text-zinc-500 leading-relaxed">
+                            <div className="p-6 text-center text-[var(--text-tertiary)] space-y-1 my-auto">
+                              <ListTree className="w-7 h-7 mx-auto mb-2 opacity-60" />
+                              <p className="text-xs font-medium text-[var(--text-muted)]">문서에 제목 서식이 없습니다</p>
+                              <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">
                                 # 또는 ## 서식으로 제목을 추가하면 목차가 실시간으로 구성됩니다.
                               </p>
                             </div>
@@ -10298,8 +10251,8 @@ ${projectEvents
                                   onClick={() => jumpToTocItem(item, idx)}
                                   className={`group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md cursor-pointer transition-all text-xs ${
                                     isActive
-                                      ? 'bg-indigo-500/10 text-indigo-300 font-medium border-l-2 border-indigo-500 rounded-l-none'
-                                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+                                      ? 'bg-white/[0.07] text-[var(--text-main)] font-medium'
+                                      : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.04]'
                                   }`}
                                   style={{ paddingLeft: `${indentPx}px` }}
                                   title={`${item.text} (${item.lineIndex + 1}번째 줄)`}
@@ -10307,7 +10260,7 @@ ${projectEvents
                                   <div className="flex items-center gap-1.5 min-w-0 flex-1">
                                     <span
                                       className={`text-[10px] font-mono shrink-0 select-none ${
-                                        isActive ? 'text-indigo-400 font-semibold' : 'text-zinc-500'
+                                        isActive ? 'text-[var(--accent-primary)] font-semibold' : 'text-[var(--text-tertiary)]'
                                       }`}
                                     >
                                       H{item.level}
@@ -10315,7 +10268,7 @@ ${projectEvents
                                     <span className="truncate flex-1">{item.text}</span>
                                   </div>
                                   {isActive && (
-                                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shrink-0" />
                                   )}
                                 </div>
                               );
@@ -10324,9 +10277,9 @@ ${projectEvents
                         </div>
 
                         {/* TOC Footer with Scroll Sync Status */}
-                        <div className="px-3 py-2 bg-[#09090b] border-t border-[#222226] flex items-center justify-between text-[11px] text-zinc-500 shrink-0 font-mono">
+                        <div className="px-3 py-2 bg-[var(--bg-surface)]/80 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-[var(--text-muted)] shrink-0 font-mono">
                           <span className="flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)]" />
                             <span>스크롤 동기화</span>
                           </span>
                           {tocItems.length > 0 && (
@@ -10362,41 +10315,31 @@ ${projectEvents
           <div
             id="explorer-resizer-handle"
             onMouseDown={handleRightResizeStart}
-            className={`hidden lg:flex relative w-3 -mx-1.5 z-30 cursor-col-resize items-center justify-center select-none group transition-colors ${
-              activeResizer === 'explorer' ? 'bg-[#6366f1]/20' : 'hover:bg-white/[0.04]'
+            className={`hidden lg:flex relative w-2 -mx-1 z-30 cursor-col-resize items-center justify-center select-none group transition-colors ${
+              activeResizer === 'explorer' ? 'bg-[var(--accent-primary)]/10' : 'hover:bg-white/[0.02]'
             }`}
             title="드래그하여 파일 탐색기 너비 조절 (200px ~ 420px)"
           >
-            {/* Continuous vertical dividing line */}
+            {/* Ultra-subtle hairline divider, highlights on hover/drag */}
             <div
               className={`w-[1px] h-full transition-colors duration-150 ${
                 activeResizer === 'explorer'
-                  ? 'bg-[#6366f1] shadow-[0_0_8px_rgba(99,102,241,0.6)]'
-                  : 'bg-[#222226] group-hover:bg-[#6366f1]/80'
+                  ? 'bg-[var(--accent-primary)]'
+                  : 'bg-white/[0.04] group-hover:bg-[var(--accent-primary)]/60'
               }`}
             />
 
-            {/* Centered visual grip affordance (시각적 구분자) */}
+            {/* Hover-reveal grip affordance */}
             <div
-              className={`absolute top-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-1 w-2.5 h-8 rounded-full border shadow-md transition-all duration-150 pointer-events-none z-30 ${
+              className={`absolute top-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-1 w-2 h-7 rounded-full border transition-all duration-150 pointer-events-none z-30 ${
                 activeResizer === 'explorer'
-                  ? 'bg-[#6366f1] border-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.5)] scale-110'
-                  : 'bg-[#18181b] border-[#27272a] group-hover:border-[#6366f1]/80 group-hover:bg-[#1f1f28]'
+                  ? 'opacity-100 bg-[var(--accent-primary)] border-[var(--accent-primary)] scale-110'
+                  : 'opacity-0 group-hover:opacity-100 bg-[var(--bg-elevated)] border-white/[0.1]'
               }`}
             >
               <div
-                className={`w-0.5 h-1 rounded-full transition-colors ${
-                  activeResizer === 'explorer' ? 'bg-white' : 'bg-zinc-500 group-hover:bg-[#6366f1]'
-                }`}
-              />
-              <div
-                className={`w-0.5 h-2.5 rounded-full transition-colors ${
-                  activeResizer === 'explorer' ? 'bg-white' : 'bg-zinc-400 group-hover:bg-indigo-300'
-                }`}
-              />
-              <div
-                className={`w-0.5 h-1 rounded-full transition-colors ${
-                  activeResizer === 'explorer' ? 'bg-white' : 'bg-zinc-500 group-hover:bg-[#6366f1]'
+                className={`w-0.5 h-2 rounded-full transition-colors ${
+                  activeResizer === 'explorer' ? 'bg-[var(--bg-main)]' : 'bg-[var(--text-muted)] group-hover:bg-[var(--accent-primary)]'
                 }`}
               />
             </div>
@@ -10408,7 +10351,7 @@ ${projectEvents
           fallback={
             <div
               style={{ width: isRightPanelVisible ? `${panelWidths.explorer}px` : '40px' }}
-              className={`h-full min-h-0 shrink-0 bg-[#121214] border-l border-[#222226] ${
+              className={`h-full min-h-0 shrink-0 bg-[var(--bg-surface)] ${
                 isRightPanelVisible ? '' : 'w-10'
               }`}
               aria-busy="true"
@@ -10474,7 +10417,7 @@ ${projectEvents
       {isMobile && (
         <nav
           id="mobile-bottom-dock"
-          className="h-13 shrink-0 bg-[#121214] border-t border-[#222226] flex items-center justify-around z-40 select-none pb-[env(safe-area-inset-bottom)]"
+          className="h-13 shrink-0 bg-[var(--bg-main)] season-shell border-t border-white/[0.06] flex items-center justify-around z-40 select-none pb-[env(safe-area-inset-bottom)]"
         >
           {([
             { id: 'chat', label: '💬 대화' },
@@ -10487,8 +10430,8 @@ ${projectEvents
               onClick={() => setMobileTab(tab.id)}
               className={`flex-1 h-full text-xs transition-colors cursor-pointer ${
                 mobileTab === tab.id
-                  ? 'text-indigo-400 font-semibold border-t-2 border-[#6366f1]'
-                  : 'text-zinc-400 hover:text-zinc-100'
+                  ? 'text-[var(--accent-primary)] font-medium border-t-2 border-[var(--accent-primary)]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
               }`}
             >
               {tab.label}
@@ -10498,23 +10441,23 @@ ${projectEvents
       )}
 
       {/* Global Bottom Status Bar - Clean Workspace Path Display */}
-      <footer className="h-6 bg-[#09090b]/90 backdrop-blur-md border-t border-[#222226] px-3 flex items-center justify-between text-[0.6875rem] text-slate-300 font-mono shrink-0 select-none z-30">
+      <footer className="h-6 bg-[var(--bg-main)] season-shell border-t border-white/[0.06] px-3 flex items-center justify-between text-[0.6875rem] text-[var(--text-muted)] font-mono shrink-0 select-none z-30">
         <div className="flex items-center gap-3 min-w-0 overflow-hidden">
           <button
             type="button"
             onClick={() => setIsWorkspaceModalOpen(true)}
-            className="flex items-center gap-1.5 text-slate-300 hover:text-[#6366f1] transition cursor-pointer shrink-0 truncate group"
+            className="flex items-center gap-1.5 text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer shrink-0 truncate group"
             title={`클릭하여 프로젝트 폴더 연결 및 관리 열기 (${getCurrentDisplayPath()})`}
           >
-            <Folder className="w-3.5 h-3.5 text-indigo-400/80 shrink-0 group-hover:scale-110 transition-transform" />
-            <span className="text-slate-400">프로젝트:</span>
-            <span className="font-semibold text-indigo-300 group-hover:underline truncate">
+            <Folder className="w-3.5 h-3.5 text-[var(--accent-primary)]/80 shrink-0" />
+            <span className="text-[var(--text-tertiary)]">프로젝트:</span>
+            <span className="font-medium text-[var(--text-main)] group-hover:text-[var(--accent-primary)] truncate transition-colors">
               {getCurrentDisplayPath()}
             </span>
           </button>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0 text-slate-400 text-[0.625rem]">
+        <div className="flex items-center gap-3 shrink-0 text-[var(--text-secondary)] text-[11px]">
           {/* Local AI Resource Monitor (VRAM & CPU indicator) - rendered only for webllm or local-pc */}
           {(activeAiEngineProvider === 'webllm' || activeAiEngineProvider === 'local-pc') && (
             <>
@@ -10530,50 +10473,49 @@ ${projectEvents
                   setIsPreferencesModalOpen(true);
                 }}
               />
-              <span className="text-slate-600">|</span>
+              <span className="text-white/[0.12]">|</span>
             </>
           )}
-
 
           {currentActiveFile && (
             <>
-              <span className="text-slate-300">
+              <span className="text-[var(--text-secondary)]">
                 줄: {(editorContent || '').split('\n').length} | 글자: {(editorContent || '').length}
               </span>
-              <span className="text-slate-600">|</span>
+              <span className="text-white/[0.12]">|</span>
             </>
           )}
-          <span className="hidden sm:inline">총 {Object.keys(files).length}개 파일</span>
-          <span className="text-slate-600 hidden sm:inline">|</span>
-          <span className="text-slate-300">{storageTargetLabel}</span>
+          <span className="hidden sm:inline text-[var(--text-secondary)]">총 {Object.keys(files).length}개 파일</span>
+          <span className="text-white/[0.12] hidden sm:inline">|</span>
+          <span className="text-[var(--text-secondary)]">{storageTargetLabel}</span>
 
-          <span className="text-slate-600">|</span>
+          <span className="text-white/[0.12]">|</span>
           {githubConfig?.token && githubConfig?.repo && (
             <>
-              <div className="flex items-center gap-1.5 text-[0.625rem]">
+              <div className="flex items-center gap-1.5 text-[11px]">
                 {githubSyncStatus === 'syncing' ? (
-                  <span className="inline-flex items-center gap-1.5 text-indigo-300">
-                    <span className="w-1 h-1 rounded-full bg-indigo-400 animate-pulse" />
+                  <span className="inline-flex items-center gap-1.5 text-[var(--accent-primary)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] animate-pulse" />
                     <span>동기화 중...</span>
                   </span>
                 ) : githubSyncStatus === 'synced' ? (
-                  <span className="inline-flex items-center gap-1.5 text-zinc-300">
-                    <span className="w-1 h-1 rounded-full bg-emerald-400" />
+                  <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)]" />
                     <span>GitHub 동기화 완료</span>
                   </span>
                 ) : githubSyncStatus === 'conflict' ? (
                   <span className="inline-flex items-center gap-1.5 text-amber-300">
-                    <span className="w-1 h-1 rounded-full bg-amber-400" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                     <span>충돌 사본 생성됨</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 text-zinc-400">
-                    <span className="w-1 h-1 rounded-full bg-zinc-500" />
+                  <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-tertiary)]" />
                     <span>GitHub 연동됨</span>
                   </span>
                 )}
               </div>
-              <span className="text-slate-600">|</span>
+              <span className="text-white/[0.12]">|</span>
             </>
           )}
           {/* Dynamic AI Engine Readiness Status Indicator */}
@@ -10583,7 +10525,7 @@ ${projectEvents
               setPreferencesInitialTab('ai-engine');
               setIsPreferencesModalOpen(true);
             }}
-            className="text-slate-300 flex items-center gap-1.5 hover:text-white transition cursor-pointer focus:outline-none"
+            className="text-[var(--text-secondary)] flex items-center gap-1.5 hover:text-[var(--text-main)] transition cursor-pointer focus:outline-none"
             title="클릭하여 AI 엔진 및 엔드포인트 설정 열기"
           >
             <span className={`w-1.5 h-1.5 rounded-full ${aiEngineStatus.dotClass}`} />

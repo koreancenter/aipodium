@@ -609,6 +609,7 @@ export const AppModalOrchestrator: React.FC<AppModalOrchestratorProps> = (props)
           onSaveParameters={onSaveAiParameters}
           onUpdateDiscoveredModels={onUpdateDiscoveredModels}
           initialDiscoveredModels={initialDiscoveredModels || discoveredLocalModels}
+          webllmReady={Boolean(webllmProgress?.isReady)}
           onToast={onToast}
           onWipeAllData={onWipeAllData}
           googleUser={googleUser}
