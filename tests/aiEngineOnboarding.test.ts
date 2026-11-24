@@ -154,8 +154,8 @@ test('AiEngineOnboardingModal UI conforms to luxury minimalism principles', asyn
     'utf-8'
   );
 
-  // 1. Container specifies clean flat dark theme styling
-  assert.match(modalContent, /max-w-md w-full bg-\[#121214\] border border-\[#222226\] rounded-xl p-5 shadow-2xl flex flex-col justify-between text-left/);
+  // 1. Container specifies clean flat dark theme styling with cyber-luxury tokens
+  assert.match(modalContent, /max-w-md w-full bg-\[var\(--bg-elevated\)\]\/95 backdrop-blur-md border border-\[var\(--border-luminous\)\] rounded-xl p-5 shadow-\[var\(--rim-glow\)\] cyber-rim-top flex flex-col justify-between text-left/);
 
   // 2. Subtitle under header is removed
   assert.equal(modalContent.includes('작업 환경에 맞는 AI 모델 엔진을 선택합니다'), false);

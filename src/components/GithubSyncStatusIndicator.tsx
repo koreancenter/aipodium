@@ -86,12 +86,12 @@ export const GithubSyncStatusIndicator: React.FC<GithubSyncStatusIndicatorProps>
         }
       }}
       data-testid="github-sync-indicator"
-      className={`h-7 flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 rounded-md border border-white/[0.06] bg-[var(--bg-surface)] hover:bg-white/[0.05] transition-all cursor-pointer select-none group ${className}`}
+      className={`h-7 flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 rounded-md border border-[var(--border-structural)] hover:border-[var(--border-luminous)] bg-[var(--bg-surface)] hover:bg-white/[0.05] transition-all cursor-pointer select-none group ${className}`}
       title={`${repo ? `[${repo}${branch ? ` : ${branch}` : ''}] ` : ''}${currentConfig.tooltip} - 클릭하여 설정 열기`}
       aria-label={`GitHub 동기화 상태: ${currentConfig.label}`}
     >
       {/* GitHub Repository Info */}
-      <div className="flex items-center gap-1.5 text-xs text-slate-400 group-hover:text-[var(--text-main)] transition-colors">
+      <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] group-hover:text-[var(--text-main)] transition-colors">
         <Github className="w-3.5 h-3.5 shrink-0 text-[var(--text-muted)] group-hover:text-[var(--text-main)]" />
         {displayRepo && (
           <span className="font-mono text-[11px] text-[var(--text-muted)] group-hover:text-[var(--text-main)] max-w-[120px] truncate hidden sm:inline">
@@ -115,7 +115,7 @@ export const GithubSyncStatusIndicator: React.FC<GithubSyncStatusIndicatorProps>
       </span>
 
       {/* Divider */}
-      <div className="w-[1px] h-3.5 bg-white/[0.06] mx-0.5 shrink-0" />
+      <div className="w-[1px] h-3.5 bg-[var(--border-structural)] mx-0.5 shrink-0" />
 
       {/* Force Sync Manual Trigger Button */}
       <button

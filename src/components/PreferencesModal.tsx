@@ -801,11 +801,11 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.98, y: 6 }}
           transition={{ duration: 0.15 }}
-          className="bg-[var(--bg-elevated)]/95 backdrop-blur-md border-0 sm:border border-white/[0.08] rounded-none sm:rounded-xl shadow-2xl w-full sm:max-w-4xl h-full sm:h-[630px] sm:max-h-[92vh] flex flex-col overflow-hidden text-[var(--text-main)]"
+          className="bg-[var(--bg-elevated)]/95 backdrop-blur-md border-0 sm:border border-[var(--border-luminous)] rounded-none sm:rounded-xl shadow-2xl shadow-[var(--rim-glow)] sm:cyber-rim-top w-full sm:max-w-4xl h-full sm:h-[630px] sm:max-h-[92vh] flex flex-col overflow-hidden text-[var(--text-main)]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-5 py-3.5 border-b border-white/[0.06] bg-[var(--bg-surface)]/90 flex items-center justify-between shrink-0">
+          <div className="px-5 py-3.5 border-b border-[var(--border-structural)] bg-[var(--bg-surface)]/90 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <Settings className="w-4 h-4 text-[var(--text-muted)]" />
               <h2 className="font-medium text-xs text-[var(--text-main)] tracking-wide">
@@ -824,7 +824,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           </div>
 
           {/* Mobile Horizontal Tabs (visible on mobile only) */}
-          <div className="sm:hidden flex items-center gap-1 overflow-x-auto no-scrollbar px-2 bg-[var(--bg-surface)] border-b border-white/[0.06] shrink-0 select-none">
+          <div className="sm:hidden flex items-center gap-1 overflow-x-auto no-scrollbar px-2 bg-[var(--bg-surface)] border-b border-[var(--border-structural)] shrink-0 select-none">
             {tabItems.map((tab) => {
               const isActive = activeTab === tab.id || (tab.id === 'ai' && activeTab === 'ai-engine');
               const Icon = tab.icon;
@@ -833,12 +833,15 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2.5 text-xs whitespace-nowrap shrink-0 border-b-2 transition-colors cursor-pointer ${
+                  className={`relative flex items-center gap-1.5 px-3 py-2.5 text-xs whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                     isActive
-                      ? 'border-[var(--accent-primary)] text-[var(--text-main)] font-medium bg-white/[0.04]'
-                      : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.02]'
+                      ? 'text-[var(--text-main)] font-medium bg-white/[0.04]'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.02]'
                   }`}
                 >
+                  {isActive && (
+                    <span className="cyber-active-rail absolute bottom-0 left-2 right-2 h-[2px] rounded-full pointer-events-none" />
+                  )}
                   <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'}`} />
                   <span>{tab.label}</span>
                   {tab.badge && (
@@ -855,7 +858,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           {/* Main Body */}
           <div className="flex flex-1 overflow-hidden min-h-0">
             {/* Desktop Sidebar Tabs (visible on sm and up) */}
-            <div className="hidden sm:flex sm:w-52 bg-[var(--bg-surface)] border-r border-white/[0.06] p-2.5 flex-col gap-1 shrink-0 select-none overflow-y-auto min-h-0">
+            <div className="hidden sm:flex sm:w-52 bg-[var(--bg-surface)] border-r border-[var(--border-structural)] p-2.5 flex-col gap-1 shrink-0 select-none overflow-y-auto min-h-0">
               {tabItems.map((tab) => {
                 const isActive = activeTab === tab.id || (tab.id === 'ai' && activeTab === 'ai-engine');
                 const Icon = tab.icon;
@@ -864,12 +867,15 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
+                    className={`relative w-full flex items-center justify-between text-left text-xs px-3 py-2 rounded-md transition-colors cursor-pointer ${
                       isActive
                         ? 'bg-white/[0.06] text-[var(--text-main)] font-medium'
                         : 'text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.04]'
                     }`}
                   >
+                    {isActive && (
+                      <span className="cyber-active-rail absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full pointer-events-none" />
+                    )}
                     <span className="flex items-center gap-2 truncate">
                       <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'}`} />
                       <span className="truncate">{tab.label}</span>
@@ -885,7 +891,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               })}
 
               {/* System Status & Environment Info Widget */}
-              <div className="mt-auto pt-3 border-t border-white/[0.06] px-2 py-1.5 text-[11px] text-[var(--text-muted)] space-y-1.5 select-none">
+              <div className="mt-auto pt-3 border-t border-[var(--border-structural)] px-2 py-1.5 text-[11px] text-[var(--text-muted)] space-y-1.5 select-none">
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-[var(--text-tertiary)] font-normal">{st.status.build}</span>
                   <span className="font-mono text-[var(--text-secondary)] font-normal">v0.1.0</span>
@@ -909,7 +915,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                 const seasonOptions: SeasonThemeId[] = ['default', 'spring', 'summer', 'autumn', 'winter', 'auto'];
                 return (
                   <section className="space-y-6 animate-in fade-in duration-150">
-                    <div className="border-b border-white/[0.06] pb-3 flex items-center justify-between gap-3">
+                    <div className="border-b border-[var(--border-structural)] pb-3 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-1.5">
                         <h3 className="text-sm font-semibold text-[var(--text-main)]">
                           {st.themePanel.title}
@@ -936,17 +942,17 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             onClick={() => setLocalPrefs((prev) => ({ ...prev, seasonTheme: seasonId }))}
                             className={`group text-left rounded-lg border p-2.5 transition-colors cursor-pointer flex flex-col gap-2.5 ${
                               isSelected
-                                ? 'bg-white/[0.06] border-[var(--accent-primary)]/70'
-                                : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.14]'
+                                ? 'bg-white/[0.06] border-[var(--border-luminous)] shadow-[var(--rim-glow)]'
+                                : 'bg-white/[0.02] border-[var(--border-structural)] hover:bg-white/[0.04] hover:border-[var(--border-luminous)]'
                             }`}
                           >
                             {/* Miniature 3-Pane IDE Swatch Preview */}
                             <div
-                              className="w-full h-16 rounded-md overflow-hidden border border-white/[0.08] flex flex-col"
+                              className="w-full h-16 rounded-md overflow-hidden border border-[var(--border-structural)] flex flex-col"
                               style={{ backgroundColor: preview.bgMain }}
                             >
                               <div
-                                className="h-3 px-2 flex items-center justify-between border-b border-white/[0.06]"
+                                className="h-3 px-2 flex items-center justify-between border-b border-[var(--border-structural)]"
                                 style={{ backgroundColor: preview.bgMain }}
                               >
                                 <div className="flex items-center gap-1">
@@ -966,7 +972,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               </div>
                               <div className="flex-1 flex min-h-0">
                                 <div
-                                  className="w-1/4 border-r border-white/[0.06] p-1.5 flex flex-col gap-1"
+                                  className="w-1/4 border-r border-[var(--border-structural)] p-1.5 flex flex-col gap-1"
                                   style={{ backgroundColor: preview.bgSurface }}
                                 >
                                   <span
@@ -1004,7 +1010,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                   </div>
                                 </div>
                                 <div
-                                  className="w-1/5 border-l border-white/[0.06] p-1.5 flex flex-col gap-1"
+                                  className="w-1/5 border-l border-[var(--border-structural)] p-1.5 flex flex-col gap-1"
                                   style={{ backgroundColor: preview.bgSurface }}
                                 >
                                   <span
@@ -1028,14 +1034,14 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       })}
                     </div>
 
-                    <div className="divide-y divide-white/[0.06] border-t border-white/[0.06]">
+                    <div className="divide-y divide-[var(--border-structural)] border-t border-[var(--border-structural)]">
                       {/* Compactness control */}
                       <div className="py-4 flex items-center justify-between gap-4">
                         <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
                           <span>{st.themePanel.densityTitle}</span>
                           <HelpTooltip side="bottom" content={st.themePanel.densityDescription} />
                         </div>
-                        <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-white/[0.06] rounded-md shrink-0">
+                        <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md shrink-0">
                           {(['dense', 'spacious'] as const).map((density) => {
                             const active = (localPrefs.compactness || 'dense') === density;
                             return (
@@ -1062,7 +1068,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           <span>{st.themePanel.fontSizeTitle}</span>
                           <HelpTooltip side="bottom" content={st.themePanel.fontSizeDescription} />
                         </div>
-                        <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-white/[0.06] rounded-md shrink-0">
+                        <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md shrink-0">
                           {(['sm', 'md', 'lg', 'xl'] as const).map((size) => {
                             const active = (localPrefs.fontSize || 'md') === size;
                             return (
@@ -1089,7 +1095,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               {/* TAB 0: AI Engine & Provider (Default fallback if not any other tab) */}
               {activeTab === 'language' && (
                 <section className="max-w-xl space-y-6 animate-in fade-in duration-150">
-                  <div className="border-b border-white/[0.06] pb-3 flex items-center gap-1.5">
+                  <div className="border-b border-[var(--border-structural)] pb-3 flex items-center gap-1.5">
                     <h3 className="text-sm font-semibold text-[var(--text-main)]">
                       {st.languagePanel.title}
                     </h3>
@@ -1098,7 +1104,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       content={st.languagePanel.description}
                     />
                   </div>
-                  <div className="divide-y divide-white/[0.06]">
+                  <div className="divide-y divide-[var(--border-structural)]">
                     {([
                       {
                         value: 'auto',
@@ -1147,7 +1153,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               )}
 
               {(activeTab === 'ai' || activeTab === 'ai-engine' || !['appearance', 'persona', 'integrations', 'storage', 'security', 'ghost-writer', 'language'].includes(activeTab)) && (
-                <div className="space-y-0 divide-y divide-white/[0.06] animate-in fade-in duration-150">
+                <div className="space-y-0 divide-y divide-[var(--border-structural)] animate-in fade-in duration-150">
                   {/* 1. Mode Switcher: Cloud API vs Local Ollama */}
                   <div className="flex items-center justify-between pb-4">
                     <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5">
@@ -1157,7 +1163,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         content={st.body.engineModeHelp}
                       />
                     </div>
-                    <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-white/[0.06] rounded-md">
+                    <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md">
                       <button
                         type="button"
                         onClick={() => handleSwitchProvider('cloud')}
@@ -1186,7 +1192,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
                   {/* 2. Provider Specific Credentials / Endpoint */}
                   {localProviderType === 'cloud' ? (
-                    <div className="divide-y divide-white/[0.06]">
+                    <div className="divide-y divide-[var(--border-structural)]">
                       {/* BYOK Multi-Vendor Tabs - Flat Single Row */}
                       <div className="flex items-stretch">
                         {CLOUD_VENDORS.map((v) => {
@@ -1199,12 +1205,15 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               key={v.id}
                               type="button"
                               onClick={() => handleSelectVendor(v.id)}
-                              className={`flex-1 py-2.5 px-1.5 text-center transition cursor-pointer flex flex-col items-center justify-center gap-0.5 relative border-b-2 ${
+                              className={`flex-1 py-2.5 px-1.5 text-center transition cursor-pointer flex flex-col items-center justify-center gap-0.5 relative ${
                                 isSelected
-                                  ? 'border-[var(--accent-primary)] text-[var(--text-main)] font-medium bg-white/[0.04]'
-                                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.02]'
+                                  ? 'text-[var(--text-main)] font-medium bg-white/[0.04]'
+                                  : 'text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.02]'
                               }`}
                             >
+                              {isSelected && (
+                                <span className="cyber-active-rail absolute bottom-0 left-3 right-3 h-[2px] rounded-full pointer-events-none" />
+                              )}
                               <div className="flex items-center gap-1.5 text-xs font-normal">
                                 <span>{vendorShort}</span>
                                 {hasKey && (
@@ -1223,7 +1232,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       {(() => {
                         const currentVendorMeta = CLOUD_VENDORS.find((v) => v.id === selectedVendor) || CLOUD_VENDORS[0];
                         return (
-                          <div className="divide-y divide-white/[0.06]">
+                          <div className="divide-y divide-[var(--border-structural)]">
                             {/* API Key Row */}
                             <div className="py-4 flex items-center justify-between gap-4">
                               <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
@@ -1250,12 +1259,12 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                       }));
                                     }}
                                     placeholder={st.body.apiKeyPlaceholder(currentVendorMeta.name)}
-                                    className="w-full bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded-md px-3 pr-8 py-1.5 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
+                                    className="w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] focus:border-[var(--border-luminous)] rounded-md px-3 pr-8 py-1.5 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
                                   />
                                   <button
                                     type="button"
                                     onClick={() => setShowApiKey(!showApiKey)}
-                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-slate-200 cursor-pointer"
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
                                     title={showApiKey ? st.body.hide : st.body.show}
                                   >
                                     {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -1266,7 +1275,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                   type="button"
                                   onClick={handleTriggerVerify}
                                   disabled={isVerifying}
-                                  className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
+                                  className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
                                 >
                                   <span>{isVerifying ? st.body.verifying : st.body.verify}</span>
                                 </button>
@@ -1275,7 +1284,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                   href={currentVendorMeta.signupUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
+                                  className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
                                   title={st.vendors[currentVendorMeta.id as keyof typeof st.vendors]?.guide ?? currentVendorMeta.guide}
                                 >
                                   <span>{st.body.getApiKey}</span>
@@ -1320,7 +1329,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                         onClick={() => {
                                           onOpenRoleAssignment();
                                         }}
-                                        className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
+                                        className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
                                         title={st.body.roleModelsTitle}
                                       >
                                         <span>{st.body.roleModels}</span>
@@ -1363,7 +1372,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       })()}
                     </div>
                   ) : (
-                    <div className="divide-y divide-white/[0.06]">
+                    <div className="divide-y divide-[var(--border-structural)]">
                       {/* Local Endpoint Row */}
                       <div className="py-4 flex items-center justify-between gap-4">
                         <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
@@ -1379,13 +1388,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             value={localEndpointInput}
                             onChange={(e) => setLocalEndpointInput(e.target.value)}
                             placeholder="http://localhost:11434"
-                            className="max-w-xs w-full bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded-md px-3 py-1.5 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none"
+                            className="max-w-xs w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] focus:border-[var(--border-luminous)] rounded-md px-3 py-1.5 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none"
                           />
                           <button
                             type="button"
                             onClick={handleTriggerVerify}
                             disabled={isVerifying}
-                            className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
+                            className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
                           >
                             <span>{isVerifying ? st.body.connecting : st.body.verify}</span>
                           </button>
@@ -1424,7 +1433,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             value={customModelInput}
                             onChange={(e) => setCustomModelInput(e.target.value)}
                             placeholder={st.body.customTagPlaceholder}
-                            className="max-w-xs w-full bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded-md px-3 py-1.5 text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
+                            className="max-w-xs w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] focus:border-[var(--border-luminous)] rounded-md px-3 py-1.5 text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
                           />
                         </div>
                       )}
@@ -1445,7 +1454,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             type="button"
                             onClick={() => runCorsDiagnostic()}
                             disabled={corsStatus === 'testing'}
-                            className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
+                            className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition-colors inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
                           >
                             <span>{corsStatus === 'testing' ? st.body.diagnosing : st.body.corsDiagnose}</span>
                           </button>
@@ -1475,7 +1484,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
                         {/* Collapsible Accordion Content for CORS Commands */}
                         {isCorsGuideOpen && (
-                          <div className="pt-2.5 border-t border-white/[0.06] space-y-2.5 text-xs">
+                          <div className="pt-2.5 border-t border-[var(--border-structural)] space-y-2.5 text-xs">
                             <div className="flex items-center justify-between pb-1">
                               <div className="flex gap-1">
                                 {[
@@ -1516,7 +1525,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               const isCopied = corsCopiedCmd === cmdText;
 
                               return (
-                                <div className="flex items-center justify-between bg-[var(--bg-surface)] border border-white/[0.06] rounded-md px-3 py-1.5 font-mono text-xs text-[var(--accent-primary)]">
+                                <div className="flex items-center justify-between bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md px-3 py-1.5 font-mono text-xs text-[var(--accent-primary)]">
                                   <span className="select-all truncate mr-2">{cmdText}</span>
                                   <button
                                     type="button"
@@ -1526,7 +1535,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                                       onToast(st.body.copied, 'success');
                                       setTimeout(() => setCorsCopiedCmd(null), 2500);
                                     }}
-                                    className="px-2 py-1 rounded text-[11px] text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors inline-flex items-center justify-center cursor-pointer"
+                                    className="px-2 py-1 rounded text-[11px] text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition-colors inline-flex items-center justify-center cursor-pointer"
                                   >
                                     <span>{isCopied ? st.body.copiedShort : st.body.copy}</span>
                                   </button>
@@ -1550,7 +1559,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-white/[0.06] rounded-md">
+                      <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md">
                         {[
                           { id: 'precision', label: st.body.presetPrecise },
                           { id: 'balanced', label: st.body.presetBalanced },
@@ -1577,7 +1586,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setIsAdvancedParamsOpen(!isAdvancedParamsOpen)}
-                        className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors inline-flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition-colors inline-flex items-center gap-1 cursor-pointer"
                       >
                         <span>{st.body.detailParams}</span>
                         {isAdvancedParamsOpen ? (
@@ -1713,7 +1722,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       </div>
 
                       {/* Parser Selector Segments */}
-                      <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-white/[0.06] rounded-md shrink-0">
+                      <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md shrink-0">
                         <button
                           type="button"
                           onClick={() => setPdfParserEngine('fast')}
@@ -1762,13 +1771,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               value={pdfOllamaEndpoint}
                               onChange={(e) => setPdfOllamaEndpoint(e.target.value)}
                               placeholder="http://localhost:11434"
-                              className="flex-1 bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded px-2.5 py-1 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none"
+                              className="flex-1 bg-[var(--bg-surface)] border border-[var(--border-structural)] focus:border-[var(--border-luminous)] rounded px-2.5 py-1 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none"
                             />
                             <button
                               type="button"
                               onClick={handleRefreshOllamaPdfModels}
                               disabled={isCheckingPdfOllama}
-                              className="px-2.5 py-1 rounded text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors inline-flex items-center justify-center cursor-pointer"
+                              className="px-2.5 py-1 rounded text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition-colors inline-flex items-center justify-center cursor-pointer"
                               title={st.body.refreshModels}
                             >
                               <span>{isCheckingPdfOllama ? st.body.checking : st.body.check}</span>
@@ -1813,7 +1822,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               value={pdfCustomModel}
                               onChange={(e) => setPdfCustomModel(e.target.value)}
                               placeholder={st.body.pdfTagPlaceholder}
-                              className="flex-1 bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded px-2.5 py-1 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none"
+                              className="flex-1 bg-[var(--bg-surface)] border border-[var(--border-structural)] focus:border-[var(--border-luminous)] rounded px-2.5 py-1 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none"
                             />
                           </div>
                         )}
@@ -1846,7 +1855,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           })
                         }
                         placeholder="Podium Assistant"
-                        className="w-full bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded-md px-3 py-2 text-xs text-[var(--text-main)] outline-none transition placeholder:text-[var(--text-tertiary)]"
+                        className="w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] focus:border-[var(--border-luminous)] rounded-md px-3 py-2 text-xs text-[var(--text-main)] outline-none transition placeholder:text-[var(--text-tertiary)]"
                       />
                     </div>
 
@@ -1868,13 +1877,13 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           })
                         }
                         placeholder={st.body.rolePlaceholder}
-                        className="w-full bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded-md px-3 py-2 text-xs text-[var(--text-main)] outline-none transition placeholder:text-[var(--text-tertiary)]"
+                        className="w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] focus:border-[var(--border-luminous)] rounded-md px-3 py-2 text-xs text-[var(--text-main)] outline-none transition placeholder:text-[var(--text-tertiary)]"
                       />
                     </div>
                   </div>
 
                   {/* Row 2: System Instruction (Single Flat Textarea) */}
-                  <div className="flex-1 flex flex-col min-h-0 space-y-2 pt-2 border-t border-white/[0.06]">
+                  <div className="flex-1 flex flex-col min-h-0 space-y-2 pt-2 border-t border-[var(--border-structural)]">
                     <div className="flex items-center justify-between shrink-0">
                       <div className="flex items-center gap-1.5">
                         <label className="text-xs text-[var(--text-main)] font-medium">{st.body.systemPrompt}</label>
@@ -1893,7 +1902,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             }
                           })
                         }
-                        className="px-2.5 py-1 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors inline-flex items-center justify-center cursor-pointer"
+                        className="px-2.5 py-1 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition-colors inline-flex items-center justify-center cursor-pointer"
                       >
                         <span>{st.body.restoreDefault}</span>
                       </button>
@@ -1906,7 +1915,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           aiPersona: { ...localPrefs.aiPersona, systemInstruction: e.target.value }
                         })
                       }
-                      className="w-full flex-1 min-h-[340px] bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded-md p-3 text-xs font-mono text-[var(--text-main)] outline-none transition resize-none leading-relaxed placeholder:text-[var(--text-tertiary)]"
+                      className="w-full flex-1 min-h-[340px] bg-[var(--bg-surface)] border border-[var(--border-structural)] focus:border-[var(--border-luminous)] rounded-md p-3 text-xs font-mono text-[var(--text-main)] outline-none transition resize-none leading-relaxed placeholder:text-[var(--text-tertiary)]"
                       placeholder={st.body.systemPromptPlaceholder}
                     />
                   </div>
@@ -1915,7 +1924,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
               {/* TAB: Integrations & Accounts */}
               {activeTab === 'integrations' && (
-                <div className="divide-y divide-white/[0.06] animate-in fade-in duration-150">
+                <div className="divide-y divide-[var(--border-structural)] animate-in fade-in duration-150">
                   {/* Item 1: Google Drive On-Demand & Workspace Integration */}
                   {(() => {
                     const isConnected = googleTokenStatus === 'connected' && !!googleUser;
@@ -1954,7 +1963,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               <button
                                 type="button"
                                 onClick={onOpenGoogleDrive}
-                                className="px-3 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
+                                className="px-3 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
                                 title={st.body.openDrivePicker}
                               >
                                 <span>{st.body.browseDrive}</span>
@@ -1962,7 +1971,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                               <button
                                 type="button"
                                 onClick={onOpenGoogleAccount}
-                                className="px-3 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
+                                className="px-3 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
                                 title={st.body.manageGoogle}
                               >
                                 <span>{st.body.manageAccount}</span>
@@ -1980,7 +1989,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             <button
                               type="button"
                               onClick={onOpenGoogleDrive || onOpenGoogleAccount}
-                              className="px-3 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
+                              className="px-3 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
                               title={st.body.startOauth}
                             >
                               <span>{st.body.connectDrive}</span>
@@ -2029,7 +2038,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           <button
                             type="button"
                             onClick={onOpenGithub}
-                            className="px-3 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
+                            className="px-3 py-1.5 rounded-md text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition-colors shrink-0 inline-flex items-center justify-center cursor-pointer"
                           >
                             <span>{isConnected ? st.body.manageRepo : st.body.connectSettings}</span>
                           </button>
@@ -2064,7 +2073,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
               {/* TAB 6: Ghost Writer Mode */}
               {activeTab === 'ghost-writer' && (
-                <div className="divide-y divide-white/[0.06] animate-in fade-in duration-150">
+                <div className="divide-y divide-[var(--border-structural)] animate-in fade-in duration-150">
                   {/* Mode & Level Selection */}
                   <div className="py-4 first:pt-0 flex items-center justify-between gap-4">
                     <div className="text-xs font-medium text-[var(--text-main)] flex items-center gap-1.5 shrink-0">
@@ -2074,7 +2083,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         content={st.body.ghostLevelHelp}
                       />
                     </div>
-                    <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-white/[0.06] rounded-md shrink-0">
+                    <div className="inline-flex p-0.5 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md shrink-0">
                       {[
                         { id: 'off', label: st.body.off },
                         { id: '30', label: '30%' },
@@ -2244,7 +2253,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="px-5 py-3.5 border-t border-white/[0.06] bg-[var(--bg-surface)]/90 flex justify-between items-center shrink-0 gap-2">
+          <div className="px-5 py-3.5 border-t border-[var(--border-structural)] bg-[var(--bg-surface)]/90 flex justify-between items-center shrink-0 gap-2">
             <span className="hidden sm:flex text-xs text-[var(--text-muted)] items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] inline-block shrink-0" />
               <span>{st.body.footerNote}</span>
@@ -2257,7 +2266,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-1.5 rounded-md text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors cursor-pointer whitespace-nowrap"
+                className="px-3.5 py-1.5 rounded-md text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition-colors cursor-pointer whitespace-nowrap"
               >
                 {st.body.cancel}
               </button>

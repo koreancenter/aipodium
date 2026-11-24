@@ -32,7 +32,7 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose 
       onClick={onClose}
     >
       <div
-        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-5 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans"
+        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl max-w-md w-full p-6 shadow-2xl shadow-[var(--rim-glow)] cyber-rim-top space-y-5 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -52,21 +52,21 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ isOpen, onClose 
           <p className="text-xs text-[var(--text-muted)]">워크스페이스 작업 효율을 높이는 단축키 목록입니다.</p>
         </div>
 
-        <div className="divide-y divide-white/[0.06] text-xs text-[var(--text-muted)] max-h-80 overflow-y-auto pr-1 custom-scrollbar">
+        <div className="divide-y divide-[var(--border-structural)] text-xs text-[var(--text-muted)] max-h-80 overflow-y-auto pr-1 custom-scrollbar">
           {SHORTCUTS_LIST.map((item) => (
             <div
               key={item.label}
               className="flex items-center justify-between py-2"
             >
               <span className="text-[var(--text-muted)]">{item.label}</span>
-              <kbd className="bg-[var(--bg-surface)] text-[var(--accent-primary)] font-mono px-2 py-0.5 rounded-md text-[0.6875rem] border border-white/[0.06]">
+              <kbd className="bg-[var(--bg-surface)] text-[var(--accent-primary)] font-mono px-2 py-0.5 rounded-md text-[0.6875rem] border border-[var(--border-structural)]">
                 {item.keys}
               </kbd>
             </div>
           ))}
         </div>
 
-        <div className="flex justify-end pt-3 border-t border-white/[0.06]">
+        <div className="flex justify-end pt-3 border-t border-[var(--border-structural)]">
           <button
             type="button"
             onClick={onClose}

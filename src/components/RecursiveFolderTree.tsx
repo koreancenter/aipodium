@@ -77,7 +77,7 @@ export const InlineRenameInput: React.FC<{
       onKeyDown={handleKeyDown}
       onBlur={() => onCommit(val)}
       onClick={(e) => e.stopPropagation()}
-      className="bg-[var(--bg-editor)] border border-[var(--accent-primary)]/60 rounded px-1.5 py-0.5 text-xs text-[var(--text-main)] outline-none ring-1 ring-[var(--accent-primary)]/40 min-w-0 w-full font-sans z-10"
+      className="bg-[var(--bg-editor)] border border-[var(--border-luminous)] rounded px-1.5 py-0.5 text-xs text-[var(--text-main)] outline-none ring-1 ring-[var(--accent-primary)]/40 min-w-0 w-full font-sans z-10"
     />
   );
 };
@@ -219,7 +219,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
           }}
           className={`group flex items-center justify-between px-2 h-[26px] cursor-pointer transition-colors rounded-md ${
             isSubfolderFocused
-              ? 'bg-white/[0.08] text-[var(--text-main)] ring-1 ring-[var(--accent-primary)]/50 font-medium'
+              ? 'bg-white/[0.08] text-[var(--text-main)] border border-[var(--border-luminous)] font-medium'
               : 'text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-[var(--text-main)]'
           }`}
           style={{ paddingLeft: `${Math.max(level * 10, 8)}px` }}
@@ -310,7 +310,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
         <div
           className={
             !isLevelZero
-              ? 'relative pl-2.5 before:absolute before:left-[14px] before:top-0 before:bottom-1 before:w-[1px] before:bg-white/[0.06]'
+              ? 'relative pl-2.5 before:absolute before:left-[14px] before:top-0 before:bottom-1 before:w-[1px] before:bg-[var(--border-structural)]'
               : ''
           }
         >
@@ -381,11 +381,11 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                     });
                   }
                 }}
-                className={`group flex items-center justify-between pr-2 h-[26px] cursor-pointer transition-colors rounded-md ${
+                className={`relative group flex items-center justify-between pr-2 h-[26px] cursor-pointer transition-colors rounded-md ${
                   isDraggingFile
                     ? 'opacity-40 bg-white/[0.04]'
                     : isFocused
-                    ? 'bg-white/[0.08] text-[var(--text-main)] ring-1 ring-[var(--accent-primary)]/50 font-medium'
+                    ? 'bg-white/[0.08] text-[var(--text-main)] border border-[var(--border-luminous)] font-medium'
                     : isSelectedFile
                     ? 'bg-white/[0.06] text-[var(--text-main)] font-medium'
                     : 'text-[var(--text-muted)] hover:bg-white/[0.04] hover:text-[var(--text-main)]'
@@ -396,6 +396,9 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                     : `${Math.max(level * 8 + 4, 12)}px`,
                 }}
               >
+                {isSelectedFile && (
+                  <span className="absolute left-0 top-1 bottom-1 w-[2px] cyber-active-rail rounded-r" />
+                )}
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   <GripVertical className="w-2.5 h-2.5 text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100 cursor-grab transition shrink-0" />
                   {isSelectedFile && (

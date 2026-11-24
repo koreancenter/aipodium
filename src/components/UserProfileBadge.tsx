@@ -55,7 +55,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
   // Variant 1: Sidebar compact footer chip
   if (variant === 'sidebar') {
     return (
-      <div className="flex items-center justify-between px-2 py-1 w-full bg-[var(--bg-editor)] border border-white/[0.06] rounded-md text-xs">
+      <div className="flex items-center justify-between px-2 py-1 w-full bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-md text-xs">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <div className="relative shrink-0">
             {user.avatar ? (
@@ -63,10 +63,10 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                 src={user.avatar}
                 alt={user.name}
                 referrerPolicy="no-referrer"
-                className="w-4.5 h-4.5 rounded object-cover border border-white/[0.08]"
+                className="w-4.5 h-4.5 rounded object-cover border border-[var(--border-structural)]"
               />
             ) : (
-              <div className="w-4.5 h-4.5 rounded bg-[var(--bg-elevated)] border border-white/[0.1] text-[var(--text-main)] font-semibold flex items-center justify-center text-[0.5625rem]">
+              <div className="w-4.5 h-4.5 rounded bg-[var(--bg-elevated)] border border-[var(--border-structural)] text-[var(--text-main)] font-semibold flex items-center justify-center text-[0.5625rem]">
                 {initials}
               </div>
             )}
@@ -106,10 +106,10 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                 src={user.avatar}
                 alt={user.name}
                 referrerPolicy="no-referrer"
-                className="w-6 h-6 rounded object-cover border border-white/[0.08]"
+                className="w-6 h-6 rounded object-cover border border-[var(--border-structural)]"
               />
             ) : (
-              <div className="w-6 h-6 rounded bg-[var(--bg-elevated)] border border-white/[0.1] text-[var(--text-main)] font-semibold flex items-center justify-center text-[0.625rem]">
+              <div className="w-6 h-6 rounded bg-[var(--bg-elevated)] border border-[var(--border-structural)] text-[var(--text-main)] font-semibold flex items-center justify-center text-[0.625rem]">
                 {initials}
               </div>
             )}
@@ -160,12 +160,12 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
               }}
               className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] flex items-center gap-2 transition cursor-pointer text-xs"
             >
-              <Settings className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <Settings className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
               <span>환경설정</span>
             </button>
           )}
 
-          <div className="my-1 border-t border-white/[0.06]" />
+          <div className="my-1 border-t border-[var(--border-structural)]" />
 
           <button
             type="button"
@@ -189,7 +189,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-6 h-6 flex items-center justify-center rounded-md bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-[var(--accent-primary)]/40 transition cursor-pointer group select-none shrink-0"
+        className="w-6 h-6 flex items-center justify-center rounded-md bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] transition cursor-pointer group select-none shrink-0"
         title={`${user.name || '게스트'} - ${user.email || '게스트 세션'}`}
       >
         {/* Avatar Square */}
@@ -212,19 +212,19 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
 
       {/* Profile Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1.5 w-52 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl p-1.5 text-xs text-[var(--text-muted)] z-50 shadow-2xl">
+        <div className="absolute right-0 top-full mt-1.5 w-52 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl p-1.5 text-xs text-[var(--text-muted)] z-50 shadow-[var(--rim-glow)] cyber-rim-top">
           
           {/* User Info Header */}
-          <div className="flex items-center gap-2 px-2 py-1.5 border-b border-white/[0.06]">
+          <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[var(--border-structural)]">
             {user.avatar ? (
               <img
                 src={user.avatar}
                 alt={user.name}
                 referrerPolicy="no-referrer"
-                className="w-5 h-5 rounded object-cover border border-white/[0.08] shrink-0"
+                className="w-5 h-5 rounded object-cover border border-[var(--border-structural)] shrink-0"
               />
             ) : (
-              <div className="w-5 h-5 rounded bg-[var(--bg-editor)] border border-white/[0.08] text-[var(--text-main)] font-semibold flex items-center justify-center text-xs shrink-0">
+              <div className="w-5 h-5 rounded bg-[var(--bg-editor)] border border-[var(--border-structural)] text-[var(--text-main)] font-semibold flex items-center justify-center text-xs shrink-0">
                 {initials}
               </div>
             )}
@@ -273,7 +273,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
                 }}
                 className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] flex items-center gap-2 transition cursor-pointer text-xs"
               >
-                <Settings className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <Settings className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
                 <span>환경설정</span>
               </button>
             )}
@@ -297,7 +297,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
           </div>
 
           {/* Sign Out Button */}
-          <div className="pt-1 border-t border-white/[0.06]">
+          <div className="pt-1 border-t border-[var(--border-structural)]">
             <button
               type="button"
               onClick={() => {

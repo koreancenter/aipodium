@@ -241,7 +241,7 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
         className={`p-0.5 rounded transition-colors duration-150 inline-flex items-center justify-center align-middle cursor-pointer ${
           isOpen
             ? 'text-[var(--accent-primary)] bg-white/[0.06]'
-            : 'text-[var(--text-muted)] hover:text-slate-200 hover:bg-white/[0.06] focus:text-slate-200'
+            : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] focus:text-[var(--text-main)]'
         } ${className}`}
       >
         <HelpCircle className="w-3.5 h-3.5" />
@@ -268,36 +268,36 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
                   filter: 'drop-shadow(0 12px 28px rgba(0, 0, 0, 0.65))',
                   transformOrigin: getTransformOrigin()
                 }}
-                className="w-72 max-w-[calc(100vw-24px)] rounded-lg bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] text-left pointer-events-auto select-text overflow-visible shadow-xl shadow-black/60"
+                className="w-72 max-w-[calc(100vw-24px)] rounded-lg bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] shadow-[var(--rim-glow)] cyber-rim-top text-left pointer-events-auto select-text overflow-visible shadow-xl shadow-black/60"
               >
                 {/* Pointer arrow pointing to trigger button */}
                 {position.actualSide === 'top' && (
                   <div
                     style={{ left: `${position.arrowLeft}px` }}
-                    className="absolute -bottom-[5.5px] -translate-x-1/2 w-2.5 h-2.5 bg-[var(--bg-elevated)] border-r border-b border-white/[0.08] rotate-45"
+                    className="absolute -bottom-[5.5px] -translate-x-1/2 w-2.5 h-2.5 bg-[var(--bg-elevated)] border-r border-b border-[var(--border-luminous)] rotate-45"
                   />
                 )}
                 {position.actualSide === 'bottom' && (
                   <div
                     style={{ left: `${position.arrowLeft}px` }}
-                    className="absolute -top-[5.5px] -translate-x-1/2 w-2.5 h-2.5 bg-[var(--bg-elevated)] border-l border-t border-white/[0.08] rotate-45"
+                    className="absolute -top-[5.5px] -translate-x-1/2 w-2.5 h-2.5 bg-[var(--bg-elevated)] border-l border-t border-[var(--border-luminous)] rotate-45"
                   />
                 )}
                 {position.actualSide === 'left' && (
                   <div
                     style={{ top: `${position.arrowTop}px` }}
-                    className="absolute -right-[5.5px] -translate-y-1/2 w-2.5 h-2.5 bg-[var(--bg-elevated)] border-r border-t border-white/[0.08] rotate-45"
+                    className="absolute -right-[5.5px] -translate-y-1/2 w-2.5 h-2.5 bg-[var(--bg-elevated)] border-r border-t border-[var(--border-luminous)] rotate-45"
                   />
                 )}
                 {position.actualSide === 'right' && (
                   <div
                     style={{ top: `${position.arrowTop}px` }}
-                    className="absolute -left-[5.5px] -translate-y-1/2 w-2.5 h-2.5 bg-[var(--bg-elevated)] border-l border-b border-white/[0.08] rotate-45"
+                    className="absolute -left-[5.5px] -translate-y-1/2 w-2.5 h-2.5 bg-[var(--bg-elevated)] border-l border-b border-[var(--border-luminous)] rotate-45"
                   />
                 )}
 
                 {/* Body Content */}
-                <div className="p-2.5 text-[11.5px] leading-relaxed text-[var(--text-muted)] font-normal break-words">
+                <div className="p-2.5 text-[11.5px] leading-relaxed text-[var(--text-secondary)] font-normal break-words">
                   {resolvedContent}
                 </div>
               </motion.div>

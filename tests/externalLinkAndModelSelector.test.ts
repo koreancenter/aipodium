@@ -193,18 +193,18 @@ test('External Link Ingestion Pipeline & Model Selector', async (t) => {
       'utf-8'
     );
 
-    // Verify fixed dimensions on outer popover with ultra-luxury obsidian surface (w-[340px] min-w-[340px] max-w-[340px] shadow-2xl)
+    // Verify fixed dimensions on outer popover with ultra-luxury cyber-luxury glassmorphism surface
     assert.match(
       selectorFile,
-      /w-\[340px\]\s+min-w-\[340px\]\s+max-w-\[340px\]\s+h-\[400px\]\s+flex\s+flex-col\s+bg-\[#0f1015\]\/95\s+border\s+border-white\/\[0\.07\]\s+backdrop-blur-2xl\s+rounded-2xl\s+shadow-2xl\s+overflow-hidden/,
+      /w-\[340px\]\s+min-w-\[340px\]\s+max-w-\[340px\]\s+h-\[400px\]\s+flex\s+flex-col\s+bg-\[var\(--bg-elevated\)\]\/95\s+border\s+border-\[var\(--border-luminous\)\]\s+shadow-\[var\(--rim-glow\)\]\s+cyber-rim-top\s+backdrop-blur-md\s+rounded-xl\s+overflow-hidden/,
       'Outer popover container must enforce ultra-luxury glassmorphism surface'
     );
 
     // Verify compact header slot
     assert.match(
       selectorFile,
-      /shrink-0\s+border-b\s+border-white\/\[0\.07\]\s+bg-\[#09090b\]\/60/,
-      'Header slot must have compact border-b border-white/[0.07] bg-[#09090b]/60'
+      /shrink-0\s+border-b\s+border-\[var\(--border-structural\)\]\s+bg-\[var\(--bg-surface\)\]\/70/,
+      'Header slot must have compact border-b border-[var(--border-structural)] bg-[var(--bg-surface)]/70'
     );
 
     // Verify scrollable body viewport
@@ -217,7 +217,7 @@ test('External Link Ingestion Pipeline & Model Selector', async (t) => {
     // Verify footer slot (clean 1-line status footer)
     assert.match(
       selectorFile,
-      /shrink-0\s+text-\[11px\]\s+text-zinc-400\s+py-2\s+px-3\s+border-t\s+border-white\/\[0\.06\]\s+flex/,
+      /shrink-0\s+text-\[11px\]\s+text-\[var\(--text-muted\)\]\s+py-2\s+px-3\s+border-t\s+border-\[var\(--border-structural\)\]\s+flex/,
       'Footer slot must have clean 1-line status footer'
     );
 

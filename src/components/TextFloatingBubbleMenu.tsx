@@ -170,7 +170,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
           e.preventDefault();
         }
       }}
-      className="absolute z-50 flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl p-1.5 text-xs text-[var(--text-main)] select-none shadow-2xl animate-in fade-in duration-100 max-w-[calc(100%-16px)] season-shell"
+      className="absolute z-50 flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl p-1.5 text-xs text-[var(--text-main)] select-none shadow-[var(--rim-glow)] cyber-rim-top animate-in fade-in duration-100 max-w-[calc(100%-16px)] season-shell"
     >
       {/* 1. Primary Formatting Toolbar Row */}
       <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
@@ -206,7 +206,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-white/[0.08] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-[var(--border-structural)] shrink-0" />
 
         {/* Text Style: Bold, Italic, Strikethrough, Inline Code */}
         <div className="flex items-center gap-0.5 shrink-0">
@@ -249,7 +249,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-white/[0.08] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-[var(--border-structural)] shrink-0" />
 
         {/* Link & Code Block */}
         <div className="flex items-center gap-0.5 shrink-0">
@@ -274,7 +274,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-white/[0.08] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-[var(--border-structural)] shrink-0" />
 
         {/* Lists & Quote */}
         <div className="flex items-center gap-0.5 shrink-0">
@@ -317,7 +317,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-white/[0.08] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-[var(--border-structural)] shrink-0" />
 
         {/* AI Text Processing Quick Actions */}
         <div className="flex items-center gap-0.5 shrink-0">
@@ -325,7 +325,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
             type="button"
             disabled={isAiLoading}
             onClick={() => executeAiPrompt(bt.quickRefinePrompt)}
-            className="h-6 px-1.5 flex items-center gap-1 rounded-md bg-white/[0.04] hover:bg-white/[0.09] disabled:opacity-50 text-[var(--text-main)] hover:text-[var(--accent-primary)] border border-white/[0.08] text-[11px] font-medium transition cursor-pointer whitespace-nowrap"
+            className="h-6 px-1.5 flex items-center gap-1 rounded-md bg-white/[0.04] hover:bg-white/[0.09] disabled:opacity-50 text-[var(--text-main)] hover:text-[var(--accent-primary)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-[11px] font-medium transition cursor-pointer whitespace-nowrap"
             title={bt.quickRefineTitle}
             aria-label={bt.quickRefine}
           >
@@ -394,7 +394,7 @@ export const TextFloatingBubbleMenu: React.FC<TextFloatingBubbleMenuProps> = ({
       </div>
 
       {aiError && (
-        <div className="mt-1.5 pt-1 border-t border-white/[0.06] flex items-center justify-between gap-2 text-[10px] text-rose-400 px-1">
+        <div className="mt-1.5 pt-1 border-t border-[var(--border-structural)] flex items-center justify-between gap-2 text-[10px] text-rose-400 px-1">
           <span className="truncate">{aiError}</span>
           <button
             type="button"

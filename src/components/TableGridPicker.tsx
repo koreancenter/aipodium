@@ -106,13 +106,13 @@ export const TableGridPicker: React.FC<TableGridPickerProps> = ({
           top: `${coords.top}px`,
           left: `${coords.left}px`,
         }}
-        className="w-72 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl z-[100000] p-3 text-[var(--text-main)] text-xs animate-in fade-in zoom-in-95 duration-100 season-shell"
+        className="w-72 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-2xl shadow-[var(--rim-glow)] cyber-rim-top z-[100000] p-3 text-[var(--text-main)] text-xs animate-in fade-in zoom-in-95 duration-100 season-shell"
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border-structural)]">
           <div className="flex items-center gap-1.5 font-medium text-[var(--text-main)] whitespace-nowrap">
             <Table className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
             <span>표 삽입</span>
@@ -133,7 +133,7 @@ export const TableGridPicker: React.FC<TableGridPickerProps> = ({
         </div>
 
         {/* Interactive Hover Grid */}
-        <div className="flex flex-col items-center justify-center p-2.5 bg-[var(--bg-surface)] border border-white/[0.06] rounded-lg mb-2.5">
+        <div className="flex flex-col items-center justify-center p-2.5 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-lg mb-2.5">
           <div className="grid grid-cols-8 gap-1 select-none">
             {Array.from({ length: MAX_GRID_ROWS }).map((_, rIdx) => {
               const r = rIdx + 1;
@@ -157,7 +157,7 @@ export const TableGridPicker: React.FC<TableGridPickerProps> = ({
                         className={`w-5 h-5 rounded transition-colors cursor-pointer border ${
                           isHighlighted
                             ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)]'
-                            : 'bg-[var(--bg-editor)] border-white/[0.08] hover:bg-white/[0.08]'
+                            : 'bg-[var(--bg-editor)] border-[var(--border-structural)] hover:bg-white/[0.08]'
                         }`}
                       />
                     );
@@ -185,7 +185,7 @@ export const TableGridPicker: React.FC<TableGridPickerProps> = ({
                   onInsertTable(p.rows, p.cols);
                   onClose();
                 }}
-                className="px-2.5 py-1.5 bg-[var(--bg-surface)] hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-lg text-[0.6875rem] font-medium transition flex items-center justify-between text-left cursor-pointer border border-white/[0.06] hover:border-[var(--accent-primary)]/40"
+                className="px-2.5 py-1.5 bg-[var(--bg-surface)] hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-lg text-[0.6875rem] font-medium transition flex items-center justify-between text-left cursor-pointer border border-[var(--border-structural)] hover:border-[var(--border-luminous)]"
               >
                 <span>{p.name}</span>
                 <span className="font-mono text-[0.625rem] text-[var(--accent-primary)]">
@@ -197,7 +197,7 @@ export const TableGridPicker: React.FC<TableGridPickerProps> = ({
         </div>
 
         {/* Custom Rows / Cols Input */}
-        <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between gap-2">
+        <div className="pt-2 border-t border-[var(--border-structural)] flex items-center justify-between gap-2">
           <div className="flex items-center gap-1 text-[0.6875rem]">
             <span className="text-[var(--text-muted)]">열:</span>
             <input
@@ -206,7 +206,7 @@ export const TableGridPicker: React.FC<TableGridPickerProps> = ({
               max={12}
               value={customCols}
               onChange={(e) => setCustomCols(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-10 bg-[var(--bg-surface)] border border-white/[0.08] rounded-md px-1 py-0.5 text-center font-mono text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--accent-primary)]/50"
+              className="w-10 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md px-1 py-0.5 text-center font-mono text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--border-luminous)]"
             />
             <span className="text-[var(--text-muted)] ml-1">행:</span>
             <input
@@ -215,7 +215,7 @@ export const TableGridPicker: React.FC<TableGridPickerProps> = ({
               max={30}
               value={customRows}
               onChange={(e) => setCustomRows(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-10 bg-[var(--bg-surface)] border border-white/[0.08] rounded-md px-1 py-0.5 text-center font-mono text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--accent-primary)]/50"
+              className="w-10 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md px-1 py-0.5 text-center font-mono text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--border-luminous)]"
             />
           </div>
           <button

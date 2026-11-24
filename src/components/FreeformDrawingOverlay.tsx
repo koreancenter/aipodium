@@ -396,9 +396,9 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
       className="absolute inset-0 z-30 flex flex-col pointer-events-auto select-none overflow-hidden"
     >
       {/* Floating Slim Cool-Slate Header Toolbar */}
-      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-40 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] shadow-xl rounded-lg px-2.5 py-1.5 flex items-center gap-2 max-w-[95%] overflow-x-auto scrollbar-none transition-all animate-in fade-in slide-in-from-top-2 duration-150">
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-40 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] shadow-[var(--rim-glow)] cyber-rim-top rounded-lg px-2.5 py-1.5 flex items-center gap-2 max-w-[95%] overflow-x-auto scrollbar-none transition-all animate-in fade-in slide-in-from-top-2 duration-150">
         {/* Title & Drag indicator */}
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-main)] pr-1.5 border-r border-white/[0.08] shrink-0">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-main)] pr-1.5 border-r border-[var(--border-structural)] shrink-0">
           <PenTool className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
           <span className="whitespace-nowrap">자유 형식 메모</span>
         </div>
@@ -448,7 +448,7 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
 
         {/* Color Palette (disabled in eraser mode) */}
         <div
-          className={`flex items-center gap-1 px-1.5 border-l border-r border-white/[0.08] shrink-0 transition-opacity ${
+          className={`flex items-center gap-1 px-1.5 border-l border-r border-[var(--border-structural)] shrink-0 transition-opacity ${
             tool === 'eraser' ? 'opacity-30 pointer-events-none' : ''
           }`}
         >
@@ -470,7 +470,7 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
         </div>
 
         {/* Stroke Size Presets */}
-        <div className="flex items-center gap-1 pr-1.5 border-r border-white/[0.08] shrink-0">
+        <div className="flex items-center gap-1 pr-1.5 border-r border-[var(--border-structural)] shrink-0">
           {SIZE_PRESETS.map((p) => (
             <button
               key={p.id}
@@ -478,7 +478,7 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
               onClick={() => setSize(p.size)}
               className={`px-1.5 py-0.5 rounded text-[0.6875rem] transition cursor-pointer font-sans ${
                 size === p.size
-                  ? 'bg-white/[0.08] text-[var(--accent-primary)] border border-[var(--accent-primary)]/40 font-semibold'
+                  ? 'bg-white/[0.08] text-[var(--accent-primary)] border border-[var(--border-luminous)] font-semibold'
                   : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
               }`}
               title={p.label}
@@ -489,13 +489,13 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
         </div>
 
         {/* Background Overlay Mode Toggle */}
-        <div className="flex items-center gap-0.5 pr-1.5 border-r border-white/[0.08] shrink-0">
+        <div className="flex items-center gap-0.5 pr-1.5 border-r border-[var(--border-structural)] shrink-0">
           <button
             type="button"
             onClick={() =>
               setBgMode((prev) => (prev === 'transparent' ? 'grid' : prev === 'grid' ? 'dark' : 'transparent'))
             }
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--bg-surface)] hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-white/[0.08] text-[0.6875rem] transition cursor-pointer"
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--bg-surface)] hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-[0.6875rem] transition cursor-pointer"
             title="캔버스 배경 모드 전환"
           >
             {bgMode === 'transparent' ? (
@@ -552,7 +552,7 @@ export const FreeformDrawingOverlay: React.FC<FreeformDrawingOverlayProps> = ({
         </div>
 
         {/* Document Insertion & Image Download */}
-        <div className="flex items-center gap-1 pl-1.5 border-l border-white/[0.08] shrink-0">
+        <div className="flex items-center gap-1 pl-1.5 border-l border-[var(--border-structural)] shrink-0">
           {onInsertImageToEditor && (
             <button
               type="button"

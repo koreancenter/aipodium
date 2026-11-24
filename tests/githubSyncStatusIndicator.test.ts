@@ -23,10 +23,10 @@ test('GitHub Auto-Push Debouncing & Real-time Sync Status Indicator', async (t) 
 
     // Color-coded status pills styling
     assert.ok(content.includes('rounded-full'), 'Must use status pill geometry (rounded-full)');
-    assert.ok(content.includes('bg-indigo'), 'Must use indigo styling for syncing');
+    assert.ok(content.includes('text-[var(--accent-primary)]'), 'Must use season accent styling for syncing');
     assert.ok(content.includes('bg-emerald'), 'Must use emerald styling for synced');
     assert.ok(content.includes('bg-amber'), 'Must use amber styling for conflict');
-    assert.ok(content.includes('bg-zinc'), 'Must use zinc/slate styling for idle');
+    assert.ok(content.includes('text-[var(--text-muted)]'), 'Must use muted slate styling for idle');
   });
 
   await t.test('2. Enforces pure Korean labeling without English parentheticals (RULE[AGENTS_md])', () => {

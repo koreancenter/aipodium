@@ -196,7 +196,7 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 6 }}
           transition={{ duration: 0.15, ease: 'easeOut' }}
-          className="max-w-md w-full bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl p-5 shadow-2xl flex flex-col justify-between text-left"
+          className="relative max-w-md w-full bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl p-5 shadow-[var(--rim-glow)] cyber-rim-top flex flex-col justify-between text-left"
         >
           <div>
             {/* Header */}
@@ -216,8 +216,8 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                 onClick={() => handleSelectOption('cloud')}
                 className={`px-3 py-2.5 rounded-lg border cursor-pointer transition flex items-center justify-between ${
                   selectedOption === 'cloud'
-                    ? 'border-[var(--accent-primary)]/40 bg-white/[0.06]'
-                    : 'border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.03]'
+                    ? 'border-[var(--border-luminous)] bg-white/[0.06] shadow-[var(--rim-glow)]'
+                    : 'border-[var(--border-structural)] hover:border-[var(--border-luminous)] hover:bg-white/[0.03]'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -230,7 +230,7 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                   className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ml-2 transition-colors ${
                     selectedOption === 'cloud'
                       ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-[#0F172A]'
-                      : 'border-white/20 bg-transparent'
+                      : 'border-[var(--border-structural)] bg-transparent'
                   }`}
                 >
                   {selectedOption === 'cloud' && <Check className="w-2.5 h-2.5 stroke-[3]" />}
@@ -242,8 +242,8 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                 onClick={() => handleSelectOption('ollama')}
                 className={`px-3 py-2.5 rounded-lg border cursor-pointer transition flex items-center justify-between ${
                   selectedOption === 'ollama'
-                    ? 'border-[var(--accent-primary)]/40 bg-white/[0.06]'
-                    : 'border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.03]'
+                    ? 'border-[var(--border-luminous)] bg-white/[0.06] shadow-[var(--rim-glow)]'
+                    : 'border-[var(--border-structural)] hover:border-[var(--border-luminous)] hover:bg-white/[0.03]'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -256,7 +256,7 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                   className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ml-2 transition-colors ${
                     selectedOption === 'ollama'
                       ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-[#0F172A]'
-                      : 'border-white/20 bg-transparent'
+                      : 'border-[var(--border-structural)] bg-transparent'
                   }`}
                 >
                   {selectedOption === 'ollama' && <Check className="w-2.5 h-2.5 stroke-[3]" />}
@@ -268,8 +268,8 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                 onClick={() => handleSelectOption('webllm')}
                 className={`px-3 py-2.5 rounded-lg border cursor-pointer transition flex items-center justify-between ${
                   selectedOption === 'webllm'
-                    ? 'border-[var(--accent-primary)]/40 bg-white/[0.06]'
-                    : 'border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.03]'
+                    ? 'border-[var(--border-luminous)] bg-white/[0.06] shadow-[var(--rim-glow)]'
+                    : 'border-[var(--border-structural)] hover:border-[var(--border-luminous)] hover:bg-white/[0.03]'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -282,7 +282,7 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                   className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ml-2 transition-colors ${
                     selectedOption === 'webllm'
                       ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-[#0F172A]'
-                      : 'border-white/20 bg-transparent'
+                      : 'border-[var(--border-structural)] bg-transparent'
                   }`}
                 >
                   {selectedOption === 'webllm' && <Check className="w-2.5 h-2.5 stroke-[3]" />}
@@ -305,14 +305,14 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                       }
                     }}
                     placeholder="Google Gemini API 키 입력"
-                    className="w-full bg-[var(--bg-surface)] border border-white/[0.06] rounded-md px-3 py-2 text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none focus:border-[var(--accent-primary)]/50"
+                    className="w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md px-3 py-2 text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none focus:border-[var(--border-luminous)]"
                   />
                   {apiKey.trim() && (
                     <button
                       type="button"
                       onClick={handleVerifyCloudKey}
                       disabled={isVerifyingCloudKey}
-                      className="px-3 py-1.5 text-xs bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] rounded-md text-[var(--text-muted)] hover:text-[var(--text-main)] transition shrink-0 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                      className="px-3 py-1.5 text-xs bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] rounded-md text-[var(--text-muted)] hover:text-[var(--text-main)] transition shrink-0 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                       title={cloudKeyError || undefined}
                     >
                       {isVerifyingCloudKey ? (
@@ -343,13 +343,13 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                   <input
                     defaultValue="http://localhost:11434"
                     readOnly
-                    className="flex-1 bg-[var(--bg-surface)] border border-white/[0.06] rounded-md px-3 py-2 text-xs text-[var(--text-main)] font-mono outline-none"
+                    className="flex-1 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md px-3 py-2 text-xs text-[var(--text-main)] font-mono outline-none"
                   />
                   <button
                     type="button"
                     onClick={handlePingOllama}
                     disabled={isPingingOllama}
-                    className="px-3 py-1.5 text-xs bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] rounded-md text-[var(--text-muted)] hover:text-[var(--text-main)] transition shrink-0 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                    className="px-3 py-1.5 text-xs bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] rounded-md text-[var(--text-muted)] hover:text-[var(--text-main)] transition shrink-0 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                   >
                     {isPingingOllama ? (
                       <>
@@ -375,7 +375,7 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
 
               {selectedOption === 'webllm' && (
                 webllmProgress?.isLoading ? (
-                  <div className="text-xs text-[var(--text-muted)] bg-[var(--bg-surface)]/70 border border-white/[0.06] rounded-md px-3 py-2 w-full space-y-1">
+                  <div className="text-xs text-[var(--text-muted)] bg-[var(--bg-surface)]/70 border border-[var(--border-structural)] rounded-md px-3 py-2 w-full space-y-1">
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="truncate">{webllmProgress.progressText || '가중치 다운로드 중...'}</span>
                       <span className="font-mono text-[var(--text-main)] shrink-0">{webllmProgress.progressPercent}%</span>
@@ -388,7 +388,7 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
                     </div>
                   </div>
                 ) : (
-                  <div className="text-xs text-[var(--text-muted)] bg-[var(--bg-surface)]/70 border border-white/[0.06] rounded-md px-3 py-2 w-full flex items-center gap-2">
+                  <div className="text-xs text-[var(--text-muted)] bg-[var(--bg-surface)]/70 border border-[var(--border-structural)] rounded-md px-3 py-2 w-full flex items-center gap-2">
                     <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                     <span className="truncate">별도 설정 없이 브라우저 WebGPU를 통해 기기에서 즉시 실행됩니다.</span>
                   </div>
@@ -398,13 +398,13 @@ export const AiEngineOnboardingModal: React.FC<AiEngineOnboardingModalProps> = (
           </div>
 
           {/* Footer */}
-          <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between gap-3">
+          <div className="pt-3 border-t border-[var(--border-structural)] flex items-center justify-between gap-3">
             <label className="flex items-center gap-1.5 cursor-pointer select-none group">
               <input
                 type="checkbox"
                 checked={dontShowAgain}
                 onChange={(e) => setDontShowAgain(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border border-white/20 bg-[var(--bg-surface)] accent-[var(--accent-primary)] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                className="w-3.5 h-3.5 rounded border border-[var(--border-structural)] bg-[var(--bg-surface)] accent-[var(--accent-primary)] focus:ring-0 focus:ring-offset-0 cursor-pointer"
               />
               <span className="text-[11px] text-[var(--text-muted)] group-hover:text-[var(--text-main)] transition-colors">
                 다시 표시하지 않음

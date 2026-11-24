@@ -288,7 +288,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
         {msg.rewriteHistory && !msg.isStreaming && (
           <div
             data-rewrite-history-msg={msg.id}
-            className="mt-2.5 bg-[var(--bg-editor)] border border-white/[0.06] rounded-lg p-2.5 space-y-2 select-none"
+            className="mt-2.5 bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-lg p-2.5 space-y-2 select-none"
           >
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-1.5 min-w-0">
@@ -353,8 +353,8 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
             )}
 
             {isRewriteCompareOpen && (
-              <div className="space-y-1.5 pt-1 border-t border-white/[0.06]">
-                <div className="bg-[var(--bg-surface)] border border-white/[0.06] rounded-md p-2 space-y-1">
+              <div className="space-y-1.5 pt-1 border-t border-[var(--border-structural)]">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md p-2 space-y-1">
                   <div className="flex items-center justify-between text-[0.625rem] text-[var(--text-muted)] font-medium">
                     <span>{chatLabels.rewriteOriginalLabel}</span>
                     {onRevertRewrite && (
@@ -372,7 +372,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
                   </div>
                 </div>
 
-                <div className="bg-[var(--bg-surface)] border border-white/[0.06] rounded-md p-2 space-y-1">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md p-2 space-y-1">
                   <div className="flex items-center justify-between text-[0.625rem] text-[var(--accent-primary)] font-medium">
                     <span>{chatLabels.rewriteResultLabel}</span>
                     {onApplyRewrite && (
@@ -414,7 +414,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
                 <button
                   type="button"
                   onClick={() => onRevertRewrite(msg.id, msg.rewriteHistory?.originalText)}
-                  className="h-6 px-2.5 rounded-md bg-[var(--bg-elevated)] hover:bg-white/[0.08] border border-white/[0.08] text-[var(--text-muted)] hover:text-amber-200 text-[0.6875rem] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                  className="h-6 px-2.5 rounded-md bg-[var(--bg-elevated)] hover:bg-white/[0.08] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-[var(--text-muted)] hover:text-amber-200 text-[0.6875rem] font-medium flex items-center gap-1 transition-colors cursor-pointer"
                 >
                   <RotateCcw className="w-3 h-3 text-amber-400" />
                   <span>{chatLabels.revertRewriteAction}</span>
@@ -426,7 +426,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
 
         {/* Expandable Translation Block beneath Original Text */}
         {activeTranslation && !isTranslationHidden && (
-          <div className="mt-3 pt-2.5 border-t border-white/[0.06] text-[var(--text-muted)] text-xs leading-relaxed bg-[var(--bg-editor)]/70 p-2.5 rounded-lg">
+          <div className="mt-3 pt-2.5 border-t border-[var(--border-structural)] text-[var(--text-muted)] text-xs leading-relaxed bg-[var(--bg-editor)]/70 p-2.5 rounded-lg">
             <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] font-mono mb-1.5 uppercase tracking-wider select-none">
               <span>🇰🇷 한국어 번역</span>
               <div className="flex items-center gap-2">
@@ -464,7 +464,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
 
         {/* Initial Action Chips (온보딩 인터랙티브 칩) */}
         {msg.showOnboardingChips && onActionChipClick && (
-          <div className="mt-2.5 pt-2 border-t border-white/[0.06] flex flex-col gap-2 select-none">
+          <div className="mt-2.5 pt-2 border-t border-[var(--border-structural)] flex flex-col gap-2 select-none">
             <div className="text-[0.6875rem] font-semibold text-[var(--text-main)] flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
               <span>빠른 온보딩 인터랙션 가이드</span>
@@ -473,7 +473,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
               <button
                 type="button"
                 onClick={() => onActionChipClick('gemini-key')}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--bg-editor)] hover:bg-[var(--bg-elevated)] border border-white/[0.06] hover:border-[var(--accent-primary)]/40 text-[var(--text-main)] text-xs font-medium transition cursor-pointer active:scale-[0.98]"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--bg-editor)] hover:bg-[var(--bg-elevated)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-[var(--text-main)] text-xs font-medium transition cursor-pointer active:scale-[0.98]"
               >
                 <Key className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span>Gemini API 키 등록 방법</span>
@@ -481,7 +481,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
               <button
                 type="button"
                 onClick={() => onActionChipClick('ollama-guide')}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--bg-editor)] hover:bg-[var(--bg-elevated)] border border-white/[0.06] hover:border-[var(--accent-primary)]/40 text-[var(--text-main)] text-xs font-medium transition cursor-pointer active:scale-[0.98]"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--bg-editor)] hover:bg-[var(--bg-elevated)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-[var(--text-main)] text-xs font-medium transition cursor-pointer active:scale-[0.98]"
               >
                 <Terminal className="w-3.5 h-3.5 text-[var(--secondary-accent)] shrink-0" />
                 <span>Ollama 로컬 AI 연결 가이드</span>
@@ -489,7 +489,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
               <button
                 type="button"
                 onClick={() => onActionChipClick('demo-knowledge')}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--bg-editor)] hover:bg-[var(--bg-elevated)] border border-white/[0.06] hover:border-[var(--accent-primary)]/40 text-[var(--text-main)] text-xs font-medium transition cursor-pointer active:scale-[0.98]"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--bg-editor)] hover:bg-[var(--bg-elevated)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-[var(--text-main)] text-xs font-medium transition cursor-pointer active:scale-[0.98]"
               >
                 <FileText className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                 <span>가상 지식 정리 체험</span>
@@ -500,7 +500,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
 
         {/* Action Buttons for Onboarding responses */}
         {msg.actionButtons && msg.actionButtons.length > 0 && !msg.isStreaming && (
-          <div className="mt-2.5 pt-2 border-t border-white/[0.06] flex flex-wrap gap-2 select-none">
+          <div className="mt-2.5 pt-2 border-t border-[var(--border-structural)] flex flex-wrap gap-2 select-none">
             {msg.actionButtons.map((btn, idx) => (
               <button
                 key={idx}
@@ -515,7 +515,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition cursor-pointer active:scale-[0.98] ${
                   btn.actionType === 'insert-editor'
                     ? 'bg-[#F1F5F9] hover:bg-white text-[#0F172A]'
-                    : 'bg-[var(--bg-editor)] hover:bg-[var(--bg-elevated)] border border-white/[0.08] hover:border-[var(--accent-primary)]/40 text-[var(--text-main)]'
+                    : 'bg-[var(--bg-editor)] hover:bg-[var(--bg-elevated)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-[var(--text-main)]'
                 }`}
               >
                 {btn.actionType === 'open-settings-ai' ? (
@@ -531,7 +531,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
 
         {/* Google Search Grounding Web Citations */}
         {msg.groundingSources && msg.groundingSources.length > 0 && (
-          <div className="mt-2.5 pt-2 border-t border-white/[0.06] flex flex-col gap-1.5 select-none">
+          <div className="mt-2.5 pt-2 border-t border-[var(--border-structural)] flex flex-col gap-1.5 select-none">
             <div className="flex items-center gap-1.5 text-[0.6875rem] font-semibold text-[var(--accent-primary)]">
               <Globe className="w-3 h-3 text-[var(--accent-primary)]" />
               <span>Google 실시간 웹 검색 출처 ({msg.groundingSources.length})</span>
@@ -543,7 +543,7 @@ export const AiMessageBubble: React.FC<AiMessageBubbleProps> = React.memo(({
                   href={source.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[0.625rem] px-2 py-0.5 rounded bg-[var(--bg-editor)] hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-white/[0.06] transition-colors"
+                  className="inline-flex items-center gap-1 text-[0.625rem] px-2 py-0.5 rounded bg-[var(--bg-editor)] hover:bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] transition-colors"
                   title={source.url}
                 >
                   <ExternalLink className="w-2.5 h-2.5 text-[var(--text-muted)]" />

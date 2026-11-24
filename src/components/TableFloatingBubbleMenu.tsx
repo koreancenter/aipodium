@@ -198,7 +198,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
           e.preventDefault();
         }
       }}
-      className="absolute z-50 flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl p-1.5 text-xs text-[var(--text-main)] select-none shadow-2xl animate-in fade-in duration-100 max-w-[calc(100%-24px)] season-shell"
+      className="absolute z-50 flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl p-1.5 text-xs text-[var(--text-main)] select-none shadow-[var(--rim-glow)] cyber-rim-top animate-in fade-in duration-100 max-w-[calc(100%-24px)] season-shell"
     >
       {/* 1. Primary Compact Toolbar Row */}
       <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
@@ -243,7 +243,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-white/[0.08] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-[var(--border-structural)] shrink-0" />
 
         {/* Text Style Controls (Bold, Italic) */}
         <div className="flex items-center gap-0.5 shrink-0">
@@ -280,7 +280,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-white/[0.08] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-[var(--border-structural)] shrink-0" />
 
         {/* Row Operations (Insert Below, Delete Row) */}
         <div className="flex items-center gap-0.5 shrink-0">
@@ -311,7 +311,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-white/[0.08] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-[var(--border-structural)] shrink-0" />
 
         {/* Column Operations (Insert Right, Delete Column) */}
         <div className="flex items-center gap-0.5 shrink-0">
@@ -342,7 +342,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-white/[0.08] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-[var(--border-structural)] shrink-0" />
 
         {/* Clear Selected Cells */}
         <div className="flex items-center shrink-0">
@@ -357,7 +357,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
         </div>
 
         {/* Divider */}
-        <div className="w-[1px] h-3.5 bg-white/[0.08] shrink-0" />
+        <div className="w-[1px] h-3.5 bg-[var(--border-structural)] shrink-0" />
 
         {/* AI Table Edit Trigger (Icon only) */}
         <div className="flex items-center shrink-0">
@@ -369,8 +369,8 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
             }}
             className={`w-6 h-6 flex items-center justify-center rounded-md transition cursor-pointer border ${
               isAiOpen
-                ? 'bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border-[var(--accent-primary)]/40'
-                : 'bg-white/[0.04] hover:bg-white/[0.08] text-[var(--accent-primary)] border-white/[0.08]'
+                ? 'bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border-[var(--border-luminous)]'
+                : 'bg-white/[0.04] hover:bg-white/[0.08] text-[var(--accent-primary)] border-[var(--border-structural)] hover:border-[var(--border-luminous)]'
             }`}
             title="AI 표 편집 및 요약 프롬프트"
           >
@@ -391,7 +391,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
           <button
             type="button"
             onClick={onOpenVisualModal}
-            className="w-6 h-6 flex items-center justify-center bg-white/[0.04] hover:bg-white/[0.1] hover:text-[var(--text-main)] text-[var(--accent-primary)] rounded-md transition cursor-pointer border border-white/[0.08]"
+            className="w-6 h-6 flex items-center justify-center bg-white/[0.04] hover:bg-white/[0.1] hover:text-[var(--text-main)] text-[var(--accent-primary)] rounded-md transition cursor-pointer border border-[var(--border-structural)] hover:border-[var(--border-luminous)]"
             title="스프레드시트 편집기 열기"
           >
             <Edit3 className="w-3.5 h-3.5" />
@@ -401,7 +401,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
 
       {/* 2. Inline Expandable AI Prompt Input */}
       {isAiOpen && (
-        <div className="mt-1.5 pt-2 border-t border-white/[0.06] flex flex-col gap-1.5 w-80 text-xs animate-in fade-in slide-in-from-top-1 duration-100">
+        <div className="mt-1.5 pt-2 border-t border-[var(--border-structural)] flex flex-col gap-1.5 w-80 text-xs animate-in fade-in slide-in-from-top-1 duration-100">
           <div className="flex items-center justify-between text-[11px] font-medium text-[var(--text-main)] px-0.5">
             <span className="flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-[var(--accent-primary)]" />
@@ -429,7 +429,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
                 key={chip.label}
                 type="button"
                 onClick={() => handlePresetClick(chip.prompt)}
-                className="px-2 py-0.5 rounded-md bg-[var(--bg-surface)] hover:bg-white/[0.06] text-[10px] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-white/[0.06] transition cursor-pointer whitespace-nowrap"
+                className="px-2 py-0.5 rounded-md bg-[var(--bg-surface)] hover:bg-white/[0.06] text-[10px] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] transition cursor-pointer whitespace-nowrap"
               >
                 {chip.label}
               </button>
@@ -445,7 +445,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
               onChange={(e) => setAiPrompt(e.target.value)}
               placeholder="표 수정 또는 요약 지시 입력..."
               disabled={isAiLoading}
-              className="flex-1 bg-[var(--bg-surface)] border border-white/[0.08] focus:border-[var(--accent-primary)]/50 rounded-md px-2.5 py-1 text-xs text-[var(--text-main)] outline-none placeholder:text-[var(--text-tertiary)] disabled:opacity-50"
+              className="flex-1 bg-[var(--bg-surface)] border border-[var(--border-structural)] focus:border-[var(--border-luminous)] rounded-md px-2.5 py-1 text-xs text-[var(--text-main)] outline-none placeholder:text-[var(--text-tertiary)] disabled:opacity-50"
             />
             <button
               type="submit"

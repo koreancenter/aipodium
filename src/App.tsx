@@ -9137,7 +9137,7 @@ ${projectEvents
     >
       {/* Top Navigation Bar / Header */}
       <header
-        className={`${isMobile ? 'h-[38px] relative whitespace-nowrap overflow-hidden' : 'h-11'} bg-[var(--bg-main)] season-shell border-b border-white/[0.06] px-3 flex items-center justify-between z-50 shrink-0`}
+        className={`${isMobile ? 'h-[38px] relative whitespace-nowrap overflow-hidden' : 'h-11'} bg-[var(--bg-main)] season-shell border-b border-[var(--border-structural)] px-3 flex items-center justify-between z-50 shrink-0`}
       >
         <div className="flex items-center gap-2">
           {/* Logo / App Name & Semantic Version Label */}
@@ -9370,7 +9370,7 @@ ${projectEvents
               : 'transition-[width] duration-200 ease-out'
           } z-40 lg:z-10 ${
             (isLeftPanelVisible || isMobile)
-              ? 'opacity-100 pointer-events-auto border-r border-white/[0.06] lg:border-r-0 fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/70 lg:shadow-none'
+              ? 'opacity-100 pointer-events-auto border-r border-[var(--border-structural)] lg:border-r-0 fixed lg:relative inset-y-0 left-0 shadow-2xl shadow-black/70 lg:shadow-none'
               : 'w-10 shrink-0 bg-[var(--bg-surface)] flex flex-col z-20 select-none transition-all duration-200'
           }`}
         >
@@ -9402,7 +9402,7 @@ ${projectEvents
               className="max-w-full h-full flex flex-col min-h-0 overflow-hidden"
             >
             {/* Header: Anchored strictly at top-left at all times */}
-            <div className="bg-[var(--bg-surface)] season-shell border-b border-white/[0.06] px-2 h-8 flex items-center justify-between shrink-0 select-none">
+            <div className="bg-[var(--bg-surface)] season-shell border-b border-[var(--border-structural)] px-2 h-8 flex items-center justify-between shrink-0 select-none">
               <div className={`flex items-center gap-1.5 text-xs font-medium text-[var(--text-main)] min-w-0 transition-all duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${isProjectListOpen ? 'w-48 sm:w-56 -ml-0.5 pr-1' : ''}`}>
                 <button
                   type="button"
@@ -9450,7 +9450,7 @@ ${projectEvents
                     onClick={() => {
                       if (editorRef.current) editorRef.current.focus();
                     }}
-                    className="bg-[var(--bg-elevated)] hover:bg-white/[0.08] text-[var(--text-main)] border border-white/[0.08] px-2 py-0.5 rounded-md text-[0.625rem] font-medium flex items-center gap-1.5 transition shrink-0 cursor-pointer"
+                    className="bg-[var(--bg-elevated)] hover:bg-white/[0.08] text-[var(--text-main)] border border-[var(--border-luminous)] shadow-[var(--rim-glow)] px-2 py-0.5 rounded-md text-[0.625rem] font-medium flex items-center gap-1.5 transition shrink-0 cursor-pointer"
                     title="AI가 에디터 내용을 수정했습니다. 에디터로 이동하여 확인하세요."
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
@@ -9470,7 +9470,7 @@ ${projectEvents
                 <aside
                   id="project-list-panel"
                   aria-label="프로젝트 목록"
-                  className={`bg-[var(--bg-surface)] season-shell border-r border-white/[0.06] flex flex-col shrink-0 overflow-hidden transition-[width,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] z-10 h-full [&>*]:min-w-52 sm:[&>*]:min-w-60 ${
+                  className={`bg-[var(--bg-surface)] season-shell border-r border-[var(--border-structural)] flex flex-col shrink-0 overflow-hidden transition-[width,opacity] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] z-10 h-full [&>*]:min-w-52 sm:[&>*]:min-w-60 ${
                     isProjectListOpen
                       ? 'w-52 sm:w-60 opacity-100'
                       : 'w-0 opacity-0 pointer-events-none border-r-0'
@@ -9480,7 +9480,7 @@ ${projectEvents
                   }}
                 >
                   {/* Sidebar Header */}
-                  <div className="p-2 border-b border-white/[0.06] space-y-1.5 bg-[var(--bg-surface)] season-shell shrink-0">
+                  <div className="p-2 border-b border-[var(--border-structural)] space-y-1.5 bg-[var(--bg-surface)] season-shell shrink-0">
                     {/* Search Input Box in Project Sidebar */}
                     <div className="relative">
                       <Search className="w-3.5 h-3.5 text-[var(--text-tertiary)] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -9489,7 +9489,7 @@ ${projectEvents
                         value={sessionSearchQuery}
                         onChange={(e) => setSessionSearchQuery(e.target.value)}
                         placeholder="프로젝트 검색..."
-                        className="w-full bg-[var(--bg-editor)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded-md pl-7 pr-6 py-1 text-[0.6875rem] text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
+                        className="w-full bg-[var(--bg-editor)] border border-[var(--border-structural)] focus:border-[var(--border-luminous)] rounded-md pl-7 pr-6 py-1 text-[0.6875rem] text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
                       />
                       {sessionSearchQuery && (
                         <button
@@ -9800,7 +9800,7 @@ ${projectEvents
               className={`w-[1px] h-full transition-colors duration-150 ${
                 activeResizer === 'chat'
                   ? 'bg-[var(--accent-primary)]'
-                  : 'bg-white/[0.04] group-hover:bg-[var(--accent-primary)]/60'
+                  : 'bg-[var(--border-structural)] group-hover:bg-[var(--accent-primary)]/60'
               }`}
             />
 
@@ -9809,7 +9809,7 @@ ${projectEvents
               className={`absolute top-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-1 w-2 h-7 rounded-full border transition-all duration-150 pointer-events-none z-30 ${
                 activeResizer === 'chat'
                   ? 'opacity-100 bg-[var(--accent-primary)] border-[var(--accent-primary)] scale-110'
-                  : 'opacity-0 group-hover:opacity-100 bg-[var(--bg-elevated)] border-white/[0.1]'
+                  : 'opacity-0 group-hover:opacity-100 bg-[var(--bg-elevated)] border-[var(--border-luminous)]'
               }`}
             >
               <div
@@ -9844,7 +9844,7 @@ ${projectEvents
           }}
         >
           {/* Multi-Tab Document Bar */}
-              <div className="bg-[var(--bg-main)] season-shell border-b border-white/[0.06] flex items-center justify-between px-1.5 pt-1 select-none min-h-[34px] z-20 w-full min-w-0 relative">
+              <div className="bg-[var(--bg-main)] season-shell border-b border-[var(--border-structural)] flex items-center justify-between px-1.5 pt-1 select-none min-h-[34px] z-20 w-full min-w-0 relative">
                 <div className="flex items-center gap-1 overflow-x-auto scrollbar-none flex-1 min-w-0 pr-2">
                   {openTabs.map((tabFileName) => {
                     const isActive = tabFileName === currentActiveFile;
@@ -9859,11 +9859,14 @@ ${projectEvents
                         }}
                         className={`group relative flex items-center gap-1.5 px-3 py-1 text-xs font-mono transition cursor-pointer shrink-0 max-w-[200px] rounded-t-md ${
                           isActive
-                            ? 'bg-[var(--bg-editor)] border-b-2 border-b-[var(--accent-primary)] text-[var(--text-main)] font-medium'
-                            : 'bg-transparent border-b-2 border-b-transparent text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.03]'
+                            ? 'bg-[var(--bg-editor)] text-[var(--text-main)] font-medium'
+                            : 'bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.03]'
                         }`}
                         title={tabFileName}
                       >
+                        {isActive && (
+                          <span className="cyber-active-rail absolute bottom-0 left-2 right-2 h-[2px] rounded-full pointer-events-none" />
+                        )}
                         <span className="truncate flex-1 text-[0.6875rem]">{tabFileName}</span>
 
                         {/* Unsaved indicator */}
@@ -9906,7 +9909,7 @@ ${projectEvents
                       <button
                         type="button"
                         onClick={() => setHasUnreadAiChanges(false)}
-                        className="flex items-center gap-1.5 bg-[var(--bg-elevated)] border border-white/[0.08] px-2 py-0.5 rounded-md text-[0.625rem] text-[var(--text-main)] font-medium shrink-0 hover:bg-white/[0.08] transition cursor-pointer"
+                        className="flex items-center gap-1.5 bg-[var(--bg-elevated)] border border-[var(--border-luminous)] shadow-[var(--rim-glow)] px-2 py-0.5 rounded-md text-[0.625rem] text-[var(--text-main)] font-medium shrink-0 hover:bg-white/[0.08] transition cursor-pointer"
                         title="AI가 최근 내용을 수정했습니다. 클릭 시 확인 완료."
                       >
                         <Sparkles className="w-3 h-3 text-[var(--accent-primary)] shrink-0" />
@@ -9945,8 +9948,8 @@ ${projectEvents
                         onClick={() => setIsPdfSettingsOpen((prev) => !prev)}
                         className={`w-7 h-7 rounded-md border flex items-center justify-center transition cursor-pointer ${
                           isPdfSettingsOpen
-                            ? 'bg-white/[0.08] text-[var(--text-main)] border-[var(--accent-primary)]/50'
-                            : 'bg-transparent text-[var(--text-muted)] border-white/[0.06] hover:text-[var(--text-main)] hover:bg-white/[0.05]'
+                            ? 'bg-white/[0.08] text-[var(--text-main)] border-[var(--border-luminous)]'
+                            : 'bg-transparent text-[var(--text-muted)] border-[var(--border-structural)] hover:text-[var(--text-main)] hover:bg-white/[0.05]'
                         }`}
                         title="PDF 및 추출 설정"
                         aria-label="PDF 및 추출 설정"
@@ -9956,7 +9959,7 @@ ${projectEvents
 
                       {/* Settings Popover Dropdown */}
                       {isPdfSettingsOpen && (
-                        <div className="absolute right-0 top-full mt-1.5 w-64 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl p-2.5 z-50 text-xs text-[var(--text-muted)] select-none">
+                        <div className="absolute right-0 top-full mt-1.5 w-64 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-2xl shadow-[var(--rim-glow)] cyber-rim-top p-2.5 z-50 text-xs text-[var(--text-muted)] select-none">
                           <div className="text-[11px] font-medium text-[var(--text-main)] mb-2 px-1">
                             추출 설정
                           </div>
@@ -9964,7 +9967,7 @@ ${projectEvents
                           {/* Scope Selection */}
                           <div className="flex items-center justify-between gap-2 p-1.5 rounded-md hover:bg-white/[0.04]">
                             <span className="text-[var(--text-muted)]">추출 범위</span>
-                            <div className="flex bg-[var(--bg-surface)] border border-white/[0.06] rounded-md p-0.5">
+                            <div className="flex bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md p-0.5">
                               <button
                                 type="button"
                                 onClick={() => pdfViewerRef.current?.setScope('current')}
@@ -10006,8 +10009,8 @@ ${projectEvents
                                   onClick={() => pdfViewerRef.current?.setEngine(engine.id as any)}
                                   className={`px-2 py-1.5 rounded-md text-[11px] text-left transition cursor-pointer border ${
                                     pdfViewerState?.extractEngine === engine.id
-                                      ? 'bg-white/[0.08] text-[var(--accent-primary)] border-[var(--accent-primary)]/40 font-medium'
-                                      : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border-white/[0.06] hover:text-[var(--text-main)] hover:bg-white/[0.04]'
+                                      ? 'bg-white/[0.08] text-[var(--accent-primary)] border-[var(--border-luminous)] font-medium'
+                                      : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border-[var(--border-structural)] hover:text-[var(--text-main)] hover:bg-white/[0.04]'
                                   }`}
                                 >
                                   {engine.name}
@@ -10016,7 +10019,7 @@ ${projectEvents
                             </div>
                           </div>
 
-                          <div className="my-2 border-t border-white/[0.06]" />
+                          <div className="my-2 border-t border-[var(--border-structural)]" />
 
                           {/* View & Tool Actions */}
                           <button
@@ -10082,7 +10085,7 @@ ${projectEvents
 
             {/* Recent AI Changes Notification Banner */}
             {hasUnreadAiChanges && recentAiChanges && (
-              <div className="bg-[var(--bg-elevated)]/90 backdrop-blur-md border-b border-white/[0.06] p-2 px-4 flex items-center justify-between text-xs text-[var(--text-muted)] shrink-0 z-20">
+              <div className="bg-[var(--bg-elevated)]/90 backdrop-blur-md border-b border-[var(--border-structural)] p-2 px-4 flex items-center justify-between text-xs text-[var(--text-muted)] shrink-0 z-20">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                   <div className="min-w-0 flex items-center gap-2 flex-wrap text-[0.6875rem]">
@@ -10205,10 +10208,10 @@ ${projectEvents
                     {isTocOpen && (
                       <div
                         id="table-of-contents-drawer"
-                        className="absolute top-0 right-0 bottom-0 w-72 bg-[var(--bg-elevated)]/95 backdrop-blur-md border-l border-white/[0.08] z-20 flex flex-col shadow-2xl transition-[transform,opacity] duration-200 select-none text-[var(--text-main)] font-sans"
+                        className="absolute top-0 right-0 bottom-0 w-72 bg-[var(--bg-elevated)]/95 backdrop-blur-md border-l border-[var(--border-luminous)] z-20 flex flex-col shadow-2xl shadow-[var(--rim-glow)] cyber-rim-top transition-[transform,opacity] duration-200 select-none text-[var(--text-main)] font-sans"
                       >
                         {/* TOC Header */}
-                        <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between shrink-0">
+                        <div className="px-4 py-3 border-b border-[var(--border-structural)] flex items-center justify-between shrink-0">
                           <div className="flex items-center gap-2">
                             <ListTree className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                             <span className="text-xs font-medium text-[var(--text-main)]">문서 목차</span>
@@ -10277,7 +10280,7 @@ ${projectEvents
                         </div>
 
                         {/* TOC Footer with Scroll Sync Status */}
-                        <div className="px-3 py-2 bg-[var(--bg-surface)]/80 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-[var(--text-muted)] shrink-0 font-mono">
+                        <div className="px-3 py-2 bg-[var(--bg-surface)]/80 border-t border-[var(--border-structural)] flex items-center justify-between text-[11px] text-[var(--text-muted)] shrink-0 font-mono">
                           <span className="flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)]" />
                             <span>스크롤 동기화</span>
@@ -10325,7 +10328,7 @@ ${projectEvents
               className={`w-[1px] h-full transition-colors duration-150 ${
                 activeResizer === 'explorer'
                   ? 'bg-[var(--accent-primary)]'
-                  : 'bg-white/[0.04] group-hover:bg-[var(--accent-primary)]/60'
+                  : 'bg-[var(--border-structural)] group-hover:bg-[var(--accent-primary)]/60'
               }`}
             />
 
@@ -10334,7 +10337,7 @@ ${projectEvents
               className={`absolute top-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-1 w-2 h-7 rounded-full border transition-all duration-150 pointer-events-none z-30 ${
                 activeResizer === 'explorer'
                   ? 'opacity-100 bg-[var(--accent-primary)] border-[var(--accent-primary)] scale-110'
-                  : 'opacity-0 group-hover:opacity-100 bg-[var(--bg-elevated)] border-white/[0.1]'
+                  : 'opacity-0 group-hover:opacity-100 bg-[var(--bg-elevated)] border-[var(--border-luminous)]'
               }`}
             >
               <div
@@ -10417,7 +10420,7 @@ ${projectEvents
       {isMobile && (
         <nav
           id="mobile-bottom-dock"
-          className="h-13 shrink-0 bg-[var(--bg-main)] season-shell border-t border-white/[0.06] flex items-center justify-around z-40 select-none pb-[env(safe-area-inset-bottom)]"
+          className="h-13 shrink-0 bg-[var(--bg-main)] season-shell border-t border-[var(--border-structural)] flex items-center justify-around z-40 select-none pb-[env(safe-area-inset-bottom)]"
         >
           {([
             { id: 'chat', label: '💬 대화' },
@@ -10428,12 +10431,15 @@ ${projectEvents
               key={tab.id}
               type="button"
               onClick={() => setMobileTab(tab.id)}
-              className={`flex-1 h-full text-xs transition-colors cursor-pointer ${
+              className={`relative flex-1 h-full text-xs transition-colors cursor-pointer ${
                 mobileTab === tab.id
-                  ? 'text-[var(--accent-primary)] font-medium border-t-2 border-[var(--accent-primary)]'
+                  ? 'text-[var(--accent-primary)] font-medium'
                   : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
               }`}
             >
+              {mobileTab === tab.id && (
+                <span className="cyber-active-rail absolute top-0 left-3 right-3 h-[2px] rounded-full pointer-events-none" />
+              )}
               {tab.label}
             </button>
           ))}
@@ -10441,7 +10447,7 @@ ${projectEvents
       )}
 
       {/* Global Bottom Status Bar - Clean Workspace Path Display */}
-      <footer className="h-6 bg-[var(--bg-main)] season-shell border-t border-white/[0.06] px-3 flex items-center justify-between text-[0.6875rem] text-[var(--text-muted)] font-mono shrink-0 select-none z-30">
+      <footer className="h-6 bg-[var(--bg-main)] season-shell border-t border-[var(--border-structural)] px-3 flex items-center justify-between text-[0.6875rem] text-[var(--text-muted)] font-mono shrink-0 select-none z-30">
         <div className="flex items-center gap-3 min-w-0 overflow-hidden">
           <button
             type="button"
@@ -10473,7 +10479,7 @@ ${projectEvents
                   setIsPreferencesModalOpen(true);
                 }}
               />
-              <span className="text-white/[0.12]">|</span>
+              <span className="text-[var(--text-tertiary)]/50">|</span>
             </>
           )}
 
@@ -10482,14 +10488,14 @@ ${projectEvents
               <span className="text-[var(--text-secondary)]">
                 줄: {(editorContent || '').split('\n').length} | 글자: {(editorContent || '').length}
               </span>
-              <span className="text-white/[0.12]">|</span>
+              <span className="text-[var(--text-tertiary)]/50">|</span>
             </>
           )}
           <span className="hidden sm:inline text-[var(--text-secondary)]">총 {Object.keys(files).length}개 파일</span>
-          <span className="text-white/[0.12] hidden sm:inline">|</span>
+          <span className="text-[var(--text-tertiary)]/50 hidden sm:inline">|</span>
           <span className="text-[var(--text-secondary)]">{storageTargetLabel}</span>
 
-          <span className="text-white/[0.12]">|</span>
+          <span className="text-[var(--text-tertiary)]/50">|</span>
           {githubConfig?.token && githubConfig?.repo && (
             <>
               <div className="flex items-center gap-1.5 text-[11px]">
@@ -10515,7 +10521,7 @@ ${projectEvents
                   </span>
                 )}
               </div>
-              <span className="text-white/[0.12]">|</span>
+              <span className="text-[var(--text-tertiary)]/50">|</span>
             </>
           )}
           {/* Dynamic AI Engine Readiness Status Indicator */}

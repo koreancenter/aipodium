@@ -469,7 +469,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
       {/* Main Container: Original pristine max-w-5xl layout */}
       <div className="relative z-10 w-full max-w-5xl mx-auto min-h-screen min-h-[100dvh] flex flex-col justify-between px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         {/* Top Header: Brand Identity & Restored Top-Right Language Toggle */}
-        <header className="w-full flex items-center justify-between pb-3 sm:pb-5 border-b border-white/[0.06]">
+        <header className="w-full flex items-center justify-between pb-3 sm:pb-5 border-b border-[var(--border-structural)]">
           <div className="flex items-center gap-2">
             <span className="text-base font-semibold tracking-tight text-[var(--text-main)]">
               {t.brandName}
@@ -481,7 +481,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
           {/* Clean Segmented Language Selector restored to Top Right */}
           <div
-            className="inline-flex items-center rounded-lg bg-[var(--bg-surface)] border border-white/[0.06] p-0.5"
+            className="inline-flex items-center rounded-lg bg-[var(--bg-surface)] border border-[var(--border-structural)] p-0.5"
             role="group"
             aria-label={t.languageSelectorAria}
           >
@@ -536,7 +536,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
               <span className="text-[11px] sm:text-xs font-medium tracking-tight text-[var(--accent-primary)] uppercase select-none">
                 {lang === 'KR' ? '프라이버시 우선 AI 워크스페이스' : 'Privacy-First AI Workspace'}
               </span>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold tracking-tight bg-gradient-to-r from-[var(--text-main)] via-slate-200 to-[var(--text-muted)] bg-clip-text text-transparent break-keep leading-tight">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold tracking-tight bg-gradient-to-r from-[var(--text-main)] via-[var(--text-secondary)] to-[var(--text-muted)] bg-clip-text text-transparent break-keep leading-tight">
                 {t.heroTitle}
               </h1>
               <p className="text-xs sm:text-sm lg:text-base text-[var(--text-muted)] leading-relaxed max-w-xl mx-auto lg:mx-0 break-keep tracking-tight">
@@ -555,7 +555,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
             {/* Desktop Only: 3 Rich Minimalist Feature Cards (>= lg viewport) with Cool-Slate palette */}
             <div className="hidden lg:flex flex-col gap-3.5 pt-6 lg:pt-8">
-              <div className="bg-[var(--bg-surface)] border border-white/[0.06] rounded-xl p-4 sm:p-4.5 hover:border-white/[0.12] hover:bg-[var(--bg-editor)] transition-colors flex items-center gap-4">
+              <div className="bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-xl p-4 sm:p-4.5 hover:border-[var(--border-luminous)] hover:bg-[var(--bg-editor)] transition-colors flex items-center gap-4">
                 <div className="w-10 h-10 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
@@ -569,7 +569,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                 </div>
               </div>
 
-              <div className="bg-[var(--bg-surface)] border border-white/[0.06] rounded-xl p-4 sm:p-4.5 hover:border-white/[0.12] hover:bg-[var(--bg-editor)] transition-colors flex items-center gap-4">
+              <div className="bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-xl p-4 sm:p-4.5 hover:border-[var(--border-luminous)] hover:bg-[var(--bg-editor)] transition-colors flex items-center gap-4">
                 <div className="w-10 h-10 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
                   <Cpu className="w-5 h-5" />
                 </div>
@@ -583,7 +583,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                 </div>
               </div>
 
-              <div className="bg-[var(--bg-surface)] border border-white/[0.06] rounded-xl p-4 sm:p-4.5 hover:border-white/[0.12] hover:bg-[var(--bg-editor)] transition-colors flex items-center gap-4">
+              <div className="bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-xl p-4 sm:p-4.5 hover:border-[var(--border-luminous)] hover:bg-[var(--bg-editor)] transition-colors flex items-center gap-4">
                 <div className="w-10 h-10 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
                   <Layers className="w-5 h-5" />
                 </div>
@@ -601,7 +601,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
           {/* [Structural Change 3] Right Column (5 cols): Cool-Slate Elevated Card */}
           <div className="w-full max-w-[330px] sm:max-w-[360px] mx-auto lg:max-w-none lg:col-span-5 flex flex-col h-full">
-            <div className="w-full h-full bg-transparent border-0 rounded-none p-0 shadow-none lg:bg-[var(--bg-editor)] lg:border lg:border-white/[0.06] lg:rounded-3xl lg:p-7 xl:p-9 lg:shadow-2xl flex flex-col justify-between relative overflow-visible lg:overflow-hidden">
+            <div className="w-full h-full bg-transparent border-0 rounded-none p-0 shadow-none lg:bg-[var(--bg-editor)] lg:border lg:border-[var(--border-luminous)] lg:rounded-3xl lg:p-7 xl:p-9 lg:shadow-2xl lg:shadow-[var(--rim-glow)] lg:cyber-rim-top flex flex-col justify-between relative overflow-visible lg:overflow-hidden">
               {/* Status Feedback Banners */}
               {errorMsg && (
                 <div className="mb-3 sm:mb-4 rounded-lg border border-rose-500/40 bg-rose-950/40 p-2.5 sm:p-3 text-xs text-rose-300 flex items-start gap-2.5">
@@ -634,7 +634,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
               {generatedRecoveryKey && (
                 <div className="h-full flex flex-col justify-between">
                   {/* Top Section */}
-                  <div className="flex items-center gap-3 pb-3 border-b border-white/[0.06]">
+                  <div className="flex items-center gap-3 pb-3 border-b border-[var(--border-structural)]">
                     <div className="w-9 h-9 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
                       <LifeBuoy className="w-4.5 h-4.5" />
                     </div>
@@ -646,19 +646,19 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
                   {/* Center Section */}
                   <div className="py-3 sm:py-4 space-y-3 sm:space-y-3.5">
-                    <div className="p-3 rounded-lg bg-[var(--bg-surface)] border border-white/[0.06] text-xs text-[var(--text-muted)] leading-relaxed">
+                    <div className="p-3 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-structural)] text-xs text-[var(--text-muted)] leading-relaxed">
                       <strong className="block font-medium text-[var(--accent-primary)] mb-1">{t.recoveryKeyNoticeHeader}</strong>
                       {t.recoveryKeyNoticeBody}
                     </div>
 
-                    <div className="flex items-center justify-between rounded-lg bg-[var(--bg-surface)] border border-white/[0.06] p-3 font-mono text-sm tracking-widest text-[var(--accent-primary)] select-all font-medium">
+                    <div className="flex items-center justify-between rounded-lg bg-[var(--bg-surface)] border border-[var(--border-structural)] p-3 font-mono text-sm tracking-widest text-[var(--accent-primary)] select-all font-medium">
                       <span>{generatedRecoveryKey}</span>
                       <button
                         type="button"
                         onClick={handleCopyRecoveryKey}
                         title={t.copyRecoveryKeyTitle}
                         aria-label={t.copyRecoveryKeyTitle}
-                        className="p-1.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer border border-white/[0.06]"
+                        className="p-1.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer border border-[var(--border-structural)]"
                       >
                         {hasCopiedRecoveryKey ? (
                           <Check className="w-4 h-4 text-[var(--secondary-accent)]" />
@@ -692,7 +692,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                   </div>
 
                   {/* Bottom Section */}
-                  <div className="pt-3 sm:pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs text-[var(--text-tertiary)]">
+                  <div className="pt-3 sm:pt-4 border-t border-[var(--border-structural)] flex items-center justify-between text-xs text-[var(--text-tertiary)]">
                     <span className="whitespace-nowrap">{t.encryptedStorage}</span>
                     <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] whitespace-nowrap">
                       <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] shrink-0" />
@@ -724,7 +724,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                       <label htmlFor="unlock-pin" className="block text-xs sm:text-sm font-medium text-[var(--text-muted)] tracking-tight">
                         {t.pinLabel}
                       </label>
-                      <div className="relative flex items-center rounded-lg sm:rounded-xl border border-white/[0.06] bg-[var(--bg-surface)] px-3 sm:px-3.5 py-2 sm:py-2.5 transition-colors focus-within:border-[var(--accent-primary)]/50">
+                      <div className="relative flex items-center rounded-lg sm:rounded-xl border border-[var(--border-structural)] bg-[var(--bg-surface)] px-3 sm:px-3.5 py-2 sm:py-2.5 transition-colors focus-within:border-[var(--border-luminous)]">
                         <KeyRound className="h-4 w-4 sm:h-4.5 sm:w-4.5 text-[var(--text-tertiary)] shrink-0 mr-2.5" />
                         <input
                           id="unlock-pin"
@@ -766,7 +766,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                   </form>
 
                   {/* Bottom Section */}
-                  <div className="pt-3 sm:pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs gap-2">
+                  <div className="pt-3 sm:pt-4 border-t border-[var(--border-structural)] flex items-center justify-between text-xs gap-2">
                     <button
                       type="button"
                       onClick={() => {
@@ -793,7 +793,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
               {!generatedRecoveryKey && hasPinConfigured && showRecoveryForm && (
                 <div className="h-full flex flex-col justify-between">
                   {/* Top Section */}
-                  <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                  <div className="flex items-center justify-between pb-3 border-b border-[var(--border-structural)]">
                     <span className="text-xs font-semibold text-[var(--text-main)] flex items-center gap-2">
                       <LifeBuoy className="w-4 h-4 text-[var(--accent-primary)]" />
                       <span>{t.recoveryVerificationTitle}</span>
@@ -830,7 +830,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                           autoCorrect="off"
                           spellCheck={false}
                           disabled={isLoading}
-                          className="w-full font-mono text-center tracking-widest text-xs rounded-lg border border-white/[0.06] bg-[var(--bg-surface)] px-3.5 py-2.5 text-[var(--accent-primary)] focus:outline-none focus:border-[var(--accent-primary)]/50"
+                          className="w-full font-mono text-center tracking-widest text-xs rounded-lg border border-[var(--border-structural)] bg-[var(--bg-surface)] px-3.5 py-2.5 text-[var(--accent-primary)] focus:outline-none focus:border-[var(--border-luminous)]"
                         />
                         <button
                           type="submit"
@@ -853,7 +853,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                           onChange={(e) => setNewPin(e.target.value)}
                           placeholder={t.newPinAfterRecoveryPlaceholder}
                           autoComplete="off"
-                          className="w-full text-xs rounded-lg border border-white/[0.06] bg-[var(--bg-surface)] px-3 py-2 text-[var(--text-main)] focus:outline-none focus:border-[var(--accent-primary)]/50 tracking-tight"
+                          className="w-full text-xs rounded-lg border border-[var(--border-structural)] bg-[var(--bg-surface)] px-3 py-2 text-[var(--text-main)] focus:outline-none focus:border-[var(--border-luminous)] tracking-tight"
                         />
                         <input
                           type="password"
@@ -861,7 +861,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                           onChange={(e) => setConfirmNewPin(e.target.value)}
                           placeholder={t.confirmNewPinAfterRecoveryPlaceholder}
                           autoComplete="off"
-                          className="w-full text-xs rounded-lg border border-white/[0.06] bg-[var(--bg-surface)] px-3 py-2 text-[var(--text-main)] focus:outline-none focus:border-[var(--accent-primary)]/50 tracking-tight"
+                          className="w-full text-xs rounded-lg border border-[var(--border-structural)] bg-[var(--bg-surface)] px-3 py-2 text-[var(--text-main)] focus:outline-none focus:border-[var(--border-luminous)] tracking-tight"
                         />
                         <button
                           type="submit"
@@ -877,7 +877,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                   </div>
 
                   {/* Bottom Section */}
-                  <div className="pt-3 sm:pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs text-[var(--text-tertiary)]">
+                  <div className="pt-3 sm:pt-4 border-t border-[var(--border-structural)] flex items-center justify-between text-xs text-[var(--text-tertiary)]">
                     <span className="whitespace-nowrap">{t.deviceEncryptionActive}</span>
                     <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] whitespace-nowrap">
                       <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] shrink-0" />
@@ -905,7 +905,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                       {/* Center Section: Compact borderless flat row & Primary CTA */}
                       <div className="py-3 sm:py-4 lg:py-6 flex flex-col gap-3 sm:gap-4 lg:gap-5">
                         {/* Borderless flat row with subtle dividers (no nested card borders) */}
-                        <div className="border-y border-white/[0.06] py-3 sm:py-3.5 lg:py-4">
+                        <div className="border-y border-[var(--border-structural)] py-3 sm:py-3.5 lg:py-4">
                           <div className="flex items-start justify-between gap-2.5 sm:gap-3">
                             <label className="flex items-start gap-2.5 sm:gap-3 text-xs sm:text-sm text-[var(--text-muted)] cursor-pointer select-none flex-1">
                               <input
@@ -936,7 +936,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
                           {/* Expandable Individual Checklist with max-height scroll to prevent pushing CTA offscreen */}
                           {isDetailsExpanded && (
-                            <div className="mt-2.5 pt-2.5 sm:mt-3.5 sm:pt-3.5 pl-6 sm:pl-7 space-y-2 sm:space-y-2.5 border-t border-white/[0.06] max-h-40 overflow-y-auto">
+                            <div className="mt-2.5 pt-2.5 sm:mt-3.5 sm:pt-3.5 pl-6 sm:pl-7 space-y-2 sm:space-y-2.5 border-t border-[var(--border-structural)] max-h-40 overflow-y-auto">
                               <label className="flex items-start gap-2.5 cursor-pointer select-none text-[11px] sm:text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] tracking-tight break-keep">
                                 <input
                                   type="checkbox"
@@ -983,7 +983,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                       </div>
 
                       {/* Bottom Section: Centered PIN Lock Button (Offline indicator removed per request) */}
-                      <div className="pt-3 sm:pt-4 border-t border-white/[0.06] flex items-center justify-center text-xs">
+                      <div className="pt-3 sm:pt-4 border-t border-[var(--border-structural)] flex items-center justify-center text-xs">
                         <button
                           type="button"
                           onClick={handleOpenPinSetup}
@@ -999,7 +999,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                   ) : (
                     <form onSubmit={handleStageMasterPin} className="h-full flex flex-col justify-between">
                       {/* Top Section */}
-                      <div className="flex items-center justify-between pb-2 sm:pb-3 border-b border-white/[0.06]">
+                      <div className="flex items-center justify-between pb-2 sm:pb-3 border-b border-[var(--border-structural)]">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)]">
                             <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -1026,7 +1026,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                           <label htmlFor="new-pin" className="block text-[11px] sm:text-xs font-medium text-[var(--text-muted)]">
                             {t.newPinLabel}
                           </label>
-                          <div className="relative flex items-center rounded-lg border border-white/[0.06] bg-[var(--bg-surface)] px-2.5 sm:px-3 py-1.5 sm:py-2 transition-colors focus-within:border-[var(--accent-primary)]/50">
+                          <div className="relative flex items-center rounded-lg border border-[var(--border-structural)] bg-[var(--bg-surface)] px-2.5 sm:px-3 py-1.5 sm:py-2 transition-colors focus-within:border-[var(--border-luminous)]">
                             <input
                               id="new-pin"
                               name="aipodium-new-pin-input"
@@ -1059,7 +1059,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                           <label htmlFor="confirm-new-pin" className="block text-[11px] sm:text-xs font-medium text-[var(--text-muted)]">
                             {t.confirmPinLabel}
                           </label>
-                          <div className="relative flex items-center rounded-lg border border-white/[0.06] bg-[var(--bg-surface)] px-2.5 sm:px-3 py-1.5 sm:py-2 transition-colors focus-within:border-[var(--accent-primary)]/50">
+                          <div className="relative flex items-center rounded-lg border border-[var(--border-structural)] bg-[var(--bg-surface)] px-2.5 sm:px-3 py-1.5 sm:py-2 transition-colors focus-within:border-[var(--border-luminous)]">
                             <input
                               id="confirm-new-pin"
                               name="aipodium-confirm-pin-input"
@@ -1089,7 +1089,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                       </div>
 
                       {/* Bottom Section */}
-                      <div className="pt-2 sm:pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs">
+                      <div className="pt-2 sm:pt-4 border-t border-[var(--border-structural)] flex items-center justify-between text-xs">
                         <button
                           type="button"
                           onClick={() => setShowSetPinForm(false)}
@@ -1111,7 +1111,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
         </main>
 
         {/* Global Footer: Integrated Minimalist Footer */}
-        <footer className="w-full mt-4 sm:mt-8 pt-3 sm:pt-4 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-[var(--text-tertiary)] select-none">
+        <footer className="w-full mt-4 sm:mt-8 pt-3 sm:pt-4 border-t border-[var(--border-structural)] flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-[var(--text-tertiary)] select-none">
           <div className="text-[11px] text-[var(--text-tertiary)] order-2 sm:order-1 text-center sm:text-left">
             <span>{t.copyright}</span>
           </div>
@@ -1147,7 +1147,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
       {/* Emergency Security Reset Confirmation Modal */}
       {showPurgeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--bg-main)]/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-xl bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] p-5 space-y-4 shadow-2xl">
+          <div className="w-full max-w-sm rounded-xl bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] p-5 space-y-4 shadow-2xl shadow-[var(--rim-glow)] cyber-rim-top">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5" />
@@ -1172,18 +1172,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
                 value={purgeInputText}
                 onChange={(e) => setPurgeInputText(e.target.value)}
                 placeholder={t.resetKeyword}
-                className="w-full rounded-lg border border-white/[0.06] bg-[var(--bg-surface)] px-3 py-2 text-xs text-center font-medium text-rose-200 focus:outline-none focus:border-rose-500 font-mono"
+                className="w-full rounded-lg border border-[var(--border-structural)] bg-[var(--bg-surface)] px-3 py-2 text-xs text-center font-medium text-rose-200 focus:outline-none focus:border-rose-500 font-mono"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/[0.06]">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border-structural)]">
               <button
                 type="button"
                 onClick={() => {
                   setShowPurgeModal(false);
                   setPurgeInputText('');
                 }}
-                className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-white/[0.06] text-xs transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-structural)] text-xs transition-colors cursor-pointer"
               >
                 {t.cancel}
               </button>

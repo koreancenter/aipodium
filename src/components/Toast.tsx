@@ -16,7 +16,7 @@ export function Toast({ toast, onClose }: ToastProps) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 12, scale: 0.95 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="fixed bottom-6 right-6 z-[9999] flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl backdrop-blur-md border border-slate-700/80 bg-slate-900/95 text-slate-100 text-xs font-medium max-w-md"
+          className="fixed bottom-6 right-6 z-[9999] flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl shadow-[var(--rim-glow)] backdrop-blur-md border border-[var(--border-luminous)] bg-[var(--bg-elevated)]/95 cyber-rim-top text-[var(--text-main)] text-xs font-medium max-w-md season-shell"
         >
           {toast.type === 'error' ? (
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
@@ -30,7 +30,7 @@ export function Toast({ toast, onClose }: ToastProps) {
           <span className="flex-1 leading-snug break-words">{toast.message}</span>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-100 rounded transition-colors"
+            className="p-1 text-[var(--text-muted)] hover:text-[var(--text-main)] rounded transition-colors cursor-pointer"
             title="닫기"
           >
             <X className="w-3.5 h-3.5" />

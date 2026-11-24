@@ -558,10 +558,10 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
       />
 
       {/* Main Dialog: Clean, Minimal, Unboxed */}
-      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-md w-full p-5 shadow-2xl space-y-4 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans">
+      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl max-w-md w-full p-5 shadow-[var(--rim-glow)] cyber-rim-top space-y-4 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans">
         
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between pb-3 border-b border-[var(--border-structural)]">
           <div className="flex items-center gap-2">
             <FolderOpen className="w-4 h-4 text-[var(--accent-primary)]" />
             <h2 className="text-sm font-semibold text-[var(--text-main)]">{t.title}</h2>
@@ -569,7 +569,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
           <button
             type="button"
             onClick={onClose}
-            className="text-[var(--text-muted)] hover:text-slate-200 p-1 rounded-md hover:bg-white/[0.06] transition cursor-pointer"
+            className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-1 rounded-md hover:bg-white/[0.06] transition cursor-pointer"
             title={t.close}
           >
             <X className="w-4 h-4" />
@@ -591,7 +591,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
           <button
             type="button"
             onClick={() => docInputRef.current?.click()}
-            className="w-full bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-main)] border border-white/[0.06] py-2 px-4 rounded-md font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
+            className="w-full bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-main)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] py-2 px-4 rounded-md font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-xs active:scale-[0.99]"
           >
             <FileText className="w-4 h-4 shrink-0 text-[var(--accent-primary)]" />
             <span>{t.importDocuments}</span>
@@ -642,7 +642,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
             )}
           </div>
 
-          <div className="max-h-52 overflow-y-auto rounded-md bg-[var(--bg-surface)] border border-white/[0.06] divide-y divide-white/[0.06] custom-scrollbar">
+          <div className="max-h-52 overflow-y-auto rounded-md bg-[var(--bg-surface)] border border-[var(--border-structural)] divide-y divide-[var(--border-structural)] custom-scrollbar">
             {recentList.length === 0 ? (
               <div className="py-7 text-center text-xs text-[var(--text-muted)] space-y-1">
                 <p>{t.noRecents}</p>
@@ -696,7 +696,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
         </div>
 
         {/* Remote & Other Storages (Subtle text dropdown at bottom) */}
-        <div className="pt-2 border-t border-white/[0.06]">
+        <div className="pt-2 border-t border-[var(--border-structural)]">
           <button
             type="button"
             onClick={() => setShowRemoteOptions(!showRemoteOptions)}
@@ -715,7 +715,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
               <button
                 type="button"
                 onClick={() => handleConnectOption('gdrive')}
-                className="py-1.5 px-2 rounded-md bg-[var(--bg-surface)] hover:bg-white/[0.06] border border-white/[0.06] flex items-center justify-center gap-1.5 text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs transition cursor-pointer"
+                className="py-1.5 px-2 rounded-md bg-[var(--bg-surface)] hover:bg-white/[0.06] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] flex items-center justify-center gap-1.5 text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs transition cursor-pointer"
               >
                 <Cloud className="w-3.5 h-3.5 text-[var(--secondary-accent)]" />
                 <span className="text-[0.6875rem]">Google Drive</span>
@@ -724,7 +724,7 @@ export const WorkspaceConnectionModal: React.FC<WorkspaceConnectionModalProps> =
               <button
                 type="button"
                 onClick={() => handleConnectOption('vault')}
-                className="py-1.5 px-2 rounded-md bg-[var(--bg-surface)] hover:bg-white/[0.06] border border-white/[0.06] flex items-center justify-center gap-1.5 text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs transition cursor-pointer"
+                className="py-1.5 px-2 rounded-md bg-[var(--bg-surface)] hover:bg-white/[0.06] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] flex items-center justify-center gap-1.5 text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs transition cursor-pointer"
               >
                 <Database className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                 <span className="text-[0.6875rem]">{t.browserVault}</span>

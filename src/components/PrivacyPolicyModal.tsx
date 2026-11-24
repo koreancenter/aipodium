@@ -23,9 +23,9 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
       aria-modal="true"
       aria-labelledby="privacy-title"
     >
-      <div className="bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-[var(--text-main)] font-sans">
+      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-[var(--rim-glow)] cyber-rim-top flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-[var(--text-main)] font-sans">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 bg-[var(--bg-surface)]/90 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between px-5 py-4 bg-[var(--bg-surface)]/90 border-b border-[var(--border-structural)]">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/25 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
               <ShieldCheck className="w-4.5 h-4.5" />
@@ -43,7 +43,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-slate-200 transition-colors cursor-pointer"
+            className="p-1.5 rounded-md hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
             title={isKr ? '닫기' : 'Close'}
             aria-label={isKr ? '닫기' : 'Close'}
           >
@@ -68,7 +68,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
             </div>
           </div>
 
-          <p className="text-xs text-zinc-400 leading-relaxed">
+          <p className="text-xs text-[var(--text-muted)] leading-relaxed">
             {isKr
               ? 'AI Podium(이하 "서비스")은 이용자의 개인정보를 중요시하며, 대한민국의 「개인정보 보호법」 등 관련 법령을 철저히 준수합니다.'
               : 'AI Podium ("the Service") highly values user privacy and complies fully with the Personal Information Protection Act (PIPA) of the Republic of Korea and applicable standard regulations.'}
@@ -77,11 +77,11 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
           {/* Clauses: Pure Flattened Document Sections without Box-in-Box */}
           <div className="space-y-5 pt-1">
             {/* Section 1 */}
-            <section className="space-y-1.5 pb-4 border-b border-white/[0.06]">
-              <h3 className="text-sm font-medium text-zinc-200">
+            <section className="space-y-1.5 pb-4 border-b border-[var(--border-structural)]">
+              <h3 className="text-sm font-medium text-[var(--text-main)]">
                 {isKr ? '1. 개인정보의 수집 및 이용 목적' : '1. Purposes of Processing'}
               </h3>
-              <p className="text-zinc-400 leading-relaxed pl-1">
+              <p className="text-[var(--text-muted)] leading-relaxed pl-1">
                 {isKr
                   ? '본 서비스는 별도의 회원가입 절차가 없으며, 운영자 서버로 이용자의 어떠한 개인정보(이름, 이메일, 작성 문서, 대화 기록 등)도 수집·저장하지 않는 100% 로컬 우선 방식으로 동작합니다.'
                   : 'The Service operates entirely under a 100% Local-First architecture. No signup is required, and the operator never collects, mirrors, or processes any user personal data, draft files, or conversation logs on its servers.'}
@@ -89,17 +89,17 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
             </section>
 
             {/* Section 2 */}
-            <section className="space-y-1.5 pb-4 border-b border-white/[0.06]">
-              <h3 className="text-sm font-medium text-zinc-200">
+            <section className="space-y-1.5 pb-4 border-b border-[var(--border-structural)]">
+              <h3 className="text-sm font-medium text-[var(--text-main)]">
                 {isKr ? '2. 수집하는 개인정보 항목 및 수집 방법' : '2. Items Collected and Storage Location'}
               </h3>
-              <div className="space-y-1 pl-1 text-zinc-400">
+              <div className="space-y-1 pl-1 text-[var(--text-muted)]">
                 <p>
-                  <span className="text-zinc-300 font-medium">{isKr ? '· 수집 항목:' : '· Collected Items:'}</span>{' '}
+                  <span className="text-[var(--text-secondary)] font-medium">{isKr ? '· 수집 항목:' : '· Collected Items:'}</span>{' '}
                   {isKr ? '없음 (서버 수집 정보 제로)' : 'None (Zero Server Harvesting)'}
                 </p>
                 <p>
-                  <span className="text-zinc-300 font-medium">{isKr ? '· 이용자 데이터의 저장 위치:' : '· Storage Location:'}</span>{' '}
+                  <span className="text-[var(--text-secondary)] font-medium">{isKr ? '· 이용자 데이터의 저장 위치:' : '· Storage Location:'}</span>{' '}
                   {isKr
                     ? '이용자가 작성한 연구 문서, API 키, 설정 정보는 이용자 본인 기기의 브라우저 내 로컬 저장소(IndexedDB / LocalStorage)에만 암호화되어 보관됩니다.'
                     : 'All research documents, drafts, custom API credentials, and preference configs are saved locally and securely inside the browser environment (IndexedDB / LocalStorage) on your device.'}
@@ -108,11 +108,11 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
             </section>
 
             {/* Section 3 */}
-            <section className="space-y-1.5 pb-4 border-b border-white/[0.06]">
-              <h3 className="text-sm font-medium text-zinc-200">
+            <section className="space-y-1.5 pb-4 border-b border-[var(--border-structural)]">
+              <h3 className="text-sm font-medium text-[var(--text-main)]">
                 {isKr ? '3. 개인정보의 보유 및 이용 기간' : '3. Retention and Disposal'}
               </h3>
-              <p className="text-zinc-400 leading-relaxed pl-1">
+              <p className="text-[var(--text-muted)] leading-relaxed pl-1">
                 {isKr
                   ? '서버에 저장되는 개인정보가 없으므로 별도의 보유 및 파기 절차가 존재하지 않습니다. 이용자가 브라우저의 사이트 데이터 삭제를 실행하거나 앱 내 저장 데이터를 삭제하면 즉시 영구 소멸됩니다.'
                   : 'Since no data is stored or mirrored server-side, there are no separate retention schedules or deletion workflows on our part. Cleanses or local browser data wipes directly execute irreversible self-destruction.'}
@@ -120,11 +120,11 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
             </section>
 
             {/* Section 4 */}
-            <section className="space-y-1.5 pb-4 border-b border-white/[0.06]">
-              <h3 className="text-sm font-medium text-zinc-200">
+            <section className="space-y-1.5 pb-4 border-b border-[var(--border-structural)]">
+              <h3 className="text-sm font-medium text-[var(--text-main)]">
                 {isKr ? '4. 제3자 제공 및 처리위탁' : '4. Third-Party Sharing & Transfers'}
               </h3>
-              <p className="text-zinc-400 leading-relaxed pl-1">
+              <p className="text-[var(--text-muted)] leading-relaxed pl-1">
                 {isKr
                   ? '서비스는 이용자의 데이터를 제3자에게 제공하거나 외부 서버로 위탁 처리하지 않습니다. 단, 이용자가 직접 입력한 개인 API 키를 통해 직접 호출하는 AI 서비스 제공사(OpenAI, Google 등)와의 통신은 이용자의 직접적인 요청에 의해서만 실행됩니다.'
                   : 'The Service does not transmit or share your local records with third parties. Telemetry-free connections are established directly with the respective LLM providers (e.g., OpenAI, Google Gemini) solely based on your explicit execution and configured BYOK keys.'}
@@ -133,20 +133,20 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
 
             {/* Section 5 */}
             <section className="space-y-1.5">
-              <h3 className="text-sm font-medium text-zinc-200">
+              <h3 className="text-sm font-medium text-[var(--text-main)]">
                 {isKr ? '5. 개인정보 보호책임자 및 문의처' : '5. Compliance & Contact Officers'}
               </h3>
-              <div className="space-y-1 pl-1 text-zinc-400">
-                <p>· <span className="text-zinc-300 font-medium">{isKr ? '서비스명:' : 'Service Name:'}</span> AI Podium (aipodium.net)</p>
-                <p>· <span className="text-zinc-300 font-medium">{isKr ? '문의 이메일:' : 'Inquiries:'}</span> maestro@aipodium.net</p>
-                <p>· <span className="text-zinc-300 font-medium">{isKr ? '운영본부:' : 'Entity:'}</span> {isKr ? '한국센터글로벌네트워크 지식관리실 (사업자등록번호: 141-82-83410)' : 'Korean Center Global Network Knowledge Management Division (Registration: 141-82-83410)'}</p>
+              <div className="space-y-1 pl-1 text-[var(--text-muted)]">
+                <p>· <span className="text-[var(--text-secondary)] font-medium">{isKr ? '서비스명:' : 'Service Name:'}</span> AI Podium (aipodium.net)</p>
+                <p>· <span className="text-[var(--text-secondary)] font-medium">{isKr ? '문의 이메일:' : 'Inquiries:'}</span> maestro@aipodium.net</p>
+                <p>· <span className="text-[var(--text-secondary)] font-medium">{isKr ? '운영본부:' : 'Entity:'}</span> {isKr ? '한국센터글로벌네트워크 지식관리실 (사업자등록번호: 141-82-83410)' : 'Korean Center Global Network Knowledge Management Division (Registration: 141-82-83410)'}</p>
               </div>
             </section>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3.5 bg-[var(--bg-surface)]/90 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="px-5 py-3.5 bg-[var(--bg-surface)]/90 border-t border-[var(--border-structural)] flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-xs text-[var(--text-tertiary)] font-mono">
             {isKr ? '개정 시행일: 2026년 9월 9일' : 'Effective: September 9, 2026'}
           </div>
