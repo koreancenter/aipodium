@@ -501,14 +501,14 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
     >
       <div
         id="google-drive-picker-container"
-        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl max-w-2xl w-full p-5 text-[var(--text-muted)] shadow-[var(--rim-glow)] cyber-rim-top animate-in fade-in zoom-in-95 duration-100 font-sans h-[620px] max-h-[calc(100vh-3rem)] flex flex-col shrink-0 gap-3"
+        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl max-w-2xl w-full p-5 text-[var(--text-muted)] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] animate-in fade-in zoom-in-95 duration-100 font-sans h-[620px] max-h-[calc(100vh-3rem)] flex flex-col shrink-0 gap-3"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}
-        <div className="flex items-start justify-between border-b border-[var(--border-structural)] pb-3 shrink-0">
+        <div className="flex items-start justify-between border-b border-white/[0.07] pb-3 shrink-0">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-md bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/30 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-md bg-[var(--accent-primary)]/15 border border-white/[0.08] flex items-center justify-center">
                 <HardDrive className="w-4 h-4 text-[var(--accent-primary)]" />
               </div>
               <h2 className="text-sm font-medium text-[var(--text-main)] tracking-tight flex items-center gap-2">

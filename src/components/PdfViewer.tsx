@@ -1279,8 +1279,8 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
 
             {/* Extraction Settings Popover */}
             {isExtractionMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-64 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-[var(--rim-glow)] cyber-rim-top p-2.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs text-[var(--text-muted)]">
-                <div className="flex items-center justify-between pb-1.5 border-b border-[var(--border-structural)] mb-2">
+              <div className="absolute right-0 top-full mt-1 w-64 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] p-2.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs text-[var(--text-muted)]">
+                <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.07] mb-2">
                   <span className="font-medium text-[var(--text-main)] text-xs flex items-center gap-1.5">
                     <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                     {t.extractSettings}
@@ -1449,7 +1449,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
             </button>
 
             {isMoreMenuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-56 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-[var(--rim-glow)] cyber-rim-top p-1.5 text-xs text-[var(--text-muted)] z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute right-0 top-full mt-1.5 w-56 bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] p-1.5 text-xs text-[var(--text-muted)] z-50 animate-in fade-in zoom-in-95 duration-100">
                 <button
                   type="button"
                   onClick={() => {
@@ -1553,7 +1553,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
           >
           {/* Active OCR / Extraction Floating Status Indicator */}
           {isExtracting && ocrProgress && (
-            <div className="sticky top-2 z-30 mb-2 bg-[var(--bg-elevated)]/95 border border-[var(--border-luminous)] text-[var(--text-main)] text-xs px-3.5 py-1.5 rounded-full shadow-[var(--rim-glow)] flex items-center gap-2 backdrop-blur-md">
+            <div className="sticky top-2 z-30 mb-2 bg-[var(--bg-elevated)]/95 border border-white/[0.08] text-[var(--text-main)] text-xs px-3.5 py-1.5 rounded-full shadow-[0_12px_28px_-8px_rgba(0,0,0,0.8)] flex items-center gap-2 backdrop-blur-xl">
               <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--accent-primary)] shrink-0" />
               <span className="font-mono text-[0.6875rem]">{ocrProgress.status}</span>
               {ocrProgress.progress > 0 && (
@@ -1624,7 +1624,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
 
           {/* Bottom Floating Dock: Navigation & Zoom & Fullscreen */}
           <div
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[var(--bg-elevated)]/90 backdrop-blur-md border border-[var(--border-luminous)] rounded-full px-3 py-1.5 flex items-center gap-2 shadow-[var(--rim-glow)] z-20 select-none text-xs"
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[var(--bg-elevated)]/90 backdrop-blur-xl border border-white/[0.08] rounded-full px-3 py-1.5 flex items-center gap-2 shadow-[0_12px_28px_-8px_rgba(0,0,0,0.8)] z-20 select-none text-xs"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Prev Button */}
@@ -1836,11 +1836,11 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
       {showReducerModal && (
         <div className="fixed inset-0 z-50 bg-[var(--bg-main)]/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div
-            className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-[var(--rim-glow)] cyber-rim-top w-full max-w-lg overflow-hidden text-[var(--text-main)] flex flex-col"
+            className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] w-full max-w-lg overflow-hidden text-[var(--text-main)] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="h-14 px-5 bg-[var(--bg-surface)] border-b border-[var(--border-structural)] flex items-center justify-between shrink-0">
+            <div className="h-14 px-5 bg-[var(--bg-surface)] border-b border-white/[0.07] flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="p-1.5 rounded-md bg-[var(--secondary-accent)]/10 text-[var(--secondary-accent)] border border-[var(--secondary-accent)]/25">
                   <Minimize2 className="w-4 h-4" />

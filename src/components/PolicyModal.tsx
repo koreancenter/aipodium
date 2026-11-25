@@ -31,14 +31,14 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[var(--bg-main)]/80 backdrop-blur-sm animate-in fade-in duration-150">
       <div
-        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-[var(--rim-glow)] cyber-rim-top flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-[var(--text-main)] font-sans"
+        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-[var(--text-main)] font-sans"
         role="dialog"
         aria-modal="true"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 bg-[var(--bg-surface)]/90 border-b border-[var(--border-structural)]">
+        <div className="flex items-center justify-between px-5 py-4 bg-[var(--bg-surface)]/90 border-b border-white/[0.07]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/25 flex items-center justify-center text-[var(--accent-primary)]">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent-primary)]/10 border border-white/[0.08] flex items-center justify-center text-[var(--accent-primary)]">
               <FileText className="w-4.5 h-4.5" />
             </div>
             <div>

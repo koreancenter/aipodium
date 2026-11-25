@@ -239,13 +239,13 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl max-w-4xl w-full max-h-[92vh] shadow-[var(--rim-glow)] cyber-rim-top flex flex-col overflow-hidden text-[var(--text-muted)] animate-in fade-in zoom-in-95 duration-100 font-sans"
+        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl max-w-4xl w-full max-h-[92vh] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden text-[var(--text-muted)] animate-in fade-in zoom-in-95 duration-100 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border-structural)] bg-[var(--bg-surface)] shrink-0">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.07] bg-[var(--bg-surface)] shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="p-1.5 rounded-md bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/30 text-[var(--accent-primary)]">
+            <div className="p-1.5 rounded-md bg-[var(--accent-primary)]/15 border border-white/[0.08] text-[var(--accent-primary)]">
               <Sparkles className="w-4 h-4" />
             </div>
             <div className="min-w-0">

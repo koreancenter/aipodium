@@ -23,11 +23,11 @@ export const TermsOfServiceModal: React.FC<TermsOfServiceModalProps> = ({
       aria-modal="true"
       aria-labelledby="terms-title"
     >
-      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-[var(--rim-glow)] cyber-rim-top flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-[var(--text-main)] font-sans">
+      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-[var(--text-main)] font-sans">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 bg-[var(--bg-surface)]/90 border-b border-[var(--border-structural)]">
+        <div className="flex items-center justify-between px-5 py-4 bg-[var(--bg-surface)]/90 border-b border-white/[0.07]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/25 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent-primary)]/10 border border-white/[0.08] flex items-center justify-center text-[var(--accent-primary)] shrink-0">
               <FileText className="w-4.5 h-4.5" />
             </div>
             <div>
@@ -71,7 +71,7 @@ export const TermsOfServiceModal: React.FC<TermsOfServiceModalProps> = ({
           {/* Clauses: Pure Flattened Document Sections */}
           <div className="space-y-5 pt-1">
             {/* Clause 1 */}
-            <section className="space-y-1.5 pb-4 border-b border-[var(--border-structural)]">
+            <section className="space-y-1.5 pb-4 border-b border-white/[0.07]">
               <h3 className="text-sm font-medium text-[var(--text-main)]">
                 {isKr ? '제1조 (목적)' : 'Article 1 (Purpose)'}
               </h3>
@@ -83,7 +83,7 @@ export const TermsOfServiceModal: React.FC<TermsOfServiceModalProps> = ({
             </section>
 
             {/* Clause 2 */}
-            <section className="space-y-1.5 pb-4 border-b border-[var(--border-structural)]">
+            <section className="space-y-1.5 pb-4 border-b border-white/[0.07]">
               <h3 className="text-sm font-medium text-[var(--text-main)]">
                 {isKr ? '제2조 (용어의 정의)' : 'Article 2 (Definitions)'}
               </h3>
@@ -104,7 +104,7 @@ export const TermsOfServiceModal: React.FC<TermsOfServiceModalProps> = ({
             </section>
 
             {/* Clause 3 */}
-            <section className="space-y-1.5 pb-4 border-b border-[var(--border-structural)]">
+            <section className="space-y-1.5 pb-4 border-b border-white/[0.07]">
               <h3 className="text-sm font-medium text-[var(--text-main)]">
                 {isKr ? '제3조 (데이터의 관리 및 책임)' : 'Article 3 (Data Custody & Responsibility)'}
               </h3>
@@ -119,7 +119,7 @@ export const TermsOfServiceModal: React.FC<TermsOfServiceModalProps> = ({
             </section>
 
             {/* Clause 4 */}
-            <section className="space-y-1.5 pb-4 border-b border-[var(--border-structural)]">
+            <section className="space-y-1.5 pb-4 border-b border-white/[0.07]">
               <h3 className="text-sm font-medium text-[var(--text-main)]">
                 {isKr ? '제4조 (외부 API 이용 및 비용)' : 'Article 4 (API Operations & Costs)'}
               </h3>
@@ -147,7 +147,7 @@ export const TermsOfServiceModal: React.FC<TermsOfServiceModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3.5 bg-[var(--bg-surface)]/90 border-t border-[var(--border-structural)] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="px-5 py-3.5 bg-[var(--bg-surface)]/90 border-t border-white/[0.07] flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-xs text-[var(--text-tertiary)] font-mono">
             {isKr ? '개정 시행일: 2026년 9월 9일' : 'Effective Date: September 9, 2026'}
           </div>

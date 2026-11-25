@@ -91,7 +91,7 @@ export const CustomSelectDropdown: React.FC<CustomSelectDropdownProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`bg-[var(--bg-surface)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] rounded-md px-3 py-1.5 text-xs text-[var(--text-main)] flex items-center justify-between transition-colors cursor-pointer w-full focus:outline-none ${buttonClassName}`}
+        className={`bg-[var(--bg-surface)] border border-white/[0.07] hover:border-white/[0.14] rounded-md px-3 py-1.5 text-xs text-[var(--text-main)] flex items-center justify-between transition-colors cursor-pointer w-full focus:outline-none ${buttonClassName}`}
       >
         <span className="truncate font-normal leading-normal">{selectedLabel}</span>
         <ChevronDown
@@ -106,11 +106,11 @@ export const CustomSelectDropdown: React.FC<CustomSelectDropdownProps> = ({
         <div
           className={`absolute ${
             openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-          } left-0 w-full min-w-[200px] max-h-60 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-2xl shadow-[var(--rim-glow)] cyber-rim-top p-1 z-50 overflow-y-auto ${menuClassName}`}
+          } left-0 w-full min-w-[200px] max-h-60 bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] p-1 z-50 overflow-y-auto ${menuClassName}`}
         >
           {groups && groups.length > 0 ? (
             groups.map((group, gIdx) => (
-              <div key={gIdx} className={gIdx > 0 ? 'mt-1 pt-1 border-t border-[var(--border-structural)]' : ''}>
+              <div key={gIdx} className={gIdx > 0 ? 'mt-1 pt-1 border-t border-white/[0.07]' : ''}>
                 {group.label && (
                   <div className="px-2.5 py-1 text-[10px] text-[var(--text-tertiary)] font-medium select-none">
                     {group.label}

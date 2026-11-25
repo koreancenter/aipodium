@@ -363,7 +363,7 @@ ${
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] p-2 rounded shadow-[var(--rim-glow)] cyber-rim-top text-xs font-mono">
+        <div className="bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] p-2 rounded shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] text-xs font-mono">
           <div className="text-[var(--text-main)] font-semibold">{data.name}</div>
           <div className="text-[var(--accent-primary)] mt-0.5">
             {t.conformanceRate}: {data.score}%
@@ -384,9 +384,9 @@ ${
   };
 
   return (
-    <div className="relative flex flex-col h-full bg-[var(--bg-surface)] border-l border-[var(--border-luminous)] w-88 md:w-96 shrink-0 shadow-[var(--rim-glow)] cyber-rim-top z-30 select-none text-[var(--text-muted)]">
+    <div className="relative flex flex-col h-full bg-[var(--bg-surface)] border-l border-white/[0.08] w-88 md:w-96 shrink-0 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] z-30 select-none text-[var(--text-muted)]">
       {/* Header */}
-      <div className="px-5 py-4 bg-[var(--bg-surface)] border-b border-[var(--border-structural)] flex items-center justify-between shrink-0">
+      <div className="px-5 py-4 bg-[var(--bg-surface)] border-b border-white/[0.07] flex items-center justify-between shrink-0">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-medium text-[var(--text-main)] flex items-center gap-1.5">
@@ -405,7 +405,7 @@ ${
           <button
             type="button"
             onClick={handleCopyReport}
-            className="px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] rounded-md transition flex items-center gap-1 text-xs border border-[var(--border-structural)] hover:border-[var(--border-luminous)] cursor-pointer"
+            className="px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] rounded-md transition flex items-center gap-1 text-xs border border-white/[0.07] hover:border-white/[0.14] cursor-pointer"
             title={t.copyReportTitle}
           >
             <Copy className="w-3.5 h-3.5" />
@@ -414,7 +414,7 @@ ${
           <button
             type="button"
             onClick={handleExportCsv}
-            className="px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] rounded-md transition flex items-center gap-1 text-xs border border-[var(--border-structural)] hover:border-[var(--border-luminous)] cursor-pointer"
+            className="px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] rounded-md transition flex items-center gap-1 text-xs border border-white/[0.07] hover:border-white/[0.14] cursor-pointer"
             title={t.exportReportTitle}
           >
             <Download className="w-3.5 h-3.5" />

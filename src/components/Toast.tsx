@@ -16,7 +16,7 @@ export function Toast({ toast, onClose }: ToastProps) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 12, scale: 0.95 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="fixed bottom-6 right-6 z-[9999] flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl shadow-[var(--rim-glow)] backdrop-blur-md border border-[var(--border-luminous)] bg-[var(--bg-elevated)]/95 cyber-rim-top text-[var(--text-main)] text-xs font-medium max-w-md season-shell"
+          className="fixed bottom-6 right-6 z-[9999] flex items-center gap-3 px-4 py-3 rounded-lg shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] backdrop-blur-xl border border-white/[0.08] bg-[var(--bg-elevated)]/95 text-[var(--text-main)] text-xs font-medium max-w-md season-shell"
         >
           {toast.type === 'error' ? (
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />

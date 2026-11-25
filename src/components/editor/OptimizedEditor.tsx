@@ -2142,10 +2142,10 @@ ${targetText}
     <div
       id="slash-autocomplete-menu"
       style={{ top: `${slashPosition.top}px`, left: `${slashPosition.left}px` }}
-      className="absolute z-50 w-72 max-h-72 flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-[var(--rim-glow)] cyber-rim-top p-1.5 text-xs text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
+      className="absolute z-50 w-72 max-h-72 flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] p-1.5 text-xs text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
       onMouseDown={(e) => e.preventDefault()} // Prevent textarea blur on click
     >
-      <div className="shrink-0 px-2 py-1 mb-1 border-b border-[var(--border-structural)] flex items-center justify-between text-[0.625rem] text-[var(--text-muted)] font-medium tracking-wider">
+      <div className="shrink-0 px-2 py-1 mb-1 border-b border-white/[0.07] flex items-center justify-between text-[0.625rem] text-[var(--text-muted)] font-medium tracking-wider">
         <span className="flex items-center gap-1 text-[var(--accent-primary)]">
           <Sparkles className="w-3 h-3 text-[var(--accent-primary)]" />
           {et.menuTitle}

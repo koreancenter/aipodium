@@ -198,7 +198,7 @@ export const TableFloatingBubbleMenu: React.FC<TableFloatingBubbleMenuProps> = (
           e.preventDefault();
         }
       }}
-      className="absolute z-50 flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl p-1.5 text-xs text-[var(--text-main)] select-none shadow-[var(--rim-glow)] cyber-rim-top animate-in fade-in duration-100 max-w-[calc(100%-24px)] season-shell"
+      className="absolute z-50 flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl p-1.5 text-xs text-[var(--text-main)] select-none shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] animate-in fade-in duration-100 max-w-[calc(100%-24px)] season-shell"
     >
       {/* 1. Primary Compact Toolbar Row */}
       <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">

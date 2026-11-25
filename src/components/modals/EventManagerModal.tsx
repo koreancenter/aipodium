@@ -68,9 +68,9 @@ export const EventManagerModal: React.FC<EventManagerModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-[var(--bg-main)]/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl max-w-2xl w-full p-5 shadow-2xl shadow-[var(--rim-glow)] cyber-rim-top space-y-4 animate-in fade-in zoom-in-95 duration-100 max-h-[90vh] flex flex-col font-sans">
+      <div className="bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl max-w-2xl w-full p-5 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] space-y-4 animate-in fade-in zoom-in-95 duration-100 max-h-[90vh] flex flex-col font-sans">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--border-structural)] pb-3">
+        <div className="flex items-center justify-between border-b border-white/[0.07] pb-3">
           <div className="flex items-center gap-2.5">
             <CalendarDays className="w-5 h-5 text-[var(--accent-primary)]" />
             <div>
@@ -91,7 +91,7 @@ export const EventManagerModal: React.FC<EventManagerModalProps> = ({
         </div>
 
         {/* Quick Actions Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-[var(--bg-surface)] p-2.5 rounded-lg border border-[var(--border-structural)]">
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-[var(--bg-surface)] p-2.5 rounded-lg border border-white/[0.07]">
           <div className="flex items-center gap-1.5">
             <button
               type="button"
@@ -112,7 +112,7 @@ export const EventManagerModal: React.FC<EventManagerModalProps> = ({
             <button
               type="button"
               onClick={onExportEventsToEditor}
-              className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs font-medium transition flex items-center gap-1.5 border border-[var(--border-structural)] cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs font-medium transition flex items-center gap-1.5 border border-white/[0.07] cursor-pointer"
               title="에디터에 마크다운 일정표로 삽입"
             >
               <FileText className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
@@ -121,7 +121,7 @@ export const EventManagerModal: React.FC<EventManagerModalProps> = ({
             <button
               type="button"
               onClick={onExportEventsIcs}
-              className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs font-medium transition flex items-center gap-1.5 border border-[var(--border-structural)] cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs font-medium transition flex items-center gap-1.5 border border-white/[0.07] cursor-pointer"
               title="캘린더 파일 다운로드"
             >
               <Download className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
@@ -131,7 +131,7 @@ export const EventManagerModal: React.FC<EventManagerModalProps> = ({
         </div>
 
         {/* Add Event Form */}
-        <div className="bg-[var(--bg-surface)] p-3.5 rounded-lg border border-[var(--border-structural)] space-y-2.5">
+        <div className="bg-[var(--bg-surface)] p-3.5 rounded-lg border border-white/[0.07] space-y-2.5">
           <div className="text-[0.6875rem] font-semibold text-[var(--text-main)] flex items-center gap-1.5">
             <CalendarPlus className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
             <span>새 일정 및 마일스톤 추가</span>
@@ -143,18 +143,18 @@ export const EventManagerModal: React.FC<EventManagerModalProps> = ({
               onChange={(e) => onNewEventTitleChange(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') onAddEvent(); }}
               placeholder="일정 또는 마일스톤 명칭 입력..."
-              className="sm:col-span-5 bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-main)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--border-luminous)]"
+              className="sm:col-span-5 bg-[var(--bg-editor)] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-main)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[rgba(var(--accent-rgb),0.45)]"
             />
             <input
               type="date"
               value={newEventDate}
               onChange={(e) => onNewEventDateChange(e.target.value)}
-              className="sm:col-span-3 bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--border-luminous)] font-mono"
+              className="sm:col-span-3 bg-[var(--bg-editor)] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:border-[rgba(var(--accent-rgb),0.45)] font-mono"
             />
             <select
               value={newEventType}
               onChange={(e) => onNewEventTypeChange(e.target.value as any)}
-              className="sm:col-span-2 bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--border-luminous)] cursor-pointer"
+              className="sm:col-span-2 bg-[var(--bg-editor)] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:border-[rgba(var(--accent-rgb),0.45)] cursor-pointer"
             >
               <option value="task">작업</option>
               <option value="milestone">마일스톤</option>
@@ -164,7 +164,7 @@ export const EventManagerModal: React.FC<EventManagerModalProps> = ({
             <select
               value={newEventPriority}
               onChange={(e) => onNewEventPriorityChange(e.target.value as any)}
-              className="sm:col-span-2 bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-lg px-2 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--border-luminous)] cursor-pointer"
+              className="sm:col-span-2 bg-[var(--bg-editor)] border border-white/[0.07] rounded-lg px-2 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:border-[rgba(var(--accent-rgb),0.45)] cursor-pointer"
             >
               <option value="high">높음</option>
               <option value="medium">보통</option>
@@ -178,7 +178,7 @@ export const EventManagerModal: React.FC<EventManagerModalProps> = ({
               onChange={(e) => onNewEventNotesChange(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') onAddEvent(); }}
               placeholder="상세 메모 또는 설명 (선택사항)..."
-              className="flex-1 bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-main)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--border-luminous)]"
+              className="flex-1 bg-[var(--bg-editor)] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-main)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[rgba(var(--accent-rgb),0.45)]"
             />
             <button
               type="button"
@@ -192,7 +192,7 @@ export const EventManagerModal: React.FC<EventManagerModalProps> = ({
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex items-center justify-between text-xs border-b border-[var(--border-structural)] pb-1.5">
+        <div className="flex items-center justify-between text-xs border-b border-white/[0.07] pb-1.5">
           <div className="flex items-center gap-1">
             {(['all', 'milestone', 'task', 'meeting', 'deadline'] as const).map((filterKey) => (
               <button

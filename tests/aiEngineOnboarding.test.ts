@@ -154,13 +154,14 @@ test('AiEngineOnboardingModal UI conforms to luxury minimalism principles', asyn
     'utf-8'
   );
 
-  // 1. Container specifies clean flat dark theme styling with cyber-luxury tokens
-  assert.match(modalContent, /max-w-md w-full bg-\[var\(--bg-elevated\)\]\/95 backdrop-blur-md border border-\[var\(--border-luminous\)\] rounded-xl p-5 shadow-\[var\(--rim-glow\)\] cyber-rim-top flex flex-col justify-between text-left/);
+  // 1. Container specifies calm matte obsidian glass surface synced to Four Seasons variables
+  assert.match(modalContent, /max-w-\[420px\] w-full bg-\[var\(--bg-elevated\)\]\/95 backdrop-blur-xl border border-white\/\[0\.08\] rounded-2xl p-6 shadow-\[0_24px_48px_-12px_rgba\(0,0,0,0\.85\)\]/);
 
   // 2. Subtitle under header is removed
   assert.equal(modalContent.includes('작업 환경에 맞는 AI 모델 엔진을 선택합니다'), false);
 
-  // 3. Option titles are present without clutter descriptions
+  // 3. Borderless unified option list with clean titles and monochrome tags
+  assert.match(modalContent, /rounded-xl bg-white\/\[0\.02\] border border-white\/\[0\.06\] divide-y divide-white\/\[0\.05\] overflow-hidden/);
   assert.match(modalContent, /클라우드 API · Gemini \/ OpenAI/);
   assert.match(modalContent, /로컬 AI · Ollama/);
   assert.match(modalContent, /브라우저 내장 WebLLM/);
@@ -173,7 +174,22 @@ test('AiEngineOnboardingModal UI conforms to luxury minimalism principles', asyn
   assert.equal(modalContent.includes('설정 저장 후 시작하기'), false);
 
   // 5. Dedicated fixed height configuration slot to stop layout jitter
-  assert.match(modalContent, /min-h-\[56px\] h-\[56px\] flex items-center mb-4/);
+  assert.match(modalContent, /min-h-\[52px\] h-\[52px\] flex items-center/);
   assert.match(modalContent, /http:\/\/localhost:11434/);
   assert.match(modalContent, /연결 확인/);
+
+  // 6. Deferred WebLLM download: handleSelectOption only updates state; handleSubmit triggers download
+  const selectFnMatch = modalContent.match(/const handleSelectOption =[\s\S]*?\n  \};/);
+  assert.ok(selectFnMatch, 'handleSelectOption must exist');
+  assert.equal(selectFnMatch[0].includes('onStartWebLlmDownload'), false, 'handleSelectOption must not trigger onStartWebLlmDownload');
+  assert.equal(selectFnMatch[0].includes('checkAvailability'), false, 'handleSelectOption must not invoke checkAvailability');
+
+  const submitFnMatch = modalContent.match(/const handleSubmit =[\s\S]*?\n  \};/);
+  assert.ok(submitFnMatch, 'handleSubmit must exist');
+  assert.match(submitFnMatch[0], /selectedOption === 'webllm' && onStartWebLlmDownload/);
+  assert.match(submitFnMatch[0], /onStartWebLlmDownload\(\)/);
+
+  const skipFnMatch = modalContent.match(/const handleSkip =[\s\S]*?\n  \};/);
+  assert.ok(skipFnMatch, 'handleSkip must exist');
+  assert.equal(skipFnMatch[0].includes('onStartWebLlmDownload'), false, 'handleSkip must not start WebLLM download');
 });

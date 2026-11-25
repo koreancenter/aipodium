@@ -581,7 +581,7 @@ export const TiptapWysiwygEditor = memo(
           {/* Contextual Table Floating Helper (only shown when user cursor is inside a table) */}
           {isTableActive && (
             <div
-              className="sticky top-2 z-20 mx-auto px-3 py-1 rounded-xl bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] shadow-[var(--rim-glow)] cyber-rim-top flex items-center gap-1.5 select-none shrink-0 text-xs animate-in fade-in"
+              className="sticky top-2 z-20 mx-auto px-3 py-1 rounded-xl bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] shadow-[0_12px_28px_-8px_rgba(0,0,0,0.8)] flex items-center gap-1.5 select-none shrink-0 text-xs animate-in fade-in"
             >
               <span className="text-[0.6875rem] text-[var(--accent-primary)] font-medium mr-1 flex items-center gap-1">
                 <TableIcon className="w-3.5 h-3.5" /> {tt.tableEdit}

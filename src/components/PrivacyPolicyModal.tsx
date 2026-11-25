@@ -23,11 +23,11 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
       aria-modal="true"
       aria-labelledby="privacy-title"
     >
-      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-[var(--rim-glow)] cyber-rim-top flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-[var(--text-main)] font-sans">
+      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-[var(--text-main)] font-sans">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 bg-[var(--bg-surface)]/90 border-b border-[var(--border-structural)]">
+        <div className="flex items-center justify-between px-5 py-4 bg-[var(--bg-surface)]/90 border-b border-white/[0.07]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/25 flex items-center justify-center text-[var(--accent-primary)] shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent-primary)]/10 border border-white/[0.08] flex items-center justify-center text-[var(--accent-primary)] shrink-0">
               <ShieldCheck className="w-4.5 h-4.5" />
             </div>
             <div>
@@ -54,7 +54,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
         {/* Scrollable Content - Flattened Clean Document Layout */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5 text-xs text-[var(--text-muted)] leading-relaxed bg-[var(--bg-editor)]">
           {/* Policy Compact Banner */}
-          <div className="p-3 rounded-md bg-[var(--accent-primary)]/[0.06] border border-[var(--accent-primary)]/20 text-[var(--text-muted)] text-xs leading-relaxed flex items-start gap-2.5">
+          <div className="p-3 rounded-md bg-[var(--accent-primary)]/[0.06] border border-white/[0.07] text-[var(--text-muted)] text-xs leading-relaxed flex items-start gap-2.5">
             <ShieldCheck className="w-4 h-4 text-[var(--accent-primary)] shrink-0 mt-0.5" />
             <div>
               <strong className="block text-[var(--text-main)] font-medium mb-0.5">
@@ -77,7 +77,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
           {/* Clauses: Pure Flattened Document Sections without Box-in-Box */}
           <div className="space-y-5 pt-1">
             {/* Section 1 */}
-            <section className="space-y-1.5 pb-4 border-b border-[var(--border-structural)]">
+            <section className="space-y-1.5 pb-4 border-b border-white/[0.07]">
               <h3 className="text-sm font-medium text-[var(--text-main)]">
                 {isKr ? '1. 개인정보의 수집 및 이용 목적' : '1. Purposes of Processing'}
               </h3>
@@ -89,7 +89,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
             </section>
 
             {/* Section 2 */}
-            <section className="space-y-1.5 pb-4 border-b border-[var(--border-structural)]">
+            <section className="space-y-1.5 pb-4 border-b border-white/[0.07]">
               <h3 className="text-sm font-medium text-[var(--text-main)]">
                 {isKr ? '2. 수집하는 개인정보 항목 및 수집 방법' : '2. Items Collected and Storage Location'}
               </h3>
@@ -108,7 +108,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
             </section>
 
             {/* Section 3 */}
-            <section className="space-y-1.5 pb-4 border-b border-[var(--border-structural)]">
+            <section className="space-y-1.5 pb-4 border-b border-white/[0.07]">
               <h3 className="text-sm font-medium text-[var(--text-main)]">
                 {isKr ? '3. 개인정보의 보유 및 이용 기간' : '3. Retention and Disposal'}
               </h3>
@@ -120,7 +120,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
             </section>
 
             {/* Section 4 */}
-            <section className="space-y-1.5 pb-4 border-b border-[var(--border-structural)]">
+            <section className="space-y-1.5 pb-4 border-b border-white/[0.07]">
               <h3 className="text-sm font-medium text-[var(--text-main)]">
                 {isKr ? '4. 제3자 제공 및 처리위탁' : '4. Third-Party Sharing & Transfers'}
               </h3>
@@ -146,7 +146,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3.5 bg-[var(--bg-surface)]/90 border-t border-[var(--border-structural)] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="px-5 py-3.5 bg-[var(--bg-surface)]/90 border-t border-white/[0.07] flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-xs text-[var(--text-tertiary)] font-mono">
             {isKr ? '개정 시행일: 2026년 9월 9일' : 'Effective: September 9, 2026'}
           </div>

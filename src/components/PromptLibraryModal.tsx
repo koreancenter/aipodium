@@ -150,15 +150,15 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.98, y: 6 }}
           transition={{ duration: 0.15 }}
-          className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-[var(--rim-glow)] cyber-rim-top w-full max-w-xl h-[520px] max-h-[88vh] flex flex-col overflow-hidden text-[var(--text-muted)] font-sans"
+          className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] w-full max-w-xl h-[520px] max-h-[88vh] flex flex-col overflow-hidden text-[var(--text-muted)] font-sans"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b border-[var(--border-structural)] bg-[var(--bg-surface)] flex items-center justify-between shrink-0">
+          <div className="px-6 py-4 border-b border-white/[0.07] bg-[var(--bg-surface)] flex items-center justify-between shrink-0">
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-medium text-[var(--text-main)]">프롬프트 관리</h2>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-[var(--text-muted)] border border-[var(--border-structural)]">
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-[var(--text-muted)] border border-white/[0.07]">
                   {activePrompts.length}개 저장됨
                 </span>
               </div>

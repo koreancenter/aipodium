@@ -133,12 +133,12 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[var(--bg-main)]/80 backdrop-blur-sm animate-in fade-in duration-150">
         <div
-          className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-[var(--rim-glow)] cyber-rim-top flex flex-col w-full max-w-5xl h-[88vh] overflow-hidden text-[var(--text-muted)]"
+          className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] flex flex-col w-full max-w-5xl h-[88vh] overflow-hidden text-[var(--text-muted)]"
           role="dialog"
           aria-modal="true"
         >
           {/* Top Bar Header */}
-          <div className="flex items-center justify-between px-6 py-4 bg-[var(--bg-surface)] border-b border-[var(--border-structural)]">
+          <div className="flex items-center justify-between px-6 py-4 bg-[var(--bg-surface)] border-b border-white/[0.07]">
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-medium text-[var(--text-main)]">

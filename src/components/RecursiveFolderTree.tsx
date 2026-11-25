@@ -77,7 +77,7 @@ export const InlineRenameInput: React.FC<{
       onKeyDown={handleKeyDown}
       onBlur={() => onCommit(val)}
       onClick={(e) => e.stopPropagation()}
-      className="bg-[var(--bg-editor)] border border-[var(--border-luminous)] rounded px-1.5 py-0.5 text-xs text-[var(--text-main)] outline-none ring-1 ring-[var(--accent-primary)]/40 min-w-0 w-full font-sans z-10"
+      className="bg-[var(--bg-editor)] border border-[rgba(var(--accent-rgb),0.45)] rounded px-1.5 py-0.5 text-xs text-[var(--text-main)] outline-none min-w-0 w-full font-sans z-10"
     />
   );
 };
@@ -219,7 +219,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
           }}
           className={`group flex items-center justify-between px-2 h-[26px] cursor-pointer transition-colors rounded-md ${
             isSubfolderFocused
-              ? 'bg-white/[0.08] text-[var(--text-main)] border border-[var(--border-luminous)] font-medium'
+              ? 'bg-white/[0.08] text-[var(--text-main)] border border-[var(--accent-primary)]/50 font-medium'
               : 'text-[var(--text-secondary)] hover:bg-white/[0.04] hover:text-[var(--text-main)]'
           }`}
           style={{ paddingLeft: `${Math.max(level * 10, 8)}px` }}
@@ -310,7 +310,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
         <div
           className={
             !isLevelZero
-              ? 'relative pl-2.5 before:absolute before:left-[14px] before:top-0 before:bottom-1 before:w-[1px] before:bg-[var(--border-structural)]'
+              ? 'relative pl-2.5 before:absolute before:left-[14px] before:top-0 before:bottom-1 before:w-[1px] before:bg-white/[0.07]'
               : ''
           }
         >
@@ -385,7 +385,7 @@ export const RecursiveFolderTree: React.FC<RecursiveFolderTreeProps> = ({
                   isDraggingFile
                     ? 'opacity-40 bg-white/[0.04]'
                     : isFocused
-                    ? 'bg-white/[0.08] text-[var(--text-main)] border border-[var(--border-luminous)] font-medium'
+                    ? 'bg-white/[0.08] text-[var(--text-main)] border border-[var(--accent-primary)]/50 font-medium'
                     : isSelectedFile
                     ? 'bg-white/[0.06] text-[var(--text-main)] font-medium'
                     : 'text-[var(--text-secondary)] hover:bg-white/[0.04] hover:text-[var(--text-main)]'

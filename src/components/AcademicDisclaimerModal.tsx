@@ -23,9 +23,9 @@ export const AcademicDisclaimerModal: React.FC<AcademicDisclaimerModalProps> = (
       aria-modal="true"
       aria-labelledby="disclaimer-title"
     >
-      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-[var(--rim-glow)] cyber-rim-top flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-[var(--text-main)] font-sans">
+      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] flex flex-col w-full max-w-2xl max-h-[86vh] overflow-hidden text-[var(--text-main)] font-sans">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 bg-[var(--bg-surface)]/90 border-b border-[var(--border-structural)]">
+        <div className="flex items-center justify-between px-5 py-4 bg-[var(--bg-surface)]/90 border-b border-white/[0.07]">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 shrink-0">
               <ShieldAlert className="w-4.5 h-4.5" />
@@ -71,7 +71,7 @@ export const AcademicDisclaimerModal: React.FC<AcademicDisclaimerModalProps> = (
           {/* Core Clauses: Pure Flattened Document Sections */}
           <div className="space-y-5 pt-1">
             {/* Core Section 1: Local Data Loss Policy */}
-            <section className="space-y-1.5 pb-4 border-b border-[var(--border-structural)]">
+            <section className="space-y-1.5 pb-4 border-b border-white/[0.07]">
               <h3 className="text-sm font-medium text-[var(--text-main)]">
                 {isKr ? '1. 데이터 보관 및 백업 책임' : '1. Local Data Ownership & Backup'}
               </h3>
@@ -83,7 +83,7 @@ export const AcademicDisclaimerModal: React.FC<AcademicDisclaimerModalProps> = (
             </section>
 
             {/* Core Section 2: AI Accuracy & Hallucination Disclaimer */}
-            <section className="space-y-1.5 pb-4 border-b border-[var(--border-structural)]">
+            <section className="space-y-1.5 pb-4 border-b border-white/[0.07]">
               <h3 className="text-sm font-medium text-[var(--text-main)]">
                 {isKr ? '2. AI 답변의 학술적 검증' : '2. Academic Verification & AI Accuracy'}
               </h3>
@@ -95,7 +95,7 @@ export const AcademicDisclaimerModal: React.FC<AcademicDisclaimerModalProps> = (
             </section>
 
             {/* Core Section 3: BYOK & API Billing Responsibility */}
-            <section className="space-y-1.5 pb-4 border-b border-[var(--border-structural)]">
+            <section className="space-y-1.5 pb-4 border-b border-white/[0.07]">
               <h3 className="text-sm font-medium text-[var(--text-main)]">
                 {isKr ? '3. 개인 API 키 관리 및 과금' : '3. Custom API Key & Costs'}
               </h3>
@@ -121,7 +121,7 @@ export const AcademicDisclaimerModal: React.FC<AcademicDisclaimerModalProps> = (
         </div>
 
         {/* Footer with Explicit Agreement Button */}
-        <div className="px-5 py-3.5 bg-[var(--bg-surface)]/90 border-t border-[var(--border-structural)] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="px-5 py-3.5 bg-[var(--bg-surface)]/90 border-t border-white/[0.07] flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-xs text-[var(--text-tertiary)] font-mono">
             {isKr ? '최신 개정일: 2026년 9월 · 베타 v1.0' : 'Last Updated: September 2026 · Beta v1.0'}
           </div>

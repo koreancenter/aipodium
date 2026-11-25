@@ -579,7 +579,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
                               }}
                               className="w-full max-w-[20px] rounded-t-sm transition-all duration-300 relative group/bar hover:opacity-90 cursor-pointer shadow-md"
                             >
-                              <div className="opacity-0 group-hover/bar:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-[var(--bg-elevated)] text-[var(--text-main)] text-[0.625rem] px-1.5 py-0.5 rounded shadow-[var(--rim-glow)] border border-[var(--border-luminous)] whitespace-nowrap pointer-events-none z-30 font-mono">
+                              <div className="opacity-0 group-hover/bar:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-[var(--bg-elevated)] text-[var(--text-main)] text-[0.625rem] px-1.5 py-0.5 rounded shadow-[0_8px_20px_-6px_rgba(0,0,0,0.8)] border border-white/[0.08] whitespace-nowrap pointer-events-none z-30 font-mono">
                                 {s.name}: {val.toLocaleString()}
                               </div>
                             </div>

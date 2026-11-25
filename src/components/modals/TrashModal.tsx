@@ -23,8 +23,8 @@ export const TrashModal: React.FC<TrashModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-[var(--bg-main)]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl max-w-lg w-full p-5 shadow-2xl shadow-[var(--rim-glow)] cyber-rim-top flex flex-col max-h-[80vh] space-y-4 font-sans">
-        <div className="flex items-center justify-between pb-3 border-b border-[var(--border-structural)]">
+      <div className="bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl max-w-lg w-full p-5 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] flex flex-col max-h-[80vh] space-y-4 font-sans">
+        <div className="flex items-center justify-between pb-3 border-b border-white/[0.07]">
           <div className="flex items-center gap-2">
             <Trash2 className="w-4 h-4 text-rose-400" />
             <h3 className="text-sm font-semibold text-[var(--text-main)]">휴지통</h3>

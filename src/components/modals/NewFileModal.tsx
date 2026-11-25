@@ -32,7 +32,7 @@ export const NewFileModal: React.FC<NewFileModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl max-w-md w-full p-6 shadow-2xl shadow-[var(--rim-glow)] cyber-rim-top space-y-5 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans"
+        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl max-w-md w-full p-6 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] space-y-5 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -61,7 +61,7 @@ export const NewFileModal: React.FC<NewFileModalProps> = ({
               value={fileNameInput}
               onChange={(e) => onFileNameChange(e.target.value)}
               placeholder="예: design_specs.md, meeting_notes.md"
-              className="w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-lg px-3 py-2 text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--border-luminous)] focus:ring-1 focus:ring-[var(--accent-primary)]/30 transition placeholder-[var(--text-tertiary)]"
+              className="w-full bg-[var(--bg-surface)] border border-white/[0.07] rounded-lg px-3 py-2 text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[rgba(var(--accent-rgb),0.45)] transition placeholder-[var(--text-tertiary)]"
               autoFocus
             />
           </div>
@@ -74,7 +74,7 @@ export const NewFileModal: React.FC<NewFileModalProps> = ({
             <select
               value={folderTarget}
               onChange={(e) => onFolderTargetChange(e.target.value)}
-              className="w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-lg px-3 py-2 text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--border-luminous)] focus:ring-1 focus:ring-[var(--accent-primary)]/30 transition font-sans cursor-pointer"
+              className="w-full bg-[var(--bg-surface)] border border-white/[0.07] rounded-lg px-3 py-2 text-xs text-[var(--text-main)] focus:outline-none focus:border-[rgba(var(--accent-rgb),0.45)] transition font-sans cursor-pointer"
             >
               {sessions.map((s) => (
                 <option key={s.id} value={s.title} className="bg-[var(--bg-elevated)] text-[var(--text-main)]">
@@ -87,11 +87,11 @@ export const NewFileModal: React.FC<NewFileModalProps> = ({
             </select>
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[var(--border-structural)]">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/[0.07]">
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 rounded-lg text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] transition cursor-pointer"
             >
               취소
             </button>

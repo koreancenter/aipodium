@@ -601,7 +601,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
 
           {/* [Structural Change 3] Right Column (5 cols): Cool-Slate Elevated Card */}
           <div className="w-full max-w-[330px] sm:max-w-[360px] mx-auto lg:max-w-none lg:col-span-5 flex flex-col h-full">
-            <div className="w-full h-full bg-transparent border-0 rounded-none p-0 shadow-none lg:bg-[var(--bg-editor)] lg:border lg:border-[var(--border-luminous)] lg:rounded-3xl lg:p-7 xl:p-9 lg:shadow-2xl lg:shadow-[var(--rim-glow)] lg:cyber-rim-top flex flex-col justify-between relative overflow-visible lg:overflow-hidden">
+            <div className="w-full h-full bg-transparent border-0 rounded-none p-0 shadow-none lg:bg-[var(--bg-editor)] lg:border lg:border-white/[0.08] lg:rounded-3xl lg:p-7 xl:p-9 lg:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] flex flex-col justify-between relative overflow-visible lg:overflow-hidden">
               {/* Status Feedback Banners */}
               {errorMsg && (
                 <div className="mb-3 sm:mb-4 rounded-lg border border-rose-500/40 bg-rose-950/40 p-2.5 sm:p-3 text-xs text-rose-300 flex items-start gap-2.5">
@@ -1147,7 +1147,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticated }) => {
       {/* Emergency Security Reset Confirmation Modal */}
       {showPurgeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--bg-main)]/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-xl bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] p-5 space-y-4 shadow-2xl shadow-[var(--rim-glow)] cyber-rim-top">
+          <div className="w-full max-w-sm rounded-xl bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] p-5 space-y-4 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)]">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5" />

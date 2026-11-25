@@ -49,7 +49,7 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
     >
       <div
         id="google-account-modal-content"
-        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-[var(--rim-glow)] cyber-rim-top max-w-md w-full p-5 space-y-4 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans"
+        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] max-w-md w-full p-5 space-y-4 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Minimal Close Button */}
@@ -72,12 +72,12 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
         {user ? (
           <div className="space-y-3.5 text-xs">
             {/* User Profile Card */}
-            <div className="flex items-center gap-3 p-3 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md">
+            <div className="flex items-center gap-3 p-3 bg-[var(--bg-surface)] border border-white/[0.07] rounded-md">
               {user.picture ? (
                 <img
                   src={user.picture}
                   alt={user.name}
-                  className="w-10 h-10 rounded-full object-cover border border-[var(--accent-primary)]/30 shrink-0"
+                  className="w-10 h-10 rounded-full object-cover border border-white/[0.12] shrink-0"
                   referrerPolicy="no-referrer"
                 />
               ) : (
@@ -97,7 +97,7 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
             </div>
 
             {/* Storage Quota */}
-            <div className="p-3 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md space-y-2">
+            <div className="p-3 bg-[var(--bg-surface)] border border-white/[0.07] rounded-md space-y-2">
               <div className="flex items-center justify-between text-[var(--text-muted)]">
                 <span className="font-normal text-xs text-[var(--text-muted)]">
                   구글 드라이브 저장 공간
@@ -106,7 +106,7 @@ export const GoogleAccountModal: React.FC<GoogleAccountModalProps> = ({
                   {formatBytes(user.storageQuota?.usage)} / {formatBytes(user.storageQuota?.limit)} ({quotaPercent}%)
                 </span>
               </div>
-              <div className="w-full bg-[var(--bg-main)] h-1.5 rounded-full overflow-hidden border border-[var(--border-structural)]">
+              <div className="w-full bg-[var(--bg-main)] h-1.5 rounded-full overflow-hidden border border-white/[0.07]">
                 <div
                   className={`h-full transition-all duration-300 ${
                     quotaPercent > 90 ? 'bg-rose-500' : quotaPercent > 70 ? 'bg-amber-500' : 'bg-[var(--accent-primary)]'

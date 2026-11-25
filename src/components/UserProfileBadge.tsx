@@ -189,7 +189,7 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-6 h-6 flex items-center justify-center rounded-md bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] transition cursor-pointer group select-none shrink-0"
+        className="w-6 h-6 flex items-center justify-center rounded-md bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] hover:border-white/[0.14] transition cursor-pointer group select-none shrink-0"
         title={`${user.name || '게스트'} - ${user.email || '게스트 세션'}`}
       >
         {/* Avatar Square */}
@@ -212,19 +212,19 @@ export const UserProfileBadge: React.FC<UserProfileBadgeProps> = ({
 
       {/* Profile Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1.5 w-52 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl p-1.5 text-xs text-[var(--text-muted)] z-50 shadow-[var(--rim-glow)] cyber-rim-top">
+        <div className="absolute right-0 top-full mt-1.5 w-52 bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl p-1.5 text-xs text-[var(--text-muted)] z-50 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)]">
           
           {/* User Info Header */}
-          <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[var(--border-structural)]">
+          <div className="flex items-center gap-2 px-2 py-1.5 border-b border-white/[0.07]">
             {user.avatar ? (
               <img
                 src={user.avatar}
                 alt={user.name}
                 referrerPolicy="no-referrer"
-                className="w-5 h-5 rounded object-cover border border-[var(--border-structural)] shrink-0"
+                className="w-5 h-5 rounded object-cover border border-white/[0.07] shrink-0"
               />
             ) : (
-              <div className="w-5 h-5 rounded bg-[var(--bg-editor)] border border-[var(--border-structural)] text-[var(--text-main)] font-semibold flex items-center justify-center text-xs shrink-0">
+              <div className="w-5 h-5 rounded bg-[var(--bg-editor)] border border-white/[0.07] text-[var(--text-main)] font-semibold flex items-center justify-center text-xs shrink-0">
                 {initials}
               </div>
             )}

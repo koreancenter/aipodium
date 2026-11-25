@@ -283,15 +283,15 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
           left: `${coords.left}px`,
           maxWidth: 'min(480px, calc(100vw - 24px))'
         }}
-        className="w-[480px] max-h-[520px] flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-[var(--rim-glow)] cyber-rim-top z-[100000] text-[var(--text-main)] text-xs animate-in fade-in zoom-in-95 duration-100 overflow-hidden season-shell"
+        className="w-[480px] max-h-[520px] flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] z-[100000] text-[var(--text-main)] text-xs animate-in fade-in zoom-in-95 duration-100 overflow-hidden season-shell"
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-[var(--border-structural)] bg-[var(--bg-surface)]/80 shrink-0">
+        <div className="flex items-center justify-between p-3 border-b border-white/[0.07] bg-[var(--bg-surface)]/80 shrink-0">
           <div className="flex items-center gap-2 font-bold text-[var(--text-main)]">
-            <div className="w-6 h-6 rounded-md bg-white/[0.06] border border-[var(--border-structural)] flex items-center justify-center text-[var(--accent-primary)]">
+            <div className="w-6 h-6 rounded-md bg-white/[0.06] border border-white/[0.07] flex items-center justify-center text-[var(--accent-primary)]">
               <HelpCircle className="w-3.5 h-3.5" />
             </div>
             <div>
@@ -317,13 +317,13 @@ export const MarkdownHelpPopover: React.FC<MarkdownHelpPopoverProps> = ({
         </div>
 
         {/* Search Input */}
-        <div className="p-2 border-b border-[var(--border-structural)] bg-[var(--bg-editor)] shrink-0">
+        <div className="p-2 border-b border-white/[0.07] bg-[var(--bg-editor)] shrink-0">
           <input
             type="text"
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
             placeholder={t.searchPlaceholder}
-            className="w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md px-2.5 py-1 text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--border-luminous)] transition"
+            className="w-full bg-[var(--bg-surface)] border border-white/[0.07] rounded-md px-2.5 py-1 text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[rgba(var(--accent-rgb),0.45)] transition"
           />
         </div>
 

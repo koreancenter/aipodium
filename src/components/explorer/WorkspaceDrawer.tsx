@@ -323,8 +323,8 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
           isResizing ? 'transition-none' : 'transition-[width] duration-200 ease-out'
         } z-40 lg:z-10 ${
           isOpen
-            ? 'opacity-100 pointer-events-auto border-l border-[var(--border-structural)] lg:border-l-0 fixed lg:relative inset-y-0 right-0 shadow-2xl shadow-black/80 lg:shadow-none'
-            : 'relative w-10 shrink-0 bg-[var(--bg-surface)] border-l border-[var(--border-structural)] lg:border-l-0 flex flex-col items-center py-3 justify-between z-20 select-none transition-all duration-200'
+            ? 'opacity-100 pointer-events-auto border-l border-white/[0.07] lg:border-l-0 fixed lg:relative inset-y-0 right-0 shadow-2xl shadow-black/80 lg:shadow-none'
+            : 'relative w-10 shrink-0 bg-[var(--bg-surface)] border-l border-white/[0.07] lg:border-l-0 flex flex-col items-center py-3 justify-between z-20 select-none transition-all duration-200'
         } ${className}`}
         onDragOver={(e) => {
           if (e.dataTransfer.types.includes('Files')) {
@@ -361,7 +361,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
         ) : (
           <div style={{ width: `${width}px` }} className="max-w-full h-full flex flex-col min-h-0 overflow-hidden">
             {/* Explorer Header Toolbar (Row 1 - perfectly aligned with Editor Multi-Tab Bar & Chat Header) */}
-            <div className={`flex items-center justify-between h-[34px] pl-2 ${isMobile ? 'pr-2' : 'pr-9'} bg-[var(--bg-surface)] border-b border-[var(--border-structural)] shrink-0 text-[var(--text-secondary)] select-none`}>
+            <div className={`flex items-center justify-between h-[34px] pl-2 ${isMobile ? 'pr-2' : 'pr-9'} bg-[var(--bg-surface)] border-b border-white/[0.07] shrink-0 text-[var(--text-secondary)] select-none`}>
             <div className="flex items-center gap-1 shrink-0 ml-auto">
 
               {/* [📁+ New Folder] */}
@@ -446,7 +446,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
           </div>
 
           {/* Search Filter Bar (Row 2) */}
-          <div className="px-2 py-1.5 bg-[var(--bg-surface)] border-b border-[var(--border-structural)] shrink-0">
+          <div className="px-2 py-1.5 bg-[var(--bg-surface)] border-b border-white/[0.07] shrink-0">
             <div className="relative">
               <Search className="w-3 h-3 text-[var(--text-tertiary)] absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
@@ -454,7 +454,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                 value={activeSearchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder={t.searchPlaceholder}
-                className="w-full bg-[var(--bg-editor)] border border-[var(--border-structural)] focus:border-[var(--border-luminous)] rounded-md pl-6 pr-6 py-1 text-[0.6875rem] text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
+                className="w-full bg-[var(--bg-editor)] border border-white/[0.07] focus:border-[rgba(var(--accent-rgb),0.45)] rounded-md pl-6 pr-6 py-1 text-[0.6875rem] text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
               />
               {activeSearchQuery && (
                 <button
@@ -560,7 +560,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                     }}
                     className={`relative flex items-center justify-between px-2 h-7 cursor-pointer group transition-colors rounded-md ${
                       focusedTreeItemId === `session:${session.id}`
-                        ? 'bg-white/[0.08] text-[var(--text-main)] border border-[var(--border-luminous)] font-medium'
+                        ? 'bg-white/[0.08] text-[var(--text-main)] border border-[var(--accent-primary)]/50 font-medium'
                         : isCurrentActiveSession
                         ? 'bg-white/[0.06] text-[var(--text-main)] font-medium hover:bg-white/[0.08]'
                         : 'text-[var(--text-secondary)] hover:bg-white/[0.04] hover:text-[var(--text-main)]'
@@ -655,7 +655,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
 
                   {/* Nested Files / Subdirectories */}
                   {isFolderOpen && (
-                    <div className="relative pl-5 before:absolute before:left-3 before:top-0 before:bottom-1 before:w-[1px] before:bg-[var(--border-structural)]">
+                    <div className="relative pl-5 before:absolute before:left-3 before:top-0 before:bottom-1 before:w-[1px] before:bg-white/[0.07]">
                       {matchingFiles.length === 0 ? (
                         <div className="text-[0.6875rem] text-[var(--text-tertiary)] py-1 pl-3 font-mono select-none">
                           {t.noDocuments}
@@ -743,7 +743,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
               const guideTree = buildFileTreeFromPaths(guideFiles, '가이드 & 도움말');
 
               return (
-                <div className="mt-2 pt-2 border-t border-[var(--border-structural)] px-1">
+                <div className="mt-2 pt-2 border-t border-white/[0.07] px-1">
                   <div
                     id="tree-item-section:guide-help"
                     onClick={() => {
@@ -783,7 +783,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
                   </div>
 
                   {isHelpSectionOpen && (
-                    <div className="relative pl-5 before:absolute before:left-3 before:top-0 before:bottom-1 before:w-[1px] before:bg-[var(--border-structural)] py-0.5">
+                    <div className="relative pl-5 before:absolute before:left-3 before:top-0 before:bottom-1 before:w-[1px] before:bg-white/[0.07] py-0.5">
                       <RecursiveFolderTree
                         node={guideTree}
                         level={0}
@@ -862,7 +862,7 @@ export const WorkspaceDrawer: React.FC<WorkspaceDrawerProps> = ({
               const unassignedTree = buildFileTreeFromPaths(unassignedFiles, 'OTHER FILES');
 
               return (
-                <div className="mt-2 pt-2 border-t border-[var(--border-structural)]">
+                <div className="mt-2 pt-2 border-t border-white/[0.07]">
                   <div
                     onContextMenu={(e) => {
                       handleOpenContextMenu(e, {

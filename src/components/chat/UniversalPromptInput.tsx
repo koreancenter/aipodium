@@ -379,7 +379,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
   };
 
   return (
-    <div className={`bg-[var(--bg-surface)] season-shell border-t border-[var(--border-structural)] focus-within:border-[rgba(var(--accent-rgb),0.55)] cyber-rim-top flex flex-col relative shrink-0 overflow-visible ${className}`}>
+    <div className={`bg-[var(--bg-surface)] season-shell border-t border-white/[0.08] focus-within:border-[rgba(var(--accent-rgb),0.45)] flex flex-col relative shrink-0 overflow-visible ${className}`}>
       {/* Hidden File Input */}
       <input
         ref={fileInputRef}
@@ -396,11 +396,11 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
 
       {/* Attached Files List Pills */}
       {chatAttachments.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 px-3 pt-2 pb-1 border-b border-[var(--border-structural)] bg-[var(--bg-editor)]/60">
+        <div className="flex flex-wrap gap-1.5 px-3 pt-2 pb-1 border-b border-white/[0.07] bg-[var(--bg-editor)]/60">
           {chatAttachments.map((att) => (
             <div
               key={att.id}
-              className="group flex items-center gap-1.5 bg-[var(--bg-elevated)] border border-[var(--border-structural)] rounded-md px-2 py-0.5 text-[0.6875rem] text-[var(--text-main)] select-none"
+              className="group flex items-center gap-1.5 bg-[var(--bg-elevated)] border border-white/[0.07] rounded-md px-2 py-0.5 text-[0.6875rem] text-[var(--text-main)] select-none"
             >
               {att.isParsing ? (
                 <RotateCw className="w-3 h-3 text-[var(--accent-primary)] animate-spin shrink-0" />
@@ -436,7 +436,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
         return (
           <div
             id="editor-selection-context-bar"
-            className="mx-2.5 mt-2 flex flex-col gap-1.5 rounded-lg bg-[var(--bg-editor)] border border-[var(--border-luminous)] px-2.5 py-1.5 text-[0.6875rem] select-none"
+            className="mx-2.5 mt-2 flex flex-col gap-1.5 rounded-lg bg-[var(--bg-editor)] border border-white/[0.08] px-2.5 py-1.5 text-[0.6875rem] select-none"
           >
             <div className="flex items-center justify-between gap-2 min-w-0">
               <button
@@ -450,7 +450,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                   {t.selectionExcerpt(truncatedExcerpt)}
                 </span>
                 {editorSelection?.fileName && (
-                  <span className="text-[0.625rem] font-mono text-[var(--text-secondary)] truncate max-w-[110px] bg-[var(--bg-elevated)] border border-[var(--border-structural)] px-1.5 py-0.5 rounded shrink-0">
+                  <span className="text-[0.625rem] font-mono text-[var(--text-secondary)] truncate max-w-[110px] bg-[var(--bg-elevated)] border border-white/[0.07] px-1.5 py-0.5 rounded shrink-0">
                     {editorSelection.fileName}
                   </span>
                 )}
@@ -477,7 +477,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
               </div>
             </div>
             {isSelectionExpanded && (
-              <div className="max-h-24 overflow-y-auto custom-scrollbar bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md px-2.5 py-1.5 text-[0.6875rem] text-[var(--text-main)] whitespace-pre-wrap break-words font-sans leading-relaxed select-text">
+              <div className="max-h-24 overflow-y-auto custom-scrollbar bg-[var(--bg-surface)] border border-white/[0.07] rounded-md px-2.5 py-1.5 text-[0.6875rem] text-[var(--text-main)] whitespace-pre-wrap break-words font-sans leading-relaxed select-text">
                 {rawSelectionText}
               </div>
             )}
@@ -494,10 +494,10 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 6 }}
             transition={{ duration: 0.12 }}
-            className="absolute bottom-full left-3 mb-2 w-80 max-h-72 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] shadow-[var(--rim-glow)] cyber-rim-top rounded-xl z-50 flex flex-col overflow-hidden"
+            className="absolute bottom-full left-3 mb-2 w-80 max-h-72 bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] rounded-xl z-50 flex flex-col overflow-hidden"
           >
             {/* Header / Filter Chips */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-structural)] bg-[var(--bg-surface)]/60">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.07] bg-[var(--bg-surface)]/60">
               <span className="text-xs font-semibold text-[var(--text-main)] flex items-center gap-1.5">
                 <AtSign className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                 <span>{t.addReference}</span>
@@ -567,7 +567,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
       {/* Main Textarea Area (Dual-Pane Ghost Writer or Single Bottom-Flush Textarea) */}
       {ghostWriterLevel !== 'off' ? (
         <div className="flex flex-col">
-          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[var(--border-structural)] bg-transparent">
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/[0.07] bg-transparent">
             {/* Left: Native Korean Prompt Input */}
             <div className="flex flex-col px-3 py-2.5 relative bg-transparent">
               <textarea
@@ -718,7 +718,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
           </button>
 
           {/* Divider */}
-          <div className="h-3.5 w-[1px] bg-[var(--border-structural)] mx-0.5" />
+          <div className="h-3.5 w-[1px] bg-white/[0.07] mx-0.5" />
 
           {/* Inline Model Selector */}
           <InlineModelSelector
@@ -756,7 +756,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
                 onSetGhostUserInput?.(ghostTargetEnglish);
                 onToast(`✨ ${t.ghostWriterComplete}`);
               }}
-              className="px-1.5 py-0.5 rounded hover:bg-white/[0.06] text-[var(--accent-primary)] text-[0.625rem] font-mono flex items-center gap-1 transition cursor-pointer border border-[var(--border-structural)] hover:border-[var(--border-luminous)]"
+              className="px-1.5 py-0.5 rounded hover:bg-white/[0.06] text-[var(--accent-primary)] text-[0.625rem] font-mono flex items-center gap-1 transition cursor-pointer border border-white/[0.07] hover:border-white/[0.14]"
               title={t.completeAnswer}
             >
               <Sparkles className="w-2.5 h-2.5 text-[var(--accent-primary)]" />
@@ -798,7 +798,7 @@ export const UniversalPromptInput: React.FC<UniversalPromptInputProps> = ({
             }}
             className={`h-6 px-2.5 rounded-md transition flex items-center justify-center ${
               isAiLoading || chatAttachments.some((a) => a.isParsing) || (!chatInput.trim() && chatAttachments.length === 0)
-                ? 'bg-white/[0.04] text-[var(--text-muted)] border border-[var(--border-structural)] cursor-not-allowed'
+                ? 'bg-white/[0.04] text-[var(--text-muted)] border border-white/[0.07] cursor-not-allowed'
                 : 'bg-[#F1F5F9] hover:bg-white active:bg-slate-200 text-[#0F172A] cursor-pointer shadow-xs'
             }`}
             title={

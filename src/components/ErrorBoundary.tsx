@@ -39,7 +39,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="flex h-screen w-screen items-center justify-center bg-[var(--bg-main)] text-[var(--text-main)] p-6 font-sans">
-          <div className="relative max-w-md w-full rounded-xl bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] p-8 shadow-[var(--rim-glow)] cyber-rim-top space-y-6 text-center">
+          <div className="relative max-w-md w-full rounded-xl bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] p-8 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] space-y-6 text-center">
             <div className="w-14 h-14 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mx-auto flex items-center justify-center">
               <AlertTriangle className="w-7 h-7" />
             </div>
@@ -52,7 +52,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             </div>
 
             {this.state.error?.message && (
-              <div className="p-3 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-structural)] text-[0.6875rem] text-rose-300 font-mono text-left max-h-32 overflow-y-auto break-words">
+              <div className="p-3 rounded-lg bg-[var(--bg-surface)] border border-white/[0.07] text-[0.6875rem] text-rose-300 font-mono text-left max-h-32 overflow-y-auto break-words">
                 {this.state.error.message}
               </div>
             )}
@@ -61,7 +61,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
               <button
                 type="button"
                 onClick={this.handleReset}
-                className="px-4 py-2 rounded-lg text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] transition cursor-pointer"
+                className="px-4 py-2 rounded-lg text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-white/[0.07] hover:border-white/[0.14] transition cursor-pointer"
               >
                 다시 시도
               </button>

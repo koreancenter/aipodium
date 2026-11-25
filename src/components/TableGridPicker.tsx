@@ -106,13 +106,13 @@ export const TableGridPicker: React.FC<TableGridPickerProps> = ({
           top: `${coords.top}px`,
           left: `${coords.left}px`,
         }}
-        className="w-72 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-2xl shadow-[var(--rim-glow)] cyber-rim-top z-[100000] p-3 text-[var(--text-main)] text-xs animate-in fade-in zoom-in-95 duration-100 season-shell"
+        className="w-72 bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] z-[100000] p-3 text-[var(--text-main)] text-xs animate-in fade-in zoom-in-95 duration-100 season-shell"
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border-structural)]">
+        <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.07]">
           <div className="flex items-center gap-1.5 font-medium text-[var(--text-main)] whitespace-nowrap">
             <Table className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
             <span>표 삽입</span>

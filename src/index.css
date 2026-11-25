@@ -50,10 +50,10 @@ code::selection,
   --accent-primary: #38BDF8; /* Primary Accent (<3% of UI) */
   --accent-rgb: 56, 189, 248;
   --secondary-accent: #34D399;
-  --border-color: rgba(203, 213, 225, 0.14);
-  --border-structural: rgba(203, 213, 225, 0.14);
-  --border-luminous: rgba(var(--accent-rgb), 0.45);
-  --rim-glow: 0 0 16px -3px rgba(var(--accent-rgb), 0.32);
+  --border-color: rgba(255, 255, 255, 0.07);
+  --border-structural: rgba(255, 255, 255, 0.07);
+  --border-luminous: rgba(255, 255, 255, 0.14);
+  --rim-glow: none;
   --text-main: #F8FAFC;      /* Tier 1: Pure Luminous Off-White */
   --text-secondary: #E2E8F0; /* Tier 2: Crisp High-Readability Silver-White */
   --text-muted: #B4C0D3;     /* Tier 3: Clear Mid-High Slate */
@@ -82,8 +82,8 @@ code::selection,
   --accent-hover: #0EA5E9;
   --accent-color: var(--accent-primary);
   --accent-surface: rgba(var(--accent-rgb), 0.12);
-  --glow-accent: 0 0 14px -2px rgba(var(--accent-rgb), 0.3);
-  --glow-primary: 0 0 14px -2px rgba(var(--accent-rgb), 0.3);
+  --glow-accent: none;
+  --glow-primary: none;
 
   /* Editor Typography Scale */
   --editor-font-size: 13px;
@@ -267,7 +267,7 @@ body {
 
 .glass-card:hover {
   background: rgba(var(--bg-elevated-rgb, 26, 31, 43), 0.95);
-  border-color: var(--border-luminous, rgba(56, 189, 248, 0.45));
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 .editor-code-surface {
@@ -281,7 +281,7 @@ body {
 }
 
 /* ==========================================================================
-   Season-Synced Cyber-Luxury Line System Utilities
+   Obsidian Specular Edge & Active Indicator Utilities
    ========================================================================== */
 @layer components {
   .cyber-rim-top {
@@ -300,14 +300,14 @@ body {
     background: linear-gradient(
       90deg,
       transparent 5%,
-      rgba(var(--accent-rgb, 56, 189, 248), 0.65) 50%,
+      rgba(255, 255, 255, 0.12) 50%,
       transparent 95%
     );
   }
 
   .cyber-active-rail {
     background: var(--accent-primary, #38BDF8);
-    box-shadow: 0 0 10px rgba(var(--accent-rgb, 56, 189, 248), 0.6);
+    box-shadow: none;
   }
 }
 
@@ -359,7 +359,7 @@ body {
 }
 .btn-secondary:hover:not(:disabled) {
   background-color: rgba(255, 255, 255, 0.08);
-  border-color: var(--border-luminous, rgba(56, 189, 248, 0.45));
+  border-color: rgba(255, 255, 255, 0.2);
   color: var(--text-main, #FFFFFF);
 }
 .btn-secondary:disabled {

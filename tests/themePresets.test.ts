@@ -96,9 +96,9 @@ test('applyThemeToDocument applies all seasonal palettes, DOM datasets, meta the
     assert.equal(styleProps['--accent-primary'], palette.accentPrimary);
     assert.equal(styleProps['--accent-rgb'], palette.accentRgb);
     assert.equal(styleProps['--secondary-accent'], palette.secondaryAccent);
-    assert.equal(styleProps['--border-structural'], 'rgba(203, 213, 225, 0.14)');
-    assert.equal(styleProps['--border-luminous'], `rgba(${palette.accentRgb}, 0.45)`);
-    assert.equal(styleProps['--rim-glow'], `0 0 16px -3px rgba(${palette.accentRgb}, 0.32)`);
+    assert.equal(styleProps['--border-structural'], 'rgba(255, 255, 255, 0.07)');
+    assert.equal(styleProps['--border-luminous'], 'rgba(255, 255, 255, 0.14)');
+    assert.equal(styleProps['--rim-glow'], 'none');
     assert.equal((globalThis as any).document.body.style.background, palette.bgMain);
     assert.equal((globalThis as any).document.body.style.color, palette.textMain);
     assert.equal(metaTheme.content, palette.bgMain);

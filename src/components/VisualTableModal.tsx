@@ -172,13 +172,13 @@ export const VisualTableModal: React.FC<VisualTableModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-[var(--rim-glow)] cyber-rim-top w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-4 py-3 bg-[var(--bg-surface)] border-b border-[var(--border-structural)] flex items-center justify-between shrink-0">
+        <div className="px-4 py-3 bg-[var(--bg-surface)] border-b border-white/[0.07] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/30 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-md bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
               <TableIcon className="w-4 h-4 text-[var(--accent-primary)]" />
             </div>
             <div>

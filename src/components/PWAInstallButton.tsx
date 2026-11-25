@@ -46,7 +46,7 @@ export const PWAInstallButton: React.FC<{ className?: string }> = ({ className =
             onClick={() => setShowIOSGuide(false)}
           >
             <div
-              className="relative w-full max-w-sm rounded-xl bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] p-5 shadow-[var(--rim-glow)] cyber-rim-top text-[var(--text-main)] space-y-4"
+              className="relative w-full max-w-sm rounded-xl bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] p-5 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] text-[var(--text-main)] space-y-4"
               onClick={(e) => e.stopPropagation()}
             >
               <button

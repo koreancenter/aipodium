@@ -644,7 +644,7 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
           
           {/* AI Generating Indicator Banner */}
           {isGeneratingAi && (
-            <div className="mb-3 px-4 py-2 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-luminous)] flex items-center justify-between text-xs text-[var(--text-main)] animate-pulse shadow-[var(--rim-glow)]">
+            <div className="mb-3 px-4 py-2 rounded-lg bg-[var(--bg-surface)] border border-white/[0.08] flex items-center justify-between text-xs text-[var(--text-main)] animate-pulse">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[var(--accent-primary)] animate-spin" />
                 <span className="font-semibold">AI가 SSOT 자료를 통합 분석하여 스마트 문서를 스트리밍 중입니다...</span>
@@ -718,12 +718,12 @@ export const VibeCanvasWorkspace: React.FC<VibeCanvasWorkspaceProps> = ({
 
                   {/* Slash Command Autocomplete Popup Menu */}
                   {showSlashMenu && (
-                    <div className="absolute left-4 top-12 z-40 w-72 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl shadow-[var(--rim-glow)] cyber-rim-top overflow-hidden animate-fade-in text-xs select-none">
-                      <div className="px-3 py-1.5 bg-[var(--bg-surface)] border-b border-[var(--border-structural)] text-[0.6875rem] font-bold text-[var(--accent-primary)] flex items-center justify-between">
+                    <div className="absolute left-4 top-12 z-40 w-72 bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] overflow-hidden animate-fade-in text-xs select-none">
+                      <div className="px-3 py-1.5 bg-[var(--bg-surface)] border-b border-white/[0.07] text-[0.6875rem] font-bold text-[var(--accent-primary)] flex items-center justify-between">
                         <span>빠른 삽입 명령어</span>
                         <span className="text-[0.5625rem] font-mono text-[var(--text-muted)]">↑↓ 이동 · ↵ 선택 · Esc 취소</span>
                       </div>
-                      <div className="max-h-60 overflow-y-auto p-1 divide-y divide-[var(--border-structural)] custom-scrollbar">
+                      <div className="max-h-60 overflow-y-auto p-1 divide-y divide-white/[0.07] custom-scrollbar">
                         {filteredSlashCommands.map((cmdItem, idx) => (
                           <button
                             key={cmdItem.cmd}

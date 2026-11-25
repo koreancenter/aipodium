@@ -268,31 +268,31 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
                   filter: 'drop-shadow(0 12px 28px rgba(0, 0, 0, 0.65))',
                   transformOrigin: getTransformOrigin()
                 }}
-                className="w-72 max-w-[calc(100vw-24px)] rounded-lg bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] shadow-[var(--rim-glow)] cyber-rim-top text-left pointer-events-auto select-text overflow-visible shadow-xl shadow-black/60"
+                className="w-72 max-w-[calc(100vw-24px)] rounded-lg bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] text-left pointer-events-auto select-text overflow-visible"
               >
                 {/* Pointer arrow pointing to trigger button */}
                 {position.actualSide === 'top' && (
                   <div
                     style={{ left: `${position.arrowLeft}px` }}
-                    className="absolute -bottom-[5.5px] -translate-x-1/2 w-2.5 h-2.5 bg-[var(--bg-elevated)] border-r border-b border-[var(--border-luminous)] rotate-45"
+                    className="absolute -bottom-[5.5px] -translate-x-1/2 w-2.5 h-2.5 bg-[var(--bg-elevated)] border-r border-b border-white/[0.08] rotate-45"
                   />
                 )}
                 {position.actualSide === 'bottom' && (
                   <div
                     style={{ left: `${position.arrowLeft}px` }}
-                    className="absolute -top-[5.5px] -translate-x-1/2 w-2.5 h-2.5 bg-[var(--bg-elevated)] border-l border-t border-[var(--border-luminous)] rotate-45"
+                    className="absolute -top-[5.5px] -translate-x-1/2 w-2.5 h-2.5 bg-[var(--bg-elevated)] border-l border-t border-white/[0.08] rotate-45"
                   />
                 )}
                 {position.actualSide === 'left' && (
                   <div
                     style={{ top: `${position.arrowTop}px` }}
-                    className="absolute -right-[5.5px] -translate-y-1/2 w-2.5 h-2.5 bg-[var(--bg-elevated)] border-r border-t border-[var(--border-luminous)] rotate-45"
+                    className="absolute -right-[5.5px] -translate-y-1/2 w-2.5 h-2.5 bg-[var(--bg-elevated)] border-r border-t border-white/[0.08] rotate-45"
                   />
                 )}
                 {position.actualSide === 'right' && (
                   <div
                     style={{ top: `${position.arrowTop}px` }}
-                    className="absolute -left-[5.5px] -translate-y-1/2 w-2.5 h-2.5 bg-[var(--bg-elevated)] border-l border-b border-[var(--border-luminous)] rotate-45"
+                    className="absolute -left-[5.5px] -translate-y-1/2 w-2.5 h-2.5 bg-[var(--bg-elevated)] border-l border-b border-white/[0.08] rotate-45"
                   />
                 )}
 

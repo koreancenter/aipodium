@@ -15,7 +15,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
       onClick={onClose}
     >
       <div
-        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl max-w-md w-full p-6 shadow-2xl shadow-[var(--rim-glow)] cyber-rim-top space-y-5 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans"
+        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl max-w-md w-full p-6 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] space-y-5 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -29,7 +29,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
 
         <div className="space-y-1 pt-1">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)]">
+            <div className="w-7 h-7 rounded-lg bg-[var(--accent-primary)]/10 border border-white/[0.08] flex items-center justify-center text-[var(--accent-primary)]">
               <Brain className="w-4 h-4" />
             </div>
             <h2 className="text-base font-semibold text-[var(--text-main)] tracking-tight">AI Podium 정보</h2>
@@ -41,7 +41,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
           <p>
             AI Podium은 지능형 다중 인공지능 평가 라우팅, 실시간 마크다운 노트 및 목차 탐색기, 프로젝트·메모·폴더 연동 시스템, 차세대 다중 포맷 내보내기 엔진을 제공하는 통합 워크스테이션입니다.
           </p>
-          <div className="bg-[var(--bg-surface)] p-3.5 rounded-lg border border-[var(--border-structural)] text-[0.6875rem] space-y-1.5 font-mono text-[var(--text-muted)]">
+          <div className="bg-[var(--bg-surface)] p-3.5 rounded-lg border border-white/[0.07] text-[0.6875rem] space-y-1.5 font-mono text-[var(--text-muted)]">
             <div className="text-[var(--text-main)] font-semibold mb-1">핵심 아키텍처 사양</div>
             <div>• 쿨 슬레이트 다크 테마 기준 문서 워크스페이스</div>
             <div>• 통합 다중 탭 문서 탐색 바</div>
@@ -50,7 +50,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        <div className="flex justify-end pt-3 border-t border-[var(--border-structural)]">
+        <div className="flex justify-end pt-3 border-t border-white/[0.07]">
           <button
             type="button"
             onClick={onClose}

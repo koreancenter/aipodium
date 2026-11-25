@@ -102,7 +102,7 @@ export const SaveUntitledModal: React.FC<SaveUntitledModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-[var(--bg-main)]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-luminous)] rounded-xl max-w-md w-full p-6 shadow-2xl shadow-[var(--rim-glow)] cyber-rim-top space-y-5 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans">
+      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl max-w-md w-full p-6 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] space-y-5 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans">
         <button
           type="button"
           onClick={onClose}
@@ -141,7 +141,7 @@ export const SaveUntitledModal: React.FC<SaveUntitledModalProps> = ({
                 }
               }}
               placeholder="예: project_spec.md"
-              className="w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-lg px-3 py-2 text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[var(--border-luminous)] focus:ring-1 focus:ring-[var(--accent-primary)]/30 transition placeholder-[var(--text-tertiary)]"
+              className="w-full bg-[var(--bg-surface)] border border-white/[0.07] rounded-lg px-3 py-2 text-xs font-mono text-[var(--text-main)] focus:outline-none focus:border-[rgba(var(--accent-rgb),0.45)] transition placeholder-[var(--text-tertiary)]"
               autoFocus
             />
           </div>
@@ -154,7 +154,7 @@ export const SaveUntitledModal: React.FC<SaveUntitledModalProps> = ({
             <select
               value={selectedFolder}
               onChange={(e) => setSelectedFolder(e.target.value)}
-              className="w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-lg px-3 py-2 text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--border-luminous)] focus:ring-1 focus:ring-[var(--accent-primary)]/30 transition font-sans cursor-pointer"
+              className="w-full bg-[var(--bg-surface)] border border-white/[0.07] rounded-lg px-3 py-2 text-xs text-[var(--text-main)] focus:outline-none focus:border-[rgba(var(--accent-rgb),0.45)] transition font-sans cursor-pointer"
             >
               {availableFolders.map((folder) => (
                 <option key={folder} value={folder} className="bg-[var(--bg-elevated)] text-[var(--text-main)]">
@@ -170,11 +170,11 @@ export const SaveUntitledModal: React.FC<SaveUntitledModalProps> = ({
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[var(--border-structural)]">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/[0.07]">
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 rounded-lg text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--border-structural)] transition cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] transition cursor-pointer"
             >
               취소
             </button>
