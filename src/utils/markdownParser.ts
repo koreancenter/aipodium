@@ -109,13 +109,13 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
   text = text.replace(/\$\$([\s\S]*?)\$\$/g, (_match, formula) => {
     const rendered = renderMath(formula, true);
     return storeProtected(
-      `<div class="my-3 px-3 py-2.5 bg-[var(--bg-surface)] border border-white/[0.08] rounded-lg overflow-x-auto text-center font-sans text-[var(--text-main)] flex items-center justify-center shadow-xs">${rendered}</div>`
+      `<div class="my-3 px-3 py-2.5 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-lg overflow-x-auto text-center font-sans text-[var(--text-main)] flex items-center justify-center shadow-xs">${rendered}</div>`
     );
   });
   text = text.replace(/\\\[([\s\S]*?)\\\]/g, (_match, formula) => {
     const rendered = renderMath(formula, true);
     return storeProtected(
-      `<div class="my-3 px-3 py-2.5 bg-[var(--bg-surface)] border border-white/[0.08] rounded-lg overflow-x-auto text-center font-sans text-[var(--text-main)] flex items-center justify-center shadow-xs">${rendered}</div>`
+      `<div class="my-3 px-3 py-2.5 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-lg overflow-x-auto text-center font-sans text-[var(--text-main)] flex items-center justify-center shadow-xs">${rendered}</div>`
     );
   });
 
@@ -128,8 +128,8 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       .replace(/\n$/, '');
     const languageLabel = lang ? lang.trim().toLowerCase() : 'code';
     return storeProtected(
-      `<div class="my-2.5 rounded-lg border border-white/[0.08] bg-[var(--bg-surface)] shadow-sm overflow-hidden group">
-        <div class="px-3 py-1 bg-[var(--bg-editor)] border-b border-white/[0.06] flex items-center justify-between text-[0.625rem] text-[var(--text-muted)] font-mono select-none">
+      `<div class="my-2.5 rounded-lg border border-[var(--border-structural)] bg-[var(--bg-surface)] shadow-sm overflow-hidden group">
+        <div class="px-3 py-1 bg-[var(--bg-editor)] border-b border-[var(--border-structural)] flex items-center justify-between text-[0.625rem] text-[var(--text-muted)] font-mono select-none">
           <span class="font-semibold text-[var(--accent-primary)] uppercase tracking-wider">${languageLabel}</span>
           <span class="text-[0.5625rem] text-[var(--text-tertiary)]">code block</span>
         </div>
@@ -152,13 +152,13 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
   text = text.replace(/``([^`\n]+)``/g, (_match, code) => {
     const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return storeProtected(
-      `<code class="bg-[var(--bg-surface)] text-[var(--secondary-accent)] px-1 py-0.2 rounded font-mono text-[0.6875rem] border border-white/[0.08]">${escaped}</code>`
+      `<code class="bg-[var(--bg-surface)] text-[var(--secondary-accent)] px-1 py-0.2 rounded font-mono text-[0.6875rem] border border-[var(--border-structural)]">${escaped}</code>`
     );
   });
   text = text.replace(/`([^`\n]+)`/g, (_match, code) => {
     const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return storeProtected(
-      `<code class="bg-[var(--bg-surface)] text-[var(--secondary-accent)] px-1 py-0.2 rounded font-mono text-[0.6875rem] border border-white/[0.08]">${escaped}</code>`
+      `<code class="bg-[var(--bg-surface)] text-[var(--secondary-accent)] px-1 py-0.2 rounded font-mono text-[0.6875rem] border border-[var(--border-structural)]">${escaped}</code>`
     );
   });
 
@@ -282,42 +282,42 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
     });
 
     // Inline Task Checkboxes: [x] or [ ] inside text
-    s = s.replace(/\[([xXvVoO\u2713\u2714\u2611\u25A0\u25CF])\](?!\()/g, '<input type="checkbox" checked disabled class="inline-block align-middle w-3.5 h-3.5 mr-1.5 rounded accent-[var(--accent-primary)] bg-[var(--bg-surface)] border-white/[0.12] pointer-events-none" />');
-    s = s.replace(/\[\s?\](?!\()/g, '<input type="checkbox" disabled class="inline-block align-middle w-3.5 h-3.5 mr-1.5 rounded accent-[var(--accent-primary)] bg-[var(--bg-surface)] border-white/[0.12] pointer-events-none" />');
+    s = s.replace(/\[([xXvVoO\u2713\u2714\u2611\u25A0\u25CF])\](?!\()/g, '<input type="checkbox" checked disabled class="inline-block align-middle w-3.5 h-3.5 mr-1.5 rounded accent-[var(--accent-primary)] bg-[var(--bg-surface)] border-[var(--border-structural)] pointer-events-none" />');
+    s = s.replace(/\[\s?\](?!\()/g, '<input type="checkbox" disabled class="inline-block align-middle w-3.5 h-3.5 mr-1.5 rounded accent-[var(--accent-primary)] bg-[var(--bg-surface)] border-[var(--border-structural)] pointer-events-none" />');
 
     // Keyboard keys: <kbd>Key</kbd>
     s = s.replace(/<kbd>([\s\S]*?)<\/kbd>/gi, (_match, key) => {
-      return `<kbd class="px-1.5 py-0.5 text-[0.625rem] font-mono bg-slate-800 border border-slate-700 rounded text-slate-300 shadow-xs">${key}</kbd>`;
+      return `<kbd class="px-1.5 py-0.5 text-[0.625rem] font-mono bg-[var(--bg-elevated)] border border-[var(--border-structural)] rounded text-[var(--text-secondary)] shadow-xs">${key}</kbd>`;
     });
 
     // Highlight: ==text== (Page 6 of Markdown guide)
     s = s.replace(/==([^=\n]+?)==/g, '<mark class="bg-amber-400/25 text-amber-200 px-1 py-0.2 rounded border border-amber-500/30 font-medium">$1</mark>');
 
     // Strikethrough: ~~text~~
-    s = s.replace(/~~([^~\n]+?)~~/g, '<del class="line-through text-slate-400 opacity-80">$1</del>');
+    s = s.replace(/~~([^~\n]+?)~~/g, '<del class="line-through text-[var(--text-muted)] opacity-80">$1</del>');
 
     // Subscript: ~sub~ (e.g. H~2~O)
-    s = s.replace(/~([^~\s\n]+?)~/g, '<sub class="text-[0.625rem] text-slate-400 bottom-[-0.2em]">$1</sub>');
+    s = s.replace(/~([^~\s\n]+?)~/g, '<sub class="text-[0.625rem] text-[var(--text-muted)] bottom-[-0.2em]">$1</sub>');
 
     // Superscript: ^sup^ (e.g. x^2^)
-    s = s.replace(/\^([^\^\s\n]+?)\^/g, '<sup class="text-[0.625rem] text-slate-400 top-[-0.3em]">$1</sup>');
+    s = s.replace(/\^([^\^\s\n]+?)\^/g, '<sup class="text-[0.625rem] text-[var(--text-muted)] top-[-0.3em]">$1</sup>');
 
     // Underline / Insertion: ++text++
-    s = s.replace(/\+\+([^\+\n]+?)\+\+/g, '<ins class="underline underline-offset-2 text-slate-200">$1</ins>');
+    s = s.replace(/\+\+([^\+\n]+?)\+\+/g, '<ins class="underline underline-offset-2 text-[var(--text-secondary)]">$1</ins>');
 
     // Bold + Italic: ***text*** or ___text___ or **_text_** or *__text__*
-    s = s.replace(/\*\*\*(.*?)\*\*\*/g, '<strong class="font-bold text-white"><em class="italic text-slate-100">$1</em></strong>');
-    s = s.replace(/___(.*?)___/g, '<strong class="font-bold text-white"><em class="italic text-slate-100">$1</em></strong>');
-    s = s.replace(/\*\*_(.*?)_\*\*/g, '<strong class="font-bold text-white"><em class="italic text-slate-100">$1</em></strong>');
-    s = s.replace(/\*__(.*?)__\*/g, '<strong class="font-bold text-white"><em class="italic text-slate-100">$1</em></strong>');
+    s = s.replace(/\*\*\*(.*?)\*\*\*/g, '<strong class="font-bold text-[var(--text-main)]"><em class="italic text-[var(--text-main)]">$1</em></strong>');
+    s = s.replace(/___(.*?)___/g, '<strong class="font-bold text-[var(--text-main)]"><em class="italic text-[var(--text-main)]">$1</em></strong>');
+    s = s.replace(/\*\*_(.*?)_\*\*/g, '<strong class="font-bold text-[var(--text-main)]"><em class="italic text-[var(--text-main)]">$1</em></strong>');
+    s = s.replace(/\*__(.*?)__\*/g, '<strong class="font-bold text-[var(--text-main)]"><em class="italic text-[var(--text-main)]">$1</em></strong>');
 
     // Bold: **text** or __text__
-    s = s.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-white">$1</strong>');
-    s = s.replace(/__([^_]+?)__/g, '<strong class="font-bold text-white">$1</strong>');
+    s = s.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-[var(--text-main)]">$1</strong>');
+    s = s.replace(/__([^_]+?)__/g, '<strong class="font-bold text-[var(--text-main)]">$1</strong>');
 
     // Italic: *text* or _text_
-    s = s.replace(/\*([^\*\n]+?)\*/g, '<em class="italic text-slate-200">$1</em>');
-    s = s.replace(/(^|[^a-zA-Z0-9_])_([^_]+?)_([^a-zA-Z0-9_]|$)/g, '$1<em class="italic text-slate-200">$2</em>$3');
+    s = s.replace(/\*([^\*\n]+?)\*/g, '<em class="italic text-[var(--text-secondary)]">$1</em>');
+    s = s.replace(/(^|[^a-zA-Z0-9_])_([^_]+?)_([^a-zA-Z0-9_]|$)/g, '$1<em class="italic text-[var(--text-secondary)]">$2</em>$3');
 
     // Line breaks with 2 spaces or trailing backslash \
     s = s.replace(/ {2,}$/, '<br/>');
@@ -360,7 +360,7 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       const headersHtml = headers.map((h, colIdx) => {
         const align = tableAlignments[colIdx] || 'left';
         const alignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
-        return `<th class="px-3.5 py-2 bg-white/[0.04] text-slate-100 font-semibold text-xs border-b border-white/[0.1] ${alignClass}">${formatInline(h.trim())}</th>`;
+        return `<th class="px-3.5 py-2 bg-white/[0.04] text-[var(--text-main)] font-semibold text-xs border-b border-[var(--border-structural)] ${alignClass}">${formatInline(h.trim())}</th>`;
       }).join('');
 
       const rowsHtml = tableRows.map((r, rowIdx) => {
@@ -373,12 +373,12 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
           const content = isDitto
             ? `<span class="text-[var(--accent-primary)] font-bold opacity-80 cursor-help" title="상단 항목과 동일">${txt}</span>`
             : formatInline(txt);
-          return `<td class="px-3.5 py-2 border-b border-white/[0.05] text-[var(--text-muted)] text-xs leading-[1.65] ${alignClass}">${content}</td>`;
+          return `<td class="px-3.5 py-2 border-b border-[var(--border-structural)] text-[var(--text-secondary)] text-xs leading-[1.65] ${alignClass}">${content}</td>`;
         }).join('');
         return `<tr class="hover:bg-white/[0.025] transition-colors last:border-b-0">${colsHtml}</tr>`;
       }).join('');
 
-      result.push(`<div class="overflow-x-auto my-3.5 rounded-md border border-white/[0.08] bg-white/[0.01]"><table class="w-full border-collapse text-xs"><thead><tr>${headersHtml}</tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
+      result.push(`<div class="overflow-x-auto my-3.5 rounded-md border border-[var(--border-structural)] bg-white/[0.01]"><table class="w-full border-collapse text-xs"><thead><tr>${headersHtml}</tr></thead><tbody>${rowsHtml}</tbody></table></div>`);
       inTable = false;
       tableRows = [];
       tableHeader = '';
@@ -392,7 +392,7 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
         const trimmed = line.trim();
         if (trimmed.startsWith('>')) {
           const innerContent = trimmed.replace(/^>+\s?/, '');
-          return `<blockquote class="border-l-2 border-white/[0.1] bg-[var(--bg-surface)] pl-2.5 py-1 my-1 text-[var(--text-muted)] text-xs italic">${formatInline(innerContent)}</blockquote>`;
+          return `<blockquote class="border-l-2 border-[var(--border-luminous)] bg-[var(--bg-surface)] pl-2.5 py-1 my-1 text-[var(--text-muted)] text-xs italic">${formatInline(innerContent)}</blockquote>`;
         }
         return formatInline(line);
       }).join('<br/>');
@@ -401,17 +401,17 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
         // Chat mode: no emoji badges, flat borderless quote styling
         result.push(`<blockquote class="border-l-2 border-[var(--accent-primary)]/70 pl-2.5 py-1 my-2 text-[var(--text-muted)] text-xs">${processedHtml}</blockquote>`);
       } else if (blockquoteType === 'note') {
-        result.push(`<div class="my-3 border-l-2 border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--text-secondary)] px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-white/[0.06] border-l-[var(--accent-primary)]"><div class="font-semibold text-[var(--accent-primary)] text-[0.6875rem] mb-1 flex items-center gap-1.5">NOTE</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-3 border-l-2 border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--text-secondary)] px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[var(--border-structural)] border-l-[var(--accent-primary)]"><div class="font-semibold text-[var(--accent-primary)] text-[0.6875rem] mb-1 flex items-center gap-1.5">NOTE</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'tip') {
-        result.push(`<div class="my-3 border-l-2 border-[var(--secondary-accent)] bg-[var(--bg-surface)] text-[var(--text-secondary)] px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-white/[0.06] border-l-[var(--secondary-accent)]"><div class="font-semibold text-[var(--secondary-accent)] text-[0.6875rem] mb-1 flex items-center gap-1.5">TIP</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-3 border-l-2 border-[var(--secondary-accent)] bg-[var(--bg-surface)] text-[var(--text-secondary)] px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[var(--border-structural)] border-l-[var(--secondary-accent)]"><div class="font-semibold text-[var(--secondary-accent)] text-[0.6875rem] mb-1 flex items-center gap-1.5">TIP</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'important') {
-        result.push(`<div class="my-3 border-l-2 border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--text-main)] px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-white/[0.06] border-l-[var(--accent-primary)]"><div class="font-semibold text-[var(--accent-primary)] text-[0.6875rem] mb-1 flex items-center gap-1.5">IMPORTANT</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-3 border-l-2 border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--text-main)] px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[var(--border-structural)] border-l-[var(--accent-primary)]"><div class="font-semibold text-[var(--accent-primary)] text-[0.6875rem] mb-1 flex items-center gap-1.5">IMPORTANT</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'warning') {
-        result.push(`<div class="my-3 border-l-2 border-amber-500 bg-[var(--bg-surface)] text-amber-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-white/[0.06] border-l-amber-500"><div class="font-semibold text-amber-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">WARNING</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-3 border-l-2 border-amber-500 bg-[var(--bg-surface)] text-amber-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[var(--border-structural)] border-l-amber-500"><div class="font-semibold text-amber-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">WARNING</div><div>${processedHtml}</div></div>`);
       } else if (blockquoteType === 'caution') {
-        result.push(`<div class="my-3 border-l-2 border-rose-500 bg-[var(--bg-surface)] text-rose-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-white/[0.06] border-l-rose-500"><div class="font-semibold text-rose-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">CAUTION</div><div>${processedHtml}</div></div>`);
+        result.push(`<div class="my-3 border-l-2 border-rose-500 bg-[var(--bg-surface)] text-rose-200 px-3.5 py-2.5 rounded-r-md text-xs leading-[1.65] shadow-xs border border-[var(--border-structural)] border-l-rose-500"><div class="font-semibold text-rose-400 text-[0.6875rem] mb-1 flex items-center gap-1.5">CAUTION</div><div>${processedHtml}</div></div>`);
       } else {
-        result.push(`<blockquote class="border-l-2 border-[var(--accent-primary)]/80 bg-[var(--bg-surface)] text-[var(--text-main)] pl-3.5 py-2 my-2.5 text-xs rounded-r-md leading-[1.65] shadow-xs border border-white/[0.06] border-l-[var(--accent-primary)]/80">${processedHtml}</blockquote>`);
+        result.push(`<blockquote class="border-l-2 border-[var(--accent-primary)]/80 bg-[var(--bg-surface)] text-[var(--text-main)] pl-3.5 py-2 my-2.5 text-xs rounded-r-md leading-[1.65] shadow-xs border border-[var(--border-structural)] border-l-[var(--accent-primary)]/80">${processedHtml}</blockquote>`);
       }
 
       inBlockquote = false;
@@ -446,7 +446,7 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       closeList();
       closeTable();
       closeBlockquote();
-      result.push(`<h1 class="text-xs font-bold text-slate-100 mt-2.5 mb-1 leading-relaxed border-none pb-0">${formatInline(trimmed)}</h1>`);
+      result.push(`<h1 class="text-xs font-bold text-[var(--text-main)] mt-2.5 mb-1 leading-relaxed border-none pb-0">${formatInline(trimmed)}</h1>`);
       i++; // Skip the underline row
       continue;
     }
@@ -456,7 +456,7 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       closeList();
       closeTable();
       closeBlockquote();
-      result.push(`<h2 class="text-xs font-bold text-slate-100 mt-2 mb-1 leading-relaxed border-none pb-0">${formatInline(trimmed)}</h2>`);
+      result.push(`<h2 class="text-xs font-bold text-[var(--text-main)] mt-2 mb-1 leading-relaxed border-none pb-0">${formatInline(trimmed)}</h2>`);
       i++; // Skip the underline row
       continue;
     }
@@ -471,7 +471,7 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       closeTable();
       closeBlockquote();
 
-      result.push(`<h${level} class="text-xs font-bold text-slate-100 mt-2.5 mb-1 leading-relaxed border-none pb-0">${formatInline(headingContent)}</h${level}>`);
+      result.push(`<h${level} class="text-xs font-bold text-[var(--text-main)] mt-2.5 mb-1 leading-relaxed border-none pb-0">${formatInline(headingContent)}</h${level}>`);
       continue;
     }
 
@@ -480,7 +480,7 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       closeList();
       closeTable();
       closeBlockquote();
-      result.push('<hr class="border-white/[0.06] my-4" />');
+      result.push('<hr class="border-[var(--border-structural)] my-4" />');
       continue;
     }
 
@@ -552,14 +552,14 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       }
       if (!inUl) {
         inUl = true;
-        result.push('<ul class="my-1.5 space-y-1 list-none pl-0 text-slate-300">');
+        result.push('<ul class="my-1.5 space-y-1 list-none pl-0 text-[var(--text-secondary)]">');
       }
       const char = taskMatch[1].toLowerCase().trim();
       const isChecked = char === 'x' || char === 'v' || char === 'o' || char === '\u2713' || char === '\u2714' || char === '\u2611' || char === '\u25a0' || char === '\u25cf';
       const taskText = taskMatch[2];
       result.push(
         `<li class="flex items-start gap-2 my-0.5 leading-normal select-text ${isChecked ? 'text-[var(--text-muted)] line-through opacity-85' : 'text-[var(--text-main)]'}">
-          <input type="checkbox" ${isChecked ? 'checked' : ''} disabled class="w-3.5 h-3.5 mt-0.5 rounded border-white/[0.12] bg-[var(--bg-surface)] text-[var(--accent-primary)] focus:ring-0 cursor-default shrink-0 accent-[var(--accent-primary)]" />
+          <input type="checkbox" ${isChecked ? 'checked' : ''} disabled class="w-3.5 h-3.5 mt-0.5 rounded border-[var(--border-structural)] bg-[var(--bg-surface)] text-[var(--accent-primary)] focus:ring-0 cursor-default shrink-0 accent-[var(--accent-primary)]" />
           <span class="flex-1">${formatInline(taskText)}</span>
         </li>`
       );
@@ -577,14 +577,14 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       }
       if (!inUl) {
         inUl = true;
-        result.push('<ul class="my-1 pl-4 list-disc space-y-0.5 text-slate-300">');
+        result.push('<ul class="my-1 pl-4 list-disc space-y-0.5 text-[var(--text-secondary)]">');
       }
       const leadingSpaces = line.search(/\S/);
       const isNested2 = leadingSpaces >= 4;
       const isNested1 = leadingSpaces >= 2;
       const itemContent = ulMatch[2];
       const nestingClass = isNested2 ? 'ml-6 list-[square]' : isNested1 ? 'ml-3 list-[circle]' : '';
-      result.push(`<li class="my-0 leading-normal text-slate-300 ${nestingClass}">${formatInline(itemContent)}</li>`);
+      result.push(`<li class="my-0 leading-normal text-[var(--text-secondary)] ${nestingClass}">${formatInline(itemContent)}</li>`);
       continue;
     }
 
@@ -599,12 +599,12 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
       }
       if (!inOl) {
         inOl = true;
-        result.push('<ol class="my-1 pl-4 list-decimal space-y-0.5 text-slate-300">');
+        result.push('<ol class="my-1 pl-4 list-decimal space-y-0.5 text-[var(--text-secondary)]">');
       }
       const leadingSpaces = line.search(/\S/);
       const isNested = leadingSpaces >= 2;
       const itemContent = olMatch[2];
-      result.push(`<li class="my-0 leading-normal text-slate-300 ${isNested ? 'ml-3' : ''}">${formatInline(itemContent)}</li>`);
+      result.push(`<li class="my-0 leading-normal text-[var(--text-secondary)] ${isNested ? 'ml-3' : ''}">${formatInline(itemContent)}</li>`);
       continue;
     }
 
@@ -642,7 +642,7 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
     closeList();
     closeTable();
     closeBlockquote();
-    result.push(`<p class="mb-2.5 leading-[1.65] text-slate-300">${formatInline(trimmed)}</p>`);
+    result.push(`<p class="mb-2.5 leading-[1.65] text-[var(--text-secondary)]">${formatInline(trimmed)}</p>`);
   }
 
   closeList();
@@ -661,7 +661,7 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
     }).join('');
 
     result.push(
-      `<div class="footnotes border-t border-white/[0.06] pt-2.5 mt-4">
+      `<div class="footnotes border-t border-[var(--border-structural)] pt-2.5 mt-4">
         <div class="text-[0.625rem] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5">Footnotes</div>
         <ol class="list-none pl-0 space-y-1">${fnListHtml}</ol>
       </div>`
@@ -675,6 +675,6 @@ export function renderMarkdownToHtml(md: string, options?: { isChat?: boolean })
     finalHtml = finalHtml.replace(placeholder, protectedBlocks[i]);
   }
 
-  const fullHtml = `<div class="markdown-body text-slate-200 text-xs leading-[1.65] font-sans tracking-[-0.01em]">${finalHtml}</div>`;
+  const fullHtml = `<div class="markdown-body text-[var(--text-secondary)] text-xs leading-[1.65] font-sans tracking-[-0.01em]">${finalHtml}</div>`;
   return sanitizeHtml(fullHtml);
 }

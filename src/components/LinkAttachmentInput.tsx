@@ -123,9 +123,9 @@ export const LinkAttachmentInput: React.FC<LinkAttachmentInputProps> = ({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 4, scale: 0.98 }}
           transition={{ duration: 0.12, ease: 'easeOut' }}
-          className="absolute bottom-full left-0 mb-2 w-80 sm:w-96 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl z-50 p-3 text-xs text-[var(--text-main)]"
+          className="absolute bottom-full left-0 mb-2 w-80 sm:w-96 bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] z-50 p-3 text-xs text-[var(--text-main)]"
         >
-          <div className="flex items-center justify-between pb-2 border-b border-white/[0.06] mb-2.5">
+          <div className="flex items-center justify-between pb-2 border-b border-white/[0.07] mb-2.5">
             <div className="flex items-center gap-1.5 font-medium text-[var(--text-main)] text-xs">
               <Link2 className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
               <span>외부 링크 첨부</span>
@@ -133,7 +133,7 @@ export const LinkAttachmentInput: React.FC<LinkAttachmentInputProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="text-[var(--text-muted)] hover:text-slate-200 p-0.5 rounded transition cursor-pointer"
+              className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-0.5 rounded transition cursor-pointer"
             >
               <X className="w-3 h-3" />
             </button>
@@ -141,7 +141,7 @@ export const LinkAttachmentInput: React.FC<LinkAttachmentInputProps> = ({
 
           <form onSubmit={handleSubmit} className="space-y-2.5">
             <div className="relative flex items-center">
-              <div className="absolute left-2.5 text-slate-400 pointer-events-none">
+              <div className="absolute left-2.5 text-[var(--text-tertiary)] pointer-events-none">
                 {isGitHub ? <Github className="w-3.5 h-3.5 text-[var(--text-main)]" /> : <Globe className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
               </div>
               <input
@@ -151,13 +151,13 @@ export const LinkAttachmentInput: React.FC<LinkAttachmentInputProps> = ({
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://github.com/... 또는 웹페이지 URL"
                 disabled={isLoading}
-                className="w-full bg-[var(--bg-surface)] border border-white/[0.06] focus:border-[var(--accent-primary)]/50 rounded-md pl-8 pr-7 py-1.5 text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
+                className="w-full bg-[var(--bg-surface)] border border-white/[0.07] focus:border-[rgba(var(--accent-rgb),0.45)] rounded-md pl-8 pr-7 py-1.5 text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
               />
               {url && (
                 <button
                   type="button"
                   onClick={() => setUrl('')}
-                  className="absolute right-2 text-[var(--text-muted)] hover:text-slate-200"
+                  className="absolute right-2 text-[var(--text-muted)] hover:text-[var(--text-main)]"
                 >
                   <X className="w-3 h-3" />
                 </button>

@@ -133,12 +133,12 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[var(--bg-main)]/80 backdrop-blur-sm animate-in fade-in duration-150">
         <div
-          className="bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl flex flex-col w-full max-w-5xl h-[88vh] overflow-hidden text-[var(--text-muted)]"
+          className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] flex flex-col w-full max-w-5xl h-[88vh] overflow-hidden text-[var(--text-muted)]"
           role="dialog"
           aria-modal="true"
         >
           {/* Top Bar Header */}
-          <div className="flex items-center justify-between px-6 py-4 bg-[var(--bg-surface)] border-b border-white/[0.06]">
+          <div className="flex items-center justify-between px-6 py-4 bg-[var(--bg-surface)] border-b border-white/[0.07]">
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-medium text-[var(--text-main)]">
@@ -168,14 +168,14 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
           </div>
 
           {/* Council Score & Overall Readiness Banner */}
-          <div className="px-6 py-3 bg-[var(--bg-surface)]/70 border-b border-white/[0.06] flex flex-wrap items-center justify-between gap-3">
+          <div className="px-6 py-3 bg-[var(--bg-surface)]/70 border-b border-[var(--border-structural)] flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-[var(--text-muted)] font-medium">종합 준비도:</span>
                 <span className="text-sm font-mono font-bold text-[var(--text-main)]">
                   {summary.overallScore} / 100점
                 </span>
-                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-xs text-[var(--text-main)]">
+                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/[0.04] border border-[var(--border-structural)] text-xs text-[var(--text-main)]">
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${
                       summary.overallScore >= 85
@@ -205,7 +205,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
                 type="button"
                 onClick={handleRunAiAudit}
                 disabled={isLoading}
-                className="px-2.5 py-1 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-main)] border border-white/[0.08] text-xs font-medium transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="px-2.5 py-1 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-main)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-xs font-medium transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 title="인공지능 다각도 정밀 검사 재실행"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[var(--accent-primary)]' : ''}`} />
@@ -215,7 +215,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIsDiffModalOpen(true)}
-                className="px-2.5 py-1 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-main)] border border-white/[0.08] text-xs font-medium transition flex items-center gap-1.5 cursor-pointer"
+                className="px-2.5 py-1 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-main)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-xs font-medium transition flex items-center gap-1.5 cursor-pointer"
                 title="권고 개정안 차이 비교"
               >
                 <GitCompare className="w-3.5 h-3.5" />
@@ -227,7 +227,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
           {/* Persona Tabs & Main Content */}
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
             {/* Left Sidebar: 4 Critics Selector */}
-            <div className="w-full md:w-60 bg-[var(--bg-surface)] border-b md:border-b-0 md:border-r border-white/[0.06] p-2.5 flex md:flex-col gap-1 overflow-x-auto md:overflow-y-auto shrink-0">
+            <div className="w-full md:w-60 bg-[var(--bg-surface)] border-b md:border-b-0 md:border-r border-[var(--border-structural)] p-2.5 flex md:flex-col gap-1 overflow-x-auto md:overflow-y-auto shrink-0">
               {summary.critics.map((critic) => {
                 const isSelected = activePersona === critic.persona;
                 const Icon =
@@ -244,12 +244,18 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
                     key={critic.persona}
                     type="button"
                     onClick={() => setActivePersona(critic.persona)}
-                    className={`text-left p-2.5 rounded-lg transition flex items-center justify-between gap-2 cursor-pointer shrink-0 md:shrink border ${
+                    className={`relative text-left p-2.5 rounded-lg transition flex items-center justify-between gap-2 cursor-pointer shrink-0 md:shrink border ${
                       isSelected
-                        ? 'bg-white/[0.07] border-white/[0.08] text-[var(--text-main)]'
+                        ? 'bg-white/[0.07] border-[var(--border-luminous)] text-[var(--text-main)]'
                         : 'border-transparent hover:bg-white/[0.04] text-[var(--text-muted)] hover:text-[var(--text-main)]'
                     }`}
                   >
+                    {isSelected && (
+                      <span className="cyber-active-rail hidden md:block left-0 top-1.5 bottom-1.5 w-[2px] rounded-full" />
+                    )}
+                    {isSelected && (
+                      <span className="cyber-active-rail md:hidden bottom-0 left-2 right-2 h-[2px] rounded-full" />
+                    )}
                     <div className="flex items-center gap-2 min-w-0">
                       <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-[var(--accent-primary)]' : 'text-[var(--text-muted)]'}`} />
                       <div className="min-w-0">
@@ -273,7 +279,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
               {currentCritic && (
                 <>
                   {/* Critic Profile Header (flat, hairline divided) */}
-                  <div className="pb-4 border-b border-white/[0.06] flex flex-wrap items-center justify-between gap-3">
+                  <div className="pb-4 border-b border-[var(--border-structural)] flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-xs font-semibold text-[var(--text-main)]">
@@ -298,7 +304,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
                         {currentCritic.strengths.map((str, idx) => (
                           <span
                             key={idx}
-                            className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-[var(--text-muted)] text-xs flex items-center gap-1"
+                            className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-[var(--border-structural)] text-[var(--text-muted)] text-xs flex items-center gap-1"
                           >
                             <CheckCircle2 className="w-3 h-3 text-[var(--secondary-accent)]" />
                             <span>{str}</span>
@@ -310,7 +316,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
 
                   {/* Issues & Recommendations List */}
                   <div className="space-y-1">
-                    <div className="text-xs font-medium text-[var(--text-muted)] pb-2 border-b border-white/[0.06]">
+                    <div className="text-xs font-medium text-[var(--text-muted)] pb-2 border-b border-[var(--border-structural)]">
                       <span>핵심 지적 사항 및 시정 조치 권고 · 총 {currentCritic.issues.length}건</span>
                     </div>
 
@@ -328,7 +334,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
                       currentCritic.issues.map((issue) => (
                         <div
                           key={issue.id}
-                          className="border-b border-white/[0.06] py-4 space-y-2 last:border-b-0"
+                          className="border-b border-[var(--border-structural)] py-4 space-y-2 last:border-b-0"
                         >
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0">
@@ -341,7 +347,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
                                     : 'bg-[var(--secondary-accent)]'
                                 }`}
                               />
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.04] text-[var(--text-muted)] border border-white/[0.06] font-medium shrink-0">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.04] text-[var(--text-muted)] border border-[var(--border-structural)] font-medium shrink-0">
                                 {issue.severity === 'critical'
                                   ? '치명적'
                                   : issue.severity === 'warning'
@@ -358,7 +364,7 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
                                   onJumpToLine(issue.targetLine!);
                                   onClose();
                                 }}
-                                className="px-2 py-0.5 rounded bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs font-mono flex items-center gap-1 transition cursor-pointer border border-white/[0.06]"
+                                className="px-2 py-0.5 rounded bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs font-mono flex items-center gap-1 transition cursor-pointer border border-[var(--border-structural)] hover:border-[var(--border-luminous)]"
                                 title="해당 줄로 이동"
                               >
                                 <span>{issue.targetLine}줄</span>
@@ -385,11 +391,11 @@ export const CouncilOfCriticsModal: React.FC<CouncilOfCriticsModalProps> = ({
           </div>
 
           {/* Footer Actions */}
-          <div className="px-6 py-4 bg-[var(--bg-surface)] border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="px-6 py-4 bg-[var(--bg-surface)] border-t border-[var(--border-structural)] flex flex-col sm:flex-row items-center justify-between gap-3">
             <button
               type="button"
               onClick={handleCopyReport}
-              className="px-3 py-1.5 rounded-md border border-white/[0.08] bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              className="px-3 py-1.5 rounded-md border border-[var(--border-structural)] hover:border-[var(--border-luminous)] bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center gap-1.5 text-xs font-medium cursor-pointer"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-[var(--secondary-accent)]" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? '복사 완료' : '종합 평가 보고서 복사'}</span>

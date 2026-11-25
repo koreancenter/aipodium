@@ -71,7 +71,7 @@ test('4. ChatPanel confines project drawer within middle message viewport above 
   // Verify UniversalPromptInput is mounted full-width with border-t
   assert.match(
     chatFile,
-    /<UniversalPromptInput[^>]*className="[^"]*w-full\s+shrink-0\s+border-t\s+border-\[#222226\]/,
+    /<UniversalPromptInput[^>]*className="[^"]*w-full\s+shrink-0\s+border-t\s+border-white\/\[0\.07\]/,
     'UniversalPromptInput should be persistently mounted across full width with top border'
   );
 });

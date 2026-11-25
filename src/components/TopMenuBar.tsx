@@ -199,9 +199,9 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
 
 
 const MENU_POPOVER_CLASS =
-  'absolute left-0 top-full mt-1.5 min-w-[220px] bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl p-1 z-50 text-xs text-[var(--text-secondary)]';
+  'absolute left-0 top-full mt-1.5 min-w-[220px] bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] p-1 z-50 text-xs text-[var(--text-secondary)]';
 const SUBMENU_POPOVER_CLASS =
-  'absolute top-0 left-full ml-1.5 min-w-[190px] bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl p-1 z-50 text-xs text-[var(--text-secondary)]';
+  'absolute top-0 left-full ml-1.5 min-w-[190px] bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] p-1 z-50 text-xs text-[var(--text-secondary)]';
 const MENU_ITEM_CLASS =
   'w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-lg text-xs text-[var(--text-secondary)] hover:bg-white/[0.06] hover:text-[var(--text-main)] text-left transition-colors cursor-pointer';
 const MENU_ITEM_ACTIVE_CLASS =
@@ -209,7 +209,7 @@ const MENU_ITEM_ACTIVE_CLASS =
 const MENU_HEADER_CLASS =
   'px-2.5 py-1 text-[10px] text-[var(--text-tertiary)] font-medium select-none';
 const MENU_DIVIDER_CLASS =
-  'h-px bg-white/[0.06] my-1';
+  'h-px bg-white/[0.07] my-1';
 
   if (windowWidth < 768) {
     return (
@@ -219,7 +219,7 @@ const MENU_DIVIDER_CLASS =
           setPreferencesInitialTab('ai-engine');
           setIsPreferencesModalOpen(true);
         }}
-        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-md text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.05] transition-colors cursor-pointer"
+        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-md text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.05] transition-colors cursor-pointer"
         title={t.settings}
         aria-label={t.settings}
       >
@@ -317,7 +317,7 @@ const MENU_DIVIDER_CLASS =
               onMouseEnter={() => setActiveSubmenu('export')}
               onMouseLeave={() => setActiveSubmenu(null)}
             >
-              <div className="w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-md text-xs text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100 text-left cursor-pointer transition-colors">
+              <div className="w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-lg text-xs text-[var(--text-secondary)] hover:bg-white/[0.06] hover:text-[var(--text-main)] text-left cursor-pointer transition-colors">
                 <span>{t.exportOther}</span>
                 <ChevronRight className="w-3.5 h-3.5 text-[var(--text-tertiary)] shrink-0" />
               </div>
@@ -643,7 +643,7 @@ const MENU_DIVIDER_CLASS =
               <button
                 type="button"
                 onClick={handleEditorZoomOut}
-                className="p-1 hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-md transition-colors cursor-pointer"
+                className="p-1 hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-[var(--text-main)] rounded-md transition-colors cursor-pointer"
                 title={t.decreaseFont}
               >
                 <ZoomOut className="w-3.5 h-3.5" />
@@ -654,7 +654,7 @@ const MENU_DIVIDER_CLASS =
               <button
                 type="button"
                 onClick={handleEditorZoomIn}
-                className="p-1 hover:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text-main)] rounded-md transition-colors cursor-pointer"
+                className="p-1 hover:bg-white/[0.06] text-[var(--text-secondary)] hover:text-[var(--text-main)] rounded-md transition-colors cursor-pointer"
                 title={t.increaseFont}
               >
                 <ZoomIn className="w-3.5 h-3.5" />
@@ -823,7 +823,7 @@ const MENU_DIVIDER_CLASS =
                     'info'
                   );
                 }}
-                className="w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-md text-xs text-zinc-300 hover:bg-white/[0.06] hover:text-zinc-100 text-left cursor-pointer transition-colors"
+                className="w-full flex items-center justify-between gap-6 px-2.5 py-1.5 rounded-lg text-xs text-[var(--text-secondary)] hover:bg-white/[0.06] hover:text-[var(--text-main)] text-left cursor-pointer transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <span>{t.ghostWriter}</span>

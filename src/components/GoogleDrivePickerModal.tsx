@@ -501,14 +501,14 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
     >
       <div
         id="google-drive-picker-container"
-        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-2xl w-full p-5 text-[var(--text-muted)] shadow-2xl animate-in fade-in zoom-in-95 duration-100 font-sans h-[620px] max-h-[calc(100vh-3rem)] flex flex-col shrink-0 gap-3"
+        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl max-w-2xl w-full p-5 text-[var(--text-muted)] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] animate-in fade-in zoom-in-95 duration-100 font-sans h-[620px] max-h-[calc(100vh-3rem)] flex flex-col shrink-0 gap-3"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}
-        <div className="flex items-start justify-between border-b border-white/[0.06] pb-3 shrink-0">
+        <div className="flex items-start justify-between border-b border-white/[0.07] pb-3 shrink-0">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-md bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/30 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-md bg-[var(--accent-primary)]/15 border border-white/[0.08] flex items-center justify-center">
                 <HardDrive className="w-4 h-4 text-[var(--accent-primary)]" />
               </div>
               <h2 className="text-sm font-medium text-[var(--text-main)] tracking-tight flex items-center gap-2">
@@ -536,7 +536,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
           <div className="flex items-center gap-2">
             {authStatus === 'connected' && (
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--bg-surface)] border border-white/[0.08] text-xs">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--bg-surface)] border border-[var(--border-structural)] text-xs">
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)] animate-pulse" />
                   <span className="text-[var(--text-main)] font-medium truncate max-w-[140px]">
                     {currentUserProfile?.name || currentUserProfile?.email || t.linked}
@@ -567,42 +567,51 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
 
         {/* Tab Navigation - Flat IDE Tab Style */}
         {authStatus === 'connected' && (
-          <div className="flex items-center justify-between border-b border-white/[0.06] shrink-0 text-xs">
+          <div className="flex items-center justify-between border-b border-[var(--border-structural)] shrink-0 text-xs">
             <div className="flex items-center gap-4">
               <button
                 type="button"
                 onClick={() => setActiveTab('open')}
-                className={`py-2 font-medium flex items-center transition cursor-pointer border-b-2 -mb-[1px] ${
+                className={`relative py-2 font-medium flex items-center transition cursor-pointer ${
                   activeTab === 'open'
-                    ? 'border-[var(--accent-primary)] text-[var(--text-main)]'
-                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                    ? 'text-[var(--text-main)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
               >
                 <span>{t.tabOpen}</span>
+                {activeTab === 'open' && (
+                  <span className="cyber-active-rail absolute bottom-0 left-0 right-0 h-[2px] rounded-full" />
+                )}
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('save')}
-                className={`py-2 font-medium flex items-center transition cursor-pointer border-b-2 -mb-[1px] ${
+                className={`relative py-2 font-medium flex items-center transition cursor-pointer ${
                   activeTab === 'save'
-                    ? 'border-[var(--accent-primary)] text-[var(--text-main)]'
-                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                    ? 'text-[var(--text-main)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
               >
                 <span>{t.tabSave}</span>
+                {activeTab === 'save' && (
+                  <span className="cyber-active-rail absolute bottom-0 left-0 right-0 h-[2px] rounded-full" />
+                )}
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('folders')}
-                className={`py-2 font-medium flex items-center transition cursor-pointer border-b-2 -mb-[1px] ${
+                className={`relative py-2 font-medium flex items-center transition cursor-pointer ${
                   activeTab === 'folders'
-                    ? 'border-[var(--accent-primary)] text-[var(--text-main)]'
-                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                    ? 'text-[var(--text-main)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
               >
                 <span>{t.tabFolder}</span>
+                {activeTab === 'folders' && (
+                  <span className="cyber-active-rail absolute bottom-0 left-0 right-0 h-[2px] rounded-full" />
+                )}
               </button>
             </div>
 
@@ -644,7 +653,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
         {/* BODY AREA: Unified Disconnected Hero State OR Connected Tab Viewports */}
         {authStatus !== 'connected' ? (
           <div className="flex-1 flex flex-col items-center justify-center py-12 px-4 text-center space-y-4 animate-in fade-in duration-150">
-            <div className="w-12 h-12 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-[var(--text-muted)]">
+            <div className="w-12 h-12 rounded-full bg-white/[0.04] border border-[var(--border-structural)] flex items-center justify-center text-[var(--text-muted)]">
               <HardDrive className="w-6 h-6 text-[var(--accent-primary)]" />
             </div>
             <div className="space-y-1.5 max-w-sm">
@@ -674,7 +683,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
               <div className="flex-1 flex flex-col min-h-0 space-y-3">
                 {/* Filter, Search & Google Picker Launch */}
                 <div className="flex items-center gap-2 shrink-0">
-                  <div className="flex items-center gap-1 bg-[var(--bg-surface)] p-0.5 rounded-md border border-white/[0.08] text-xs">
+                  <div className="flex items-center gap-1 bg-[var(--bg-surface)] p-0.5 rounded-md border border-[var(--border-structural)] text-xs">
                     <button
                       type="button"
                       onClick={() => setFilterType('all')}
@@ -713,7 +722,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder={t.searchPlaceholder}
-                      className="w-full bg-[var(--bg-surface)] border border-white/[0.08] rounded-md px-2.5 py-1 pl-8 text-xs font-mono text-[var(--text-main)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)]/60 transition"
+                      className="w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md px-2.5 py-1 pl-8 text-xs font-mono text-[var(--text-main)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--border-luminous)] transition"
                     />
                   </div>
 
@@ -722,7 +731,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     id="google-picker-launch-btn"
                     onClick={() => openGooglePicker()}
                     disabled={isConnecting}
-                    className="text-xs flex items-center justify-center px-3 py-1.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] text-[var(--accent-primary)] hover:text-[var(--text-main)] transition shrink-0 cursor-pointer"
+                    className="text-xs flex items-center justify-center px-3 py-1.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-[var(--accent-primary)] hover:text-[var(--text-main)] transition shrink-0 cursor-pointer"
                     title={t.openPicker}
                   >
                     <span>{t.pickWithPicker}</span>
@@ -730,7 +739,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                 </div>
 
                 {/* File List */}
-                <div className="flex-1 overflow-y-auto space-y-1 min-h-0 pr-1 border border-white/[0.06] rounded-md p-1.5 bg-[var(--bg-surface)] custom-scrollbar">
+                <div className="flex-1 overflow-y-auto space-y-1 min-h-0 pr-1 border border-[var(--border-structural)] rounded-md p-1.5 bg-[var(--bg-surface)] custom-scrollbar">
                   {filteredFiles.map((file) => {
                     const isSelected = selectedFile?.id === file.id;
                     const isHtml = file.name.endsWith('.html') || file.mimeType === 'text/html';
@@ -741,8 +750,8 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                         onClick={() => setSelectedFile(file)}
                         className={`flex items-center justify-between p-2 rounded-md cursor-pointer border transition text-xs ${
                           isSelected
-                            ? 'bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/40 text-[var(--text-main)]'
-                            : 'bg-[var(--bg-editor)] border-white/[0.06] hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                            ? 'bg-[var(--accent-primary)]/10 border-[var(--border-luminous)] text-[var(--text-main)]'
+                            : 'bg-[var(--bg-editor)] border-[var(--border-structural)] hover:border-[var(--border-luminous)] hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)]'
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -779,7 +788,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                 </div>
 
                 {/* Bottom Actions for Tab 1 */}
-                <div className="flex items-center justify-between pt-2.5 border-t border-white/[0.06] shrink-0">
+                <div className="flex items-center justify-between pt-2.5 border-t border-[var(--border-structural)] shrink-0">
                   <div className="text-xs text-[var(--text-muted)] truncate">
                     {selectedFile ? (
                       <span className="flex items-center gap-1.5 text-[var(--text-main)]">
@@ -815,7 +824,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
             {/* TAB 2: SAVE TO DRIVE */}
             {activeTab === 'save' && (
               <div className="flex-1 flex flex-col justify-between min-h-0 space-y-4">
-                <div className="space-y-3 bg-[var(--bg-surface)] border border-white/[0.06] p-3.5 rounded-lg">
+                <div className="space-y-3 bg-[var(--bg-surface)] border border-[var(--border-structural)] p-3.5 rounded-lg">
                   {/* File Name Input */}
                   <div className="space-y-1">
                     <label className="text-xs text-[var(--text-muted)] font-medium">{t.fileNameLabel}</label>
@@ -825,9 +834,9 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                         value={saveFileName}
                         onChange={(e) => setSaveFileName(e.target.value)}
                         placeholder={t.fileNamePlaceholder}
-                        className="flex-1 bg-[var(--bg-editor)] border border-white/[0.08] rounded-md px-2.5 py-1.5 text-xs font-mono text-[var(--text-main)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)]/60"
+                        className="flex-1 bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-md px-2.5 py-1.5 text-xs font-mono text-[var(--text-main)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--border-luminous)] transition-colors"
                       />
-                      <div className="flex items-center gap-1 bg-[var(--bg-editor)] p-1 rounded-md border border-white/[0.08] text-xs shrink-0">
+                      <div className="flex items-center gap-1 bg-[var(--bg-editor)] p-1 rounded-md border border-[var(--border-structural)] text-xs shrink-0">
                         <button
                           type="button"
                           onClick={() => {
@@ -870,7 +879,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     <select
                       value={saveTargetFolderId}
                       onChange={(e) => setSaveTargetFolderId(e.target.value)}
-                      className="w-full bg-[var(--bg-editor)] border border-white/[0.08] rounded-md px-2.5 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--accent-primary)]/60"
+                      className="w-full bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-md px-2.5 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:border-[var(--border-luminous)] transition-colors"
                     >
                       <option value="root">{t.rootFolder}</option>
                       {folders.map((f) => (
@@ -882,14 +891,14 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                   </div>
 
                   {/* Content Preview Details */}
-                  <div className="p-2.5 bg-[var(--bg-editor)] rounded-md border border-white/[0.06] text-[11px] text-[var(--text-muted)] flex items-center justify-between">
+                  <div className="p-2.5 bg-[var(--bg-editor)] rounded-md border border-[var(--border-structural)] text-[11px] text-[var(--text-muted)] flex items-center justify-between">
                     <span>{t.editorLength(currentEditorContent.length)}</span>
                     <span>{t.format(saveFormat === 'markdown')}</span>
                   </div>
                 </div>
 
                 {/* Bottom Actions for Tab 2 */}
-                <div className="flex items-center justify-end gap-2 pt-2.5 border-t border-white/[0.06] shrink-0">
+                <div className="flex items-center justify-end gap-2 pt-2.5 border-t border-[var(--border-structural)] shrink-0">
                   <button
                     type="button"
                     onClick={onClose}
@@ -913,7 +922,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
             {activeTab === 'folders' && (
               <div className="flex-1 flex flex-col min-h-0 space-y-3">
                 {/* Active Selected Folder Display */}
-                <div className="bg-[var(--bg-surface)] border border-white/[0.06] rounded-md px-3 py-2 flex items-center justify-between text-xs shrink-0">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md px-3 py-2 flex items-center justify-between text-xs shrink-0">
                   <div className="flex items-center gap-2 text-[var(--text-muted)] truncate">
                     <HardDrive className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                     <span className="text-[var(--text-muted)] text-xs shrink-0">{t.selectedFolder}</span>
@@ -925,7 +934,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsCreatingFolder(!isCreatingFolder)}
-                    className="px-2.5 py-1 rounded-md text-xs bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] text-[var(--text-main)] transition cursor-pointer"
+                    className="px-2.5 py-1 rounded-md text-xs bg-white/[0.05] hover:bg-white/[0.1] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-[var(--text-main)] transition cursor-pointer"
                   >
                     <span>{t.newFolder}</span>
                   </button>
@@ -935,7 +944,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                 {isCreatingFolder && (
                   <form
                     onSubmit={handleCreateFolder}
-                    className="p-2 bg-[var(--bg-surface)] border border-white/[0.06] rounded-md flex items-center gap-2 shrink-0"
+                    className="p-2 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md flex items-center gap-2 shrink-0"
                   >
                     <FolderPlus className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                     <input
@@ -944,7 +953,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                       onChange={(e) => setNewFolderName(e.target.value)}
                       placeholder={t.newFolderPlaceholder}
                       autoFocus
-                      className="flex-1 bg-[var(--bg-editor)] border border-white/[0.08] rounded-md px-2.5 py-1 text-xs text-[var(--text-main)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)]/60"
+                      className="flex-1 bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-md px-2.5 py-1 text-xs text-[var(--text-main)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--border-luminous)] transition-colors"
                     />
                     <button
                       type="submit"
@@ -964,7 +973,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                 )}
 
                 {/* Folder List */}
-                <div className="flex-1 overflow-y-auto space-y-1 min-h-0 pr-1 border border-white/[0.06] rounded-md p-1.5 bg-[var(--bg-surface)] custom-scrollbar">
+                <div className="flex-1 overflow-y-auto space-y-1 min-h-0 pr-1 border border-[var(--border-structural)] rounded-md p-1.5 bg-[var(--bg-surface)] custom-scrollbar">
                   {/* Root Choice */}
                   <div
                     onClick={() => {
@@ -973,8 +982,8 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                     }}
                     className={`flex items-center justify-between p-2 rounded-md cursor-pointer border transition ${
                       selectedFolderId === 'root'
-                        ? 'bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/40 text-[var(--text-main)]'
-                        : 'bg-[var(--bg-editor)] border-white/[0.06] hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                        ? 'bg-[var(--accent-primary)]/10 border-[var(--border-luminous)] text-[var(--text-main)]'
+                        : 'bg-[var(--bg-editor)] border-[var(--border-structural)] hover:border-[var(--border-luminous)] hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)]'
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -1000,8 +1009,8 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                         }}
                         className={`flex items-center justify-between p-2 rounded-md cursor-pointer border transition ${
                           isSelected
-                            ? 'bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/40 text-[var(--text-main)]'
-                            : 'bg-[var(--bg-editor)] border-white/[0.06] hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                            ? 'bg-[var(--accent-primary)]/10 border-[var(--border-luminous)] text-[var(--text-main)]'
+                            : 'bg-[var(--bg-editor)] border-[var(--border-structural)] hover:border-[var(--border-luminous)] hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)]'
                         }`}
                       >
                         <div className="flex items-center gap-2 min-w-0">
@@ -1020,7 +1029,7 @@ export const GoogleDrivePickerModal: React.FC<GoogleDrivePickerModalProps> = ({
                 </div>
 
                 {/* Bottom Actions for Tab 3 */}
-                <div className="flex items-center justify-end gap-2.5 pt-2.5 border-t border-white/[0.06] shrink-0">
+                <div className="flex items-center justify-end gap-2.5 pt-2.5 border-t border-[var(--border-structural)] shrink-0">
                   <button
                     type="button"
                     onClick={onClose}

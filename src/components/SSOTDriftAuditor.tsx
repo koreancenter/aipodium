@@ -363,7 +363,7 @@ ${
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] p-2 rounded shadow-xl text-xs font-mono">
+        <div className="bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] p-2 rounded shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] text-xs font-mono">
           <div className="text-[var(--text-main)] font-semibold">{data.name}</div>
           <div className="text-[var(--accent-primary)] mt-0.5">
             {t.conformanceRate}: {data.score}%
@@ -384,9 +384,9 @@ ${
   };
 
   return (
-    <div className="flex flex-col h-full bg-[var(--bg-surface)] border-l border-white/[0.06] w-88 md:w-96 shrink-0 shadow-2xl z-30 select-none text-[var(--text-muted)]">
+    <div className="relative flex flex-col h-full bg-[var(--bg-surface)] border-l border-white/[0.08] w-88 md:w-96 shrink-0 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] z-30 select-none text-[var(--text-muted)]">
       {/* Header */}
-      <div className="px-5 py-4 bg-[var(--bg-surface)] border-b border-white/[0.06] flex items-center justify-between shrink-0">
+      <div className="px-5 py-4 bg-[var(--bg-surface)] border-b border-white/[0.07] flex items-center justify-between shrink-0">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-medium text-[var(--text-main)] flex items-center gap-1.5">
@@ -405,7 +405,7 @@ ${
           <button
             type="button"
             onClick={handleCopyReport}
-            className="px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] rounded-md transition flex items-center gap-1 text-xs border border-white/[0.06] cursor-pointer"
+            className="px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] rounded-md transition flex items-center gap-1 text-xs border border-white/[0.07] hover:border-white/[0.14] cursor-pointer"
             title={t.copyReportTitle}
           >
             <Copy className="w-3.5 h-3.5" />
@@ -414,7 +414,7 @@ ${
           <button
             type="button"
             onClick={handleExportCsv}
-            className="px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] rounded-md transition flex items-center gap-1 text-xs border border-white/[0.06] cursor-pointer"
+            className="px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] rounded-md transition flex items-center gap-1 text-xs border border-white/[0.07] hover:border-white/[0.14] cursor-pointer"
             title={t.exportReportTitle}
           >
             <Download className="w-3.5 h-3.5" />
@@ -432,14 +432,14 @@ ${
       </div>
 
       {/* Health Score Overview Card */}
-      <div className="p-4 bg-[var(--bg-editor)] border-b border-white/[0.06] shrink-0">
+      <div className="p-4 bg-[var(--bg-editor)] border-b border-[var(--border-structural)] shrink-0">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-baseline gap-1.5">
             <span className="text-2xl font-bold text-[var(--text-main)] font-mono">{auditResult.score}</span>
             <span className="text-xs text-[var(--text-muted)] font-mono">{t.scoreSuffix}</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/[0.04] border border-white/[0.06] text-xs text-[var(--text-main)]">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/[0.04] border border-[var(--border-structural)] text-xs text-[var(--text-main)]">
             <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`} />
             <span>{statusConfig.label}</span>
           </div>
@@ -461,15 +461,15 @@ ${
 
         {/* Quick Counters */}
         <div className="grid grid-cols-3 gap-2 text-xs font-mono">
-          <div className="bg-[var(--bg-surface)] border border-white/[0.06] px-2.5 py-1.5 rounded-md flex items-center justify-between">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-structural)] px-2.5 py-1.5 rounded-md flex items-center justify-between">
             <span className="text-[var(--text-muted)] text-[11px]">{t.severityCritical}</span>
             <span className="font-semibold text-[var(--text-main)] text-xs">{auditResult.criticalCount}</span>
           </div>
-          <div className="bg-[var(--bg-surface)] border border-white/[0.06] px-2.5 py-1.5 rounded-md flex items-center justify-between">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-structural)] px-2.5 py-1.5 rounded-md flex items-center justify-between">
             <span className="text-[var(--text-muted)] text-[11px]">{t.severityWarning}</span>
             <span className="font-semibold text-[var(--text-main)] text-xs">{auditResult.warningCount}</span>
           </div>
-          <div className="bg-[var(--bg-surface)] border border-white/[0.06] px-2.5 py-1.5 rounded-md flex items-center justify-between">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-structural)] px-2.5 py-1.5 rounded-md flex items-center justify-between">
             <span className="text-[var(--text-muted)] text-[11px]">{t.severityInfo}</span>
             <span className="font-semibold text-[var(--text-main)] text-xs">{auditResult.infoCount}</span>
           </div>
@@ -493,7 +493,7 @@ ${
           <button
             type="button"
             onClick={handleLocalRescan}
-            className="bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-main)] py-1.5 px-3 rounded-md text-xs transition flex items-center justify-center border border-white/[0.08] cursor-pointer"
+            className="bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-main)] py-1.5 px-3 rounded-md text-xs transition flex items-center justify-center border border-[var(--border-structural)] hover:border-[var(--border-luminous)] cursor-pointer"
             title={t.rescan}
           >
             <span>{t.rescan}</span>
@@ -515,7 +515,7 @@ ${
 
       {/* Filter Tabs */}
       <div
-        className="px-3 py-2 bg-[var(--bg-surface)] border-b border-white/[0.06] flex items-center gap-1 overflow-x-auto shrink-0 scrollbar-none text-xs"
+        className="px-3 py-2 bg-[var(--bg-surface)] border-b border-[var(--border-structural)] flex items-center gap-1 overflow-x-auto shrink-0 scrollbar-none text-xs"
         onWheel={(e) => {
           if (e.deltaY !== 0) {
             e.currentTarget.scrollLeft += e.deltaY;
@@ -534,13 +534,16 @@ ${
             key={tab.id}
             type="button"
             onClick={() => setFilterType(tab.id)}
-            className={`px-2 py-1 rounded-md transition shrink-0 cursor-pointer text-xs whitespace-nowrap ${
+            className={`relative px-2 py-1 rounded-md transition shrink-0 cursor-pointer text-xs whitespace-nowrap ${
               filterType === tab.id
                 ? 'bg-white/[0.08] text-[var(--text-main)] font-medium'
                 : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.04]'
             }`}
           >
             {tab.label}
+            {filterType === tab.id && (
+              <span className="cyber-active-rail bottom-0 left-1.5 right-1.5 h-[2px] rounded-full" />
+            )}
           </button>
         ))}
       </div>
@@ -548,14 +551,14 @@ ${
       {/* Issues List & Infographic Card */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0 select-text bg-[var(--bg-surface)]">
         {/* Infographic Summary Card */}
-        <div className="p-3.5 rounded-lg border border-white/[0.06] bg-[var(--bg-editor)] space-y-3">
+        <div className="p-3.5 rounded-lg border border-[var(--border-structural)] bg-[var(--bg-editor)] space-y-3">
           {/* Card Header */}
-          <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
+          <div className="flex items-center justify-between pb-2 border-b border-[var(--border-structural)]">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-[var(--text-main)]">
                 {t.infographicTitle}
               </span>
-              <span className="text-[10px] font-mono text-[var(--text-muted)] bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">
+              <span className="text-[10px] font-mono text-[var(--text-muted)] bg-white/[0.04] px-1.5 py-0.5 rounded border border-[var(--border-structural)]">
                 {t.conformanceRate} {auditResult.score}%
               </span>
             </div>
@@ -604,25 +607,25 @@ ${
 
                 {/* 4 Key Stat Badges Grid */}
                 <div className="grid grid-cols-2 gap-1.5 flex-1 text-[11px] font-mono">
-                  <div className="bg-[var(--bg-surface)] border border-white/[0.06] p-2 rounded-md">
+                  <div className="bg-[var(--bg-surface)] border border-[var(--border-structural)] p-2 rounded-md">
                     <div className="text-[var(--text-tertiary)] text-[10px]">검사 라인</div>
                     <div className="font-semibold text-[var(--text-main)] mt-0.5">
                       {t.totalLinesScanned(totalDocLines)}
                     </div>
                   </div>
-                  <div className="bg-[var(--bg-surface)] border border-white/[0.06] p-2 rounded-md">
+                  <div className="bg-[var(--bg-surface)] border border-[var(--border-structural)] p-2 rounded-md">
                     <div className="text-[var(--text-tertiary)] text-[10px]">진단 판정</div>
                     <div className="font-semibold text-[var(--text-main)] mt-0.5 truncate">
                       {statusConfig.label}
                     </div>
                   </div>
-                  <div className="bg-[var(--bg-surface)] border border-white/[0.06] p-2 rounded-md">
+                  <div className="bg-[var(--bg-surface)] border border-[var(--border-structural)] p-2 rounded-md">
                     <div className="text-[var(--text-tertiary)] text-[10px]">감지 불일치</div>
                     <div className="font-semibold text-[var(--text-main)] mt-0.5">
                       {activeIssues.length}건
                     </div>
                   </div>
-                  <div className="bg-[var(--bg-surface)] border border-white/[0.06] p-2 rounded-md">
+                  <div className="bg-[var(--bg-surface)] border border-[var(--border-structural)] p-2 rounded-md">
                     <div className="text-[var(--text-tertiary)] text-[10px]">자동 화해</div>
                     <div className="font-semibold text-[var(--accent-primary)] mt-0.5">
                       {t.reconcilableCount(reconcilableCount)}
@@ -632,7 +635,7 @@ ${
               </div>
 
               {/* Category Conformance Bar Chart */}
-              <div className="pt-2 border-t border-white/[0.06]">
+              <div className="pt-2 border-t border-[var(--border-structural)]">
                 <div className="text-[11px] text-[var(--text-muted)] font-mono mb-1.5 flex items-center justify-between">
                   <span>영역별 적합 지표</span>
                   <span className="text-[10px] text-[var(--text-tertiary)]">최대 100%</span>
@@ -674,7 +677,7 @@ ${
               </div>
 
               {/* Dynamic Insight Banner */}
-              <div className="p-2 rounded bg-[var(--bg-surface)] border border-white/[0.06] text-[11px] leading-relaxed">
+              <div className="p-2 rounded bg-[var(--bg-surface)] border border-[var(--border-structural)] text-[11px] leading-relaxed">
                 <span className={activeIssues.length === 0 ? 'text-[var(--secondary-accent)]' : 'text-[var(--text-muted)]'}>
                   {activeIssues.length === 0
                     ? t.perfectHealthInsight
@@ -687,7 +690,7 @@ ${
 
         {visibleIssues.length === 0 ? (
           <div className="py-6 flex flex-col items-center justify-center text-center p-4 text-[var(--text-muted)]">
-            <div className="w-10 h-10 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-3">
+            <div className="w-10 h-10 rounded-lg bg-white/[0.04] border border-[var(--border-structural)] flex items-center justify-center mb-3">
               <FileCheck2 className="w-5 h-5 text-[var(--secondary-accent)]" />
             </div>
             <h4 className="text-xs font-medium text-[var(--text-main)] mb-1">
@@ -701,13 +704,13 @@ ${
           visibleIssues.map((issue) => (
             <div
               key={issue.id}
-              className="p-3 rounded-lg border border-white/[0.06] bg-[var(--bg-editor)] hover:border-white/[0.12] transition space-y-2.5"
+              className="p-3 rounded-lg border border-[var(--border-structural)] bg-[var(--bg-editor)] hover:border-[var(--border-luminous)] transition space-y-2.5"
             >
               {/* Issue Header */}
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <h4 className="text-xs font-medium text-[var(--text-main)] truncate">{issue.title}</h4>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.04] text-[var(--text-muted)] shrink-0 font-medium border border-white/[0.06]">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.04] text-[var(--text-muted)] shrink-0 font-medium border border-[var(--border-structural)]">
                     {issue.severity === 'critical' ? t.severityCritical : issue.severity === 'warning' ? t.severityWarning : t.severityInfo}
                   </span>
                 </div>
@@ -717,7 +720,7 @@ ${
                     <button
                       type="button"
                       onClick={() => onJumpToLine?.(issue.location.line)}
-                      className="text-[10px] font-mono bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-main)] px-1.5 py-0.5 rounded transition flex items-center gap-0.5 cursor-pointer border border-white/[0.06]"
+                      className="text-[10px] font-mono bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-main)] px-1.5 py-0.5 rounded transition flex items-center gap-0.5 cursor-pointer border border-[var(--border-structural)] hover:border-[var(--border-luminous)]"
                       title={t.jumpToLine}
                     >
                       <span>{t.lineLabel(issue.location.line)}</span>
@@ -742,14 +745,14 @@ ${
 
               {/* Location Snippet */}
               {issue.location.text && (
-                <div className="bg-[var(--bg-surface)] border border-white/[0.06] rounded-md p-2 font-mono text-[11px] text-[var(--text-muted)] truncate">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md p-2 font-mono text-[11px] text-[var(--text-muted)] truncate">
                   <span className="text-[var(--text-tertiary)] mr-1 select-none">{t.excerpt}</span>
                   <span className="text-amber-200/90">{issue.location.text}</span>
                 </div>
               )}
 
               {/* Suggested Fix and Reconciliation Patch */}
-              <div className="bg-[var(--bg-surface)] border border-white/[0.06] rounded-md p-2.5 space-y-2">
+              <div className="bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md p-2.5 space-y-2">
                 <div className="text-xs text-[var(--text-main)] font-medium flex items-center gap-1.5">
                   <Sparkles className="w-3 h-3 text-[var(--accent-primary)]" />
                   <span>{t.suggestedFixHeading}</span>
@@ -759,7 +762,7 @@ ${
                 </p>
 
                 {issue.reconciliationPatch && (
-                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/[0.06]">
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border-structural)]">
                     <span className="text-[11px] text-[var(--secondary-accent)] font-mono flex items-center gap-1 truncate">
                       <Check className="w-3 h-3 shrink-0" />
                       {t.patchReady}
@@ -782,7 +785,7 @@ ${
       </div>
 
       {/* Footer info */}
-      <div className="p-2.5 bg-[var(--bg-surface)] border-t border-white/[0.06] flex items-center justify-between text-[11px] text-[var(--text-tertiary)] shrink-0 font-mono">
+      <div className="p-2.5 bg-[var(--bg-surface)] border-t border-[var(--border-structural)] flex items-center justify-between text-[11px] text-[var(--text-tertiary)] shrink-0 font-mono">
         <span>{t.lastChecked(auditResult.analyzedAt)}</span>
         <span>{t.engineName}</span>
       </div>

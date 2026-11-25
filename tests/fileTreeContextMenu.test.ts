@@ -26,10 +26,12 @@ test('2. FileTreeContextMenu applies obsidian dark theme tokens and sharp 1px bo
   const filePath = path.resolve(process.cwd(), 'src/components/FileTreeContextMenu.tsx');
   const fileContent = fs.readFileSync(filePath, 'utf-8');
 
-  // Obsidian dark theme container & border tokens
-  assert.match(fileContent, /bg-\[#121214\]/);
-  assert.match(fileContent, /border-\[#222226\]/);
-  assert.match(fileContent, /hover:bg-\[#18181b\]/);
+  // Neutral matte dark theme container & hairline border tokens (no glowing rims)
+  assert.match(fileContent, /bg-\[var\(--bg-elevated\)\]/);
+  assert.match(fileContent, /border-white\/\[0\.08\]/);
+  assert.match(fileContent, /border-white\/\[0\.07\]/);
+  assert.doesNotMatch(fileContent, /cyber-rim-top|shadow-\[var\(--rim-glow\)\]/);
+  assert.match(fileContent, /hover:bg-white\/\[0\.06\]/);
 });
 
 test('3. App.tsx mounts FileTreeContextMenu and attaches onContextMenu to file tree items', () => {

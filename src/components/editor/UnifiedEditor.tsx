@@ -580,7 +580,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
       {/* Top Toolbar: Muted single-row horizontal toolbar receding when idle */}
       <div
         id="unified-editor-top-toolbar"
-        className="shrink-0 h-8 px-3 bg-[var(--bg-editor)] season-shell border-b border-white/[0.06] flex items-center justify-between select-none z-10 text-xs gap-2"
+        className="shrink-0 h-8 px-3 bg-[var(--bg-editor)] season-shell border-b border-white/[0.07] flex items-center justify-between select-none z-10 text-xs gap-2"
       >
         {/* Left Section: Mode Switcher (Icon-only) */}
         <div className="flex items-center gap-1 shrink-0">
@@ -588,45 +588,54 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleModeSelect('wysiwyg')}
-            className={`h-6 w-6 rounded-md text-xs flex items-center justify-center transition cursor-pointer select-none shrink-0 ${
+            className={`relative h-6 w-6 rounded-md text-xs flex items-center justify-center transition cursor-pointer select-none shrink-0 ${
               internalMode === 'wysiwyg'
                 ? 'bg-white/[0.08] text-[var(--accent-primary)] font-medium'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.05]'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.05]'
             }`}
             title={et.wysiwyg}
             aria-label={et.wysiwyg}
           >
             <Pen className="w-3.5 h-3.5" />
+            {internalMode === 'wysiwyg' && (
+              <span className="absolute bottom-0 left-1 right-1 h-[2px] cyber-active-rail rounded-full" />
+            )}
           </button>
 
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleModeSelect('markdown')}
-            className={`h-6 w-6 rounded-md text-xs flex items-center justify-center transition cursor-pointer select-none shrink-0 ${
+            className={`relative h-6 w-6 rounded-md text-xs flex items-center justify-center transition cursor-pointer select-none shrink-0 ${
               internalMode === 'markdown' || internalMode === 'edit'
                 ? 'bg-white/[0.08] text-[var(--accent-primary)] font-medium'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.05]'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.05]'
             }`}
             title={et.markdown}
             aria-label={et.markdown}
           >
             <BookOpen className="w-3.5 h-3.5" />
+            {(internalMode === 'markdown' || internalMode === 'edit') && (
+              <span className="absolute bottom-0 left-1 right-1 h-[2px] cyber-active-rail rounded-full" />
+            )}
           </button>
 
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleModeSelect('split')}
-            className={`h-6 w-6 rounded-md text-xs flex items-center justify-center transition cursor-pointer select-none shrink-0 ${
+            className={`relative h-6 w-6 rounded-md text-xs flex items-center justify-center transition cursor-pointer select-none shrink-0 ${
               internalMode === 'split'
                 ? 'bg-white/[0.08] text-[var(--accent-primary)] font-medium'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.05]'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-white/[0.05]'
             }`}
             title={et.split}
             aria-label={et.split}
           >
             <Split className="w-3.5 h-3.5" />
+            {internalMode === 'split' && (
+              <span className="absolute bottom-0 left-1 right-1 h-[2px] cyber-active-rail rounded-full" />
+            )}
           </button>
         </div>
 
@@ -637,7 +646,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('h1')}
-            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.h1}
             aria-label="Heading 1"
           >
@@ -647,7 +656,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('h2')}
-            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.h2}
             aria-label="Heading 2"
           >
@@ -657,21 +666,21 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('h3')}
-            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.h3}
             aria-label="Heading 3"
           >
             <Heading3 className="w-3.5 h-3.5" />
           </button>
 
-          <div className="h-3.5 w-px bg-white/[0.06] mx-1 shrink-0" />
+          <div className="h-3.5 w-px bg-white/[0.07] mx-1 shrink-0" />
 
           {/* Inline Styles: B (Bold), I (Italic), <> (Code) */}
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('bold')}
-            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.boldTitle}
             aria-label="Bold"
           >
@@ -681,7 +690,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('italic')}
-            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] italic transition flex items-center justify-center cursor-pointer select-none shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-secondary)] hover:text-[var(--text-main)] italic transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.italicTitle}
             aria-label="Italic"
           >
@@ -691,21 +700,21 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('code')}
-            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] font-mono text-xs transition flex items-center justify-center cursor-pointer select-none shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-secondary)] hover:text-[var(--text-main)] font-mono text-xs transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.codeTitle}
             aria-label="Code"
           >
             <Code className="w-3.5 h-3.5" />
           </button>
 
-          <div className="h-3.5 w-px bg-white/[0.06] mx-1 shrink-0" />
+          <div className="h-3.5 w-px bg-white/[0.07] mx-1 shrink-0" />
 
           {/* Block Formats: Bullet List, Numbered List, Task List, Blockquote, Table */}
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('bullet')}
-            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.bullet}
             aria-label="Bullet list"
           >
@@ -715,7 +724,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('number')}
-            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.numbered}
             aria-label="Numbered list"
           >
@@ -725,7 +734,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('task')}
-            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.task}
             aria-label="Task list"
           >
@@ -735,7 +744,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('quote')}
-            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.quoteTitle}
             aria-label="Blockquote"
           >
@@ -745,14 +754,14 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleApplyFormat('table')}
-            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
+            className="h-6 w-6 rounded-md hover:bg-white/[0.05] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition flex items-center justify-center cursor-pointer select-none shrink-0"
             title={et.table}
             aria-label="Table"
           >
             <TableIcon className="w-3.5 h-3.5" />
           </button>
 
-          <div className="h-3.5 w-px bg-white/[0.06] mx-1 shrink-0" />
+          <div className="h-3.5 w-px bg-white/[0.07] mx-1 shrink-0" />
 
           {/* Drawing Canvas Toggle (PenTool icon) */}
           <button
@@ -763,7 +772,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             className={`h-6 w-6 rounded-md transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
               activeDrawing
                 ? 'bg-white/[0.08] text-[var(--accent-primary)] font-medium'
-                : 'text-[var(--text-muted)] hover:bg-white/[0.05] hover:text-[var(--text-main)]'
+                : 'text-[var(--text-secondary)] hover:bg-white/[0.05] hover:text-[var(--text-main)]'
             }`}
             title={activeDrawing ? et.drawingClose : et.drawingOpen}
             aria-label="Drawing canvas"
@@ -779,7 +788,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = (props) => {
             className={`h-6 w-6 rounded-md transition flex items-center justify-center cursor-pointer select-none shrink-0 ${
               activeFullscreen
                 ? 'bg-white/[0.08] text-[var(--accent-primary)] font-medium'
-                : 'text-[var(--text-muted)] hover:bg-white/[0.05] hover:text-[var(--text-main)]'
+                : 'text-[var(--text-secondary)] hover:bg-white/[0.05] hover:text-[var(--text-main)]'
             }`}
             title={activeFullscreen ? et.fullscreenExit : et.fullscreen}
             aria-label="Fullscreen toggle"

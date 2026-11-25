@@ -56,7 +56,7 @@ test('3. Visual states and typography specifications match design guidelines', (
   assert.match(componentSource, /border-l border-zinc-800/, 'Must use thin left border border-l border-zinc-800');
   assert.match(componentSource, /text-\[0\.8125rem\]/, 'Must use precise font size text-[0.8125rem]');
   assert.match(componentSource, /leading-relaxed/, 'Must use leading-relaxed line height');
-  assert.match(componentSource, /text-zinc-500/, 'Must use text-zinc-500 for reasoning content');
+  assert.match(componentSource, /text-\[var\(--text-tertiary\)\]/, 'Must use var(--text-tertiary) for reasoning content');
 });
 
 test('4. CSS Keyframes and smooth shimmer rules defined in index.css with accessibility', () => {

@@ -241,7 +241,7 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
         className={`p-0.5 rounded transition-colors duration-150 inline-flex items-center justify-center align-middle cursor-pointer ${
           isOpen
             ? 'text-[var(--accent-primary)] bg-white/[0.06]'
-            : 'text-[var(--text-muted)] hover:text-slate-200 hover:bg-white/[0.06] focus:text-slate-200'
+            : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] focus:text-[var(--text-main)]'
         } ${className}`}
       >
         <HelpCircle className="w-3.5 h-3.5" />
@@ -268,7 +268,7 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
                   filter: 'drop-shadow(0 12px 28px rgba(0, 0, 0, 0.65))',
                   transformOrigin: getTransformOrigin()
                 }}
-                className="w-72 max-w-[calc(100vw-24px)] rounded-lg bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] text-left pointer-events-auto select-text overflow-visible shadow-xl shadow-black/60"
+                className="w-72 max-w-[calc(100vw-24px)] rounded-lg bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] text-left pointer-events-auto select-text overflow-visible"
               >
                 {/* Pointer arrow pointing to trigger button */}
                 {position.actualSide === 'top' && (
@@ -297,7 +297,7 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
                 )}
 
                 {/* Body Content */}
-                <div className="p-2.5 text-[11.5px] leading-relaxed text-[var(--text-muted)] font-normal break-words">
+                <div className="p-2.5 text-[11.5px] leading-relaxed text-[var(--text-secondary)] font-normal break-words">
                   {resolvedContent}
                 </div>
               </motion.div>

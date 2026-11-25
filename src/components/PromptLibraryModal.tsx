@@ -150,15 +150,15 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.98, y: 6 }}
           transition={{ duration: 0.15 }}
-          className="bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl w-full max-w-xl h-[520px] max-h-[88vh] flex flex-col overflow-hidden text-[var(--text-muted)] font-sans"
+          className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] w-full max-w-xl h-[520px] max-h-[88vh] flex flex-col overflow-hidden text-[var(--text-muted)] font-sans"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b border-white/[0.06] bg-[var(--bg-surface)] flex items-center justify-between shrink-0">
+          <div className="px-6 py-4 border-b border-white/[0.07] bg-[var(--bg-surface)] flex items-center justify-between shrink-0">
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-medium text-[var(--text-main)]">프롬프트 관리</h2>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-[var(--text-muted)] border border-white/[0.06]">
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-[var(--text-muted)] border border-white/[0.07]">
                   {activePrompts.length}개 저장됨
                 </span>
               </div>
@@ -177,7 +177,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
           </div>
 
           {/* Search & Action Bar */}
-          <div className="px-6 py-2.5 border-b border-white/[0.06] bg-[var(--bg-surface)]/70 flex items-center gap-2 shrink-0">
+          <div className="px-6 py-2.5 border-b border-[var(--border-structural)] bg-[var(--bg-surface)]/70 flex items-center gap-2 shrink-0">
             <div className="relative flex-1">
               <Search className="w-3.5 h-3.5 text-[var(--text-tertiary)] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
@@ -185,7 +185,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="제목, 설명, 프롬프트 내용 검색..."
-                className="w-full bg-[var(--bg-editor)] border border-white/[0.08] rounded-md pl-8 pr-3 py-1.5 text-xs text-[var(--text-main)] placeholder-[var(--text-tertiary)] focus:border-[var(--accent-primary)]/60 outline-none transition-colors"
+                className="w-full bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-md pl-8 pr-3 py-1.5 text-xs text-[var(--text-main)] placeholder-[var(--text-tertiary)] focus:border-[var(--border-luminous)] outline-none transition-colors"
               />
               {searchQuery && (
                 <button
@@ -214,8 +214,8 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
           <div className="flex-1 overflow-y-auto min-h-0 bg-[var(--bg-editor)] custom-scrollbar">
             {isAddingPrompt || editingPrompt ? (
               /* Add/Edit Form */
-              <div className="p-6 bg-[var(--bg-editor)] border-b border-white/[0.06] space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
+              <div className="p-6 bg-[var(--bg-editor)] border-b border-[var(--border-structural)] space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-[var(--border-structural)]">
                   <span className="text-xs font-medium text-[var(--text-main)]">
                     {isAddingPrompt ? '새 프롬프트 템플릿 작성' : '프롬프트 템플릿 수정'}
                   </span>
@@ -238,7 +238,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                     value={promptForm.title}
                     onChange={(e) => setPromptForm({ ...promptForm, title: e.target.value })}
                     placeholder="예: 코드 검토 및 성능 분석"
-                    className="w-full bg-[var(--bg-surface)] border border-white/[0.08] rounded-md px-3 py-1.5 text-xs text-[var(--text-main)] placeholder-[var(--text-tertiary)] outline-none focus:border-[var(--accent-primary)]/60 transition-colors"
+                    className="w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md px-3 py-1.5 text-xs text-[var(--text-main)] placeholder-[var(--text-tertiary)] outline-none focus:border-[var(--border-luminous)] transition-colors"
                     autoFocus
                   />
                 </div>
@@ -250,7 +250,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                     value={promptForm.description}
                     onChange={(e) => setPromptForm({ ...promptForm, description: e.target.value })}
                     placeholder="예: 보안 취약점 점검 및 최적화 리팩토링 제안"
-                    className="w-full bg-[var(--bg-surface)] border border-white/[0.08] rounded-md px-3 py-1.5 text-xs text-[var(--text-main)] placeholder-[var(--text-tertiary)] outline-none focus:border-[var(--accent-primary)]/60 transition-colors"
+                    className="w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md px-3 py-1.5 text-xs text-[var(--text-main)] placeholder-[var(--text-tertiary)] outline-none focus:border-[var(--border-luminous)] transition-colors"
                   />
                 </div>
 
@@ -261,11 +261,11 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                     value={promptForm.body}
                     onChange={(e) => setPromptForm({ ...promptForm, body: e.target.value })}
                     placeholder="에디터 또는 AI 대화창에 삽입할 프롬프트 상세 내용을 입력하세요..."
-                    className="w-full bg-[var(--bg-surface)] border border-white/[0.08] rounded-md p-3 text-xs font-mono text-[var(--text-main)] placeholder-[var(--text-tertiary)] outline-none focus:border-[var(--accent-primary)]/60 resize-none leading-relaxed transition-colors"
+                    className="w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md p-3 text-xs font-mono text-[var(--text-main)] placeholder-[var(--text-tertiary)] outline-none focus:border-[var(--border-luminous)] resize-none leading-relaxed transition-colors"
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2 border-t border-white/[0.06]">
+                <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border-structural)]">
                   <button
                     type="button"
                     onClick={() => {
@@ -306,7 +306,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
                   <button
                     type="button"
                     onClick={startAdd}
-                    className="mt-3 text-[var(--text-main)] hover:bg-white/[0.08] text-xs cursor-pointer inline-flex items-center gap-1.5 bg-white/[0.04] px-3 py-1.5 rounded-md border border-white/[0.08] transition-colors"
+                    className="mt-3 text-[var(--text-main)] hover:bg-white/[0.08] text-xs cursor-pointer inline-flex items-center gap-1.5 bg-white/[0.04] px-3 py-1.5 rounded-md border border-[var(--border-structural)] hover:border-[var(--border-luminous)] transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>첫 번째 템플릿 만들기</span>
@@ -315,7 +315,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
               </div>
             ) : (
               /* Flat List of Prompts */
-              <div className="divide-y divide-white/[0.06]">
+              <div className="divide-y divide-[var(--border-structural)]">
                 {filteredPrompts.map((prompt) => (
                   <div
                     key={prompt.id}
@@ -383,7 +383,7 @@ export const PromptLibraryModal: React.FC<PromptLibraryModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-3 border-t border-white/[0.06] bg-[var(--bg-surface)] flex items-center justify-between shrink-0 text-[var(--text-muted)] text-xs">
+          <div className="px-6 py-3 border-t border-[var(--border-structural)] bg-[var(--bg-surface)] flex items-center justify-between shrink-0 text-[var(--text-muted)] text-xs">
             <span>상단 메뉴의 프롬프트 주입 기능으로 빠르게 삽입할 수 있습니다.</span>
             <button
               type="button"

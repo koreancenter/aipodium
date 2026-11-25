@@ -140,10 +140,10 @@ export const FileTreeContextMenu: React.FC<FileTreeContextMenuProps> = ({
         e.preventDefault();
         e.stopPropagation();
       }}
-      className="fixed z-50 min-w-[170px] bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl py-1 text-xs text-[var(--text-main)] select-none animate-in fade-in zoom-in-95 duration-75 font-sans season-shell"
+      className="fixed z-50 min-w-[170px] bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] py-1 text-xs text-[var(--text-main)] select-none animate-in fade-in zoom-in-95 duration-75 font-sans season-shell"
     >
       {/* Target Title Header */}
-      <div className="px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] font-mono border-b border-white/[0.06] truncate max-w-[200px] flex items-center gap-1.5">
+      <div className="px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] font-mono border-b border-white/[0.07] truncate max-w-[200px] flex items-center gap-1.5">
         {type === 'folder' || type === 'session' ? (
           <Folder className="w-3 h-3 text-[var(--accent-primary)] shrink-0" />
         ) : type === 'file' ? (
@@ -236,7 +236,7 @@ export const FileTreeContextMenu: React.FC<FileTreeContextMenuProps> = ({
         {/* Quick Action: Delete */}
         {type !== 'root' && (
           <>
-            <div className="h-px bg-white/[0.06] my-1" />
+            <div className="h-px bg-white/[0.07] my-1" />
             <button
               type="button"
               role="menuitem"

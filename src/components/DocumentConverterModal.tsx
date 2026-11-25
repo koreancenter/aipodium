@@ -239,13 +239,13 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-4xl w-full max-h-[92vh] shadow-2xl flex flex-col overflow-hidden text-[var(--text-muted)] animate-in fade-in zoom-in-95 duration-100 font-sans"
+        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl max-w-4xl w-full max-h-[92vh] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden text-[var(--text-muted)] animate-in fade-in zoom-in-95 duration-100 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] bg-[var(--bg-surface)] shrink-0">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.07] bg-[var(--bg-surface)] shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="p-1.5 rounded-md bg-[var(--accent-primary)]/15 border border-[var(--accent-primary)]/30 text-[var(--accent-primary)]">
+            <div className="p-1.5 rounded-md bg-[var(--accent-primary)]/15 border border-white/[0.08] text-[var(--accent-primary)]">
               <Sparkles className="w-4 h-4" />
             </div>
             <div className="min-w-0">
@@ -274,28 +274,28 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
         </div>
 
         {/* Stats Strip */}
-        <div className="px-5 py-2 bg-[var(--bg-surface)]/70 border-b border-white/[0.06] flex items-center flex-wrap gap-3 text-xs text-[var(--text-muted)] shrink-0">
+        <div className="px-5 py-2 bg-[var(--bg-surface)]/70 border-b border-[var(--border-structural)] flex items-center flex-wrap gap-3 text-xs text-[var(--text-muted)] shrink-0">
           <div className="flex items-center gap-1 font-mono text-[0.6875rem]">
             <span className="text-[var(--text-tertiary)]">{t.statsLabel}</span>
             {stats.pageCount !== undefined && (
-              <span className="bg-white/[0.04] px-2 py-0.5 rounded-sm text-[var(--accent-primary)] border border-white/[0.06]">
+              <span className="bg-white/[0.04] px-2 py-0.5 rounded-sm text-[var(--accent-primary)] border border-[var(--border-structural)]">
                 📄 {t.pages(stats.pageCount)}
               </span>
             )}
             {stats.sheetCount !== undefined && (
-              <span className="bg-white/[0.04] px-2 py-0.5 rounded-sm text-[var(--secondary-accent)] border border-white/[0.06]">
+              <span className="bg-white/[0.04] px-2 py-0.5 rounded-sm text-[var(--secondary-accent)] border border-[var(--border-structural)]">
                 📊 {t.sheets(stats.sheetCount)}
               </span>
             )}
             {stats.slideCount !== undefined && (
-              <span className="bg-white/[0.04] px-2 py-0.5 rounded-sm text-amber-300 border border-white/[0.06]">
+              <span className="bg-white/[0.04] px-2 py-0.5 rounded-sm text-amber-300 border border-[var(--border-structural)]">
                 📽️ {t.slides(stats.slideCount)}
               </span>
             )}
-            <span className="bg-white/[0.04] px-2 py-0.5 rounded-sm text-[var(--text-muted)] border border-white/[0.06]">
+            <span className="bg-white/[0.04] px-2 py-0.5 rounded-sm text-[var(--text-muted)] border border-[var(--border-structural)]">
               {t.words(stats.wordCount || 0)}
             </span>
-            <span className="bg-white/[0.04] px-2 py-0.5 rounded-sm text-[var(--text-muted)] border border-white/[0.06]">
+            <span className="bg-white/[0.04] px-2 py-0.5 rounded-sm text-[var(--text-muted)] border border-[var(--border-structural)]">
               {t.lines(stats.lineCount || 0)}
             </span>
           </div>
@@ -309,7 +309,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
         </div>
 
         {/* Configuration Bar */}
-        <div className="px-5 py-3 bg-[var(--bg-editor)] border-b border-white/[0.06] grid grid-cols-1 md:grid-cols-2 gap-3 shrink-0">
+        <div className="px-5 py-3 bg-[var(--bg-editor)] border-b border-[var(--border-structural)] grid grid-cols-1 md:grid-cols-2 gap-3 shrink-0">
           <div>
             <label className="block text-[0.6875rem] font-medium text-[var(--text-muted)] mb-1">
               {t.fileNameLabel}
@@ -319,7 +319,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
               value={targetFileName}
               onChange={(e) => setTargetFileName(e.target.value)}
               placeholder={t.fileNamePlaceholder}
-              className="w-full bg-[var(--bg-surface)] text-[var(--text-main)] placeholder-[var(--text-tertiary)] text-xs px-2.5 py-1.5 rounded-md border border-white/[0.08] focus:border-[var(--accent-primary)]/60 focus:ring-1 focus:ring-[var(--accent-primary)]/30 focus:outline-none font-mono"
+              className="w-full bg-[var(--bg-surface)] text-[var(--text-main)] placeholder-[var(--text-tertiary)] text-xs px-2.5 py-1.5 rounded-md border border-[var(--border-structural)] focus:border-[var(--border-luminous)] focus:ring-1 focus:ring-[var(--accent-primary)]/30 focus:outline-none font-mono transition-colors"
             />
           </div>
 
@@ -331,7 +331,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
               <select
                 value={targetFolder}
                 onChange={(e) => setTargetFolder(e.target.value)}
-                className="w-full bg-[var(--bg-surface)] text-[var(--text-main)] text-xs px-2.5 py-1.5 rounded-md border border-white/[0.08] focus:border-[var(--accent-primary)]/60 focus:ring-1 focus:ring-[var(--accent-primary)]/30 focus:outline-none appearance-none cursor-pointer"
+                className="w-full bg-[var(--bg-surface)] text-[var(--text-main)] text-xs px-2.5 py-1.5 rounded-md border border-[var(--border-structural)] focus:border-[var(--border-luminous)] focus:ring-1 focus:ring-[var(--accent-primary)]/30 focus:outline-none appearance-none cursor-pointer transition-colors"
               >
                 {uniqueFolders.map((f) => (
                   <option key={f} value={f}>
@@ -346,13 +346,13 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
 
         {/* PDF Parser Engine Bar (Only for PDF) */}
         {stats.format === 'pdf' && (
-          <div className="px-5 py-2.5 bg-[var(--bg-surface)]/80 border-b border-white/[0.06] flex flex-col md:flex-row md:items-center justify-between gap-2.5 shrink-0">
+          <div className="px-5 py-2.5 bg-[var(--bg-surface)]/80 border-b border-[var(--border-structural)] flex flex-col md:flex-row md:items-center justify-between gap-2.5 shrink-0">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-semibold text-[var(--text-muted)] flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                 {t.engineLabel}
               </span>
-              <div className="inline-flex p-0.5 bg-[var(--bg-editor)] border border-white/[0.08] rounded-md">
+              <div className="inline-flex p-0.5 bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-md">
                 <button
                   type="button"
                   onClick={() => {
@@ -425,7 +425,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                       }
                     }}
                     disabled={isReconverting}
-                    className="bg-[var(--bg-surface)] border border-white/[0.08] focus:border-[var(--accent-primary)]/60 rounded-md px-2.5 py-1 text-xs text-[var(--text-main)] outline-none pr-7 cursor-pointer"
+                    className="bg-[var(--bg-surface)] border border-[var(--border-structural)] focus:border-[var(--border-luminous)] rounded-md px-2.5 py-1 text-xs text-[var(--text-main)] outline-none pr-7 cursor-pointer transition-colors"
                   >
                     <optgroup label={t.recommendedModels}>
                       <option value="llama3.2-vision">llama3.2-vision</option>
@@ -456,7 +456,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                       value={customOllamaModel}
                       onChange={(e) => setCustomOllamaModel(e.target.value)}
                       placeholder={t.modelTagPlaceholder}
-                      className="w-28 bg-[var(--bg-surface)] border border-white/[0.08] focus:border-[var(--accent-primary)]/60 rounded-md px-2 py-1 text-xs font-mono text-[var(--text-main)] outline-none"
+                      className="w-28 bg-[var(--bg-surface)] border border-[var(--border-structural)] focus:border-[var(--border-luminous)] rounded-md px-2 py-1 text-xs font-mono text-[var(--text-main)] outline-none transition-colors"
                     />
                     <button
                       type="button"
@@ -473,7 +473,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
                   type="button"
                   onClick={() => handleReconvertPdf('ollama')}
                   disabled={isReconverting}
-                  className="px-2.5 py-1 rounded bg-white/[0.05] hover:bg-white/[0.1] text-[var(--accent-primary)] border border-white/[0.08] text-xs font-medium transition cursor-pointer flex items-center gap-1"
+                  className="px-2.5 py-1 rounded bg-white/[0.05] hover:bg-white/[0.1] text-[var(--accent-primary)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-xs font-medium transition cursor-pointer flex items-center gap-1"
                   title={t.reconvertTitle}
                 >
                   <RotateCcw className={`w-3 h-3 ${isReconverting ? 'animate-spin' : ''}`} />
@@ -495,7 +495,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
               </p>
               
               {/* Progress Bar */}
-              <div className="w-64 max-w-full bg-[var(--bg-surface)] border border-white/[0.06] rounded-full h-2 overflow-hidden mb-2">
+              <div className="w-64 max-w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-full h-2 overflow-hidden mb-2">
                 <div
                   className="bg-[var(--accent-primary)] h-full transition-all duration-300 rounded-full"
                   style={{ width: `${Math.max(reconvertProgress, 8)}%` }}
@@ -512,32 +512,38 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
             </div>
           )}
           {/* Tab Header */}
-          <div className="flex items-center justify-between px-5 border-b border-white/[0.06] bg-[var(--bg-surface)]/60 shrink-0">
+          <div className="flex items-center justify-between px-5 border-b border-[var(--border-structural)] bg-[var(--bg-surface)]/60 shrink-0">
             <div className="flex items-center gap-4">
               <button
                 type="button"
                 onClick={() => setActiveTab('preview')}
-                className={`flex items-center gap-1.5 py-2.5 text-xs font-medium transition cursor-pointer border-b-2 ${
+                className={`relative flex items-center gap-1.5 py-2.5 text-xs font-medium transition cursor-pointer ${
                   activeTab === 'preview'
-                    ? 'border-[var(--accent-primary)] text-[var(--text-main)]'
-                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                    ? 'text-[var(--text-main)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
               >
                 <Eye className="w-3.5 h-3.5" />
                 <span>{t.tabPreview}</span>
+                {activeTab === 'preview' && (
+                  <span className="cyber-active-rail absolute bottom-0 left-0 right-0 h-[2px] rounded-full" />
+                )}
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('source')}
-                className={`flex items-center gap-1.5 py-2.5 text-xs font-medium transition cursor-pointer border-b-2 ${
+                className={`relative flex items-center gap-1.5 py-2.5 text-xs font-medium transition cursor-pointer ${
                   activeTab === 'source'
-                    ? 'border-[var(--accent-primary)] text-[var(--text-main)]'
-                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                    ? 'text-[var(--text-main)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
               >
                 <Code className="w-3.5 h-3.5" />
                 <span>{t.tabSource}</span>
+                {activeTab === 'source' && (
+                  <span className="cyber-active-rail absolute bottom-0 left-0 right-0 h-[2px] rounded-full" />
+                )}
               </button>
             </div>
 
@@ -584,7 +590,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="px-5 py-3 border-t border-white/[0.06] bg-[var(--bg-surface)] flex items-center justify-between gap-3 shrink-0">
+        <div className="px-5 py-3 border-t border-[var(--border-structural)] bg-[var(--bg-surface)] flex items-center justify-between gap-3 shrink-0">
           <div className="text-[0.6875rem] text-[var(--text-muted)]">
             {t.privacyNote}
           </div>
@@ -601,7 +607,7 @@ export const DocumentConverterModal: React.FC<DocumentConverterModalProps> = ({
             <button
               type="button"
               onClick={() => handleSaveAndOpen(true)}
-              className="px-3 py-1.5 rounded-md text-xs bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-main)] border border-white/[0.08] transition cursor-pointer flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-md text-xs bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-main)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] transition cursor-pointer flex items-center gap-1.5"
               title={t.openOnlyTitle}
             >
               <span>{t.openOnly}</span>

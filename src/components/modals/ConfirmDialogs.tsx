@@ -16,18 +16,18 @@ export const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[60] bg-[var(--bg-main)]/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans">
+      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl max-w-sm w-full p-6 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] space-y-4 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans">
         <div className="space-y-1.5 pt-1">
           <h2 className="text-base font-semibold text-[var(--text-main)] tracking-tight">저장되지 않은 변경 사항</h2>
           <p className="text-xs text-[var(--text-muted)] leading-relaxed">
             현재 에디터에 저장되지 않은 변경 사항이 있습니다. 계속 진행하시면 변경 사항이 유실될 수 있습니다.
           </p>
         </div>
-        <div className="flex justify-end gap-2.5 pt-3 border-t border-white/[0.06]">
+        <div className="flex justify-end gap-2.5 pt-3 border-t border-white/[0.07]">
           <button
             type="button"
             onClick={onCancel}
-            className="px-3.5 py-1.5 rounded-lg text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition cursor-pointer"
+            className="px-3.5 py-1.5 rounded-lg text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] transition cursor-pointer"
           >
             취소 및 계속 편집
           </button>
@@ -59,11 +59,11 @@ export const DeleteFileModal: React.FC<DeleteFileModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[60] bg-[var(--bg-main)]/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans">
+      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl max-w-sm w-full p-6 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] space-y-4 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans">
         <div className="space-y-2 pt-1">
           <h2 className="text-base font-semibold text-rose-300 tracking-tight">파일 삭제 확인</h2>
           <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-            <span className="font-mono text-[var(--accent-primary)] bg-[var(--bg-surface)] px-1.5 py-0.5 rounded-md border border-white/[0.06]">
+            <span className="font-mono text-[var(--accent-primary)] bg-[var(--bg-surface)] px-1.5 py-0.5 rounded-md border border-white/[0.07]">
               {fileName}
             </span> 파일을 정말 삭제하시겠습니까?
           </p>
@@ -71,11 +71,11 @@ export const DeleteFileModal: React.FC<DeleteFileModalProps> = ({
             이 작업은 되돌릴 수 없으며 워크스페이스에서 즉시 제거됩니다.
           </p>
         </div>
-        <div className="flex justify-end gap-2.5 pt-3 border-t border-white/[0.06]">
+        <div className="flex justify-end gap-2.5 pt-3 border-t border-white/[0.07]">
           <button
             type="button"
             onClick={onCancel}
-            className="px-3.5 py-1.5 rounded-lg text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition cursor-pointer"
+            className="px-3.5 py-1.5 rounded-lg text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] transition cursor-pointer"
           >
             취소
           </button>
@@ -108,11 +108,11 @@ export const DeleteFolderModal: React.FC<DeleteFolderModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[60] bg-[var(--bg-main)]/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans">
+      <div className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl max-w-sm w-full p-6 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] space-y-4 text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 font-sans">
         <div className="space-y-2 pt-1">
           <h2 className="text-base font-semibold text-rose-300 tracking-tight">폴더 삭제 확인</h2>
           <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-            <span className="font-mono text-[var(--accent-primary)] bg-[var(--bg-surface)] px-1.5 py-0.5 rounded-md border border-white/[0.06]">
+            <span className="font-mono text-[var(--accent-primary)] bg-[var(--bg-surface)] px-1.5 py-0.5 rounded-md border border-white/[0.07]">
               {folderName}
             </span> 폴더 및 포함된 모든 문서를 정말 삭제하시겠습니까?
           </p>
@@ -120,11 +120,11 @@ export const DeleteFolderModal: React.FC<DeleteFolderModalProps> = ({
             이 작업은 되돌릴 수 없으며 워크스페이스에서 즉시 제거됩니다.
           </p>
         </div>
-        <div className="flex justify-end gap-2.5 pt-3 border-t border-white/[0.06]">
+        <div className="flex justify-end gap-2.5 pt-3 border-t border-white/[0.07]">
           <button
             type="button"
             onClick={onCancel}
-            className="px-3.5 py-1.5 rounded-lg text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition cursor-pointer"
+            className="px-3.5 py-1.5 rounded-lg text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] transition cursor-pointer"
           >
             취소
           </button>
@@ -157,7 +157,7 @@ export const DeleteSessionModal: React.FC<DeleteSessionModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-[var(--bg-main)]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 font-sans">
+      <div className="bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl max-w-md w-full p-6 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] space-y-4 animate-in fade-in zoom-in duration-150 font-sans">
         <div className="space-y-1.5 min-w-0">
           <h3 className="text-sm font-semibold text-[var(--text-main)]">
             프로젝트 삭제 확인
@@ -170,11 +170,11 @@ export const DeleteSessionModal: React.FC<DeleteSessionModalProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.06]">
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.07]">
           <button
             type="button"
             onClick={onCancel}
-            className="px-3.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs font-medium transition cursor-pointer border border-white/[0.06]"
+            className="px-3.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs font-medium transition cursor-pointer border border-white/[0.07]"
           >
             취소
           </button>

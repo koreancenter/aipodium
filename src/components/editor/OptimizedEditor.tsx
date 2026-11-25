@@ -153,13 +153,13 @@ const SLASH_COMMANDS: SlashCommandBase[] = [
   },
   {
     id: 'details',
-    icon: <ChevronDown className="w-3.5 h-3.5 text-slate-300" />,
+    icon: <ChevronDown className="w-3.5 h-3.5 text-[var(--text-secondary)]" />,
     category: 'blocks',
     cursorOffset: 19
   },
   {
     id: 'hr',
-    icon: <Minus className="w-3.5 h-3.5 text-slate-400" />,
+    icon: <Minus className="w-3.5 h-3.5 text-[var(--text-muted)]" />,
     category: 'blocks',
     cursorOffset: 5
   },
@@ -2142,10 +2142,10 @@ ${targetText}
     <div
       id="slash-autocomplete-menu"
       style={{ top: `${slashPosition.top}px`, left: `${slashPosition.left}px` }}
-      className="absolute z-50 w-72 max-h-72 flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl p-1.5 text-xs text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
+      className="absolute z-50 w-72 max-h-72 flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] p-1.5 text-xs text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
       onMouseDown={(e) => e.preventDefault()} // Prevent textarea blur on click
     >
-      <div className="shrink-0 px-2 py-1 mb-1 border-b border-white/[0.06] flex items-center justify-between text-[0.625rem] text-[var(--text-muted)] font-medium tracking-wider">
+      <div className="shrink-0 px-2 py-1 mb-1 border-b border-white/[0.07] flex items-center justify-between text-[0.625rem] text-[var(--text-muted)] font-medium tracking-wider">
         <span className="flex items-center gap-1 text-[var(--accent-primary)]">
           <Sparkles className="w-3 h-3 text-[var(--accent-primary)]" />
           {et.menuTitle}
@@ -2284,8 +2284,7 @@ ${targetText}
       >
         {/* Left 50%: Editor Textarea */}
         <div
-          style={{ borderColor: 'rgba(255, 255, 255, 0.06)' }}
-          className="w-1/2 h-full flex flex-col relative border-r min-w-0"
+          className="w-1/2 h-full flex flex-col relative border-r border-[var(--border-structural)] min-w-0"
         >
           <textarea
             id="markdown-editor"
@@ -2364,10 +2363,9 @@ ${targetText}
         >
           <div
             style={{
-              background: 'var(--bg-panel)',
-              borderColor: 'rgba(255, 255, 255, 0.06)'
+              background: 'var(--bg-panel)'
             }}
-            className="px-3 py-1 backdrop-blur-md border-b text-[0.625rem] font-medium flex items-center justify-between shrink-0 select-none"
+            className="px-3 py-1 backdrop-blur-md border-b border-[var(--border-structural)] text-[0.625rem] font-medium flex items-center justify-between shrink-0 select-none"
           >
             <span className="flex items-center gap-1.5 text-[var(--text-muted)]">
               <Eye className="w-3 h-3 text-[var(--accent-primary)]" />

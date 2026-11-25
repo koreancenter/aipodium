@@ -45,27 +45,21 @@ const SETTINGS_TRANSLATIONS = {
       options: {
         default: {
           title: '기본 · 먹빛',
-          subtitle: '차분한 서늘한 청회색과 하늘빛 포인트',
         },
         spring: {
           title: '봄 · 매화',
-          subtitle: '밤 매화의 연분홍과 여린 새싹빛 포인트',
         },
         summer: {
           title: '여름 · 비취',
-          subtitle: '깊은 바다와 청자 비취빛 포인트',
         },
         autumn: {
           title: '가을 · 단풍',
-          subtitle: '따스한 먹돌과 은행·단풍빛 포인트',
         },
         winter: {
           title: '겨울 · 설백',
-          subtitle: '맑은 겨울밤과 빙설빛 포인트',
         },
         auto: {
           title: '계절 자동 맞춤',
-          subtitle: '현재 달력 계절에 맞춰 자동으로 전환됩니다',
         },
       },
     },
@@ -265,27 +259,21 @@ const SETTINGS_TRANSLATIONS = {
       options: {
         default: {
           title: 'Ink Slate (Default)',
-          subtitle: 'Cool dark slate with crisp sky-blue accents',
         },
         spring: {
           title: 'Spring Plum',
-          subtitle: 'Night plum ink with blossom rose and sprout accents',
         },
         summer: {
           title: 'Summer Jade',
-          subtitle: 'Deep sea ink with celadon jade and clear sky accents',
         },
         autumn: {
           title: 'Autumn Maple',
-          subtitle: 'Warm inkstone with ginkgo amber and maple accents',
         },
         winter: {
           title: 'Winter Snow',
-          subtitle: 'Crisp winter night slate with frost-blue highlights',
         },
         auto: {
           title: 'Auto by season',
-          subtitle: 'Automatically follows the current calendar season',
         },
       },
     },

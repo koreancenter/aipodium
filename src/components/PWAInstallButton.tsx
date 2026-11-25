@@ -17,7 +17,7 @@ export const PWAInstallButton: React.FC<{ className?: string }> = ({ className =
       <button
         type="button"
         onClick={install}
-        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-[var(--text-main)] text-xs font-medium border border-white/[0.08] transition cursor-pointer ${className}`}
+        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-[var(--text-main)] text-xs font-medium border border-[var(--border-structural)] hover:border-[var(--border-luminous)] transition cursor-pointer ${className}`}
         title="데스크톱 또는 홈 화면에 독립 앱으로 설치"
       >
         <Download className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
@@ -33,7 +33,7 @@ export const PWAInstallButton: React.FC<{ className?: string }> = ({ className =
         <button
           type="button"
           onClick={() => setShowIOSGuide(true)}
-          className={`flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs font-medium border border-white/[0.06] transition cursor-pointer ${className}`}
+          className={`flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs font-medium border border-[var(--border-structural)] hover:border-[var(--border-luminous)] transition cursor-pointer ${className}`}
           title="홈 화면에 추가 안내"
         >
           <Download className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
@@ -46,13 +46,13 @@ export const PWAInstallButton: React.FC<{ className?: string }> = ({ className =
             onClick={() => setShowIOSGuide(false)}
           >
             <div
-              className="relative w-full max-w-sm rounded-xl bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] p-5 shadow-2xl text-[var(--text-main)] space-y-4"
+              className="relative w-full max-w-sm rounded-xl bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] p-5 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] text-[var(--text-main)] space-y-4"
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 type="button"
                 onClick={() => setShowIOSGuide(false)}
-                className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-slate-200 p-1 rounded-md hover:bg-white/[0.06] transition cursor-pointer"
+                className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-[var(--text-main)] p-1 rounded-md hover:bg-white/[0.06] transition cursor-pointer"
                 title="닫기"
               >
                 <X className="w-4 h-4" />
@@ -68,7 +68,7 @@ export const PWAInstallButton: React.FC<{ className?: string }> = ({ className =
                 </p>
               </div>
 
-              <div className="bg-[var(--bg-surface)] p-3 rounded-lg border border-white/[0.06] text-xs space-y-2 text-[var(--text-muted)]">
+              <div className="bg-[var(--bg-surface)] p-3 rounded-lg border border-[var(--border-structural)] text-xs space-y-2 text-[var(--text-muted)]">
                 <div className="flex items-start gap-2">
                   <span className="font-bold text-[var(--accent-primary)]">1.</span>
                   <span>하단 사파리 툴바의 <strong className="text-[var(--text-main)]">공유</strong> 아이콘을 탭합니다.</span>
@@ -83,7 +83,7 @@ export const PWAInstallButton: React.FC<{ className?: string }> = ({ className =
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2 border-t border-white/[0.06]">
+              <div className="flex justify-end pt-2 border-t border-[var(--border-structural)]">
                 <button
                   type="button"
                   onClick={() => setShowIOSGuide(false)}

@@ -1101,11 +1101,11 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
 
       {/* Main Toolbar: Compact IDE Design Constitution Compliant (Rendered only when hideTopToolbar is false) */}
       {!hideTopToolbar && (
-      <div className="h-8.5 px-2 bg-[var(--bg-surface)] border-b border-white/[0.06] flex items-center justify-between gap-1.5 shrink-0 z-20 text-xs select-none">
+      <div className="h-8.5 px-2 bg-[var(--bg-surface)] border-b border-[var(--border-structural)] flex items-center justify-between gap-1.5 shrink-0 z-20 text-xs select-none">
         {/* Left Section: Pure Viewer Controls */}
         <div className="flex items-center gap-1.5 shrink-0">
           {/* Page Navigation */}
-          <div className="flex items-center bg-[var(--bg-editor)] border border-white/[0.06] rounded-md p-0.5 shrink-0">
+          <div className="flex items-center bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-md p-0.5 shrink-0">
             <button
               type="button"
               onClick={handlePrevPage}
@@ -1143,10 +1143,10 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
             </button>
           </div>
 
-          <div className="h-3.5 w-px bg-white/[0.06] shrink-0" />
+          <div className="h-3.5 w-px bg-[var(--border-structural)] shrink-0" />
 
           {/* Zoom & View Controls */}
-          <div className="flex items-center gap-0.5 bg-[var(--bg-editor)] border border-white/[0.06] rounded-md p-0.5 shrink-0">
+          <div className="flex items-center gap-0.5 bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-md p-0.5 shrink-0">
             <button
               type="button"
               onClick={handleZoomOut}
@@ -1170,7 +1170,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                   }
                 }
               }}
-              className="bg-[var(--bg-surface)] text-[var(--text-main)] text-[0.6875rem] font-mono rounded-xs px-1.5 py-0.5 border border-white/[0.06] outline-none cursor-pointer hover:border-[var(--accent-primary)]/50 transition h-5.5"
+              className="bg-[var(--bg-surface)] text-[var(--text-main)] text-[0.6875rem] font-mono rounded-xs px-1.5 py-0.5 border border-[var(--border-structural)] outline-none cursor-pointer hover:border-[var(--border-luminous)] transition h-5.5"
               title={t.zoomSelect}
             >
               <option value="width">{t.fitWidth}</option>
@@ -1221,7 +1221,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
             <button
               type="button"
               onClick={() => setShowReducerModal(true)}
-              className="h-6 px-2 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-white/[0.06] text-[0.625rem] font-mono flex items-center gap-1.5 transition cursor-pointer shrink-0"
+              className="h-6 px-2 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-[0.625rem] font-mono flex items-center gap-1.5 transition cursor-pointer shrink-0"
               title={t.optimizationStatus}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)]" />
@@ -1279,8 +1279,8 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
 
             {/* Extraction Settings Popover */}
             {isExtractionMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-64 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs text-[var(--text-muted)]">
-                <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.06] mb-2">
+              <div className="absolute right-0 top-full mt-1 w-64 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] p-2.5 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs text-[var(--text-muted)]">
+                <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.07] mb-2">
                   <span className="font-medium text-[var(--text-main)] text-xs flex items-center gap-1.5">
                     <SlidersHorizontal className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                     {t.extractSettings}
@@ -1297,7 +1297,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                 {/* Scope Selector */}
                 <div className="mb-2.5">
                   <div className="text-[0.625rem] text-[var(--text-muted)] font-medium mb-1">{t.extractScope}</div>
-                  <div className="grid grid-cols-2 gap-1 bg-[var(--bg-surface)] p-0.5 rounded-md border border-white/[0.06]">
+                  <div className="grid grid-cols-2 gap-1 bg-[var(--bg-surface)] p-0.5 rounded-md border border-[var(--border-structural)]">
                     <button
                       type="button"
                       onClick={() => setExtractScope('current')}
@@ -1338,8 +1338,8 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                       onClick={() => setExtractEngine(eng.id as any)}
                       className={`w-full text-left p-1.5 rounded-md border transition cursor-pointer flex items-start gap-2 ${
                         extractEngine === eng.id
-                          ? 'bg-white/[0.08] border-[var(--accent-primary)]/40 text-[var(--text-main)]'
-                          : 'bg-[var(--bg-editor)]/70 border-white/[0.06] text-[var(--text-muted)] hover:bg-white/[0.05] hover:text-[var(--text-main)]'
+                          ? 'bg-white/[0.08] border-[var(--border-luminous)] text-[var(--text-main)]'
+                          : 'bg-[var(--bg-editor)]/70 border-[var(--border-structural)] text-[var(--text-muted)] hover:bg-white/[0.05] hover:border-[var(--border-luminous)] hover:text-[var(--text-main)]'
                       }`}
                     >
                       <div className="pt-0.5">
@@ -1405,7 +1405,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
             )}
           </div>
 
-          <div className="h-3.5 w-px bg-white/[0.06] shrink-0" />
+          <div className="h-3.5 w-px bg-[var(--border-structural)] shrink-0" />
 
           {/* Split View Toggle */}
           <button
@@ -1413,8 +1413,8 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
             onClick={() => setIsSplitView((prev) => !prev)}
             className={`h-6.5 px-2 rounded-md border text-xs flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
               isSplitView
-                ? 'bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border-[var(--accent-primary)]/40 font-medium'
-                : 'bg-[var(--bg-editor)] text-[var(--text-muted)] border-white/[0.06] hover:bg-white/[0.05] hover:text-[var(--text-main)]'
+                ? 'bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border-[var(--border-luminous)] font-medium'
+                : 'bg-[var(--bg-editor)] text-[var(--text-muted)] border-[var(--border-structural)] hover:bg-white/[0.05] hover:border-[var(--border-luminous)] hover:text-[var(--text-main)]'
             }`}
             title={t.viewToggleTitle}
           >
@@ -1431,7 +1431,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
             )}
           </button>
 
-          <div className="h-3.5 w-px bg-white/[0.06] shrink-0" />
+          <div className="h-3.5 w-px bg-[var(--border-structural)] shrink-0" />
 
           {/* More Options Menu */}
           <div className="relative" ref={moreMenuRef}>
@@ -1440,8 +1440,8 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
               onClick={() => setIsMoreMenuOpen((prev) => !prev)}
               className={`h-6.5 w-6.5 flex items-center justify-center rounded-md border text-[var(--text-muted)] hover:text-[var(--text-main)] transition cursor-pointer shrink-0 ${
                 isMoreMenuOpen
-                  ? 'bg-white/[0.08] border-[var(--accent-primary)]/40 text-[var(--text-main)]'
-                  : 'bg-[var(--bg-editor)] border-white/[0.06] hover:bg-white/[0.05]'
+                  ? 'bg-white/[0.08] border-[var(--border-luminous)] text-[var(--text-main)]'
+                  : 'bg-[var(--bg-editor)] border-[var(--border-structural)] hover:border-[var(--border-luminous)] hover:bg-white/[0.05]'
               }`}
               title={t.moreTools}
             >
@@ -1449,7 +1449,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
             </button>
 
             {isMoreMenuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-56 bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl p-1.5 text-xs text-[var(--text-muted)] z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute right-0 top-full mt-1.5 w-56 bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.85)] p-1.5 text-xs text-[var(--text-muted)] z-50 animate-in fade-in zoom-in-95 duration-100">
                 <button
                   type="button"
                   onClick={() => {
@@ -1483,7 +1483,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                   </div>
                 </button>
 
-                <div className="my-1 border-t border-white/[0.06]" />
+                <div className="my-1 border-t border-[var(--border-structural)]" />
 
                 <button
                   type="button"
@@ -1543,7 +1543,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
         <div
           ref={leftPaneContainerRef}
           className={`h-full min-h-0 relative flex flex-col overflow-hidden bg-[var(--bg-main)] ${
-            isSplitView ? 'w-1/2 border-r border-white/[0.06]' : 'w-full'
+            isSplitView ? 'w-1/2 border-r border-[var(--border-structural)]' : 'w-full'
           }`}
         >
           <div
@@ -1553,7 +1553,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
           >
           {/* Active OCR / Extraction Floating Status Indicator */}
           {isExtracting && ocrProgress && (
-            <div className="sticky top-2 z-30 mb-2 bg-[var(--bg-elevated)]/95 border border-[var(--accent-primary)]/40 text-[var(--text-main)] text-xs px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-2 backdrop-blur-md">
+            <div className="sticky top-2 z-30 mb-2 bg-[var(--bg-elevated)]/95 border border-white/[0.08] text-[var(--text-main)] text-xs px-3.5 py-1.5 rounded-full shadow-[0_12px_28px_-8px_rgba(0,0,0,0.8)] flex items-center gap-2 backdrop-blur-xl">
               <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--accent-primary)] shrink-0" />
               <span className="font-mono text-[0.6875rem]">{ocrProgress.status}</span>
               {ocrProgress.progress > 0 && (
@@ -1586,7 +1586,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                 <button
                   type="button"
                   onClick={() => window.location.reload()}
-                  className="px-3 py-1 bg-[var(--bg-editor)] hover:bg-white/[0.08] border border-white/[0.06] text-[var(--text-main)] rounded text-xs transition cursor-pointer"
+                  className="px-3 py-1 bg-[var(--bg-editor)] hover:bg-white/[0.08] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] text-[var(--text-main)] rounded text-xs transition cursor-pointer"
                 >
                   새로고침
                 </button>
@@ -1595,10 +1595,10 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
           )}
 
           {/* Canvas Wrapper */}
-          <div className="relative shadow-2xl rounded-sm overflow-hidden bg-white my-auto border border-white/[0.08]">
+          <div className="relative shadow-2xl rounded-sm overflow-hidden bg-white my-auto border border-[var(--border-structural)]">
             <canvas ref={canvasRef} className="block max-w-none" />
             {isRenderingPage && (
-              <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-[var(--bg-elevated)]/90 border border-white/[0.08] text-[var(--text-main)] text-[0.625rem] flex items-center gap-1 backdrop-blur-xs font-mono">
+              <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-[var(--bg-elevated)]/90 border border-[var(--border-structural)] text-[var(--text-main)] text-[0.625rem] flex items-center gap-1 backdrop-blur-xs font-mono">
                 <RefreshCw className="w-2.5 h-2.5 animate-spin text-[var(--accent-primary)]" />
                 <span>렌더링 중...</span>
               </div>
@@ -1610,7 +1610,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                   {ocrProgress?.status || '문서 텍스트 및 서식 분석 중...'}
                 </p>
                 {ocrProgress?.progress !== undefined && (
-                  <div className="w-48 max-w-full bg-[var(--bg-surface)] border border-white/[0.06] rounded-full h-1.5 overflow-hidden mt-1">
+                  <div className="w-48 max-w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-full h-1.5 overflow-hidden mt-1">
                     <div
                       className="bg-[var(--accent-primary)] h-full transition-all duration-300 rounded-full"
                       style={{ width: `${Math.max(ocrProgress.progress, 5)}%` }}
@@ -1624,7 +1624,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
 
           {/* Bottom Floating Dock: Navigation & Zoom & Fullscreen */}
           <div
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[var(--bg-elevated)]/90 backdrop-blur-md border border-white/[0.08] rounded-full px-3 py-1.5 flex items-center gap-2 shadow-xl z-20 select-none text-xs"
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[var(--bg-elevated)]/90 backdrop-blur-xl border border-white/[0.08] rounded-full px-3 py-1.5 flex items-center gap-2 shadow-[0_12px_28px_-8px_rgba(0,0,0,0.8)] z-20 select-none text-xs"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Prev Button */}
@@ -1658,7 +1658,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
               <ChevronRight className="w-4 h-4" />
             </button>
 
-            <div className="h-3.5 w-px bg-white/[0.08] shrink-0" />
+            <div className="h-3.5 w-px bg-[var(--border-structural)] shrink-0" />
 
             {/* Fit-to-width Toggle */}
             <button
@@ -1680,7 +1680,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
               <span>{fitMode === 'width' ? '너비 맞춤' : `${Math.round(scale * 100)}%`}</span>
             </button>
 
-            <div className="h-3.5 w-px bg-white/[0.08] shrink-0" />
+            <div className="h-3.5 w-px bg-[var(--border-structural)] shrink-0" />
 
             {/* Fullscreen Button */}
             <button
@@ -1699,7 +1699,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
         {isSplitView && (
           <div className="w-1/2 h-full min-h-0 flex flex-col bg-[var(--bg-editor)] overflow-hidden select-text">
             {/* Editor Sub-Header: Clean, Flat, Borderless IDE Aesthetic */}
-            <div className="h-8.5 px-3 bg-[var(--bg-surface)] border-b border-white/[0.06] flex items-center justify-between gap-2 shrink-0 select-none text-xs">
+            <div className="h-8.5 px-3 bg-[var(--bg-surface)] border-b border-[var(--border-structural)] flex items-center justify-between gap-2 shrink-0 select-none text-xs">
               {/* Left: Saved indicator */}
               <div className="flex items-center gap-1.5 font-mono text-[0.6875rem] text-[var(--text-muted)]">
                 <span className="w-2 h-2 rounded-full bg-[var(--secondary-accent)] inline-block shadow-[0_0_6px_rgba(52,211,153,0.45)]" />
@@ -1728,7 +1728,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                 </button>
 
                 {/* Edit / Preview Toggle [ ✏️/👁️ ] */}
-                <div className="flex items-center bg-[var(--bg-editor)] border border-white/[0.06] rounded-xs p-0.5">
+                <div className="flex items-center bg-[var(--bg-editor)] border border-[var(--border-structural)] rounded-xs p-0.5">
                   <button
                     type="button"
                     onClick={() => setRightPaneTab('edit')}
@@ -1785,7 +1785,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                   />
 
                   {/* Character/Line Stats Bar */}
-                  <div className="h-6 px-3 bg-[var(--bg-surface)] border-t border-white/[0.06] flex items-center justify-between text-[0.625rem] font-mono text-[var(--text-tertiary)] select-none">
+                  <div className="h-6 px-3 bg-[var(--bg-surface)] border-t border-[var(--border-structural)] flex items-center justify-between text-[0.625rem] font-mono text-[var(--text-tertiary)] select-none">
                     <div className="flex items-center gap-3">
                       <span>줄: {markdownContent.split('\n').length}</span>
                       <span>단어: {markdownContent.trim() ? markdownContent.trim().split(/\s+/).length : 0}</span>
@@ -1836,11 +1836,11 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
       {showReducerModal && (
         <div className="fixed inset-0 z-50 bg-[var(--bg-main)]/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div
-            className="bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl shadow-2xl w-full max-w-lg overflow-hidden text-[var(--text-main)] flex flex-col"
+            className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] w-full max-w-lg overflow-hidden text-[var(--text-main)] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="h-14 px-5 bg-[var(--bg-surface)] border-b border-white/[0.06] flex items-center justify-between shrink-0">
+            <div className="h-14 px-5 bg-[var(--bg-surface)] border-b border-white/[0.07] flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="p-1.5 rounded-md bg-[var(--secondary-accent)]/10 text-[var(--secondary-accent)] border border-[var(--secondary-accent)]/25">
                   <Minimize2 className="w-4 h-4" />
@@ -1863,10 +1863,10 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 space-y-5 text-xs overflow-y-auto max-h-[75vh] custom-scrollbar divide-y divide-white/[0.06]">
+            <div className="p-6 space-y-5 text-xs overflow-y-auto max-h-[75vh] custom-scrollbar divide-y divide-[var(--border-structural)]">
               {/* Stats Overview */}
               <div className="grid grid-cols-3 gap-2.5">
-                <div className="p-3 bg-[var(--bg-surface)] border border-white/[0.06] rounded-lg flex flex-col">
+                <div className="p-3 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-lg flex flex-col">
                   <span className="text-[0.6875rem] text-[var(--text-muted)]">원본 문서 크기</span>
                   <span className="text-sm font-semibold text-[var(--text-main)] mt-1">
                     {formatBytes(
@@ -1878,7 +1878,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                   </span>
                 </div>
 
-                <div className="p-3 bg-[var(--bg-surface)] border border-white/[0.06] rounded-lg flex flex-col">
+                <div className="p-3 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-lg flex flex-col">
                   <span className="text-[0.6875rem] text-[var(--text-muted)]">최적화 후 크기</span>
                   <span className="text-sm font-semibold text-[var(--secondary-accent)] mt-1">
                     {formatBytes(
@@ -1889,7 +1889,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                   </span>
                 </div>
 
-                <div className="p-3 bg-[var(--bg-surface)] border border-white/[0.06] rounded-lg flex flex-col">
+                <div className="p-3 bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-lg flex flex-col">
                   <span className="text-[0.6875rem] text-[var(--text-muted)]">메모리 절감량</span>
                   <span className="text-sm font-semibold text-[var(--accent-primary)] mt-1">
                     {reductionStats && reductionStats.wasOptimized && reductionStats.savedPercentage > 0
@@ -1913,25 +1913,25 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-[0.6875rem]">
-                  <div className="p-2.5 bg-[var(--bg-surface)] rounded-md border border-white/[0.06] flex justify-between items-center">
+                  <div className="p-2.5 bg-[var(--bg-surface)] rounded-md border border-[var(--border-structural)] flex justify-between items-center">
                     <span className="text-[var(--text-muted)]">이미지 메타데이터 블록</span>
                     <span className="font-mono text-[var(--secondary-accent)] font-semibold">
                       {reductionStats?.strippedItems.imageMetadataCount || 0}개
                     </span>
                   </div>
-                  <div className="p-2.5 bg-[var(--bg-surface)] rounded-md border border-white/[0.06] flex justify-between items-center">
+                  <div className="p-2.5 bg-[var(--bg-surface)] rounded-md border border-[var(--border-structural)] flex justify-between items-center">
                     <span className="text-[var(--text-muted)]">내장 압축 마커 세그먼트</span>
                     <span className="font-mono text-[var(--secondary-accent)] font-semibold">
                       {reductionStats?.strippedItems.jpegSegmentsCount || 0}개
                     </span>
                   </div>
-                  <div className="p-2.5 bg-[var(--bg-surface)] rounded-md border border-white/[0.06] flex justify-between items-center">
+                  <div className="p-2.5 bg-[var(--bg-surface)] rounded-md border border-[var(--border-structural)] flex justify-between items-center">
                     <span className="text-[var(--text-muted)]">문서 메타데이터 스트림</span>
                     <span className="font-mono text-[var(--secondary-accent)] font-semibold">
                       {reductionStats?.strippedItems.xmpStreamCount || 0}개
                     </span>
                   </div>
-                  <div className="p-2.5 bg-[var(--bg-surface)] rounded-md border border-white/[0.06] flex justify-between items-center">
+                  <div className="p-2.5 bg-[var(--bg-surface)] rounded-md border border-[var(--border-structural)] flex justify-between items-center">
                     <span className="text-[var(--text-muted)]">내장 썸네일 캐시 스트림</span>
                     <span className="font-mono text-[var(--secondary-accent)] font-semibold">
                       {reductionStats?.strippedItems.thumbnailStreamCount || 0}개
@@ -1963,12 +1963,12 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
             </div>
 
             {/* Modal Footer Actions */}
-            <div className="h-14 px-5 bg-[var(--bg-surface)] border-t border-white/[0.06] flex items-center justify-between shrink-0">
+            <div className="h-14 px-5 bg-[var(--bg-surface)] border-t border-[var(--border-structural)] flex items-center justify-between shrink-0">
               <button
                 type="button"
                 onClick={handleDownloadOptimizedPdf}
                 disabled={!activePdfBytesRef.current}
-                className="h-8 px-3 rounded-md border border-white/[0.08] bg-[var(--bg-editor)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] text-xs font-medium flex items-center gap-1.5 transition cursor-pointer disabled:opacity-40"
+                className="h-8 px-3 rounded-md border border-[var(--border-structural)] hover:border-[var(--border-luminous)] bg-[var(--bg-editor)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] text-xs font-medium flex items-center gap-1.5 transition cursor-pointer disabled:opacity-40"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>최적화된 PDF 저장</span>
@@ -1992,7 +1992,7 @@ export const PdfViewer = React.forwardRef<PdfViewerHandle, PdfViewerProps>(({
                 <button
                   type="button"
                   onClick={() => setShowReducerModal(false)}
-                  className="h-8 px-3.5 rounded-md border border-white/[0.08] bg-[var(--bg-editor)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] text-xs font-medium transition cursor-pointer"
+                  className="h-8 px-3.5 rounded-md border border-[var(--border-structural)] hover:border-[var(--border-luminous)] bg-[var(--bg-editor)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.06] text-xs font-medium transition cursor-pointer"
                 >
                   닫기
                 </button>

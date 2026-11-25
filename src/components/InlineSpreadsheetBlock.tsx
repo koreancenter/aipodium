@@ -318,14 +318,14 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
     <div
       className={`my-4 border rounded-xl overflow-hidden shadow-xl transition-all ${
         isDarkTheme
-          ? 'bg-slate-900/95 border-slate-800 text-slate-100'
+          ? 'bg-[var(--bg-surface)]/95 border-[var(--border-structural)] text-[var(--text-main)]'
           : 'bg-white border-slate-300 text-slate-900'
       }`}
     >
       {/* 1. SPREADSHEET HEADER */}
       <div
         className={`px-3 py-2 border-b flex flex-wrap items-center justify-between gap-2 select-none ${
-          isDarkTheme ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
+          isDarkTheme ? 'bg-[var(--bg-main)] border-[var(--border-structural)]' : 'bg-slate-50 border-slate-200'
         }`}
       >
         {/* Title & Badge */}
@@ -352,7 +352,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
         <div className="flex items-center gap-1.5 flex-wrap text-xs">
           {/* Quick Filter */}
           <div className="relative flex items-center">
-            <Filter className="w-3 h-3 text-slate-400 absolute left-2 pointer-events-none" />
+            <Filter className="w-3 h-3 text-[var(--text-muted)] absolute left-2 pointer-events-none" />
             <input
               type="text"
               value={filterQuery}
@@ -360,7 +360,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
               placeholder="데이터 필터..."
               className={`pl-6 pr-2 py-0.5 text-xs rounded border transition focus:outline-none w-24 sm:w-32 font-mono ${
                 isDarkTheme
-                  ? 'bg-[var(--bg-surface)] border-white/[0.06] text-[var(--text-main)] focus:border-[var(--accent-primary)]/50'
+                  ? 'bg-[var(--bg-surface)] border-[var(--border-structural)] text-[var(--text-main)] focus:border-[var(--border-luminous)]'
                   : 'bg-white border-slate-300 text-slate-800 focus:border-[var(--accent-primary)]'
               }`}
             />
@@ -368,7 +368,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
               <button
                 type="button"
                 onClick={() => setFilterQuery('')}
-                className="absolute right-1.5 text-slate-400 hover:text-white"
+                className="absolute right-1.5 text-[var(--text-muted)] hover:text-[var(--text-main)]"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -387,7 +387,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
               isChartOpen
                 ? 'bg-[#F1F5F9] text-[#0F172A] border-[#F1F5F9] shadow-sm'
                 : isDarkTheme
-                ? 'bg-[var(--bg-surface)] text-[var(--text-muted)] border-white/[0.06] hover:bg-white/[0.06] hover:text-[var(--text-main)]'
+                ? 'bg-[var(--bg-surface)] text-[var(--text-muted)] border-[var(--border-structural)] hover:border-[var(--border-luminous)] hover:bg-white/[0.06] hover:text-[var(--text-main)]'
                 : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
             }`}
             title="인터랙티브 차트 미리보기 토글"
@@ -401,7 +401,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
             <button
               type="button"
               onClick={() => setIsVibePromptOpen(!isVibePromptOpen)}
-              className="p-1 px-2 rounded bg-white/[0.08] hover:bg-white/[0.12] text-[var(--text-main)] border border-white/[0.1] transition flex items-center gap-1 font-semibold text-xs shadow-sm active:scale-95 cursor-pointer"
+              className="p-1 px-2 rounded bg-white/[0.08] hover:bg-white/[0.12] text-[var(--text-main)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] transition flex items-center gap-1 font-semibold text-xs shadow-sm active:scale-95 cursor-pointer"
               title="AI Vibe로 데이터 분석 및 2030년 추이 예측 확장"
             >
               <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
@@ -415,9 +415,9 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
               <button
                 type="button"
                 onClick={handleAddRow}
-                className={`p-1 px-2 rounded border transition flex items-center gap-1 ${
+                className={`p-1 px-2 rounded border transition flex items-center gap-1 cursor-pointer ${
                   isDarkTheme
-                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                    ? 'bg-[var(--bg-elevated)] hover:bg-white/[0.08] text-[var(--text-secondary)] border-[var(--border-structural)] hover:border-[var(--border-luminous)]'
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
                 }`}
                 title="행 추가"
@@ -430,9 +430,9 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
               <button
                 type="button"
                 onClick={handleAddColumn}
-                className={`p-1 px-2 rounded border transition flex items-center gap-1 ${
+                className={`p-1 px-2 rounded border transition flex items-center gap-1 cursor-pointer ${
                   isDarkTheme
-                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                    ? 'bg-[var(--bg-elevated)] hover:bg-white/[0.08] text-[var(--text-secondary)] border-[var(--border-structural)] hover:border-[var(--border-luminous)]'
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
                 }`}
                 title="열 추가"
@@ -449,7 +449,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
       {isVibePromptOpen && onVibeAnalyze && (
         <div
           className={`p-3 border-b flex flex-col gap-2 ${
-            isDarkTheme ? 'bg-[var(--bg-surface)] border-white/[0.06]' : 'bg-sky-50/80 border-sky-200'
+            isDarkTheme ? 'bg-[var(--bg-surface)] border-[var(--border-structural)]' : 'bg-sky-50/80 border-sky-200'
           }`}
         >
           <div className="flex items-center justify-between">
@@ -460,7 +460,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
             <button
               type="button"
               onClick={() => setIsVibePromptOpen(false)}
-              className="text-[var(--text-muted)] hover:text-slate-200"
+              className="text-[var(--text-muted)] hover:text-[var(--text-main)]"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -482,7 +482,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
                   vibePromptText === preset
                     ? 'bg-[#F1F5F9] text-[#0F172A] border-[#F1F5F9] font-medium'
                     : isDarkTheme
-                    ? 'bg-[var(--bg-editor)] text-[var(--text-muted)] border-white/[0.06] hover:border-[var(--accent-primary)]/40 hover:text-[var(--text-main)]'
+                    ? 'bg-[var(--bg-editor)] text-[var(--text-muted)] border-[var(--border-structural)] hover:border-[var(--border-luminous)] hover:text-[var(--text-main)]'
                     : 'bg-white text-slate-700 border-slate-300 hover:border-[var(--accent-primary)]'
                 }`}
               >
@@ -499,7 +499,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
               placeholder="예: 2030년까지의 시장 규모와 매출을 예측하여 행과 수식을 추가해 줘"
               className={`flex-1 px-3 py-1.5 text-xs rounded-lg border font-mono focus:outline-none ${
                 isDarkTheme
-                  ? 'bg-[var(--bg-main)] border-white/[0.06] text-[var(--text-main)] focus:border-[var(--accent-primary)]/50'
+                  ? 'bg-[var(--bg-main)] border-[var(--border-structural)] text-[var(--text-main)] focus:border-[var(--border-luminous)]'
                   : 'bg-white border-slate-300 text-slate-900 focus:border-[var(--accent-primary)]'
               }`}
             />
@@ -522,7 +522,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
       {isChartOpen && chartDatasets.series.length > 0 && (
         <div
           className={`p-4 border-b transition-all ${
-            isDarkTheme ? 'bg-[var(--bg-surface)]/60 border-white/[0.06]' : 'bg-slate-50 border-slate-200'
+            isDarkTheme ? 'bg-[var(--bg-surface)]/60 border-[var(--border-structural)]' : 'bg-slate-50 border-slate-200'
           }`}
         >
           {/* Chart Header & Type selector */}
@@ -531,7 +531,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
               <TrendingUp className="w-4 h-4 text-[var(--accent-primary)]" />
               <span>실시간 데이터 시각화 & 2030 추이 프리뷰</span>
             </div>
-            <div className="flex bg-[var(--bg-main)] border border-white/[0.06] rounded p-0.5">
+            <div className="flex bg-[var(--bg-main)] border border-[var(--border-structural)] rounded p-0.5">
               <button
                 type="button"
                 onClick={() => {
@@ -562,7 +562,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
           {/* SVG / Canvas Responsive Bar / Line Chart */}
           <div className="w-full h-44 overflow-hidden relative flex flex-col justify-end pt-4 pb-6 px-2">
             {selectedChartType === 'bar' && (
-              <div className="flex items-end justify-around h-32 w-full gap-2 border-b border-slate-700/80 pb-1">
+              <div className="flex items-end justify-around h-32 w-full gap-2 border-b border-[var(--border-structural)] pb-1">
                 {chartDatasets.labels.map((lbl, idx) => {
                   return (
                     <div key={lbl} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
@@ -579,14 +579,14 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
                               }}
                               className="w-full max-w-[20px] rounded-t-sm transition-all duration-300 relative group/bar hover:opacity-90 cursor-pointer shadow-md"
                             >
-                              <div className="opacity-0 group-hover/bar:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[0.625rem] px-1.5 py-0.5 rounded shadow border border-slate-700 whitespace-nowrap pointer-events-none z-30 font-mono">
+                              <div className="opacity-0 group-hover/bar:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-[var(--bg-elevated)] text-[var(--text-main)] text-[0.625rem] px-1.5 py-0.5 rounded shadow-[0_8px_20px_-6px_rgba(0,0,0,0.8)] border border-white/[0.08] whitespace-nowrap pointer-events-none z-30 font-mono">
                                 {s.name}: {val.toLocaleString()}
                               </div>
                             </div>
                           );
                         })}
                       </div>
-                      <span className="text-[0.6875rem] text-slate-400 truncate max-w-[80px] text-center font-mono">
+                      <span className="text-[0.6875rem] text-[var(--text-muted)] truncate max-w-[80px] text-center font-mono">
                         {lbl}
                       </span>
                     </div>
@@ -596,7 +596,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
             )}
 
             {selectedChartType === 'line' && (
-              <div className="w-full h-32 relative border-b border-slate-700/80">
+              <div className="w-full h-32 relative border-b border-[var(--border-structural)]">
                 <svg className="w-full h-full overflow-visible" viewBox="0 0 500 120" preserveAspectRatio="none">
                   {/* Grid Lines */}
                   <line x1="0" y1="0" x2="500" y2="0" stroke="#334155" strokeDasharray="3 3" strokeWidth="0.5" />
@@ -638,7 +638,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
                 {/* X Axis Labels */}
                 <div className="flex justify-between w-full mt-1">
                   {chartDatasets.labels.map((lbl) => (
-                    <span key={lbl} className="text-[0.625rem] text-slate-400 font-mono">
+                    <span key={lbl} className="text-[0.625rem] text-[var(--text-muted)] font-mono">
                       {lbl}
                     </span>
                   ))}
@@ -649,7 +649,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
             {/* Legend */}
             <div className="flex items-center justify-center gap-4 mt-2">
               {chartDatasets.series.map((s, sIdx) => (
-                <div key={s.name} className="flex items-center gap-1.5 text-[0.6875rem] font-mono text-slate-300">
+                <div key={s.name} className="flex items-center gap-1.5 text-[0.6875rem] font-mono text-[var(--text-secondary)]">
                   <span
                     className="w-2.5 h-2.5 rounded-xs"
                     style={{ backgroundColor: COLORS[sIdx % COLORS.length] }}
@@ -666,9 +666,9 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
       <div className="overflow-x-auto max-h-96">
         <table className="w-full border-collapse text-xs font-mono select-none">
           <thead>
-            <tr className={isDarkTheme ? 'bg-slate-950/80 text-slate-400' : 'bg-slate-100 text-slate-600'}>
+            <tr className={isDarkTheme ? 'bg-[var(--bg-main)]/80 text-[var(--text-muted)]' : 'bg-slate-100 text-slate-600'}>
               {/* Row index header */}
-              <th className="w-10 px-2 py-1.5 border-b border-r border-slate-800 text-center text-[0.625rem] font-bold">
+              <th className={`w-10 px-2 py-1.5 border-b border-r text-center text-[0.625rem] font-bold ${isDarkTheme ? 'border-[var(--border-structural)]' : 'border-slate-300'}`}>
                 #
               </th>
               {data.columns.map((colName, cIdx) => (
@@ -676,7 +676,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
                   key={cIdx}
                   className={`px-3 py-1.5 border-b border-r text-left font-semibold cursor-pointer group transition ${
                     isDarkTheme
-                      ? 'border-white/[0.06] text-[var(--accent-primary)] hover:bg-white/[0.04]'
+                      ? 'border-[var(--border-structural)] text-[var(--accent-primary)] hover:bg-white/[0.04]'
                       : 'border-slate-300 text-sky-700 hover:bg-slate-200'
                   }`}
                   onClick={() => {
@@ -699,7 +699,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
                 </th>
               ))}
               {!readOnly && (
-                <th className="w-12 px-2 py-1.5 border-b border-white/[0.06] text-center text-[0.625rem]">관리</th>
+                <th className={`w-12 px-2 py-1.5 border-b text-center text-[0.625rem] ${isDarkTheme ? 'border-[var(--border-structural)]' : 'border-slate-300'}`}>관리</th>
               )}
             </tr>
           </thead>
@@ -712,12 +712,12 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
                   key={r}
                   className={`border-b transition ${
                     isDarkTheme
-                      ? 'border-white/[0.04] hover:bg-white/[0.03]'
+                      ? 'border-[var(--border-structural)] hover:bg-white/[0.03]'
                       : 'border-slate-200 hover:bg-sky-50/50'
                   }`}
                 >
                   {/* Row Number (1-indexed) */}
-                  <td className="px-2 py-1 border-r border-white/[0.06] text-center text-[0.625rem] text-[var(--text-tertiary)] font-bold bg-[var(--bg-surface)]/40">
+                  <td className={`px-2 py-1 border-r text-center text-[0.625rem] font-bold ${isDarkTheme ? 'border-[var(--border-structural)] text-[var(--text-tertiary)] bg-[var(--bg-surface)]/40' : 'border-slate-200 text-slate-500 bg-slate-50'}`}>
                     {r + 1}
                   </td>
 
@@ -731,9 +731,11 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
                     return (
                       <td
                         key={c}
-                        className={`px-3 py-1.5 border-r border-white/[0.04] relative cursor-pointer ${
+                        className={`px-3 py-1.5 border-r relative cursor-pointer ${
+                          isDarkTheme ? 'border-[var(--border-structural)]' : 'border-slate-200'
+                        } ${
                           isEditing
-                            ? 'bg-[var(--accent-primary)]/10 border-2 border-[var(--accent-primary)]'
+                            ? 'bg-[var(--accent-primary)]/10 border-2 border-[var(--border-luminous)]'
                             : 'hover:outline hover:outline-1 hover:outline-[var(--accent-primary)]/40'
                         }`}
                         onClick={() => {
@@ -757,7 +759,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
                                 }
                               }}
                               onBlur={() => handleCellCommit(r, c, editingValue)}
-                              className="w-full bg-transparent text-white font-mono text-xs focus:outline-none"
+                              className={`w-full bg-transparent font-mono text-xs focus:outline-none ${isDarkTheme ? 'text-[var(--text-main)]' : 'text-slate-900'}`}
                             />
                             <Check
                               className="w-3 h-3 text-emerald-400 cursor-pointer"
@@ -773,7 +775,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
                                   : typeof displayVal === 'number'
                                   ? 'text-sky-300 font-mono'
                                   : isDarkTheme
-                                  ? 'text-slate-200'
+                                  ? 'text-[var(--text-secondary)]'
                                   : 'text-slate-800'
                               }`}
                             >
@@ -795,7 +797,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
 
                   {/* Row actions */}
                   {!readOnly && (
-                    <td className="px-1 py-1 text-center border-slate-800">
+                    <td className="px-1 py-1 text-center">
                       <button
                         type="button"
                         onClick={() => handleDeleteRow(r)}
@@ -816,7 +818,7 @@ export const InlineSpreadsheetBlock: React.FC<InlineSpreadsheetBlockProps> = ({
       {/* 5. SPREADSHEET FOOTER INFO */}
       <div
         className={`px-3 py-1.5 border-t flex items-center justify-between text-[0.625rem] font-mono select-none ${
-          isDarkTheme ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'
+          isDarkTheme ? 'bg-[var(--bg-main)] border-[var(--border-structural)] text-[var(--text-muted)]' : 'bg-slate-100 border-slate-200 text-slate-600'
         }`}
       >
         <div className="flex items-center gap-2">

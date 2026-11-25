@@ -272,12 +272,12 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
           className="local-ai-resource-monitor inline-flex items-center gap-2.5 shrink-0 select-none cursor-pointer hover:opacity-80 transition-opacity focus:outline-none"
           title={getTooltipText()}
         >
-          <Cpu className={`w-3.5 h-3.5 transition-colors ${hasWarning ? 'text-red-400' : 'text-zinc-400'}`} />
+          <Cpu className={`w-3.5 h-3.5 transition-colors ${hasWarning ? 'text-red-400' : 'text-[var(--text-muted)]'}`} />
           {/* VRAM Indicator */}
           <div className="flex items-center gap-1.5 leading-none">
-            <span className="text-[10px] font-medium text-zinc-400">VRAM</span>
+            <span className="text-[10px] font-medium text-[var(--text-muted)]">VRAM</span>
             {renderSegmentBar(vramPercent)}
-            <span className="text-[11px] font-mono font-medium text-zinc-300 min-w-[24px] text-right tabular-nums">
+            <span className="text-[11px] font-mono font-medium text-[var(--text-secondary)] min-w-[24px] text-right tabular-nums">
               {vramPercent}%
             </span>
           </div>
@@ -286,9 +286,9 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
 
           {/* CPU Indicator */}
           <div className="flex items-center gap-1.5 leading-none">
-            <span className="text-[10px] font-medium text-zinc-400">CPU</span>
+            <span className="text-[10px] font-medium text-[var(--text-muted)]">CPU</span>
             {renderSegmentBar(cpuPercent)}
-            <span className="text-[11px] font-mono font-medium text-zinc-300 min-w-[24px] text-right tabular-nums">
+            <span className="text-[11px] font-mono font-medium text-[var(--text-secondary)] min-w-[24px] text-right tabular-nums">
               {cpuPercent}%
             </span>
           </div>
@@ -308,9 +308,9 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
       >
         {/* VRAM Metric */}
         <div className="flex items-center gap-1.5 leading-none">
-          <span className="text-[10px] font-medium text-zinc-400">VRAM</span>
+          <span className="text-[10px] font-medium text-[var(--text-muted)]">VRAM</span>
           {renderSegmentBar(vramPercent)}
-          <span className="text-[11px] font-mono font-medium text-zinc-300 min-w-[24px] text-right tabular-nums">
+          <span className="text-[11px] font-mono font-medium text-[var(--text-secondary)] min-w-[24px] text-right tabular-nums">
             {vramPercent}%
           </span>
         </div>
@@ -320,9 +320,9 @@ export const LocalAiResourceMonitor: React.FC<LocalAiResourceMonitorProps> = ({
 
         {/* CPU Metric */}
         <div className="flex items-center gap-1.5 leading-none">
-          <span className="text-[10px] font-medium text-zinc-400">CPU</span>
+          <span className="text-[10px] font-medium text-[var(--text-muted)]">CPU</span>
           {renderSegmentBar(cpuPercent)}
-          <span className="text-[11px] font-mono font-medium text-zinc-300 min-w-[24px] text-right tabular-nums">
+          <span className="text-[11px] font-mono font-medium text-[var(--text-secondary)] min-w-[24px] text-right tabular-nums">
             {cpuPercent}%
           </span>
         </div>

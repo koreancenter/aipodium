@@ -310,13 +310,13 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
     >
       <div
         id="github-integration-modal-content"
-        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-lg w-full p-5 space-y-4 text-[var(--text-muted)] shadow-2xl animate-in fade-in zoom-in-95 duration-100 font-sans max-h-[90vh] overflow-y-auto"
+        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl max-w-lg w-full p-5 space-y-4 text-[var(--text-muted)] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] animate-in fade-in zoom-in-95 duration-100 font-sans max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between pb-3 border-b border-white/[0.06]">
+        <div className="flex items-start justify-between pb-3 border-b border-white/[0.07]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[var(--bg-surface)] border border-white/[0.08] flex items-center justify-center text-[var(--text-main)] shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-[var(--bg-surface)] border border-white/[0.07] flex items-center justify-center text-[var(--text-main)] shrink-0">
               <Github className="w-5 h-5" />
             </div>
             <div>
@@ -372,7 +372,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             </div>
             <div
               className={`flex items-center rounded-md bg-[var(--bg-surface)] border ${
-                repoError ? 'border-rose-500/50' : 'border-white/[0.08] focus-within:border-[var(--accent-primary)]/60'
+                repoError ? 'border-rose-500/50' : 'border-[var(--border-structural)] focus-within:border-[var(--border-luminous)]'
               } transition-colors overflow-hidden`}
             >
               <span className="pl-3 pr-1 text-xs font-mono text-[var(--text-tertiary)] select-none shrink-0">
@@ -403,7 +403,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 onChange={(e) => setBranch(e.target.value.trim())}
                 placeholder="main"
                 required
-                className="w-full bg-[var(--bg-surface)] border border-white/[0.08] focus:border-[var(--accent-primary)]/60 rounded-md px-3 py-2 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
+                className="w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] focus:border-[var(--border-luminous)] rounded-md px-3 py-2 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
               />
             </div>
 
@@ -435,7 +435,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                   onChange={(e) => setToken(e.target.value)}
                   placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
                   required
-                  className="w-full bg-[var(--bg-surface)] border border-white/[0.08] focus:border-[var(--accent-primary)]/60 rounded-md px-3 py-2 pr-9 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
+                  className="w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] focus:border-[var(--border-luminous)] rounded-md px-3 py-2 pr-9 text-xs font-mono text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] outline-none transition"
                 />
                 <button
                   type="button"
@@ -450,7 +450,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
           </div>
 
           {/* Automated Commit Message Pipeline - Clean Flat Row */}
-          <div className="py-2 border-b border-white/[0.06]">
+          <div className="py-2 border-b border-[var(--border-structural)]">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-1.5">
@@ -483,14 +483,14 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 value={customCommitMessage}
                 onChange={(e) => setCustomCommitMessage(e.target.value)}
                 placeholder="docs: update ${filename} (via AI Podium)"
-                className="w-full bg-[var(--bg-surface)] border border-white/[0.08] rounded-md px-3 py-1.5 text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] mt-2 outline-none focus:border-[var(--accent-primary)]/60 font-mono transition"
+                className="w-full bg-[var(--bg-surface)] border border-[var(--border-structural)] rounded-md px-3 py-1.5 text-xs text-[var(--text-main)] placeholder:text-[var(--text-tertiary)] mt-2 outline-none focus:border-[var(--border-luminous)] font-mono transition"
               />
             )}
           </div>
 
           {/* Direct Push of Currently Active Editor Document if connected - Flat Row */}
           {isConnected && currentActiveFile && (
-            <div className="flex items-center justify-between py-2 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between py-2 border-b border-[var(--border-structural)]">
               <div className="min-w-0 pr-2">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-medium text-[var(--text-main)]">{t.pushActive}</span>
@@ -507,7 +507,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 type="button"
                 onClick={handlePushActiveDocument}
                 disabled={isPushing || isTesting || isPulling}
-                className="px-2.5 py-1.5 rounded text-xs font-medium bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-main)] border border-white/[0.08] transition-colors inline-flex items-center justify-center shrink-0 cursor-pointer"
+                className="px-2.5 py-1.5 rounded text-xs font-medium bg-white/[0.05] hover:bg-white/[0.1] text-[var(--text-main)] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] transition-colors inline-flex items-center justify-center shrink-0 cursor-pointer"
               >
                 <span>{isPushing ? t.pushing : t.pushNow}</span>
               </button>
@@ -515,7 +515,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
           )}
 
           {/* Initial Pull Option on Connect - Clean Flat Row */}
-          <div className="flex items-center justify-between py-2 border-b border-white/[0.06]">
+          <div className="flex items-center justify-between py-2 border-b border-[var(--border-structural)]">
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-medium text-[var(--text-main)]">{t.pullOnConnect}</span>
@@ -541,7 +541,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
             <div
               className={`p-2.5 rounded-md border text-xs flex items-center gap-2 ${
                 testResult.success
-                  ? 'bg-white/[0.03] border-white/[0.08] text-[var(--text-main)]'
+                  ? 'bg-white/[0.03] border-[var(--border-structural)] text-[var(--text-main)]'
                   : 'bg-rose-950/30 border-rose-500/30 text-rose-300'
               }`}
             >
@@ -561,7 +561,7 @@ export const GithubIntegrationModal: React.FC<GithubIntegrationModalProps> = ({
                 type="button"
                 onClick={handleTestConnection}
                 disabled={isTesting || isPulling || isPushing}
-                className="px-3 py-1.5 rounded-md text-xs font-medium text-[var(--text-main)] bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] transition-colors cursor-pointer inline-flex items-center justify-center"
+                className="px-3 py-1.5 rounded-md text-xs font-medium text-[var(--text-main)] bg-white/[0.05] hover:bg-white/[0.1] border border-[var(--border-structural)] hover:border-[var(--border-luminous)] transition-colors cursor-pointer inline-flex items-center justify-center"
               >
                 <span>{isTesting ? t.testing : t.testConnection}</span>
               </button>

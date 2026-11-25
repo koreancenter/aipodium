@@ -34,7 +34,7 @@ export const GuestFeatureGateModal: React.FC<GuestFeatureGateModalProps> = ({
   const renderIcon = () => {
     switch (featureIcon) {
       case 'github':
-        return <Github className="w-6 h-6 text-slate-200" />;
+        return <Github className="w-6 h-6 text-[var(--text-main)]" />;
       case 'gdrive':
         return <HardDrive className="w-6 h-6 text-emerald-400" />;
       case 'sync':
@@ -54,7 +54,7 @@ export const GuestFeatureGateModal: React.FC<GuestFeatureGateModalProps> = ({
     >
       <div
         id="guest-feature-gate-modal-content"
-        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-white/[0.08] rounded-xl max-w-md w-full p-6 shadow-2xl text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-150 font-sans"
+        className="relative bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl max-w-md w-full p-6 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] text-[var(--text-main)] animate-in fade-in zoom-in-95 duration-150 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -70,7 +70,7 @@ export const GuestFeatureGateModal: React.FC<GuestFeatureGateModalProps> = ({
         {/* Feature Icon Header */}
         <div className="flex flex-col items-center text-center space-y-3 pt-2">
           <div className="relative">
-            <div className="w-14 h-14 rounded-xl bg-[var(--bg-surface)] border border-white/[0.06] flex items-center justify-center shadow-lg">
+            <div className="w-14 h-14 rounded-xl bg-[var(--bg-surface)] border border-white/[0.07] flex items-center justify-center shadow-lg">
               {renderIcon()}
             </div>
             <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-md bg-[var(--accent-primary)] text-[#0F172A] flex items-center justify-center font-bold text-xs shadow-md">
@@ -93,7 +93,7 @@ export const GuestFeatureGateModal: React.FC<GuestFeatureGateModalProps> = ({
         </div>
 
         {/* Benefit Callouts */}
-        <div className="my-5 p-3.5 rounded-xl bg-[var(--bg-surface)] border border-white/[0.06] space-y-2.5 text-xs text-[var(--text-muted)]">
+        <div className="my-5 p-3.5 rounded-xl bg-[var(--bg-surface)] border border-white/[0.07] space-y-2.5 text-xs text-[var(--text-muted)]">
           <div className="flex items-start gap-2.5">
             <CheckCircle2 className="w-4 h-4 text-[var(--accent-primary)] shrink-0 mt-0.5" />
             <span>
@@ -119,7 +119,7 @@ export const GuestFeatureGateModal: React.FC<GuestFeatureGateModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-1/2 h-9 flex items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs font-medium transition cursor-pointer"
+            className="w-full sm:w-1/2 h-9 flex items-center justify-center rounded-lg border border-white/[0.07] hover:border-white/[0.14] bg-white/[0.04] hover:bg-white/[0.08] text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs font-medium transition cursor-pointer"
           >
             로컬에서 계속 작업하기
           </button>
@@ -138,7 +138,7 @@ export const GuestFeatureGateModal: React.FC<GuestFeatureGateModalProps> = ({
         </div>
 
         {/* Guest Security Notice */}
-        <div className="mt-4 pt-3 border-t border-white/[0.06] text-center text-[0.625rem] text-[var(--text-muted)] flex items-center justify-center gap-1.5">
+        <div className="mt-4 pt-3 border-t border-white/[0.07] text-center text-[0.625rem] text-[var(--text-muted)] flex items-center justify-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary-accent)]" />
           <span>게스트 모드는 브라우저 로컬 스토리지에만 안전하게 저장됩니다.</span>
         </div>
