@@ -940,152 +940,97 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                             type="button"
                             data-season-option={seasonId}
                             onClick={() => setLocalPrefs((prev) => ({ ...prev, seasonTheme: seasonId }))}
-                            className={`relative group text-left rounded-lg border p-2.5 transition-colors cursor-pointer flex flex-col gap-2.5 ${
+                            className={`relative group text-left rounded-xl p-2 border cursor-pointer flex flex-col gap-2 transition-all ${
                               isSelected
-                                ? 'bg-white/[0.06] border-[var(--accent-primary)]/60'
-                                : 'bg-white/[0.02] border-white/[0.07] hover:bg-white/[0.04] hover:border-white/[0.14]'
+                                ? 'bg-white/[0.06] border-[var(--accent-primary)]/65'
+                                : 'bg-white/[0.02] border-white/[0.07] hover:bg-white/[0.04] hover:border-white/[0.15]'
                             }`}
                           >
-                            {/* Miniature 3-Pane IDE Swatch Preview with Luminous Accent Rail & High-Clarity Text */}
-                            <div
-                              className="relative w-full h-16 rounded-md overflow-hidden border flex flex-col"
-                              style={{
-                                backgroundColor: preview.bgMain,
-                                borderColor: isSelected
-                                  ? `rgba(${preview.accentRgb}, 0.45)`
-                                  : 'rgba(255, 255, 255, 0.08)',
-                              }}
-                            >
+                            {seasonId === 'auto' ? (
                               <div
-                                className="h-[1px] w-full shrink-0"
+                                className="w-full h-[68px] rounded-lg overflow-hidden relative border border-white/[0.08]"
                                 style={{
-                                  background: isSelected
-                                    ? `linear-gradient(90deg, transparent 5%, rgba(${preview.accentRgb}, 0.45) 50%, transparent 95%)`
-                                    : 'linear-gradient(90deg, transparent 5%, rgba(255, 255, 255, 0.08) 50%, transparent 95%)',
-                                }}
-                              />
-                              <div
-                                className="h-3 px-2 flex items-center justify-between border-b"
-                                style={{
-                                  backgroundColor: preview.bgMain,
-                                  borderColor: 'rgba(255, 255, 255, 0.07)',
+                                  background: 'linear-gradient(135deg, #0F1117 0%, #161B24 100%)',
                                 }}
                               >
-                                <div className="flex items-center gap-1">
+                                <div
+                                  className="absolute inset-0 pointer-events-none opacity-20"
+                                  style={{
+                                    background:
+                                      'radial-gradient(circle at 76% 76%, rgba(125, 211, 252, 0.75) 0%, rgba(244, 143, 177, 0.35) 38%, transparent 72%)',
+                                  }}
+                                />
+                                <div
+                                  className="absolute bottom-0 right-0 w-[64%] h-[58%] rounded-tl-lg pointer-events-none"
+                                  style={{
+                                    backgroundColor: '#1A1F2B',
+                                    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                                    borderLeft: '1px solid rgba(255, 255, 255, 0.05)',
+                                  }}
+                                />
+                                <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 pointer-events-none">
                                   <span
-                                    className="w-1.5 h-1.5 rounded-full"
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: '#F48FB1' }}
+                                  />
+                                  <span
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: '#2DD4BF' }}
+                                  />
+                                  <span
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: '#F5B041' }}
+                                  />
+                                  <span
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: '#7DD3FC' }}
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div
+                                className="w-full h-[68px] rounded-lg overflow-hidden relative border border-white/[0.08]"
+                                style={{
+                                  background: `linear-gradient(135deg, ${preview.bgMain} 0%, ${preview.bgEditor} 100%)`,
+                                }}
+                              >
+                                <div
+                                  className="absolute inset-0 pointer-events-none opacity-20"
+                                  style={{
+                                    background: `radial-gradient(circle at 78% 76%, ${preview.accentPrimary} 0%, transparent 68%)`,
+                                  }}
+                                />
+                                <div
+                                  className="absolute bottom-0 right-0 w-[64%] h-[58%] rounded-tl-lg pointer-events-none"
+                                  style={{
+                                    backgroundColor: preview.bgElevated,
+                                    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                                    borderLeft: '1px solid rgba(255, 255, 255, 0.05)',
+                                  }}
+                                />
+                                <div className="absolute top-2.5 left-2.5 flex items-center pointer-events-none">
+                                  <span
+                                    className="w-3 h-3 rounded-full"
                                     style={{ backgroundColor: preview.accentPrimary }}
                                   />
                                   <span
-                                    className="w-6 h-1 rounded-full"
-                                    style={{ backgroundColor: preview.textSecondary }}
-                                  />
-                                </div>
-                                <span
-                                  className="w-1.5 h-1.5 rounded-full"
-                                  style={{ backgroundColor: preview.secondaryAccent }}
-                                />
-                              </div>
-                              <div className="flex-1 flex min-h-0">
-                                <div
-                                  className="w-1/4 border-r p-1.5 flex flex-col gap-1"
-                                  style={{
-                                    backgroundColor: preview.bgSurface,
-                                    borderColor: preview.borderColor,
-                                  }}
-                                >
-                                  <div className="flex items-center gap-1">
-                                    <span
-                                      className="w-[2px] h-2 rounded-full shrink-0"
-                                      style={{
-                                        backgroundColor: preview.accentPrimary,
-                                        boxShadow: `0 0 8px rgba(${preview.accentRgb}, 0.65)`,
-                                      }}
-                                    />
-                                    <span
-                                      className="flex-1 h-1 rounded-full"
-                                      style={{ backgroundColor: preview.textMain }}
-                                    />
-                                  </div>
-                                  <span
-                                    className="w-4/5 h-1 rounded-full"
-                                    style={{ backgroundColor: preview.textMuted }}
-                                  />
-                                </div>
-                                <div
-                                  className="flex-1 p-2 flex flex-col justify-between relative"
-                                  style={{ backgroundColor: preview.bgEditor }}
-                                >
-                                  <div className="space-y-1">
-                                    <span
-                                      className="block w-2/3 h-1.5 rounded-full"
-                                      style={{ backgroundColor: preview.textMain }}
-                                    />
-                                    <span
-                                      className="block w-4/5 h-1 rounded-full"
-                                      style={{ backgroundColor: preview.textSecondary }}
-                                    />
-                                  </div>
-                                  <div className="flex items-center justify-between gap-1">
-                                    <div className="flex items-center gap-1">
-                                      <span
-                                        className="w-6 h-1 rounded-full"
-                                        style={{
-                                          backgroundColor: preview.accentPrimary,
-                                          boxShadow: `0 0 8px rgba(${preview.accentRgb}, 0.6)`,
-                                        }}
-                                      />
-                                      <span
-                                        className="w-4 h-1 rounded-full"
-                                        style={{ backgroundColor: preview.secondaryAccent }}
-                                      />
-                                    </div>
-                                    <span
-                                      className="w-3 h-1 rounded-full"
-                                      style={{ backgroundColor: preview.textTertiary }}
-                                    />
-                                  </div>
-                                </div>
-                                <div
-                                  className="w-1/5 border-l p-1.5 flex flex-col gap-1"
-                                  style={{
-                                    backgroundColor: preview.bgSurface,
-                                    borderColor: preview.borderColor,
-                                  }}
-                                >
-                                  <div className="flex items-center gap-0.5">
-                                    <span
-                                      className="w-[2px] h-1.5 rounded-full shrink-0"
-                                      style={{
-                                        backgroundColor: preview.accentPrimary,
-                                        boxShadow: `0 0 6px rgba(${preview.accentRgb}, 0.6)`,
-                                      }}
-                                    />
-                                    <span
-                                      className="flex-1 h-1 rounded-full"
-                                      style={{ backgroundColor: preview.textSecondary }}
-                                    />
-                                  </div>
-                                  <span
-                                    className="w-4/5 h-1 rounded-full"
-                                    style={{ backgroundColor: preview.textMuted }}
+                                    className="w-3 h-3 rounded-full -ml-1 ring-2"
+                                    style={{
+                                      backgroundColor: preview.secondaryAccent,
+                                      ['--tw-ring-color' as string]: preview.bgMain,
+                                    }}
                                   />
                                 </div>
                               </div>
-                            </div>
+                            )}
 
-                            <div className="space-y-0.5 min-w-0 w-full">
-                              <div className="flex items-center justify-between gap-2 min-w-0 w-full">
-                                <div className="text-xs font-medium text-[var(--text-main)] truncate min-w-0">
-                                  {meta.title}
-                                </div>
-                                {isSelected && (
-                                  <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
-                                )}
-                              </div>
-                              <p className="text-[11px] text-[var(--text-secondary)] truncate leading-snug">
-                                {meta.subtitle}
-                              </p>
+                            <div className="flex items-center justify-between px-1 gap-2 min-w-0 w-full">
+                              <span className="text-[12.5px] font-medium text-[var(--text-main)] truncate min-w-0">
+                                {meta.title}
+                              </span>
+                              {isSelected && (
+                                <Check className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
+                              )}
                             </div>
                           </button>
                         );

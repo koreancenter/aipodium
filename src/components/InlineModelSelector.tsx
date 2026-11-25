@@ -11,7 +11,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { fetchOllamaTags, DEFAULT_FALLBACK_MODELS, getModelDisplayName } from '../config/models.config';
 import { useAuth } from '../context/AuthContext';
 import {
-  appendModelIfMissing,
   getModelSelectorLabel,
   isModelSelected,
   normalizeModelId,
@@ -28,8 +27,6 @@ export interface ModelOptionItem {
   tier?: string;
   hasApiKey?: boolean;
 }
-
-export const DEFAULT_LOCAL_TAGS = ['qwen2.5:latest', 'llama3.2:latest', 'deepseek-r1:latest'];
 
 export interface InlineModelSelectorProps {
   selectedModel: string;
@@ -120,10 +117,8 @@ export const getModelDescription = (m: ModelOptionItem): string => {
 
 interface NavigableModelEntry {
   key: string;
-  type: 'model' | 'preset';
   id: string;
-  isConfigured: boolean;
-  item?: ModelOptionItem;
+  item: ModelOptionItem;
 }
 
 export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
@@ -140,7 +135,6 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
   onSelectProvider,
   onRefreshOllama,
   localEndpoint = 'http://localhost:11434',
-  onSelectDefaultLocalTag,
   apiKeys: propsApiKeys,
 }) => {
   const auth = useAuth();
@@ -148,7 +142,6 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<'all' | 'cloud' | 'local'>('all');
   const [isRefetching, setIsRefetching] = useState(false);
-  const [showUnconfigured, setShowUnconfigured] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -422,13 +415,9 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     [allResolvedModels, filterFn]
   );
 
-  // Split into available and unconfigured models
+  // Ready-to-use available models only
   const availableModels = useMemo(() => {
     return filteredModels.filter((m) => isModelAvailable(m));
-  }, [filteredModels, isModelAvailable]);
-
-  const unconfiguredModels = useMemo(() => {
-    return filteredModels.filter((m) => !isModelAvailable(m));
   }, [filteredModels, isModelAvailable]);
 
   // Tab-specific filtered available lists
@@ -452,27 +441,15 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     return remainingLocalList.filter((m) => m.id !== 'Qwen2.5-0.5B-Instruct');
   }, [remainingLocalList]);
 
-  // Tab-specific unconfigured lists
-  const tabUnconfiguredList = useMemo(() => {
-    if (selectedTab === 'cloud') {
-      return unconfiguredModels.filter((m) => m.group === 'cloud');
-    }
-    if (selectedTab === 'local') {
-      return unconfiguredModels.filter((m) => m.group === 'local');
-    }
-    return unconfiguredModels;
-  }, [unconfiguredModels, selectedTab]);
-
   const detectedOllamaModels = useMemo(() => {
     return availableChatModels.filter(
       (m) => m.group === 'local' && m.id !== 'Qwen2.5-0.5B-Instruct'
     );
   }, [availableChatModels]);
 
-  const filteredDefaultLocalTags = useMemo(() => {
-    if (!query) return DEFAULT_LOCAL_TAGS;
-    return DEFAULT_LOCAL_TAGS.filter((tag) => tag.toLowerCase().includes(query));
-  }, [query]);
+  const hasAnyConfiguredCloud = useMemo(() => {
+    return allResolvedModels.some((m) => m.group === 'cloud' && isModelAvailable(m));
+  }, [allResolvedModels, isModelAvailable]);
 
   const openSettingsPanel = useCallback(() => {
     setIsOpen(false);
@@ -495,7 +472,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
         if (tags && tags.length > 0) {
           onShowToast?.(`로컬 Ollama 모델 ${tags.length}개가 감지되었습니다.`, 'success');
         } else {
-          onShowToast?.('감지된 로컬 모델이 없습니다. 기본 프리셋 태그를 확인하세요.', 'info');
+          onShowToast?.('감지된 로컬 Ollama 모델이 없습니다.', 'info');
         }
       }
     } catch {
@@ -513,47 +490,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     await handleRefetchTags();
   };
 
-  const handleSelectDefaultTag = useCallback((tag: string) => {
-    if (onSelectDefaultLocalTag) {
-      onSelectDefaultLocalTag(tag);
-    }
-    if (onSelectProvider) {
-      onSelectProvider('local-pc');
-    }
-    if (mode === 'single') {
-      onSelectModel(tag);
-      onSelectMultiModels([tag]);
-    } else {
-      const currentSelection = selectedMultiModels.length > 0
-        ? selectedMultiModels
-        : [selectedModel];
-      const { modelIds, added } = appendModelIfMissing(currentSelection, tag);
-      if (!added) {
-        onShowToast?.(`'${tag}' 모델은 이미 선택되어 있습니다.`, 'info');
-        return;
-      }
-      onSelectMultiModels(modelIds);
-    }
-    onShowToast?.(`'${tag}' 로컬 모델이 선택되었습니다.`, 'success');
-  }, [
-    onSelectDefaultLocalTag,
-    onSelectProvider,
-    mode,
-    onSelectModel,
-    onSelectMultiModels,
-    selectedMultiModels,
-    selectedModel,
-    onShowToast,
-  ]);
-
-  const handleSelectModelItem = useCallback((m: ModelOptionItem, isConfigured: boolean) => {
-    if (!isConfigured) {
-      const vendor = m.vendor || getVendorForModel(m.id);
-      onShowToast?.(`${getVendorDisplayName(vendor)} API 키가 등록되지 않았습니다. 환경설정에서 키를 입력해주세요.`, 'warn');
-      openSettingsPanel();
-      return;
-    }
-
+  const handleSelectModelItem = useCallback((m: ModelOptionItem) => {
     if (mode === 'single') {
       onSelectModel(m.id);
       if (auth?.setDefaultModel) {
@@ -563,7 +500,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     } else {
       handleModelToggle(m.id);
     }
-  }, [mode, onSelectModel, auth, onSelectMultiModels, handleModelToggle, onShowToast, openSettingsPanel]);
+  }, [mode, onSelectModel, auth, onSelectMultiModels, handleModelToggle]);
 
   // Flat ordered list of visible interactive rows for keyboard navigation
   const navigableEntries = useMemo<NavigableModelEntry[]>(() => {
@@ -572,60 +509,45 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     if (selectedTab === 'local') {
       pinnedList
         .filter((m) => m.group === 'local')
-        .forEach((m) => entries.push({ key: `model:${m.id}`, type: 'model', id: m.id, isConfigured: true, item: m }));
-      remainingLocalList.forEach((m) =>
-        entries.push({ key: `model:${m.id}`, type: 'model', id: m.id, isConfigured: true, item: m })
+        .forEach((m) => entries.push({ key: `model:${m.id}`, id: m.id, item: m }));
+      webgpuLocalList.forEach((m) =>
+        entries.push({ key: `model:${m.id}`, id: m.id, item: m })
       );
-      if (detectedOllamaModels.length === 0) {
-        filteredDefaultLocalTags.forEach((tag) =>
-          entries.push({ key: `preset:${tag}`, type: 'preset', id: tag, isConfigured: true })
-        );
-      }
+      ollamaLocalList.forEach((m) =>
+        entries.push({ key: `model:${m.id}`, id: m.id, item: m })
+      );
     } else if (selectedTab === 'cloud') {
       pinnedList
         .filter((m) => m.group === 'cloud')
-        .forEach((m) => entries.push({ key: `model:${m.id}`, type: 'model', id: m.id, isConfigured: true, item: m }));
+        .forEach((m) => entries.push({ key: `model:${m.id}`, id: m.id, item: m }));
       remainingCloudList.forEach((m) =>
-        entries.push({ key: `model:${m.id}`, type: 'model', id: m.id, isConfigured: true, item: m })
+        entries.push({ key: `model:${m.id}`, id: m.id, item: m })
       );
     } else {
       pinnedList.forEach((m) =>
-        entries.push({ key: `model:${m.id}`, type: 'model', id: m.id, isConfigured: true, item: m })
+        entries.push({ key: `model:${m.id}`, id: m.id, item: m })
       );
       remainingCloudList.forEach((m) =>
-        entries.push({ key: `model:${m.id}`, type: 'model', id: m.id, isConfigured: true, item: m })
+        entries.push({ key: `model:${m.id}`, id: m.id, item: m })
       );
       webgpuLocalList.forEach((m) =>
-        entries.push({ key: `model:${m.id}`, type: 'model', id: m.id, isConfigured: true, item: m })
+        entries.push({ key: `model:${m.id}`, id: m.id, item: m })
       );
-      ollamaLocalList.forEach((m) =>
-        entries.push({ key: `model:${m.id}`, type: 'model', id: m.id, isConfigured: true, item: m })
-      );
-      if (detectedOllamaModels.length === 0) {
-        filteredDefaultLocalTags.forEach((tag) =>
-          entries.push({ key: `preset:${tag}`, type: 'preset', id: tag, isConfigured: true })
+      if (detectedOllamaModels.length > 0) {
+        ollamaLocalList.forEach((m) =>
+          entries.push({ key: `model:${m.id}`, id: m.id, item: m })
         );
       }
-    }
-
-    if (showUnconfigured) {
-      tabUnconfiguredList.forEach((m) =>
-        entries.push({ key: `unconfigured:${m.id}`, type: 'model', id: m.id, isConfigured: false, item: m })
-      );
     }
 
     return entries;
   }, [
     selectedTab,
     pinnedList,
-    remainingLocalList,
     remainingCloudList,
     webgpuLocalList,
     ollamaLocalList,
     detectedOllamaModels.length,
-    filteredDefaultLocalTags,
-    showUnconfigured,
-    tabUnconfiguredList,
   ]);
 
   const entryIndexByKey = useMemo(() => {
@@ -671,11 +593,8 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const target = navigableEntries[activeIndex];
-      if (!target) return;
-      if (target.type === 'preset') {
-        handleSelectDefaultTag(target.id);
-      } else if (target.item) {
-        handleSelectModelItem(target.item, target.isConfigured);
+      if (target?.item) {
+        handleSelectModelItem(target.item);
       }
     }
   };
@@ -688,26 +607,30 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     }
   };
 
-  const renderEmptyState = (message: string = '사용 가능한 AI 모델이 없습니다.') => (
-    <div className="py-8 px-3 text-center flex flex-col items-center justify-center space-y-2.5">
+  const renderEmptyState = (
+    message: string = '연결된 클라우드 모델이 없습니다',
+    showSettingsButton: boolean = true
+  ) => (
+    <div className="py-7 px-3 text-center flex flex-col items-center justify-center space-y-2.5">
       <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{message}</p>
-      <button
-        type="button"
-        onClick={openSettingsPanel}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#F1F5F9] text-[#0F172A] hover:bg-white text-xs font-medium transition-colors cursor-pointer"
-      >
-        <span>API 키 설정하기</span>
-      </button>
+      {showSettingsButton && (
+        <button
+          type="button"
+          onClick={openSettingsPanel}
+          className="px-3 py-1.5 rounded-lg bg-white/[0.07] hover:bg-white/[0.12] text-[var(--text-main)] text-xs font-medium border border-white/[0.08] transition-colors cursor-pointer"
+        >
+          API 키 등록하기
+        </button>
+      )}
     </div>
   );
 
-  // Unified 36px (h-9) single-line command row for both regular models and local presets
+  // Unified 36px (h-9) single-line command row
   function renderSingleLineRow(options: {
     rowKey: string;
     id: string;
     title: string;
     rightLabel: string | null;
-    isConfigured: boolean;
     onSelect: () => void;
     allowPin?: boolean;
   }) {
@@ -716,7 +639,6 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
       id,
       title,
       rightLabel,
-      isConfigured,
       onSelect,
       allowPin = true,
     } = options;
@@ -734,7 +656,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
           if (navIdx !== undefined) setActiveIndex(navIdx);
         }}
         onClick={onSelect}
-        className={`group h-9 px-2.5 rounded-lg flex items-center justify-between cursor-pointer transition-colors duration-150 select-none ${
+        className={`group h-9 px-3 rounded-lg flex items-center justify-between cursor-pointer transition-colors duration-150 select-none ${
           isKeyboardFocused || checked
             ? 'bg-white/[0.07]'
             : 'hover:bg-white/[0.04]'
@@ -759,18 +681,14 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
           </div>
 
           <span
-            className={`text-[12.5px] font-medium truncate ${
-              !isConfigured
-                ? 'text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]'
-                : 'text-[var(--text-main)]'
-            }`}
+            className="text-[12.5px] font-medium text-[var(--text-main)] truncate"
             title={title}
           >
             {title}
           </span>
         </div>
 
-        {/* Right: Unboxed plain-text tier/engine label + hover-revealed pin star */}
+        {/* Right: Unboxed monospace engine/tier tag + hover-revealed favorite star */}
         <div className="flex items-center gap-1.5 shrink-0 ml-2">
           {rightLabel && (
             <span className="text-[11px] font-mono text-[var(--text-tertiary)] tabular-nums">
@@ -797,35 +715,34 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
     );
   }
 
-  function renderModelRow(m: ModelOptionItem, isConfigured: boolean = true) {
+  function renderModelRow(m: ModelOptionItem) {
     return renderSingleLineRow({
-      rowKey: `${isConfigured ? 'model' : 'unconfigured'}:${m.id}`,
+      rowKey: `model:${m.id}`,
       id: m.id,
       title: m.name,
       rightLabel: getModelTierBadge(m),
-      isConfigured,
-      onSelect: () => handleSelectModelItem(m, isConfigured),
-      allowPin: isConfigured,
+      onSelect: () => handleSelectModelItem(m),
+      allowPin: true,
     });
   }
 
-  function renderLocalOllamaSection(localModels: ModelOptionItem[]) {
+  function renderLocalOllamaSection(localModels: ModelOptionItem[], showEmptyRow: boolean) {
     const hasDetected = detectedOllamaModels.length > 0;
     if (hasDetected && localModels.length === 0) return null;
-    if (!hasDetected && localModels.length === 0 && filteredDefaultLocalTags.length === 0) {
-      return null;
-    }
+    if (!hasDetected && !showEmptyRow) return null;
 
     return (
       <div className="mt-1">
-        <div className="px-2.5 pt-2.5 pb-1 flex items-center justify-between select-none">
+        <div className="px-3 pt-2.5 pb-1 flex items-center justify-between select-none">
           <span className="text-[11px] font-medium text-[var(--text-secondary)]">
             로컬 AI · Ollama
           </span>
           <div className="flex items-center gap-1.5">
-            <span className="text-[10.5px] text-[var(--text-tertiary)] tabular-nums">
-              {hasDetected ? `${detectedOllamaModels.length}개 연결됨` : '미연결 · 프리셋'}
-            </span>
+            {hasDetected && (
+              <span className="text-[10.5px] text-[var(--text-tertiary)] tabular-nums">
+                {detectedOllamaModels.length}개 연결됨
+              </span>
+            )}
             <button
               type="button"
               onClick={handleRefetchTags}
@@ -838,50 +755,42 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
           </div>
         </div>
 
-        <div className="space-y-0.5">
-          {localModels.map((m) => renderModelRow(m))}
-          {!hasDetected &&
-            filteredDefaultLocalTags.map((tag) =>
-              renderSingleLineRow({
-                rowKey: `preset:${tag}`,
-                id: tag,
-                title: tag,
-                rightLabel: 'Preset',
-                isConfigured: true,
-                onSelect: () => handleSelectDefaultTag(tag),
-                allowPin: true,
-              })
-            )}
-        </div>
-      </div>
-    );
-  }
-
-  // Render collapsible unconfigured models accordion
-  const renderUnconfiguredAccordion = () => {
-    if (tabUnconfiguredList.length === 0) return null;
-    return (
-      <div className="mt-2 pt-2 border-t border-white/[0.06]">
-        <button
-          type="button"
-          onClick={() => setShowUnconfigured((prev) => !prev)}
-          className="w-full flex items-center justify-between px-2.5 py-1.5 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer select-none rounded-lg hover:bg-white/[0.03]"
-        >
-          <span>키 설정 필요 모델 ({tabUnconfiguredList.length}개)</span>
-          <ChevronDown
-            className={`w-3 h-3 transition-transform duration-150 ${
-              showUnconfigured ? 'rotate-180 text-[var(--text-secondary)]' : ''
-            }`}
-          />
-        </button>
-        {showUnconfigured && (
-          <div className="mt-0.5 space-y-0.5">
-            {tabUnconfiguredList.map((m) => renderModelRow(m, false))}
+        {hasDetected ? (
+          <div className="space-y-0.5">
+            {localModels.map((m) => renderModelRow(m))}
+          </div>
+        ) : (
+          <div className="px-3 py-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] flex items-center justify-between gap-2">
+            <span className="text-[11.5px] text-[var(--text-tertiary)] truncate">
+              감지된 로컬 Ollama 모델 없음
+            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleRefetchTags}
+                className="inline-flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
+              >
+                <RefreshCw className={`w-2.5 h-2.5 ${isRefetching ? 'animate-spin text-[var(--accent-primary)]' : ''}`} />
+                <span>새로고침</span>
+              </button>
+              {(onOpenSettings || onOpenRoleModal) && (
+                <>
+                  <span className="text-white/15">·</span>
+                  <button
+                    type="button"
+                    onClick={openSettingsPanel}
+                    className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-colors cursor-pointer"
+                  >
+                    연결 설정
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>
     );
-  };
+  }
 
   return (
     <div className="relative inline-flex items-center gap-1 select-none overflow-visible">
@@ -919,7 +828,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
             style={{ left: `${popoverShift}px` }}
             onWheel={(e) => e.stopPropagation()}
             onKeyDown={handlePaletteKeyDown}
-            className="absolute bottom-full mb-2 z-50 w-[340px] min-w-[340px] max-w-[340px] h-[400px] max-h-[420px] flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.09] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] rounded-xl overflow-hidden text-xs font-normal before:content-[''] before:absolute before:inset-x-0 before:top-0 before:h-px before:pointer-events-none before:z-10 before:bg-gradient-to-r before:from-transparent before:via-white/15 before:to-transparent"
+            className="absolute bottom-full mb-2 z-50 w-[340px] min-w-[340px] max-w-[340px] h-auto max-h-[360px] flex flex-col bg-[var(--bg-elevated)]/95 backdrop-blur-xl border border-white/[0.09] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.85)] rounded-xl overflow-hidden text-xs font-normal before:content-[''] before:absolute before:inset-x-0 before:top-0 before:h-px before:pointer-events-none before:z-10 before:bg-gradient-to-r before:from-transparent before:via-white/15 before:to-transparent"
           >
             {/* 1. Borderless Command Search Row */}
             <div className="shrink-0 px-3.5 py-2.5 border-b border-white/[0.06] flex items-center gap-2.5">
@@ -1026,18 +935,17 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
             </div>
 
             {/* 3. Scrollable Single-Line Model List Viewport */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-0.5 custom-scrollbar bg-transparent">
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-none p-2 space-y-0.5 bg-transparent">
               {/* TAB: LOCAL ONLY */}
               {selectedTab === 'local' && (
                 <div className="space-y-0.5">
                   {pinnedList.filter((m) => m.group === 'local').map((m) => renderModelRow(m))}
                   {webgpuLocalList.map((m) => renderModelRow(m))}
-                  {renderLocalOllamaSection(ollamaLocalList)}
-                  {pinnedList.filter((m) => m.group === 'local').length === 0 &&
+                  {renderLocalOllamaSection(ollamaLocalList, !query)}
+                  {query &&
+                    pinnedList.filter((m) => m.group === 'local').length === 0 &&
                     remainingLocalList.length === 0 &&
-                    (detectedOllamaModels.length > 0 || filteredDefaultLocalTags.length === 0) &&
-                    renderEmptyState('일치하는 로컬 모델이 없습니다.')}
-                  {renderUnconfiguredAccordion()}
+                    renderEmptyState('일치하는 로컬 모델이 없습니다.', false)}
                 </div>
               )}
 
@@ -1047,8 +955,12 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                   {pinnedList.filter((m) => m.group === 'cloud').map((m) => renderModelRow(m))}
                   {remainingCloudList.map((m) => renderModelRow(m))}
                   {availableModels.filter((m) => m.group === 'cloud').length === 0 &&
-                    renderEmptyState('사용 가능한 클라우드 모델이 없습니다.')}
-                  {renderUnconfiguredAccordion()}
+                    renderEmptyState(
+                      query && hasAnyConfiguredCloud
+                        ? '일치하는 클라우드 모델이 없습니다.'
+                        : '연결된 클라우드 모델이 없습니다',
+                      !query || !hasAnyConfiguredCloud
+                    )}
                 </div>
               )}
 
@@ -1060,7 +972,7 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
 
                   {webgpuLocalList.length > 0 && (
                     <div className="mt-1">
-                      <div className="px-2.5 pt-2.5 pb-1 flex items-center justify-between select-none">
+                      <div className="px-3 pt-2.5 pb-1 flex items-center justify-between select-none">
                         <span className="text-[11px] font-medium text-[var(--text-secondary)]">
                           브라우저 내장 AI · WebGPU
                         </span>
@@ -1071,13 +983,13 @@ export const InlineModelSelector: React.FC<InlineModelSelectorProps> = ({
                     </div>
                   )}
 
-                  {renderLocalOllamaSection(ollamaLocalList)}
+                  {detectedOllamaModels.length > 0 && renderLocalOllamaSection(ollamaLocalList, false)}
 
                   {availableModels.length === 0 &&
-                    (detectedOllamaModels.length > 0 || filteredDefaultLocalTags.length === 0) &&
-                    renderEmptyState('사용 가능한 AI 모델이 없습니다.')}
-
-                  {renderUnconfiguredAccordion()}
+                    renderEmptyState(
+                      query ? '일치하는 모델이 없습니다.' : '연결된 클라우드 모델이 없습니다',
+                      !query
+                    )}
                 </div>
               )}
             </div>

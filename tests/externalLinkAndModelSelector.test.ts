@@ -165,39 +165,44 @@ test('External Link Ingestion Pipeline & Model Selector', async (t) => {
     );
   });
 
-  await t.test('Local AI default fallback tags and verification triggers', () => {
-    const DEFAULT_LOCAL_TAGS = ['qwen2.5:latest', 'llama3.2:latest', 'deepseek-r1:latest'];
-    assert.deepEqual(DEFAULT_LOCAL_TAGS, ['qwen2.5:latest', 'llama3.2:latest', 'deepseek-r1:latest']);
-
-    // When no local models are detected, fallback prompt must be shown instead of blank
-    const models: Array<{ id: string; group: 'cloud' | 'local' }> = [
-      { id: 'gemini-2.5-flash', group: 'cloud' }
-    ];
-    const detectedOllamaModels = models.filter(
-      (m) => m.group === 'local' && m.id !== 'Qwen2.5-0.5B-Instruct'
-    );
-    const shouldShowFallback = detectedOllamaModels.length === 0;
-    assert.equal(shouldShowFallback, true);
-
-    // When local models are detected, shouldShowFallback is false
-    models.push({ id: 'qwen2.5:latest', group: 'local' });
-    const detectedAfter = models.filter(
-      (m) => m.group === 'local' && m.id !== 'Qwen2.5-0.5B-Instruct'
-    );
-    assert.equal(detectedAfter.length > 0, true);
-  });
-
-  await t.test('InlineModelSelector popover fixed boundary and scrollable flex viewport', () => {
+  await t.test('Local AI omits fake preset tags and verifies empty-state detection', () => {
     const selectorFile = fs.readFileSync(
       path.resolve(process.cwd(), 'src/components/InlineModelSelector.tsx'),
       'utf-8'
     );
 
-    // Verify fixed dimensions on outer popover with matte precision command palette surface
+    assert.doesNotMatch(
+      selectorFile,
+      /DEFAULT_LOCAL_TAGS|qwen2\.5:latest|llama3\.2:latest|deepseek-r1:latest/,
+      'InlineModelSelector must not render fake preset Ollama tags'
+    );
+    assert.doesNotMatch(
+      selectorFile,
+      /renderUnconfiguredAccordion|tabUnconfiguredList|키 설정 필요 모델/,
+      'InlineModelSelector must not render unconfigured models accordion'
+    );
+    assert.ok(
+      selectorFile.includes('감지된 로컬 Ollama 모델 없음'),
+      'Local tab must show understated empty-state row when no Ollama models are detected'
+    );
+    assert.ok(
+      selectorFile.includes('연결된 클라우드 모델이 없습니다') &&
+        selectorFile.includes('API 키 등록하기'),
+      'Cloud empty state must display calm message and API key registration button'
+    );
+  });
+
+  await t.test('InlineModelSelector popover dynamic boundary, scrollbar-none, and scrollable flex viewport', () => {
+    const selectorFile = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/components/InlineModelSelector.tsx'),
+      'utf-8'
+    );
+
+    // Verify dynamic height and matte precision command palette surface
     assert.match(
       selectorFile,
-      /w-\[340px\]\s+min-w-\[340px\]\s+max-w-\[340px\]\s+h-\[400px\]\s+max-h-\[420px\]\s+flex\s+flex-col\s+bg-\[var\(--bg-elevated\)\]\/95\s+backdrop-blur-xl\s+border\s+border-white\/\[0\.09\]\s+shadow-\[0_24px_48px_-12px_rgba\(0,0,0,0\.85\)\]\s+rounded-xl\s+overflow-hidden/,
-      'Outer popover container must enforce matte precision command palette glass surface'
+      /w-\[340px\]\s+min-w-\[340px\]\s+max-w-\[340px\]\s+h-auto\s+max-h-\[360px\]\s+flex\s+flex-col\s+bg-\[var\(--bg-elevated\)\]\/95\s+backdrop-blur-xl\s+border\s+border-white\/\[0\.09\]\s+shadow-\[0_24px_48px_-12px_rgba\(0,0,0,0\.85\)\]\s+rounded-xl\s+overflow-hidden/,
+      'Outer popover container must enforce dynamic compact height and matte precision command palette glass surface'
     );
 
     // Verify borderless command search header slot
@@ -207,11 +212,11 @@ test('External Link Ingestion Pipeline & Model Selector', async (t) => {
       'Header slot must have borderless command search row with hairline divider'
     );
 
-    // Verify scrollable body viewport
+    // Verify scrollable body viewport with scrollbar-none
     assert.match(
       selectorFile,
-      /flex-1\s+min-h-0\s+overflow-y-auto\s+p-2\s+space-y-0\.5/,
-      'Body flex child must have flex-1 min-h-0 overflow-y-auto p-2 space-y-0.5'
+      /flex-1\s+min-h-0\s+overflow-y-auto\s+scrollbar-none\s+p-2\s+space-y-0\.5/,
+      'Body flex child must have flex-1 min-h-0 overflow-y-auto scrollbar-none p-2 space-y-0.5'
     );
 
     // Verify de-duplicated minimal utility footer slot

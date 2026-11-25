@@ -3,7 +3,6 @@ import {
   LuxuryModelPickerPopoverProps,
   InlineModelSelectorProps,
   ModelOptionItem,
-  DEFAULT_LOCAL_TAGS,
   getVendorForModel,
   getVendorDisplayName,
   getModelTierBadge,
@@ -17,7 +16,6 @@ export type {
 };
 
 export {
-  DEFAULT_LOCAL_TAGS,
   getVendorForModel,
   getVendorDisplayName,
   getModelTierBadge,
